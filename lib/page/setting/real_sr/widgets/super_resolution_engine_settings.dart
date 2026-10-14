@@ -1,10 +1,14 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/mimage_model_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_log_controls.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/util/coreml_model_loader.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 阅读器与全局设置共用；两个引擎各自保留模型选择。
 class SuperResolutionEngineSettings extends StatefulWidget {
@@ -75,10 +79,6 @@ class _SuperResolutionEngineSettingsState
   }
 
   /// 当前 CoreML 模型的分块（= 模型输入张量边长）说明。
-  ///
-  /// 这行原来在「图片超分」设置页上，7818d0f2 连同 CoreML 变体选择一起删了，
-  /// 只剩调试页还能看到。CoreML 的分块改不了（编译进模型），所以这里以只读
-  /// 信息的方式放回用户选模型的那一屏，而不是给一个不会照做的下拉。
   String get _coreMLBlockInfo {
     final blockSize = _variant.config['blockSize'] as int? ?? 0;
     final shrinkSize = _variant.config['shrinkSize'] as int? ?? 0;
@@ -120,17 +120,29 @@ class _SuperResolutionEngineSettingsState
     }
   }
 
+  static Glyph _engineGlyph(SuperResolutionEngine engine) => switch (engine) {
+    SuperResolutionEngine.breezeCoreML => AppGlyphs.rocket,
+    SuperResolutionEngine.mimageOnnx => AppGlyphs.memory,
+    SuperResolutionEngine.desktopNcnn => AppGlyphs.speed,
+  };
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final engineSeed = expressiveBlobSeed('sr_engine_selector');
 
     final engineCard = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: ShapeDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+        shape: ExpressiveBlobBorder(
+          seed: engineSeed,
+          progress: 0.55,
+          safeInset: 8,
+          side: BorderSide(
+            color: colorScheme.primary.withValues(alpha: 0.38),
+            width: 1.2,
+          ),
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -143,9 +155,25 @@ class _SuperResolutionEngineSettingsState
             for (final engine in availableEngines)
               DropdownMenuItem(
                 value: engine,
-                child: Text(
-                  engine.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                child: Row(
+                  children: [
+                    ExpressiveShapeBadge(
+                      icon: _engineGlyph(engine),
+                      seed: expressiveBlobSeed(engine.name),
+                      size: 26,
+                      glyphSize: 14,
+                      tone: ExpressiveTone.primary,
+                      active: engine == _engine,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        engine.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -161,33 +189,51 @@ class _SuperResolutionEngineSettingsState
     final advancedSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '预超分（当前页优先）',
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+        Row(
+          children: [
+            const ExpressiveShapeBadge(
+              icon: AppGlyphs.bolt,
+              shape: ExpressiveButtonShape.sunny,
+              size: 24,
+              glyphSize: 13,
+              tone: ExpressiveTone.secondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '预超分（当前页优先）',
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Wrap(
-          spacing: 16,
+          spacing: 12,
           runSpacing: 8,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('后续页：', style: TextStyle(fontSize: 13)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.4,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                    ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: expressiveCornerSm,
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GlyphIcon(
+                    AppGlyphs.skipNext,
+                    size: 14,
+                    color: colorScheme.primary,
                   ),
-                  child: DropdownButtonHideUnderline(
+                  const SizedBox(width: 6),
+                  Text(t.realSr.pagesAfter, style: TextStyle(fontSize: 12.5)),
+                  DropdownButtonHideUnderline(
                     child: DropdownButton<int>(
                       key: const ValueKey('sr-prefetch-forward'),
                       value: _forward,
@@ -208,25 +254,31 @@ class _SuperResolutionEngineSettingsState
                       },
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('之前页：', style: TextStyle(fontSize: 13)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.4,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                    ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: expressiveCornerSm,
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GlyphIcon(
+                    AppGlyphs.skipPrevious,
+                    size: 14,
+                    color: colorScheme.secondary,
                   ),
-                  child: DropdownButtonHideUnderline(
+                  const SizedBox(width: 6),
+                  Text(t.realSr.pagesBefore, style: TextStyle(fontSize: 12.5)),
+                  DropdownButtonHideUnderline(
                     child: DropdownButton<int>(
                       key: const ValueKey('sr-prefetch-back'),
                       value: _back,
@@ -247,12 +299,12 @@ class _SuperResolutionEngineSettingsState
                       },
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           '一次处理一页，避免争抢内存；都设为 0 可关闭预超分。',
           style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
@@ -267,10 +319,38 @@ class _SuperResolutionEngineSettingsState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!widget.isReaderCompact) ...[
-            Text('超分引擎', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-          ],
+          Row(
+            children: [
+              const ExpressiveShapeBadge(
+                icon: AppGlyphs.cpu,
+                shape: ExpressiveButtonShape.verySunny,
+                size: 28,
+                glyphSize: 15,
+                tone: ExpressiveTone.primary,
+                active: true,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '超分引擎',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              if (_engine != null)
+                ExpressiveStatusPill(
+                  text: _engine == SuperResolutionEngine.breezeCoreML
+                      ? 'Apple Neural Engine'
+                      : '硬件加速',
+                  icon: AppGlyphs.bolt,
+                  dot: false,
+                  compact: true,
+                  tone: ExpressiveTone.tertiary,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
           if (_engine == null && _error == null)
             const LinearProgressIndicator()
           else ...[
@@ -279,7 +359,7 @@ class _SuperResolutionEngineSettingsState
             Text(
               '切换后当前页自动重新处理，两套模型选择分别保留。',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11.5,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -287,25 +367,41 @@ class _SuperResolutionEngineSettingsState
             if (_engine == SuperResolutionEngine.mimageOnnx)
               const MImageModelSettings(showLogControls: false)
             else if (_engine == SuperResolutionEngine.breezeCoreML) ...[
-              Text(
-                'Rossi 原生模型',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+              Row(
+                children: [
+                  const ExpressiveShapeBadge(
+                    icon: AppGlyphs.sparkle,
+                    shape: ExpressiveButtonShape.clover4Leaf,
+                    size: 24,
+                    glyphSize: 13,
+                    tone: ExpressiveTone.secondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Rossi 原生模型',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 2,
+                  horizontal: 12,
+                  vertical: 3,
                 ),
-                decoration: BoxDecoration(
+                decoration: ShapeDecoration(
                   color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
+                    alpha: 0.65,
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  shape: ExpressiveBlobBorder(
+                    seed: expressiveBlobSeed('breeze-coreml-model'),
+                    progress: 0.55,
+                    safeInset: 8,
+                    side: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -318,13 +414,30 @@ class _SuperResolutionEngineSettingsState
                       for (final family in CoreMLModelConfig.families)
                         DropdownMenuItem(
                           value: family,
-                          child: Text(
-                            switch (family.id) {
-                              'waifu2x' => 'waifu2x · 速度优先',
-                              'realcugan' => 'Real-CUGAN · 质量优先',
-                              _ => family.label,
-                            },
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          child: Row(
+                            children: [
+                              GlyphIcon(
+                                family.id == 'waifu2x'
+                                    ? AppGlyphs.bolt
+                                    : AppGlyphs.quality,
+                                size: 16,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  switch (family.id) {
+                                    'waifu2x' => 'waifu2x · 速度优先',
+                                    'realcugan' => 'Real-CUGAN · 质量优先',
+                                    _ => family.label,
+                                  },
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -346,79 +459,86 @@ class _SuperResolutionEngineSettingsState
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.secondaryContainer.withValues(
-                        alpha: 0.7,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '原生 ${_variant.config['scale']}×',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSecondaryContainer,
-                      ),
-                    ),
+                  ExpressiveStatusPill(
+                    text: '原生 ${_variant.config['scale']}×',
+                    icon: AppGlyphs.zoomIn,
+                    dot: false,
+                    compact: true,
+                    tone: ExpressiveTone.secondary,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _variant.localizedDisplayName,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  ExpressiveStatusPill(
+                    text: _variant.localizedDisplayName,
+                    icon: AppGlyphs.layers,
+                    dot: false,
+                    compact: true,
+                    tone: ExpressiveTone.neutral,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _available
-                          ? Colors.green.withValues(alpha: 0.15)
-                          : colorScheme.errorContainer.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _available ? '已安装' : '未安装',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _available ? Colors.green : colorScheme.error,
-                      ),
-                    ),
+                  ExpressiveStatusPill(
+                    text: _available ? '已安装' : '未安装',
+                    icon: _available
+                        ? AppGlyphs.checkCircle
+                        : AppGlyphs.warning,
+                    dot: false,
+                    compact: true,
+                    tone: _available
+                        ? ExpressiveTone.primary
+                        : ExpressiveTone.warning,
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                _coreMLBlockInfo,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: 8),
+              ExpressiveTile(
+                tone: ExpressiveTone.neutral,
+                radius: expressiveCornerSm,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Swift 直接调用 Apple CoreML，复用已加载模型。',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GlyphIcon(
+                          AppGlyphs.gridPlus,
+                          size: 14,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _coreMLBlockInfo,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GlyphIcon(
+                          AppGlyphs.bolt,
+                          size: 14,
+                          color: colorScheme.tertiary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Swift 直接调用 Apple CoreML，复用已加载模型。',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               if (!_available) ...[
@@ -426,9 +546,10 @@ class _SuperResolutionEngineSettingsState
                 OutlinedButton.icon(
                   onPressed: _downloading ? null : _download,
                   icon: const GlyphIcon(AppGlyphs.download, size: 18),
-                  label: const Text('下载 Rossi 原生模型'),
+                  label: Text(t.realSr.downloadNativeModel),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
+                    shape: const StadiumBorder(),
                   ),
                 ),
               ],
@@ -459,12 +580,19 @@ class _SuperResolutionEngineSettingsState
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 dense: true,
+                leading: const ExpressiveShapeBadge(
+                  icon: AppGlyphs.sliders,
+                  shape: ExpressiveButtonShape.puffyDiamond,
+                  size: 28,
+                  glyphSize: 15,
+                  tone: ExpressiveTone.tertiary,
+                ),
                 title: Text(
                   '高级超分选项 (预超分 / 日志)',
                   style: TextStyle(
                     fontSize: 13,
                     color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 children: [advancedSection],

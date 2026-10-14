@@ -1,5 +1,6 @@
-import 'package:zephyr/page/comic_read/widgets/settings/sections/image_denoise_section.dart';
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
+import 'package:zephyr/page/comic_read/widgets/settings/sections/image_denoise_section.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
@@ -171,8 +172,8 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       const SuperResolutionEngineSettings(),
       ListTile(
         leading: const GlyphIcon(AppGlyphs.openInFull),
-        title: const Text('输出倍率'),
-        subtitle: const Text('桌面 NCNN 模型的实际倍率设置'),
+        title: Text(t.realSr.outputScale),
+        subtitle: Text(t.realSr.outputScaleSubtitle),
         trailing: FluentDropdown<RealSrScale>(
           value: _scale,
           displayValue: _scale.label,
@@ -226,15 +227,14 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                   child: ImageDenoiseSection(globalOnly: true),
                 ),
                 settingSectionTitle(context, t.realSr.autoUpscaleSection),
-                SwitchListTile(
-                  secondary: const GlyphIcon(AppGlyphs.wand),
+                SettingGroup.switchTile(
+                  leading: const GlyphIcon(AppGlyphs.wand),
                   title: Text(t.realSr.autoUpscale),
                   subtitle: Text(
                     !_isAvailable
                         ? t.realSr.autoUpscaleSubtitleUnavailable
                         : t.realSr.autoUpscaleSubtitleAvailable,
                   ),
-                  thumbIcon: kSettingSwitchThumbIcon,
                   value: _autoUpscale,
                   onChanged: _setAutoUpscale,
                 ),

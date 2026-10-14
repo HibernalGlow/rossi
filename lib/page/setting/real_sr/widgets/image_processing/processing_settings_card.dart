@@ -1,10 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_disclosure.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
-/// 裁边与降噪共用的 MD3E 分组：强调标题、色彩容器、胶囊状态与渐进高级设置。
+/// 裁边与降噪共用的 MD3E 分组：强调标题、撞色几何贴片容器、胶囊状态与渐进高级设置。
 class ProcessingSettingsCard extends StatelessWidget {
   const ProcessingSettingsCard({
     super.key,
@@ -24,74 +27,112 @@ class ProcessingSettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    return Material(
-      color: colors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(28),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: colors.primaryContainer,
-                    borderRadius: BorderRadius.circular(18),
+    final seed = expressiveBlobSeed(title);
+    final badgeShape = expressiveShapeForSeed(seed);
+    final isActive = status.contains('已开启');
+
+    return ExpressivePatchBackdrop(
+      seed: seed,
+      tone: ExpressiveTone.sunken,
+      active: isActive,
+      intensity: 1.0,
+      borderRadius: expressiveCornerLg,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    color: isActive ? colors.primary : colors.primaryContainer,
+                    shape: ExpressiveMorphBorder(
+                      from: badgeShape,
+                      to: badgeShape.pressedShape,
+                      progress: isActive ? 1.0 : 0.0,
+                    ),
                   ),
-                  child: Icon(icon, color: colors.onPrimaryContainer),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Semantics(
-              liveRegion: true,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: ShapeDecoration(
-                  color: colors.secondaryContainer,
-                  shape: const StadiumBorder(),
-                ),
-                child: Text(
-                  status,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: colors.onSecondaryContainer,
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      color: isActive
+                          ? colors.onPrimary
+                          : colors.onPrimaryContainer,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Semantics(
+            liveRegion: true,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: ShapeDecoration(
+                color: isActive
+                    ? colors.primaryContainer
+                    : colors.secondaryContainer,
+                shape: ExpressiveBlobBorder(
+                  seed: seed ^ 0x2468ace0,
+                  progress: isActive ? 0.85 : 0.35,
+                  safeInset: 7,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isActive ? Icons.check_circle_rounded : Icons.tune_rounded,
+                    size: 16,
+                    color: isActive
+                        ? colors.onPrimaryContainer
+                        : colors.onSecondaryContainer,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      status,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isActive
+                            ? colors.onPrimaryContainer
+                            : colors.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            ...children,
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
       ),
     );
   }
@@ -114,44 +155,76 @@ class _ProcessingAdvancedDisclosureState
     extends State<ProcessingAdvancedDisclosure> {
   bool _expanded = false;
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Semantics(
-        button: true,
-        expanded: _expanded,
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          minTileHeight: 56,
-          title: Text(
-            widget.title,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          trailing: AnimatedRotation(
-            turns: _expanded ? .5 : 0,
-            duration: ExpressiveMotion.duration(
-              context,
-              ExpressiveMotion.spatialDuration,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final seed = expressiveBlobSeed(widget.title);
+    final shape = expressiveShapeForSeed(seed);
+    return Column(
+      children: [
+        Semantics(
+          button: true,
+          expanded: _expanded,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            minTileHeight: 56,
+            leading: SizedBox(
+              width: 34,
+              height: 34,
+              child: DecoratedBox(
+                decoration: ShapeDecoration(
+                  color: _expanded
+                      ? colors.tertiaryContainer
+                      : colors.surfaceContainerHighest,
+                  shape: ExpressiveMorphBorder(
+                    from: shape,
+                    to: shape.pressedShape,
+                    progress: _expanded ? 1.0 : 0.0,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.tune_rounded,
+                    size: 18,
+                    color: _expanded
+                        ? colors.onTertiaryContainer
+                        : colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
             ),
-            curve: ExpressiveMotion.spatialCurve,
-            child: const Icon(Icons.expand_more),
+            title: Text(
+              widget.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            trailing: AnimatedRotation(
+              turns: _expanded ? .5 : 0,
+              duration: ExpressiveMotion.duration(
+                context,
+                ExpressiveMotion.spatialDuration,
+              ),
+              curve: ExpressiveMotion.spatialCurve,
+              child: const Icon(Icons.expand_more),
+            ),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _expanded = !_expanded);
+            },
           ),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            setState(() => _expanded = !_expanded);
-          },
         ),
-      ),
-      if (MediaQuery.disableAnimationsOf(context) ||
-          !(SettingsPresentationScope.maybeOf(context)?.animate ?? true))
-        _expanded ? widget.child : const SizedBox.shrink()
-      else
-        SettingsAnimatedCollapse(
-          isExpanded: _expanded,
-          showDivider: false,
-          child: widget.child,
-        ),
-    ],
-  );
+        if (MediaQuery.disableAnimationsOf(context) ||
+            !(SettingsPresentationScope.maybeOf(context)?.animate ?? true))
+          _expanded ? widget.child : const SizedBox.shrink()
+        else
+          SettingsAnimatedCollapse(
+            isExpanded: _expanded,
+            showDivider: false,
+            child: widget.child,
+          ),
+      ],
+    );
+  }
 }
 
 /// 滑动只更新预览值；松手后保存一次，避免逐帧触发重新检测和模型推理。
@@ -188,6 +261,8 @@ class _ProcessingSliderState extends State<ProcessingSlider> {
   @override
   Widget build(BuildContext context) {
     final value = _dragging ?? widget.value;
+    final colors = Theme.of(context).colorScheme;
+    final seed = expressiveBlobSeed(widget.title);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -196,20 +271,38 @@ class _ProcessingSliderState extends State<ProcessingSlider> {
             Expanded(
               child: Text(
                 widget.title,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              widget.labelOf(value),
-              style: Theme.of(context).textTheme.labelLarge,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: ShapeDecoration(
+                color: colors.secondaryContainer,
+                shape: ExpressiveBlobBorder(
+                  seed: seed,
+                  progress: 0.5,
+                  safeInset: 5,
+                ),
+              ),
+              child: Text(
+                widget.labelOf(value),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: colors.onSecondaryContainer,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
         if (widget.description != null)
           Text(
             widget.description!,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
         SizedBox(
           height: 56,

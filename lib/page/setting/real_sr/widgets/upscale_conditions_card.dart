@@ -1,15 +1,20 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/setting/real_sr/model/super_resolution_condition.dart';
 import 'package:zephyr/page/setting/real_sr/model/upscale_condition_import.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 // 条件条目的增删改、排序与导入导出对话框。
 part 'parts/upscale_conditions_card_crud_part.dart';
@@ -41,9 +46,6 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
   }
 
   Future<void> _load() async {
-    // 「总闸关着」这条提醒要按**当前这本书**的有效开关判：在阅读器里，书的开关
-    // 可以独立于全局（`RealSrBookScope`）；不在阅读器里（设置页那条路）没有书，
-    // 落到全局，与从前一致。
     final autoUpscale = await RealSrBookScope.enabledFor(
       RealSrBookScope.activeLocalBook,
     );
@@ -75,14 +77,12 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
     final colorScheme = theme.colorScheme;
     final enabledCount = _conditions.where((c) => c.enabled).length;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-        ),
-      ),
+    return ExpressivePatchBackdrop(
+      seed: expressiveBlobSeed('upscale_conditions_card'),
+      tone: ExpressiveTone.sunken,
+      active: _conditionalEnabled,
+      intensity: 0.9,
+      borderRadius: expressiveCornerMd,
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +90,14 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
           // 顶部主开关
           Row(
             children: [
-              const GlyphIcon(AppGlyphs.rules, size: 22),
+              ExpressiveShapeBadge(
+                icon: AppGlyphs.rules,
+                shape: ExpressiveButtonShape.cookie7Sided,
+                size: 36,
+                glyphSize: 18,
+                tone: ExpressiveTone.tertiary,
+                active: _conditionalEnabled,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -99,7 +106,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                     Text(
                       '条件超分 (neo)',
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
@@ -112,9 +119,9 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   ],
                 ),
               ),
-              Switch.adaptive(
+              M3ESwitch(
+                selectedIcon: const Icon(Icons.check, size: 16),
                 value: _conditionalEnabled,
-                activeTrackColor: colorScheme.primary,
                 onChanged: (val) async {
                   setState(() => _conditionalEnabled = val);
                   await RealSrSettings.saveConditionalEnabled(val);
@@ -129,7 +136,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: colorScheme.errorContainer.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
@@ -160,14 +167,17 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
           // 统计与折叠操作条
           Row(
             children: [
-              Text(
-                '条件列表（共 ${_conditions.length} 条，启用 $enabledCount 条）',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurfaceVariant,
+              Expanded(
+                child: Text(
+                  '条件列表（共 ${_conditions.length} 条，启用 $enabledCount 条）',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-              const Spacer(),
               TextButton.icon(
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -190,7 +200,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
 
           // 水平条件选项条
           SizedBox(
-            height: 36,
+            height: 38,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _conditions.length,
@@ -198,6 +208,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               itemBuilder: (context, index) {
                 final cond = _conditions[index];
                 final isSelected = index == _selectedIndex;
+                final seed = expressiveBlobSeed('cond-${cond.id}-${cond.name}');
                 return ChoiceChip(
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -219,10 +230,15 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   selected: isSelected,
                   visualDensity: VisualDensity.compact,
                   showCheckmark: false,
+                  shape: ExpressiveBlobBorder(
+                    seed: seed,
+                    progress: isSelected ? 1.0 : 0.2,
+                    safeInset: 7,
+                  ),
                   labelStyle: TextStyle(
                     fontSize: 11,
                     fontWeight: isSelected
-                        ? FontWeight.w600
+                        ? FontWeight.w700
                         : FontWeight.normal,
                   ),
                   onSelected: (_) {
@@ -242,7 +258,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
             children: [
               OutlinedButton.icon(
                 icon: const GlyphIcon(AppGlyphs.add, size: 14),
-                label: const Text('添加条件', style: TextStyle(fontSize: 11)),
+                label: Text(t.realSr.addCondition, style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
@@ -250,7 +266,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               ),
               OutlinedButton.icon(
                 icon: const GlyphIcon(AppGlyphs.copy, size: 14),
-                label: const Text('复制', style: TextStyle(fontSize: 11)),
+                label: Text(t.common.copy, style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
@@ -258,13 +274,13 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               ),
               IconButton.outlined(
                 icon: const GlyphIcon(AppGlyphs.arrowUp, size: 14),
-                tooltip: '上移优先级',
+                tooltip: t.realSr.raisePriority,
                 visualDensity: VisualDensity.compact,
                 onPressed: _selectedIndex > 0 ? () => _moveCondition(-1) : null,
               ),
               IconButton.outlined(
                 icon: const GlyphIcon(AppGlyphs.arrowDown, size: 14),
-                tooltip: '下移优先级',
+                tooltip: t.realSr.lowerPriority,
                 visualDensity: VisualDensity.compact,
                 onPressed: _selectedIndex < _conditions.length - 1
                     ? () => _moveCondition(1)
@@ -276,13 +292,13 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   size: 14,
                   color: colorScheme.error,
                 ),
-                tooltip: '删除条件',
+                tooltip: t.realSr.deleteCondition,
                 visualDensity: VisualDensity.compact,
                 onPressed: _conditions.length > 1 ? _removeCondition : null,
               ),
               OutlinedButton.icon(
                 icon: const GlyphIcon(AppGlyphs.arrowUp, size: 14),
-                label: const Text('导入', style: TextStyle(fontSize: 11)),
+                label: Text(t.common.import, style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
@@ -290,7 +306,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               ),
               OutlinedButton.icon(
                 icon: const GlyphIcon(AppGlyphs.download, size: 14),
-                label: const Text('导出', style: TextStyle(fontSize: 11)),
+                label: Text(t.common.export, style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
@@ -298,7 +314,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
               ),
               OutlinedButton.icon(
                 icon: const GlyphIcon(AppGlyphs.refresh, size: 14),
-                label: const Text('重置', style: TextStyle(fontSize: 11)),
+                label: Text(t.common.reset, style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),

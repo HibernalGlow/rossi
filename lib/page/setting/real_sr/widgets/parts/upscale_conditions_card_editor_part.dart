@@ -46,8 +46,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   child: TextFormField(
                     key: ValueKey('cond_name_${current.id}'),
                     initialValue: current.name,
-                    decoration: const InputDecoration(
-                      labelText: '条件名称',
+                    decoration: InputDecoration(
+                      labelText: t.realSr.conditionName,
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 10,
@@ -77,9 +77,10 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Switch.adaptive(
+                    M3ESwitch(
+                      semanticLabel: '启用此条件',
                       value: current.enabled,
-                      activeTrackColor: colorScheme.primary,
+                      selectedIcon: const Icon(Icons.check, size: 16),
                       onChanged: (val) {
                         _updateCurrentCondition(current.copyWith(enabled: val));
                       },
@@ -104,7 +105,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
               children: [
                 Expanded(
                   child: _buildNumberInput(
-                    label: '最小宽度 (px)',
+                    label: t.realSr.minWidthPx,
                     value: match.minWidth,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -119,7 +120,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildNumberInput(
-                    label: '最大宽度 (px)',
+                    label: t.realSr.maxWidthPx,
                     value: match.maxWidth,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -138,7 +139,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
               children: [
                 Expanded(
                   child: _buildNumberInput(
-                    label: '最小高度 (px)',
+                    label: t.realSr.minHeightPx,
                     value: match.minHeight,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -153,7 +154,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildNumberInput(
-                    label: '最大高度 (px)',
+                    label: t.realSr.maxHeightPx,
                     value: match.maxHeight,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -173,7 +174,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
               children: [
                 Expanded(
                   child: _buildDoubleInput(
-                    label: '最小像素 (MPx)',
+                    label: t.realSr.minPixelsMpx,
                     value: match.minMegapixels,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -188,7 +189,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildDoubleInput(
-                    label: '最大像素 (MPx)',
+                    label: t.realSr.maxPixelsMpx,
                     value: match.maxMegapixels,
                     onChanged: (v) => _updateCurrentCondition(
                       current.copyWith(
@@ -207,13 +208,13 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
             // 判定方式 SegmentedButton
             Row(
               children: [
-                const Text('尺寸匹配逻辑：', style: TextStyle(fontSize: 11)),
+                Text(t.realSr.sizeMatchLogic, style: TextStyle(fontSize: 11)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'and', label: Text('全部满足 (AND)')),
-                      ButtonSegment(value: 'or', label: Text('任一满足 (OR)')),
+                    segments: [
+                      ButtonSegment(value: 'and', label: Text(t.realSr.matchAllAnd)),
+                      ButtonSegment(value: 'or', label: Text(t.realSr.matchAnyOr)),
                     ],
                     selected: {match.dimensionMode},
                     onSelectionChanged: (set) {
@@ -233,8 +234,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
             TextFormField(
               key: ValueKey('cond_book_regex_${current.id}'),
               initialValue: match.bookPathRegex ?? '',
-              decoration: const InputDecoration(
-                labelText: '书籍路径正则 (bookPathRegex)',
+              decoration: InputDecoration(
+                labelText: t.realSr.bookPathRegex,
                 hintText: r'例: (?:^|/)02COS(?:/|$)',
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
@@ -256,8 +257,8 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
             TextFormField(
               key: ValueKey('cond_img_regex_${current.id}'),
               initialValue: match.imagePathRegex ?? '',
-              decoration: const InputDecoration(
-                labelText: '图片路径正则 (imagePathRegex)',
+              decoration: InputDecoration(
+                labelText: t.realSr.imagePathRegex,
                 hintText: r'例: ^chapter/ 或 \.webp$',
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
@@ -360,6 +361,9 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                       ),
                     ),
                   ),
+                  // 这颗留在旧控件上：M3ESwitch 没有按处取色的入口（配色只从
+                  // M3EColorScheme 解），而「跳过超分」这条要靠 errorContainer/error
+                  // 的红色跟旁边两颗普通开关区分。换过去就得整页套一份改色的 M3ETheme。
                   Switch.adaptive(
                     value: action.skip,
                     activeTrackColor: colorScheme.errorContainer,
@@ -381,7 +385,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   Expanded(
                     child: Row(
                       children: [
-                        const Text('输出倍率：', style: TextStyle(fontSize: 11)),
+                        Text(t.realSr.outputScaleLabel, style: TextStyle(fontSize: 11)),
                         const SizedBox(width: 4),
                         Expanded(
                           child: FluentDropdown<int>(
@@ -402,7 +406,7 @@ extension _UpscaleConditionsCardEditorPart on _UpscaleConditionsCardState {
                   Expanded(
                     child: Row(
                       children: [
-                        const Text('分块大小：', style: TextStyle(fontSize: 11)),
+                        Text(t.realSr.blockSizeLabel, style: TextStyle(fontSize: 11)),
                         const SizedBox(width: 4),
                         Expanded(
                           child: FluentDropdown<int>(
