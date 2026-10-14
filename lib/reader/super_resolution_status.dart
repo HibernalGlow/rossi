@@ -71,6 +71,8 @@ class SuperResolutionPageStatus {
     required this.phase,
     this.sourceSize,
     this.enhancedSize,
+    this.denoiseEnabled = false,
+    this.upscaleStageEnabled = true,
   });
 
   /// 页下标（0 起）。`-1` = 还没有当前页。
@@ -86,6 +88,11 @@ class SuperResolutionPageStatus {
 
   /// 超分产物的像素尺寸。还没产出就是 `null`。
   final Size? enhancedSize;
+  final bool denoiseEnabled;
+  final bool upscaleStageEnabled;
+
+  String get processName =>
+      denoiseEnabled ? (upscaleStageEnabled ? '降噪+超分' : 'JPEG 降噪') : '超分';
 
   /// 显示给用户的页码（1 起）。下标未知时返回 `null`。
   int? get pageNumber => index < 0 ? null : index + 1;
@@ -117,6 +124,8 @@ SuperResolutionPageStatus resolveSuperResolutionStatus({
   required SuperResolutionPagePhase? recorded,
   Size? sourceSize,
   Size? enhancedSize,
+  bool denoiseEnabled = false,
+  bool upscaleStageEnabled = true,
 }) {
   final SuperResolutionPagePhase phase;
   if (!platformSupported) {
@@ -133,7 +142,24 @@ SuperResolutionPageStatus resolveSuperResolutionStatus({
     phase: phase,
     sourceSize: sourceSize,
     enhancedSize: enhancedSize,
+    denoiseEnabled: denoiseEnabled,
+    upscaleStageEnabled: upscaleStageEnabled,
   );
+}
+
+String imageEnhancementPhaseLabel(SuperResolutionPageStatus status) {
+  if (!status.denoiseEnabled) return superResolutionPhaseLabel(status.phase);
+  return switch (status.phase) {
+    SuperResolutionPagePhase.running =>
+      status.upscaleStageEnabled ? '增强中' : '降噪中',
+    SuperResolutionPagePhase.applied =>
+      status.upscaleStageEnabled ? '已增强' : '已降噪',
+    SuperResolutionPagePhase.idle => status.upscaleStageEnabled ? '待增强' : '待降噪',
+    SuperResolutionPagePhase.failed =>
+      status.upscaleStageEnabled ? '增强失败' : '降噪失败',
+    SuperResolutionPagePhase.skipped => '无需处理',
+    _ => superResolutionPhaseLabel(status.phase),
+  };
 }
 
 /// 阶段短标签（顶栏芯片上那一两个字）。
@@ -225,21 +251,25 @@ String superResolutionTooltip(SuperResolutionPageStatus status) {
   final String? source = formatImageSize(status.sourceSize);
   final String? enhanced = formatImageSize(status.enhancedSize);
   final String sizeHint = switch ((source, enhanced)) {
-    (final String s, final String e) => '（原图 $s → 超分 $e）',
-    (null, final String e) => '（超分后 $e）',
+    (final String s, final String e) => '（原图 $s → 处理后 $e）',
+    (null, final String e) => '（处理后 $e）',
     (final String s, null) => '（原图 $s）',
     _ => '',
   };
   return switch (status.phase) {
-    SuperResolutionPagePhase.unsupported => '当前平台不支持 GPU 纹理超分',
-    SuperResolutionPagePhase.disabled => 'AI 超分已关闭，点右侧开关开启；点这里也能开启',
-    SuperResolutionPagePhase.originalPreview => '正在对比原图，点这里切回超分图$sizeHint',
-    SuperResolutionPagePhase.queued => '$page 已排队，等待超分$sizeHint',
-    SuperResolutionPagePhase.running => '$page 超分中…$sizeHint',
-    SuperResolutionPagePhase.ready => '$page 超分图已生成，等待上屏$sizeHint',
-    SuperResolutionPagePhase.applied => '$page 已使用超分图$sizeHint，点这里对比原图',
-    SuperResolutionPagePhase.skipped => '$page 已达分辨率阈值，无需超分$sizeHint',
-    SuperResolutionPagePhase.failed => '$page 超分失败，继续显示原图$sizeHint',
-    SuperResolutionPagePhase.idle => '$page 还没开始超分$sizeHint',
+    SuperResolutionPagePhase.unsupported => '当前平台不支持 GPU 纹理处理',
+    SuperResolutionPagePhase.disabled => '图像处理已关闭，可在阅读设置中打开开关',
+    SuperResolutionPagePhase.originalPreview => '正在对比原图，点这里切回处理后画面$sizeHint',
+    SuperResolutionPagePhase.queued =>
+      '$page 已排队，等待${status.processName}$sizeHint',
+    SuperResolutionPagePhase.running =>
+      '$page ${status.processName}中…$sizeHint',
+    SuperResolutionPagePhase.ready => '$page 处理后图片已生成，等待上屏$sizeHint',
+    SuperResolutionPagePhase.applied =>
+      '$page 已使用${status.processName}图片$sizeHint，点这里对比原图',
+    SuperResolutionPagePhase.skipped => '$page 无需处理$sizeHint',
+    SuperResolutionPagePhase.failed =>
+      '$page ${status.processName}失败，继续显示原图$sizeHint',
+    SuperResolutionPagePhase.idle => '$page 还没开始${status.processName}$sizeHint',
   };
 }

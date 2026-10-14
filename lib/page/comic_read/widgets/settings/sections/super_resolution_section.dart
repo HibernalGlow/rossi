@@ -5,6 +5,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
+import 'package:zephyr/page/setting/real_sr/service/image_denoise_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
@@ -12,6 +13,7 @@ import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 /// 「AI 超分辨率」这一节 —— 阅读设置面板与工作台控制面板卡片**共用的一份实现**。
 ///
@@ -31,6 +33,10 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
 
   /// 这本书最终是否超分（覆盖 ?? 全局）。本地书以呈现器的实时值为准。
   bool _bookEnabled = false;
+  bool _denoiseEnabled = false;
+  bool _globalDenoiseEnabled = false;
+  bool _denoiseModelReady = false;
+  bool _downloadingDenoise = false;
 
   /// 全局那条总闸（所有书的默认）。
   bool _globalEnabled = false;
@@ -44,6 +50,7 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
     unawaited(_load());
     // 另一处拨了同一条（顶栏芯片 / 全局设置 / 卡片）要跟着刷新，别两颗控件各说各话。
     RealSrBookScope.changes.addListener(_onScopeChanged);
+    ImageDenoiseSettings.changes.addListener(_onScopeChanged);
     // 开书 / 关书会改「本书」这颗该不该亮着 —— 卡片住在面板里，
     // 书是在另一条泳道里开的，只能靠会话中枢通知。
     ReaderSessionCoordinator.instance.addListener(_onScopeChanged);
@@ -52,6 +59,7 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
   @override
   void dispose() {
     RealSrBookScope.changes.removeListener(_onScopeChanged);
+    ImageDenoiseSettings.changes.removeListener(_onScopeChanged);
     ReaderSessionCoordinator.instance.removeListener(_onScopeChanged);
     super.dispose();
   }
@@ -71,12 +79,19 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
     try {
       final global = await RealSrSettings.loadAutoUpscale();
       final book = await RealSrBookScope.enabledFor(_bookKey);
+      final denoise = await ImageDenoiseSettings.enabledFor(_bookKey);
+      final globalDenoise = await ImageDenoiseSettings.globalEnabled();
+      final denoiseModelReady =
+          await RealSrSuperResolution.isDenoiseModelAvailable();
       final threshold = await RealSrSettings.loadResolutionThreshold();
       final modelReady = await RealSrSuperResolution.isAvailable;
       if (!mounted) return;
       setState(() {
         _globalEnabled = global;
         _bookEnabled = book;
+        _denoiseEnabled = denoise;
+        _globalDenoiseEnabled = globalDenoise;
+        _denoiseModelReady = denoiseModelReady;
         _threshold = threshold;
         _modelReady = modelReady;
         _loading = false;
@@ -94,6 +109,40 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
       final presenter = LocalReadSession.instance.presenter;
       if (presenter != null) await presenter.setUpscaleEnabled(value);
     } catch (_) {}
+  }
+
+  Future<void> _setBookMode(ImageEnhancementMode mode) async {
+    setState(() {
+      _bookEnabled = mode.usesUpscale;
+      _denoiseEnabled = mode.usesDenoise;
+    });
+    await RealSrBookScope.save(_bookKey, mode.usesUpscale);
+    await ImageDenoiseSettings.saveFor(_bookKey, mode.usesDenoise);
+    final presenter = LocalReadSession.instance.presenter;
+    if (presenter != null) {
+      await presenter.setUpscaleEnabled(mode.usesUpscale);
+      await presenter.setDenoiseEnabled(mode.usesDenoise);
+    }
+  }
+
+  Future<void> _setGlobalDenoise(bool value) async {
+    setState(() => _globalDenoiseEnabled = value);
+    await ImageDenoiseSettings.saveGlobal(value);
+  }
+
+  Future<void> _downloadDenoise() async {
+    if (_downloadingDenoise) return;
+    setState(() => _downloadingDenoise = true);
+    try {
+      await RealSrSuperResolution.downloadDenoiseModel(
+        force: _denoiseModelReady,
+      );
+      await _load();
+    } catch (error) {
+      showErrorToast('JPEG 降噪模型下载失败：$error');
+    } finally {
+      if (mounted) setState(() => _downloadingDenoise = false);
+    }
   }
 
   Future<void> _setGlobalUpscale(bool value) async {
@@ -121,6 +170,24 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
 
     Widget section() {
       final cardItems = <Widget>[
+        if (!_loading && hasBook && presenter != null && supportsMImageOnnx)
+          SettingsDropdownTile<ImageEnhancementMode>(
+            title: '本书：图像处理',
+            subtitle: _denoiseEnabled && !_denoiseModelReady
+                ? 'JPEG 降噪模型未安装'
+                : '不修改原图；降噪在超分之前运行',
+            value: ImageEnhancementMode.fromStages(
+              denoise: presenterReady
+                  ? presenter.isDenoiseEnabled
+                  : _denoiseEnabled,
+              upscale: presenterReady
+                  ? presenter.isUpscaleEnabled
+                  : _bookEnabled,
+            ),
+            values: ImageEnhancementMode.values,
+            labelOf: (mode) => mode.label,
+            onChanged: _setBookMode,
+          ),
         if (!_loading)
           SettingsSwitchTile(
             title: '本书：启用 AI 超分辨率',
@@ -152,6 +219,13 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
                 : '所有书的默认，现在关着；打开后没有单独设置的书都会跟着开',
             value: _globalEnabled,
             onChanged: _setGlobalUpscale,
+          ),
+        if (!_loading && supportsMImageOnnx)
+          SettingsSwitchTile(
+            title: '本地阅读默认：JPEG 降噪',
+            subtitle: '本地漫画的默认值；打开书后可单独覆盖',
+            value: _globalDenoiseEnabled,
+            onChanged: _setGlobalDenoise,
           ),
         if (!_loading)
           SettingsDropdownTile<RealSrResolutionThreshold>(
@@ -200,6 +274,19 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
             ),
           ],
           const UpscaleConditionsCard(isReaderCompact: true),
+          if (supportsMImageOnnx)
+            OutlinedButton.icon(
+              onPressed: _downloadingDenoise ? null : _downloadDenoise,
+              icon: const GlyphIcon(AppGlyphs.download),
+              label: Text(
+                _denoiseModelReady ? '重新下载 JPEG 降噪模型' : '下载 JPEG 降噪模型',
+              ),
+            ),
+          if (supportsMImageOnnx)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('RealPLKSR 模型由 mImageViewer 提供，许可 CC BY 4.0'),
+            ),
         ],
       );
     }
