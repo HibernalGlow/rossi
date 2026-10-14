@@ -39,6 +39,7 @@ class ShelfListToolbar extends StatefulWidget {
     required this.onKeywordChanged,
     required this.count,
     this.onExport,
+    this.presentationButton,
     this.onImport,
     this.portLabel = '导入 / 导出',
     this.timelineOn = false,
@@ -48,6 +49,7 @@ class ShelfListToolbar extends StatefulWidget {
     this.searchHint = '搜索标题 / 作者 / 来源',
   });
 
+  final Widget? presentationButton;
   final LibraryViewMode viewMode;
   final ValueChanged<LibraryViewMode> onViewMode;
   final ShelfSort sort;
@@ -173,6 +175,10 @@ class _ShelfListToolbarState extends State<ShelfListToolbar> {
                             ),
                         ],
                       ),
+                      if (widget.presentationButton != null) ...[
+                        within,
+                        widget.presentationButton!,
+                      ],
                       within,
                       ShelfMenuButton(
                         tooltip: widget.timelineOn
