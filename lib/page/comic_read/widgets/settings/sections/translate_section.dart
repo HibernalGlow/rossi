@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/page/setting/ocr/ocr_settings_body.dart';
 import 'package:zephyr/service/ocr/ocr_log.dart';
@@ -13,9 +14,11 @@ import 'package:zephyr/service/ocr/ocr_translator.dart';
 import 'package:zephyr/service/ocr/translated_page_cache.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/widgets/app_log_dialog.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 /// 阅读时真会去拨的那几颗翻译开关，加一颗按页自动译 —— 面板与卡片共用的一份实现。
 ///
@@ -31,7 +34,14 @@ import 'package:zephyr/icons/icons.dart';
 /// 见 `ocrSupportedHere`：Android / iOS 是 ADR-0018 §决定 6 的**排除项**，
 /// 不是待办 —— 那两端的 `ort` 没注册加速器 EP，识别模型还是 fp32 的 441 MB。
 class TranslateSettingsSection extends StatefulWidget {
-  const TranslateSettingsSection({super.key, this.onOpenFullSettings});
+  const TranslateSettingsSection({
+    super.key,
+    this.onOpenFullSettings,
+    this.showTitle = true,
+  });
+
+  /// `false` = 不画本节标题行（控制面板那张卡自己的标题已经是这句话）。
+  final bool showTitle;
 
   /// 非 null = 画一条「去完整设置页」的出口并调它；null = 就地展开完整设置。
   final VoidCallback? onOpenFullSettings;
@@ -205,53 +215,64 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 2,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+        ExpressivePatchBackdrop(
+          seed: expressiveBlobSeed('ocr_endpoint_full_settings'),
+          tone: endpointMissing
+              ? ExpressiveTone.warning
+              : ExpressiveTone.sunken,
+          active: expanded,
+          intensity: 0.9,
+          borderRadius: expressiveCornerMd,
+          child: ListTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 4,
             ),
-          ),
-          leading: GlyphIcon(
-            endpointMissing ? AppGlyphs.error : AppGlyphs.sliders,
-            color: endpointMissing ? colorScheme.error : colorScheme.primary,
-          ),
-          title: Text(
-            t.ocr.endpointSection,
-            style: context.theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+            leading: ExpressiveShapeBadge(
+              icon: endpointMissing ? AppGlyphs.error : AppGlyphs.sliders,
+              shape: endpointMissing
+                  ? ExpressiveButtonShape.softBurst
+                  : ExpressiveButtonShape.cookie7Sided,
+              size: 36,
+              glyphSize: 18,
+              tone: endpointMissing
+                  ? ExpressiveTone.warning
+                  : ExpressiveTone.primary,
+              active: expanded,
             ),
-          ),
-          subtitle: Text(
-            endpointMissing
-                ? '${t.ocr.notConfigured} · ${t.ocr.baseUrlHint}'
-                : '${_draft.baseUrl.isEmpty ? t.ocr.baseUrlNone : _draft.baseUrl}\n'
-                      '${_draft.model}',
-            style: context.theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+            title: Text(
+              t.ocr.endpointSection,
+              style: context.theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
+            subtitle: Text(
+              endpointMissing
+                  ? '${t.ocr.notConfigured} · ${t.ocr.baseUrlHint}'
+                  : '${_draft.baseUrl.isEmpty ? t.ocr.baseUrlNone : _draft.baseUrl}\n'
+                        '${_draft.model}',
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            trailing: GlyphIcon(
+              inline
+                  ? (expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown)
+                  : AppGlyphs.chevronForward,
+            ),
+            onTap: inline
+                ? () => setState(() => _fullExpanded = !expanded)
+                : widget.onOpenFullSettings,
           ),
-          trailing: GlyphIcon(
-            inline
-                ? (expanded ? AppGlyphs.chevronUp : AppGlyphs.chevronDown)
-                : AppGlyphs.chevronForward,
-          ),
-          onTap: inline
-              ? () => setState(() => _fullExpanded = !expanded)
-              : widget.onOpenFullSettings,
         ),
         if (inline)
           SettingsAnimatedCollapse(
             showDivider: false,
             isExpanded: expanded,
             child: const Padding(
-              padding: EdgeInsets.fromLTRB(4, 4, 4, 8),
+              padding: EdgeInsets.fromLTRB(4, 6, 4, 8),
               child: OcrSettingsBody(scrollable: false),
             ),
           ),
@@ -282,23 +303,82 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        ExpressiveHeroBanner(
+          seed: expressiveBlobSeed('translate_overview_banner'),
+          icon: AppGlyphs.translate,
+          shape: ExpressiveButtonShape.puffyDiamond,
+          tone: _autoTranslate
+              ? ExpressiveTone.primary
+              : ExpressiveTone.secondary,
+          active: _autoTranslate,
+          title: _autoTranslate ? '翻页自动翻译已开启' : '按需嵌字翻译与端侧 OCR',
+          subtitle: _draft.engine.requiresEndpoint
+              ? '当前使用云端 API 端点翻译，自动擦除原气泡并回填译文'
+              : '当前使用端侧离线翻译引擎，无需网络即可生成译文页',
+          pills: [
+            ExpressiveStatusPill(
+              text: _engineLabel(_draft.engine),
+              icon: _draft.engine.requiresEndpoint
+                  ? AppGlyphs.cloud
+                  : AppGlyphs.bolt,
+              dot: false,
+              compact: true,
+              tone: ExpressiveTone.primary,
+            ),
+            ExpressiveStatusPill(
+              text: '目标 ${_draft.targetLanguage}',
+              icon: AppGlyphs.language,
+              dot: false,
+              compact: true,
+              tone: ExpressiveTone.tertiary,
+            ),
+            ExpressiveStatusPill(
+              text: weightReady
+                  ? 'OCR 权重就绪'
+                  : '缺 ${_missingWeights.length} 项权重',
+              icon: weightReady ? AppGlyphs.checkCircle : AppGlyphs.warning,
+              dot: false,
+              compact: true,
+              tone: weightReady
+                  ? ExpressiveTone.secondary
+                  : ExpressiveTone.warning,
+            ),
+            if (_cacheCount > 0)
+              ExpressiveStatusPill(
+                text: '已缓存 $_cacheCount 页',
+                icon: AppGlyphs.box,
+                dot: false,
+                compact: true,
+                tone: ExpressiveTone.neutral,
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
         SettingsSection(
           title: t.ocr.title,
           icon: AppGlyphs.translate,
+          showTitle: widget.showTitle,
           children: [
             SettingsCardGroup(
+              seed: expressiveBlobSeed('translate_core_group'),
               children: [
                 // 翻到新的一页就自动出译文页。默认关：一页要十几秒，
                 // 打开等于把「往后每一页都得等」变成默认状态。
                 SettingsSwitchTile(
                   title: t.ocr.autoTranslatePage,
                   subtitle: t.ocr.autoTranslatePageSubtitle,
+                  icon: AppGlyphs.bolt,
+                  badgeShape: ExpressiveButtonShape.sunny,
+                  badgeTone: ExpressiveTone.primary,
                   value: _autoTranslate,
                   onChanged: _setAutoTranslate,
                 ),
                 SettingsDropdownTile<OcrTranslateEngine>(
                   title: t.ocr.engine,
                   subtitle: t.ocr.engineSubtitle,
+                  icon: AppGlyphs.rocket,
+                  badgeShape: ExpressiveButtonShape.clover4Leaf,
+                  badgeTone: ExpressiveTone.secondary,
                   value: _draft.engine,
                   values: [
                     for (final choice in OcrSettings.engineChoices)
@@ -309,6 +389,9 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
                 ),
                 SettingsDropdownTile<String>(
                   title: t.ocr.targetLanguage,
+                  icon: AppGlyphs.language,
+                  badgeShape: ExpressiveButtonShape.puffyDiamond,
+                  badgeTone: ExpressiveTone.tertiary,
                   value: _draft.targetLanguage,
                   values: <String>{
                     _draft.targetLanguage,
@@ -319,6 +402,9 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
                 SettingsDropdownTile<String>(
                   title: t.ocr.ep,
                   subtitle: t.ocr.epSubtitle,
+                  icon: AppGlyphs.cpu,
+                  badgeShape: ExpressiveButtonShape.cookie7Sided,
+                  badgeTone: ExpressiveTone.primary,
                   value: _ep,
                   values: [
                     for (final choice in OcrSettings.epChoices) choice.$1,
@@ -330,12 +416,13 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
             ),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         SettingsSection(
           title: t.ocr.modelSection,
           icon: AppGlyphs.download,
           children: [
             SettingsCardGroup(
+              seed: expressiveBlobSeed('translate_model_group'),
               children: [
                 SettingsActionTile(
                   title: weightReady
@@ -344,6 +431,12 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
                           missing: _missingWeights.join('、'),
                         ),
                   subtitle: t.ocr.clearCacheSubtitle,
+                  icon: weightReady
+                      ? AppGlyphs.checkCircle
+                      : AppGlyphs.download,
+                  badgeTone: weightReady
+                      ? ExpressiveTone.primary
+                      : ExpressiveTone.warning,
                   enabled: !_downloading,
                   trailing: _downloading
                       ? SizedBox(
@@ -356,8 +449,12 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
                             ),
                           ),
                         )
-                      : TextButton(
+                      : FilledButton.tonal(
                           onPressed: _download,
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            shape: const StadiumBorder(),
+                          ),
                           child: Text(t.ocr.download),
                         ),
                 ),
@@ -365,57 +462,80 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        SettingsSection(
-          title: t.ocr.cacheSection,
-          icon: AppGlyphs.box,
-          children: [
-            SettingsCardGroup(
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cacheSection = SettingsSection(
+              title: t.ocr.cacheSection,
+              icon: AppGlyphs.box,
               children: [
-                SettingsActionTile(
-                  title: _cacheCount > 0
-                      ? t.ocr.cacheCount(count: _cacheCount)
-                      : t.ocr.cacheEmpty,
-                  subtitle: t.ocr.clearCacheSubtitle,
-                  enabled: _cacheCount > 0,
-                  trailing: TextButton(
-                    onPressed: _cacheCount > 0 ? _clearCache : null,
-                    child: Text(t.ocr.clearCache),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        SettingsSection(
-          title: t.ocr.logSection,
-          icon: AppGlyphs.article,
-          children: [
-            SettingsCardGroup(
-              children: [
-                SettingsActionTile(
-                  title: t.ocr.viewLog,
-                  subtitle: t.ocr.logHint,
-                  trailing: TextButton(
-                    onPressed: () => showAppLogDialog(
-                      context,
-                      log: OcrLog.log,
-                      title: t.ocr.logDialogTitle,
-                      emptyText: t.ocr.logEmpty,
-                      copyLabel: t.ocr.copyLog,
-                      copiedToast: t.ocr.logCopied,
-                      openLabel: t.ocr.openLogLocation,
-                      closeLabel: t.common.close,
+                SettingsCardGroup(
+                  seed: expressiveBlobSeed('translate_cache_group'),
+                  children: [
+                    SettingsActionTile(
+                      title: _cacheCount > 0
+                          ? t.ocr.cacheCount(count: _cacheCount)
+                          : t.ocr.cacheEmpty,
+                      subtitle: t.ocr.clearCacheSubtitle,
+                      icon: AppGlyphs.box,
+                      badgeTone: ExpressiveTone.secondary,
+                      enabled: _cacheCount > 0,
+                      trailing: TextButton(
+                        onPressed: _cacheCount > 0 ? _clearCache : null,
+                        child: Text(t.ocr.clearCache),
+                      ),
                     ),
-                    child: Text(t.ocr.viewLog),
-                  ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+            final logSection = SettingsSection(
+              title: t.ocr.logSection,
+              icon: AppGlyphs.article,
+              children: [
+                SettingsCardGroup(
+                  seed: expressiveBlobSeed('translate_log_group'),
+                  children: [
+                    SettingsActionTile(
+                      title: t.ocr.viewLog,
+                      subtitle: t.ocr.logHint,
+                      icon: AppGlyphs.article,
+                      badgeTone: ExpressiveTone.tertiary,
+                      trailing: TextButton(
+                        onPressed: () => showAppLogDialog(
+                          context,
+                          log: OcrLog.log,
+                          title: t.ocr.logDialogTitle,
+                          emptyText: t.ocr.logEmpty,
+                          copyLabel: t.ocr.copyLog,
+                          copiedToast: t.ocr.logCopied,
+                          openLabel: t.ocr.openLogLocation,
+                          closeLabel: t.common.close,
+                        ),
+                        child: Text(t.ocr.viewLog),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+            if (constraints.maxWidth >= 520) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: cacheSection),
+                  const SizedBox(width: 12),
+                  Expanded(child: logSection),
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [cacheSection, const SizedBox(height: 16), logSection],
+            );
+          },
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         _fullSettingsRow(endpointMissing: endpointMissing),
       ],
     );

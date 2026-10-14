@@ -1,10 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zephyr/page/comic_read/widgets/settings/sections/auto_trim_section.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/sections/auto_trim_section.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 /// 滤镜 / 墨水屏 / 禁用动画：三颗都会让画面和原图不一样。
 ///
@@ -24,10 +27,14 @@ class ImageTuningSection extends StatelessWidget {
       children: [
         const AutoTrimSection(),
         SettingsCardGroup(
+          seed: expressiveBlobSeed('image_tuning_switches_group'),
           children: [
             SettingsSwitchTile(
               title: t.reader.disableAnimation,
               subtitle: t.reader.disableAnimationSubtitle,
+              icon: AppGlyphs.motion,
+              badgeShape: ExpressiveButtonShape.softBurst,
+              badgeTone: ExpressiveTone.tertiary,
               value: readSetting.noAnimation,
               onChanged: (value) {
                 globalSettingCubit.updateReadSetting(
@@ -38,6 +45,9 @@ class ImageTuningSection extends StatelessWidget {
             SettingsSwitchTile(
               title: t.reader.readFilter,
               subtitle: t.reader.readFilterSubtitle,
+              icon: AppGlyphs.moon,
+              badgeShape: ExpressiveButtonShape.clover4Leaf,
+              badgeTone: ExpressiveTone.primary,
               value: readSetting.readFilterEnabled,
               onChanged: (value) {
                 globalSettingCubit.updateReadSetting(
@@ -49,6 +59,7 @@ class ImageTuningSection extends StatelessWidget {
               isExpanded: readSetting.readFilterEnabled,
               child: SettingsSliderCard(
                 title: t.reader.filterIntensity,
+                icon: AppGlyphs.gradient,
                 value: readSetting.readFilterOpacityPercent.clamp(0, 100),
                 min: 0,
                 max: 100,
@@ -66,6 +77,9 @@ class ImageTuningSection extends StatelessWidget {
             SettingsSwitchTile(
               title: t.reader.einkOptimization,
               subtitle: t.reader.einkOptimizationSubtitle,
+              icon: AppGlyphs.contrast,
+              badgeShape: ExpressiveButtonShape.puffyDiamond,
+              badgeTone: ExpressiveTone.secondary,
               value: readSetting.einkOptimization,
               onChanged: (value) {
                 globalSettingCubit.updateReadSetting(
@@ -77,6 +91,7 @@ class ImageTuningSection extends StatelessWidget {
               isExpanded: readSetting.einkOptimization,
               child: SettingsSliderCard(
                 title: t.reader.einkDelay,
+                icon: AppGlyphs.hourglass,
                 value: readSetting.einkDelayMs.clamp(50, 500),
                 min: 50,
                 max: 500,

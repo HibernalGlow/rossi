@@ -62,6 +62,12 @@ class AutoTrimSettings {
 
   static Future<void> load() => _loading ??= _load();
 
+  @visibleForTesting
+  static void resetForTesting() {
+    _loading = null;
+    options.value = const AutoTrimOptions();
+  }
+
   static Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     options.value = const AutoTrimOptions().copyWith(

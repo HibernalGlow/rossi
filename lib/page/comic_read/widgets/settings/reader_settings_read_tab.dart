@@ -104,16 +104,21 @@ class _ReadModeSection extends StatelessWidget {
               icon: AppGlyphs.layoutList,
               selected: readMode == 0,
               onTap: () => selectReadMode(0),
+              autoHideText: true,
             ),
             _SettingsChoiceChip(
               title: t.reader.singlePageLtr,
+              icon: AppGlyphs.chevronForward,
               selected: readMode == 1,
               onTap: () => selectReadMode(1),
+              autoHideText: true,
             ),
             _SettingsChoiceChip(
               title: t.reader.singlePageRtl,
+              icon: AppGlyphs.chevronBack,
               selected: readMode == 2,
               onTap: () => selectReadMode(2),
+              autoHideText: true,
             ),
           ],
         ),
@@ -458,6 +463,18 @@ class _ReadExperienceSection extends StatelessWidget {
             context.updateEffectiveReadSetting(
               effective,
               (current) => current.copyWith(noAnimation: value),
+            );
+          },
+        ),
+        _SettingsSwitchTile(
+          title: t.reader.autoTrimMargins,
+          subtitle: t.reader.autoTrimMarginsSubtitle,
+          value: effective.autoTrimPageMargins,
+          onChanged: (value) {
+            HapticFeedback.selectionClick();
+            context.updateEffectiveReadSetting(
+              effective,
+              (current) => current.copyWith(autoTrimPageMargins: value),
             );
           },
         ),

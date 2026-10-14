@@ -4,9 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/image_processing/processing_example.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/image_processing/processing_settings_card.dart';
 import 'package:zephyr/reader/auto_trim_settings.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 class AutoTrimSection extends StatefulWidget {
   const AutoTrimSection({super.key});
@@ -21,26 +25,72 @@ class _AutoTrimSectionState extends State<AutoTrimSection> {
     unawaited(AutoTrimSettings.load());
   }
 
+  /// 阅读器路由下才有本漫覆盖的 cubit；工作区卡片等处没有，就只看全局。
+  ComicReadPreferenceCubit? _preferenceCubit(BuildContext context) {
+    try {
+      return context.read<ComicReadPreferenceCubit>();
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final preference = _preferenceCubit(context);
+
+    if (preference == null) return _buildCard(context, null);
+    return BlocBuilder<ComicReadPreferenceCubit, ComicReadPreferenceState>(
+      bloc: preference,
+      builder: (context, state) => _buildCard(context, state.override),
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context,
+    ({ReadSettingState setting, Set<String> keys})? override,
+  ) {
     final cubit = context.read<GlobalSettingCubit>();
-    final enabled = context
+    final global = context
         .watch<GlobalSettingCubit>()
         .state
         .readSetting
         .autoTrimPageMargins;
+    // 阅读器渲染用的是「全局 + 本漫覆盖」的生效值；开关本身仍然只改全局。
+    final effective = ComicReadPreferenceService.resolveEffective(
+      context.watch<GlobalSettingCubit>().state.readSetting,
+      override,
+    ).autoTrimPageMargins;
+    final enabled = global;
+
+    final status = effective == global
+        ? (enabled ? '已开启 · 白边和黑边自动检测' : '已关闭 · 显示完整页面')
+        : (effective ? '本书已单独开启裁边 · 全局为关闭' : '本书已单独关闭裁边 · 全局为开启，当前阅读不会裁边');
     return ValueListenableBuilder(
       valueListenable: AutoTrimSettings.options,
       builder: (context, options, _) => ProcessingSettingsCard(
         title: '自动裁边',
         icon: Icons.crop_free,
         description: '在线和本地漫画共用；阅读时放大内容区域',
-        status: enabled ? '已开启 · 白边和黑边自动检测' : '已关闭 · 显示完整页面',
+        status: status,
         children: [
-          const ProcessingExample(kind: ProcessingExampleKind.autoTrim),
+          ProcessingExample(
+            kind: ProcessingExampleKind.autoTrim,
+            enabled: effective,
+          ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('默认启用自动裁边'),
+            secondary: ExpressiveShapeBadge(
+              icon: AppGlyphs.cropFree,
+              shape: ExpressiveButtonShape.clover8Leaf,
+              size: 36,
+              glyphSize: 18,
+              tone: ExpressiveTone.primary,
+              active: enabled,
+            ),
+            title: const Text(
+              '默认启用自动裁边',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             subtitle: const Text('不修改原图；单本开关仍可在阅读设置覆盖'),
             value: enabled,
             onChanged: (value) {

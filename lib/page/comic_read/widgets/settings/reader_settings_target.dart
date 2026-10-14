@@ -108,12 +108,14 @@ class _SettingsChoiceChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final Glyph? icon;
+  final bool autoHideText;
 
   const _SettingsChoiceChip({
     required this.title,
     required this.selected,
     required this.onTap,
     this.icon,
+    this.autoHideText = false,
   });
 
   @override
@@ -122,9 +124,14 @@ class _SettingsChoiceChip extends StatelessWidget {
 }
 
 /// 互斥选项共享 Dock 的惯性 lens；窄屏改为竖轨，避免文字被截断。
+/// 支持在宽度不足时自动隐藏文字，仅显示图标以保持单行横排。
 class _SettingsChoiceGroup extends StatelessWidget {
-  const _SettingsChoiceGroup({required this.choices});
+  const _SettingsChoiceGroup({
+    required this.choices,
+    this.autoHideText,
+  });
   final List<_SettingsChoiceChip> choices;
+  final bool? autoHideText;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -140,12 +147,31 @@ class _SettingsChoiceGroup extends StatelessWidget {
           textScaler: scaler,
           textDirection: Directionality.of(context),
         )..layout();
-        final choiceWidth = painter.width + 60;
+        final choiceWidth = painter.width + scaler.scale(20) + 32;
         if (choiceWidth > naturalWidth) naturalWidth = choiceWidth;
         painter.dispose();
       }
-      // lens 槽位等宽，按最长标签决定横排容量，避免短标签挤出长标签的空间。
-      final vertical = naturalWidth * choices.length > constraints.maxWidth - 8;
+
+      final canHideText = autoHideText ?? choices.any((c) => c.autoHideText);
+      final availableWidth = constraints.maxWidth - 8;
+      final fitsWithText = naturalWidth * choices.length <= availableWidth;
+      final iconOnlyWidth = scaler.scale(20) + 28;
+      final fitsWithIconOnly = iconOnlyWidth * choices.length <= availableWidth;
+
+      final bool hideText;
+      final bool vertical;
+
+      if (fitsWithText) {
+        hideText = false;
+        vertical = false;
+      } else if (canHideText && fitsWithIconOnly) {
+        hideText = true;
+        vertical = false;
+      } else {
+        hideText = false;
+        vertical = naturalWidth * choices.length > availableWidth;
+      }
+
       final extent = (scaler.scale(20) + 32).clamp(52.0, 100.0);
       return Container(
         decoration: BoxDecoration(
@@ -166,24 +192,30 @@ class _SettingsChoiceGroup extends StatelessWidget {
               for (final choice in choices)
                 SpringLensTab(
                   semanticLabel: choice.title,
+                  tooltip: choice.title,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Center(
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           GlyphIcon(
                             choice.icon ?? _settingsGlyph(choice.title),
                             size: 20,
                           ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              choice.title,
-                              style: style,
-                              textAlign: TextAlign.center,
+                          if (!hideText) ...[
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                choice.title,
+                                style: style,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
