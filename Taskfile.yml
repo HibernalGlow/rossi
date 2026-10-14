@@ -2,10 +2,12 @@ version: '3'
 
 # 快捷启动/构建（go-task）。安装：brew install go-task
 #   task r     发布模式运行应用
-#   task dev   开发热重载循环
-#   task d     显式 debug 运行（带 Observatory/断点）
+#   task dev   日常开发：--profile（Dart AOT + Rust 走 release 那棵 cargo 树，DevTools 可连）
+#   task d     需要热重载/断点时用这个；设置页那三个调试入口与被拦的插件 uuid 也只在 debug 才出现
 #   task b     只打发布包（不运行）
 #   task rel   出 macOS 发布产物 → Breeze-macOS.dmg（本机唯一能出的平台）
+#   task apk   出本机可装的安卓 release 包（arm64，debug 私钥签名，AOT 不卡）
+#   task apkd  出安卓 debug 包（JIT，会卡；只在要断点/热重载时用）
 #   task rust  单独重编 Rust 库（修 FRB content hash 不一致时用）
 #   task a     静态检查 dart analyze lib/
 #
@@ -50,10 +52,10 @@ tasks:
       - '{{.FLUTTER}} run --release -d macos'
 
   dev:
-    desc: 开发热重载循环（默认 macOS）
+    desc: 日常开发（profile：Dart AOT + Rust release，带 DevTools，无热重载）
     cmds:
       - task: rust
-      - '{{.FLUTTER}} run -d macos'
+      - '{{.FLUTTER}} run --profile -d macos'
 
   d:
     desc: 显式 debug 运行（带 Observatory/断点，默认 macOS）
@@ -124,3 +126,16 @@ tasks:
     cmds:
       - '{{.FLUTTER}} pub get'
       - dart analyze lib/
+
+  apk:
+    desc: 出安卓 release 包（arm64，debug 私钥签名，AOT）→ build/app/outputs/flutter-apk/app-release.apk
+    # 详见 script/build_apk_local.sh 顶部：签名借用本机 debug keystore、
+    # integration_test 临时摘除再还原、dav1d 交叉库缺失时自动补、Gradle 走代理。
+    # 代理可覆盖：task apk ROSSI_GRADLE_PROXY=http://127.0.0.1:7890
+    cmds:
+      - bash script/build_apk_local.sh release
+
+  apkd:
+    desc: 出安卓 debug 包（arm64，JIT 会卡）→ build/app/outputs/flutter-apk/app-debug.apk
+    cmds:
+      - bash script/build_apk_local.sh debug
