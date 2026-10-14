@@ -9,6 +9,7 @@ export 'animated_glyph.dart';
 // 本仓新增：`AnimatedGlyph` 的带 size/color 透传版（见文件头注释）。
 export 'animated_glyph_icon.dart';
 export 'app_glyphs.dart';
+export 'package:zephyr/icons/brand_app_icon.dart';
 export 'glyph.dart';
 export 'glyph_icon.dart';
 export 'glyph_painter.dart';

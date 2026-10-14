@@ -536,18 +536,23 @@ abstract final class AppGlyphs {
     ], role: GlyphRole.line),
   ]);
 
+  /// 排序（三条递减横线）。
+  ///
+  /// 原先三条在 y 7/12/17 —— 整颗只有 10 高，而本仓中位是 15.97，
+  /// 所以它和同排的 `layoutList`（17.4）、`dashboard`（17.0）并排时明显小一圈。
+  /// 摊到 4/12/20：高 16、中心 12，长度递减的关系原样保留。
   static const sort = Glyph([
     GlyphPolyline([
-      GlyphVertex(4, 7),
-      GlyphVertex(20, 7),
+      GlyphVertex(4, 4),
+      GlyphVertex(20, 4),
     ], role: GlyphRole.line),
     GlyphPolyline([
       GlyphVertex(4, 12),
       GlyphVertex(15, 12),
     ], role: GlyphRole.line),
     GlyphPolyline([
-      GlyphVertex(4, 17),
-      GlyphVertex(10, 17),
+      GlyphVertex(4, 20),
+      GlyphVertex(10, 20),
     ], role: GlyphRole.line),
   ], matchTextDirection: true);
 
@@ -2103,26 +2108,25 @@ abstract final class AppGlyphs {
   ], matchTextDirection: true);
 
   /// 主页（文件管理器那颗「回主页」）。
+  /// 主页：屋顶与房身合成**一颗闭合五边形**，门做 detail。
+  ///
+  /// 旧稿是「^ 屋顶 + 开口 U 房身 + 门」，而门底画到 y=19、地板在 y=17.5 ——
+  /// 门从房子底下穿出两截，20px 下就是「房子长了两条腿」。
+  /// 闭合之后主体是 body，选中时能像侧栏那几颗一样自动涨成实心房子、门自动挖空
+  /// （旧稿全是 line，只能加粗）。出檐那两段横刻意不画：20px 下会和斜屋顶糊成一块。
   static const home = Glyph([
-    // 山墙
     GlyphPolyline([
-      GlyphVertex(4, 10.5, 1),
       GlyphVertex(12, 4),
-      GlyphVertex(20, 10.5, 1),
-    ], role: GlyphRole.line),
-    // 房身
+      GlyphVertex(19.4, 11.4),
+      GlyphVertex(19.4, 20, 1.6),
+      GlyphVertex(4.6, 20, 1.6),
+      GlyphVertex(4.6, 11.4),
+    ], closed: true),
     GlyphPolyline([
-      GlyphVertex(6, 9.2),
-      GlyphVertex(6, 17.5, 2),
-      GlyphVertex(18, 17.5, 2),
-      GlyphVertex(18, 9.2),
-    ], role: GlyphRole.line),
-    // 门
-    GlyphPolyline([
-      GlyphVertex(10, 19),
-      GlyphVertex(10, 13.6, 0.8),
-      GlyphVertex(14, 13.6, 0.8),
-      GlyphVertex(14, 19),
+      GlyphVertex(9.8, 20),
+      GlyphVertex(9.8, 15.6, 0.8),
+      GlyphVertex(14.2, 15.6, 0.8),
+      GlyphVertex(14.2, 20),
     ], role: GlyphRole.detail),
   ]);
 
@@ -2347,6 +2351,35 @@ abstract final class AppGlyphs {
     ], closed: true),
     GlyphBox(4.8, 5.6, 7, 18.4, 1),
   ]);
+
+  /// 快进（双 V，即 `»`）。与 `skipNext`（跳章节：三角 + 竖条）分得开 ——
+  /// 原先 seek / frame-step / speed 全挤在 skip 那两颗上，动作列表里四行同一个图标。
+  static const seekForward = Glyph([
+    GlyphPolyline([
+      GlyphVertex(6.3, 6.6),
+      GlyphVertex(11.7, 12, 0.4),
+      GlyphVertex(6.3, 17.4),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(12.3, 6.6),
+      GlyphVertex(17.7, 12, 0.4),
+      GlyphVertex(12.3, 17.4),
+    ], role: GlyphRole.line),
+  ], matchTextDirection: true);
+
+  /// 快退（[seekForward] 的水平镜像，即 `«`）。
+  static const seekBackward = Glyph([
+    GlyphPolyline([
+      GlyphVertex(17.7, 6.6),
+      GlyphVertex(12.3, 12, 0.4),
+      GlyphVertex(17.7, 17.4),
+    ], role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(11.7, 6.6),
+      GlyphVertex(6.3, 12, 0.4),
+      GlyphVertex(11.7, 17.4),
+    ], role: GlyphRole.line),
+  ], matchTextDirection: true);
 
   /// 全屏（四角外扩）。
   static const fullscreen = Glyph([
@@ -2894,7 +2927,12 @@ abstract final class AppGlyphs {
     ], role: GlyphRole.line),
   ]);
 
-  /// 下载中（托盘 + 箭头 + 一段环）。
+  /// 下载中（托盘 + 箭头 + 托盘里一根「已经收进来」的横杠）。
+  ///
+  /// 原先多画了一段弧，两处不对：弧的末端悬在托盘当中（看着像画坏了），而这一态
+  /// 在 `comic_download_badge.dart` 外面**本来就套了一圈 `CircularProgressIndicator`**，
+  /// 两个环叠在一起。所以「进行中」改由「托盘里已经有东西」来表达，
+  /// 与 `download`（空托盘）、`downloadDone`（托盘 + 勾）在三颗上都分得开。
   static const downloading = Glyph([
     GlyphPolyline([
       GlyphVertex(4.5, 15.5),
@@ -2903,15 +2941,18 @@ abstract final class AppGlyphs {
       GlyphVertex(19.5, 15.5),
     ], role: GlyphRole.line),
     GlyphPolyline([
-      GlyphVertex(12, 5.4),
-      GlyphVertex(12, 12.6),
+      GlyphVertex(12, 3.8),
+      GlyphVertex(12, 14.2),
     ], role: GlyphRole.line),
     GlyphPolyline([
-      GlyphVertex(8.9, 9.7),
-      GlyphVertex(12, 12.8, 0.5),
-      GlyphVertex(15.1, 9.7),
+      GlyphVertex(8.2, 10.6),
+      GlyphVertex(12, 14.4, 0.5),
+      GlyphVertex(15.8, 10.6),
     ], role: GlyphRole.line),
-    GlyphArc(12, 9, 7.6, math.pi * 0.62, math.pi * 0.5, role: GlyphRole.line),
+    GlyphPolyline([
+      GlyphVertex(8.2, 16.9),
+      GlyphVertex(15.8, 16.9),
+    ], role: GlyphRole.detail),
   ]);
 
   /// 仪表盘加号（自定义布局面板）。
@@ -3314,20 +3355,25 @@ abstract final class AppGlyphs {
     ], closed: true),
   ]);
 
-  /// 渐变（框内下半斜纹）。
+  /// 渐变（框内斜纹）。
+  ///
+  /// 旧稿两处不一致：框只有 14 高（本仓 199 颗非 Path 图标的中位是 15.97，
+  /// 所以它在同排里矮一截），而三条斜纹的端点离框边只有 **0.42** —— 1.8 的描边下
+  /// 和框糊成一块实心，这就是它比邻居「重」的原因。
+  /// 现在框抬到 y 4..20（高 16、中心 12），斜纹递短，件间最小净距 2.30 > 描边宽。
   static const gradient = Glyph([
-    GlyphBox(3.5, 5, 20.5, 19, 2.5),
+    GlyphBox(3.5, 4, 20.5, 20, 2.5),
     GlyphPolyline([
-      GlyphVertex(5.6, 18.6),
-      GlyphVertex(11.2, 13),
+      GlyphVertex(6, 17.4),
+      GlyphVertex(11.4, 12),
     ], role: GlyphRole.detail),
     GlyphPolyline([
-      GlyphVertex(10, 18.6),
-      GlyphVertex(15.6, 13),
+      GlyphVertex(10.6, 17.4),
+      GlyphVertex(16, 12),
     ], role: GlyphRole.detail),
     GlyphPolyline([
-      GlyphVertex(14.4, 18.6),
-      GlyphVertex(20, 13),
+      GlyphVertex(15.2, 17.4),
+      GlyphVertex(18.2, 14.4),
     ], role: GlyphRole.detail),
   ]);
 

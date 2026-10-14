@@ -53,15 +53,14 @@ class PluginIcon extends StatelessWidget {
   }
 }
 
-/// 插件**没给图标**时按名字生成的那一枚：底色是插件 id 哈希出的色相，
-/// 字面是插件名缩写。
+/// 插件**没给图标**时按名字生成的 MD3 Expressive 语义容器徽标。
 ///
-/// 为什么要有这东西：不少图源压根没有 `iconUrl`，于是发现页一排卡片全是同一枚
-/// 拼图占位图 —— 而发现页的标签条要靠图标区分插件，占位图在这里等于没有信息。
-/// 生成图标不需要任何插件配合，且同一个插件每次都是同一枚。
-///
-/// 颜色只借主题的 `primary` 换色相：饱和度与亮度留在主题的口径里，
-/// 换主题（含动态取色 / AMOLED）它跟着走，不会变成一坨与界面无关的彩虹。
+/// 不再使用任意色相旋转产生高饱和荧光绿/黄（在暗色主题下与浅色文字发生撞色导致不可读），
+/// 而是由 [hueOfSeed] 在当前主题的 `primaryContainer`、`secondaryContainer`、
+/// `tertiaryContainer` 三组 M3 语义容器对之间连续插值：
+/// - 同一插件种子在所有位置保持稳定配色；
+/// - 颜色完全收敛在全局 MD3E 调色板内，随动态取色、种子色与明暗模式实时联动；
+/// - 底色与前景色始终处于同一语义容器对比档，深浅模式下均具备高对比度可读性。
 class GeneratedPluginIcon extends StatelessWidget {
   const GeneratedPluginIcon({
     super.key,
@@ -75,15 +74,34 @@ class GeneratedPluginIcon extends StatelessWidget {
   /// 插件显示名，缩写取它。为空时落到一个「?」。
   final String name;
 
+  /// 按种子从主题的三组 M3 容器角色对中连续插值出（底色, 前景色）。
+  static ({Color background, Color foreground}) tonalPairOfSeed(
+    ColorScheme scheme,
+    String seed,
+  ) {
+    final normalized = (hueOfSeed(seed) % 360.0) / 360.0;
+    final scaled = normalized * 3.0;
+    final sector = scaled.floor() % 3;
+    final t = scaled - scaled.floor();
+
+    final pairs = <({Color bg, Color fg})>[
+      (bg: scheme.primaryContainer, fg: scheme.onPrimaryContainer),
+      (bg: scheme.secondaryContainer, fg: scheme.onSecondaryContainer),
+      (bg: scheme.tertiaryContainer, fg: scheme.onTertiaryContainer),
+    ];
+
+    final from = pairs[sector];
+    final to = pairs[(sector + 1) % 3];
+    return (
+      background: Color.lerp(from.bg, to.bg, t) ?? from.bg,
+      foreground: Color.lerp(from.fg, to.fg, t) ?? from.fg,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final base = HSLColor.fromColor(
-      scheme.primary,
-    ).withHue(hueOfSeed(seed)).toColor();
-    final foreground = base.computeLuminance() > 0.45
-        ? scheme.onSurface
-        : scheme.onPrimary;
+    final (:background, :foreground) = tonalPairOfSeed(scheme, seed);
     final short = pluginShortName(name);
 
     return LayoutBuilder(
@@ -96,12 +114,18 @@ class GeneratedPluginIcon extends StatelessWidget {
         final label = short.isEmpty
             ? '?'
             : String.fromCharCodes(short.runes.take(units));
+        final radius = (box * 0.28).clamp(3.0, 16.0);
+
         return Container(
-          decoration: BoxDecoration(
-            color: base,
-            // 与调用方那枚 ClipRRect(12) 同比例缩：标签条上 14px 的图标
-            // 用 12 的圆角就成了一个圆。
-            borderRadius: BorderRadius.circular((box * 0.25).clamp(2.0, 12.0)),
+          decoration: ShapeDecoration(
+            color: background,
+            shape: RoundedSuperellipseBorder(
+              borderRadius: BorderRadius.circular(radius),
+              side: BorderSide(
+                color: foreground.withValues(alpha: 0.16),
+                width: box >= 32 ? 1.0 : 0.5,
+              ),
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -110,9 +134,10 @@ class GeneratedPluginIcon extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: foreground,
-              fontSize: box * (units == 1 ? 0.5 : 0.32),
-              fontWeight: FontWeight.w600,
-              height: 1.1,
+              fontSize: box * (units == 1 ? 0.48 : 0.33),
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+              height: 1.05,
             ),
           ),
         );
