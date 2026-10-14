@@ -27,6 +27,7 @@ abstract final class LibraryPresentationPreferences {
         LibraryCoverTapAction.values.any(
           (action) => action.name == json['coverTapAction'],
         ) ||
+        LibraryGapFill.values.any((mode) => mode.name == json['gapFill']) ||
         defaults.entries.any((entry) {
           final value = json[entry.key];
           return switch (entry.value) {
@@ -106,6 +107,11 @@ abstract final class LibraryPresentationPreferences {
     json['signalWeights'] = {
       for (final key in presentation.signalWeights.keys.toList()..sort())
         key: presentation.signalWeights[key]!,
+    };
+    // 单项开关的 Map 同样按 id 排序，插入顺序不能影响合并结果。
+    json['gapWidgets'] = {
+      for (final key in presentation.gapWidgets.keys.toList()..sort())
+        key: presentation.gapWidgets[key]!,
     };
     return json;
   }

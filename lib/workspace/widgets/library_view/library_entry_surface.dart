@@ -22,6 +22,7 @@ class LibraryEntrySurface extends StatelessWidget {
     required this.entry,
     this.onTap,
     this.onDoubleTap,
+    this.onLongPress,
     this.wrapTitle = false,
   });
 
@@ -29,6 +30,7 @@ class LibraryEntrySurface extends StatelessWidget {
   final LibraryEntry entry;
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
+  final VoidCallback? onLongPress;
 
   /// 封面网格的标题是否换行铺满（而不是截成两行加省略号）。
   ///
@@ -198,6 +200,7 @@ class LibraryEntrySurface extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: Container(
         constraints: BoxConstraints(minHeight: geometry.rowMinHeight ?? 34),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -238,6 +241,7 @@ class LibraryEntrySurface extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
@@ -307,6 +311,7 @@ class LibraryEntrySurface extends StatelessWidget {
       borderRadius: BorderRadius.circular(_cardRadius),
       onTap: onTap,
       onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: _cardDecoration(context),
         clipBehavior: Clip.antiAlias,
@@ -384,6 +389,7 @@ class LibraryEntrySurface extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: Container(
         height: geometry.rowHeight ?? 36,
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -451,6 +457,7 @@ class LibraryEntrySurface extends StatelessWidget {
         borderRadius: BorderRadius.circular(_cardRadius),
         onTap: onTap,
         onDoubleTap: onDoubleTap,
+        onLongPress: onLongPress,
         child: Container(
           decoration: _cardDecoration(context),
           clipBehavior: Clip.antiAlias,
@@ -539,6 +546,7 @@ class LibraryEntrySurface extends StatelessWidget {
       borderRadius: BorderRadius.circular(7),
       onTap: onTap,
       onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: _cardDecoration(context, radius: 7),
         clipBehavior: Clip.antiAlias,

@@ -14,12 +14,16 @@ class LibraryBookDetails extends StatelessWidget {
     required this.from,
     required this.onClose,
     this.type = ComicEntryType.normal,
+    this.collectionTargetId,
+    this.collectionTargetName,
   });
   final LibraryEntry entry;
   final String comicId;
   final String from;
   final ComicEntryType type;
   final VoidCallback onClose;
+  final String? collectionTargetId;
+  final String? collectionTargetName;
 
   @override
   Widget build(BuildContext context) => isLocalComicSource(from, comicId)
@@ -35,5 +39,7 @@ class LibraryBookDetails extends StatelessWidget {
           from: from,
           type: type,
           onClose: onClose,
+          collectionTargetId: collectionTargetId,
+          collectionTargetName: collectionTargetName,
         );
 }

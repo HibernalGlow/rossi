@@ -61,7 +61,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.text('(碧蓝航线 · 塔什干) [Mimmi] [DJAWA Photo]'), findsOneWidget);
-      expect(find.text('本地 · P.14'), findsOneWidget);
+      expect(find.textContaining('本地 · P.14'), findsOneWidget);
       final cover = tester.getRect(find.byKey(const ValueKey('cover')));
       final read = find.descendant(
         of: find.byType(ComicReadButton),

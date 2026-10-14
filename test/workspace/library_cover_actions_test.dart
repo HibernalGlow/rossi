@@ -73,6 +73,107 @@ void main() {
     });
   }
 
+  testWidgets('宽卡保留完整图片与正常标题字号，直接展示真实标签', (tester) async {
+    final mediaFits = <BoxFit>[];
+    final widths = <double>[];
+    final entry = LibraryEntry(
+      key: 'integrated',
+      title: '很长的作品标题包含画师和系列以及卷号',
+      tags: const ['冒险', '全彩', '汉化'],
+      media:
+          (
+            _, {
+            required width,
+            required height,
+            required radius,
+            required fit,
+          }) {
+            mediaFits.add(fit);
+            widths.add(width);
+            return SizedBox(
+              width: width,
+              height: height,
+              child: const ColoredBox(color: Colors.teal),
+            );
+          },
+    );
+    Future<TextStyle?> render(double width, bool wide) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: width,
+                height: 270,
+                child: LibraryEditorialTile(
+                  entry: entry,
+                  wide: wide,
+                  spotlight: wide,
+                  onTap: () {},
+                  onInfo: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return tester.widget<Text>(find.text(entry.title)).style;
+    }
+
+    final narrow = await render(160, false);
+    final expanded = await render(500, true);
+    expect(narrow!.fontSize, expanded!.fontSize);
+    expect(mediaFits, everyElement(BoxFit.contain));
+    expect(widths.last, 500);
+    expect(find.text('冒险 · 全彩 · 汉化'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final ratio in [2.0, 1.0, .55]) {
+    testWidgets('原图比例 $ratio 等比适配，完整显示且无强制竖框', (tester) async {
+      Size? requested;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 500,
+                height: 270,
+                child: LibraryEditorialTile(
+                  onTap: () {},
+                  wide: true,
+                  mediaAspectRatio: ratio,
+                  entry: LibraryEntry(
+                    key: 'ratio',
+                    title: '原图',
+                    media:
+                        (
+                          _, {
+                          required width,
+                          required height,
+                          required radius,
+                          required fit,
+                        }) {
+                          requested = Size(width, height);
+                          expect(fit, BoxFit.contain);
+                          return SizedBox(width: width, height: height);
+                        },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(requested!.aspectRatio, closeTo(ratio, .001));
+      expect(requested!.width, lessThanOrEqualTo(500));
+      expect(requested!.height, lessThanOrEqualTo(270));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('已有标题的首页封面不再增加第二份标题或底部栏', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

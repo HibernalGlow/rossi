@@ -42,9 +42,12 @@ class LibraryEntry {
     required this.key,
     required this.title,
     this.subtitle,
+    this.description,
     this.tertiary,
     this.metaText,
     this.media,
+    this.mediaIncludesTitle = false,
+    this.tags = const [],
     this.badge,
     this.thumbModes = const {
       LibraryViewMode.coverList,
@@ -57,7 +60,17 @@ class LibraryEntry {
     this.overlayText,
     this.trailing,
     this.onRead,
+    this.onLongPress,
     this.source,
+    this.section,
+    this.timestamp,
+    this.itemCount,
+    this.byteSize,
+    this.progress,
+    this.reading,
+    this.preserveMedia = false,
+    this.mediaAspectRatio,
+    this.weightSignals = const {},
   });
 
   /// 列表项的稳定标识（ObjectBox 用 uniqueKey，文件用 path）。
@@ -67,10 +80,21 @@ class LibraryEntry {
   /// 文件管理器要拿回 `FileManagerEntry` 才能开档案，书签要拿回
   /// `UnifiedComicFavorite` 才能跳详情。
   final Object? source;
+
+  /// 展墙的语义分组与度量；未知统计为 null，不能用子项预览数量冒充总数。
+  final String? section;
+  final DateTime? timestamp;
+  final int? itemCount;
+  final double? byteSize;
+  final double? progress;
+  final bool? reading;
   final String title;
 
   /// 第二行：文件是「类型 · 大小 · 日期」，书签是作者，历史是进度。
   final String? subtitle;
+
+  /// 已有简介，仅在主视觉和原位详情使用，不为摘要额外请求插件。
+  final String? description;
 
   /// 第三行，只有横幅视图用得上。
   final String? tertiary;
@@ -79,6 +103,19 @@ class LibraryEntry {
   final String? metaText;
 
   final LibraryMediaBuilder? media;
+
+  /// 首页的现成封面已带标题遮罩，展墙不再重复画一份。
+  final bool mediaIncludesTitle;
+
+  /// 现有数据源的真实标签，宽卡直接展示，不额外请求详情。
+  final List<String> tags;
+
+  /// 文件预览保留完整画面，并在宽卡中给予图片更多空间。
+  final bool preserveMedia;
+  final double? mediaAspectRatio;
+
+  /// 数据源提供的可扩展面积信号，0 表示不匹配，1 表示完全匹配。
+  final Map<String, double> weightSignals;
 
   /// 语义图标。没有缩略图的模式（以及 media 为空的条目）退化到它。
   final Widget? badge;
@@ -102,6 +139,9 @@ class LibraryEntry {
   /// 为 null 就不画那颗按钮 —— 目录、图片、压缩包以外这些东西没有「阅读」可言，
   /// 数据源自己裁决。Future 结束前按钮转圈，所以远程回源那一次有反馈。
   final Future<void> Function()? onRead;
+
+  /// 数据源专属的长按操作，由每种视图自己的行手势接收。
+  final VoidCallback? onLongPress;
 
   bool wantsThumb(LibraryViewMode mode) =>
       media != null && thumbModes.contains(mode);
