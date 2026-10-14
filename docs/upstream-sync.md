@@ -261,3 +261,24 @@ egui 输入体系不能用于 Flutter 命中测试。保留现有控制器与延
 验证：悬停控制器与 widget 回归共 28 项通过，覆盖实际 PageCountWidget 顶部/底部
 底板、栏体阴影、按钮点击、滚动透传、本漫覆盖、状态恢复及动画开关下的连续显隐。
 连续显隐测试同时推进模拟时钟与更新页码；尚未实测高负载下的桌面窗口长期运行。
+
+
+## 阅读泳道返回后的界面更新修正（2026-10-14）
+
+现场在 macOS Profile 捕获：ReaderHoverController 与 ReaderCubit 已响应进入/离开，
+ReaderChromeTransition 的 visible 却保持旧值。WorkspaceReaderHost 的 LayoutBuilder
+作用域积压 dirty elements，渲染对象为 needsRebuild=true、needsLayout=false；改变
+泳道尺寸才会再次执行回调。这是布局期间子树通知引发的调度问题，键盘归属与阴影
+均不能解释该现场；输入绑定升级增加的泳道高亮/尺寸切换会暴露这条路径。
+
+ReaderViewport 继续使用 Flutter AbstractLayoutBuilder 的约束、构造与重建作用域，
+只将自身 performLayout 期间收到的再次布局回调合并到帧尾，下一帧正常处理。
+不依赖定时轮询，不重挂局部 Navigator，不改变键盘编辑、模态或滚轮归属。
+这是本仓工作台宿主的薄适配：Breeze 和 mImageViewer 没有可用于该 Flutter
+布局调度场景的现成宿主。Flutter 修正相同调度后可移除此适配。
+
+验证：布局期间通知的回归先在普通 LayoutBuilder 失败、替换视口后通过；47 项
+定向测试涵盖真实阅读顶栏与实际透明度、跨泳道返回、输入框持有焦点、泳道内容
+重建预算、点击/滚动及栏体连续显隐。独立 macOS Profile 场景中，普通 LayoutBuilder
+的通知值到 2 而显示仍为 0；ReaderViewport 的通知与显示均到 2。应用 Profile 包
+构建成功，静态分析通过。
