@@ -1,0 +1,17 @@
+name: scroll_spy
+description: Detect visible items and select one stable primary item in Flutter scrollables for reading position, table of contents, and viewport focus.
+version: 1.0.5
+homepage: https://omar-hanafy.github.io/scroll_spy/
+repository: https://github.com/omar-hanafy/scroll_spy
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
