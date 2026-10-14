@@ -73,7 +73,9 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
             child: Wrap(
-              spacing: 8,
+              // 与组内同一个数：这一行原本用 8，而组里（超分那颗自成一小组）是 4，
+              // 于是同一行并排两种间距。整行统一成一条等宽带。
+              spacing: ReaderToolbarMetrics.gapWithinGroup,
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               alignment: WrapAlignment.center,
@@ -81,7 +83,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                 if (inlineView)
                   ReaderToolbarGroup(
                     children: [
-                      for (final panel in ReaderToolbarPanel.values)
+                      for (final panel in kReaderPrimaryToolbarPanels)
                         ReaderToolbarIconButton(
                           icon: _readerPanelIcon(panel, fitMode),
                           tooltip:
@@ -151,7 +153,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
               const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
               ReaderToolbarGroup(
                 children: [
-                  for (final panel in ReaderToolbarPanel.values)
+                  for (final panel in kReaderPrimaryToolbarPanels)
                     ReaderToolbarIconButton(
                       icon: _readerPanelIcon(panel, fitMode),
                       tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
@@ -171,25 +173,34 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
             ),
             const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
 
-            // 增强组：下载、当前页超分与翻译。
+            // 末尾这一段：增强（下载、当前页超分与翻译）+ 窗口（全屏、钉住）+ 更多 + 设置。
             //
-            // 增强入口始终可见；自动滚屏沿用原菜单入口。
+            // **一条组，不是两条**：这些控件全是同一档 48 的图标钮，分成两组就
+            // 意味着中间那条 12 的组间距，而组内是 4 —— 钉住（窗口组的第一颗）与
+            // 它左边那颗的间距就永远比它的邻居宽。增强入口始终可见；自动滚屏沿用原菜单入口。
             ReaderToolbarGroup(
               children: [
                 if (showDownloadEntry && inlineView)
                   _buildDownloadEntry(bookTitle),
-                ReaderUpscaleStatusChip(availableWidth: chipWidth),
-                ReaderTranslatedPageChip(availableWidth: chipWidth),
-                ReaderOnlineTranslatedPageChip(availableWidth: chipWidth),
+                // 这三颗自己决定画不画（画不画取决于当前图源/呈现器，父层判不了），
+                // 所以套 [ReaderToolbarOptionalSlot]：不画的时候连组内那 4 一起归零，
+                // 这一段才是**每两颗都只差 4** 的图标带。
+                ReaderToolbarOptionalSlot(
+                  gap: ReaderToolbarMetrics.gapWithinGroup,
+                  child: ReaderUpscaleStatusChip(availableWidth: chipWidth),
+                ),
+                ReaderToolbarOptionalSlot(
+                  gap: ReaderToolbarMetrics.gapWithinGroup,
+                  child: ReaderTranslatedPageChip(availableWidth: chipWidth),
+                ),
+                ReaderToolbarOptionalSlot(
+                  gap: ReaderToolbarMetrics.gapWithinGroup,
+                  child: ReaderOnlineTranslatedPageChip(
+                    availableWidth: chipWidth,
+                  ),
+                ),
                 // 自动滚屏按用户口径放**二级**：主行不画它，入口与开/关状态
                 // 在「更多」菜单的第一项（所有档位都在那里）。
-              ],
-            ),
-
-            // 窗口组 + 更多。
-            const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
-            ReaderToolbarGroup(
-              children: [
                 if (inlineWindow && widget.onToggleFullscreen != null)
                   ReaderToolbarIconButton(
                     icon: widget.isDesktopFullscreen
@@ -253,8 +264,13 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
   ///
   /// 这里**不新造控件**：视图三项、下载、全屏、钉住用的就是主行那一份构造与
   /// 同一套回调，所以「在第二行点钉住」和「在主行点钉住」是同一件事、同一个状态。
-  /// 外层 [ReaderToolbarPanelRow] 走 `Wrap`：窄到放不下就换行摊开，既不折成
-  /// 溢出菜单，也不会挤黄黑斜纹。
+  /// 外层 [ReaderToolbarPanelRow] 走 `Wrap`（spacing 4）：窄到放不下就换行摊开，
+  /// 既不折成溢出菜单，也不会挤黄黑斜纹。
+  ///
+  /// 让位的「两批」只决定**谁搬到这一行**，不决定间距：以前这里按批次插了一条
+  /// [ReaderToolbarMetrics.gapBetweenGroups]（12）的组间距，而 `Wrap` 自己已经在
+  /// 它两边各加了 4 —— 于是这一行上「视图三项」与「全屏/钉住」之间是 20，别的
+  /// 相邻颗是 4。所以这一行摊平成一条等宽带。
   Widget _buildSecondaryToolbar({
     required BuildContext context,
     required ReadSettingState readSetting,
@@ -264,41 +280,20 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
     required String? bookTitle,
     required bool showDownloadEntry,
   }) {
-    final children = <Widget>[];
-
-    // 整节为空时连它前面那条分隔线一起省掉：这一行是按档位凑出来的，
-    // 中档就只有窗口那一节，不该凭空多一条没有左边的线。
-    void addSection(List<Widget> section) {
-      if (section.isEmpty) return;
-      if (children.isNotEmpty) {
-        children.add(
-          const SizedBox(width: ReaderToolbarMetrics.gapBetweenGroups),
-        );
-      }
-      children.addAll(section);
-    }
-
-    // 让位的第一批：三块面板的入口 + 下载。条件与主行那颗 `if (inlineView)`
-    // 严格同源，两边不会一处画一处不画。
-    addSection([
+    final children = <Widget>[
+      // 让位的第一批：三块面板的入口 + 下载。条件与主行那颗 `if (inlineView)`
+      // 严格同源，两边不会一处画一处不画。
       if (!tier.keepsViewControlsInline)
-        ReaderToolbarGroup(
-          children: [
-            for (final panel in ReaderToolbarPanel.values)
-              ReaderToolbarIconButton(
-                icon: _readerPanelIcon(panel, fitMode),
-                tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
-                selected: _expandedPanel == panel,
-                onPressed: () => _togglePanel(panel),
-              ),
-          ],
-        ),
+        for (final panel in kReaderPrimaryToolbarPanels)
+          ReaderToolbarIconButton(
+            icon: _readerPanelIcon(panel, fitMode),
+            tooltip: '${_readerPanelLabel(panel, fitMode)}（点击展开面板）',
+            selected: _expandedPanel == panel,
+            onPressed: () => _togglePanel(panel),
+          ),
       if (!tier.keepsViewControlsInline && showDownloadEntry)
         _buildDownloadEntry(bookTitle),
-    ]);
-
-    // 让位的第二批：全屏 + 钉住。
-    addSection([
+      // 让位的第二批：全屏 + 钉住。
       if (!tier.keepsWindowControlsInline && widget.onToggleFullscreen != null)
         ReaderToolbarIconButton(
           icon: widget.isDesktopFullscreen
@@ -320,7 +315,9 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
             (s) => s.copyWith(topBarPinned: !s.topBarPinned),
           ),
         ),
-    ]);
+    ];
+
+    if (children.isEmpty) return const SizedBox.shrink();
 
     return ReaderToolbarPanelRow(floating: true, children: children);
   }

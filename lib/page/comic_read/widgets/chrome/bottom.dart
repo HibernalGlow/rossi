@@ -181,7 +181,9 @@ class _BottomWidgetState extends State<BottomWidget> {
 
     final coordinator = ReaderSessionCoordinator.instance;
     final localSource = LocalReadSession.instance.currentSource;
-    final docs = coordinator.docs;
+    // 缩略图条是「这一章按显示顺序长什么样」的回读，所以取排过序的那份：
+    // 开了页面排序之后，按页表下标取会和画面上差一页。
+    final docs = coordinator.orderedDocs;
 
     return Positioned(
       bottom: 0,

@@ -8,7 +8,10 @@ import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_online_translated_page_chip.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_sheet.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_layout_panel.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_magnifier_panel.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_page_order_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_rotate_panel.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_slideshow_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_translated_page_chip.dart';
@@ -43,6 +46,10 @@ class ComicReadAppBar extends StatefulWidget {
   final ValueChanged<bool>? onLandscapeChanged;
   final VoidCallback? onToggleAutoRead;
   final ValueGetter<bool>? isAutoReadPaused;
+
+  /// 幻灯片暂停/继续。与自动滚屏那颗分开：两者是两套计时器，暂停其中一个
+  /// 不该让另一个换相（`onToggleAutoRead` 走的是 `_autoReadController`）。
+  final VoidCallback? onToggleSlideshowPaused;
   final String from;
   final String comicId;
   final ComicEntryType type;
@@ -59,6 +66,7 @@ class ComicReadAppBar extends StatefulWidget {
     this.onLandscapeChanged,
     this.onToggleAutoRead,
     this.isAutoReadPaused,
+    this.onToggleSlideshowPaused,
     this.from = '',
     this.comicId = '',
     this.type = ComicEntryType.normal,
@@ -76,18 +84,41 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
   /// 与 neoview 同一口径：**互斥**，点第二颗会把第一颗关掉，而不是叠两层。
   ReaderToolbarPanel? _expandedPanel;
 
-  Widget _buildExpandedPanel() => switch (_expandedPanel) {
-    ReaderToolbarPanel.zoom => const ReaderZoomPanel(
-      key: ValueKey(ReaderToolbarPanel.zoom),
-    ),
-    ReaderToolbarPanel.rotate => const ReaderRotatePanel(
-      key: ValueKey(ReaderToolbarPanel.rotate),
-    ),
-    ReaderToolbarPanel.layout => const ReaderLayoutPanel(
-      key: ValueKey(ReaderToolbarPanel.layout),
-    ),
-    null => const SizedBox(width: double.infinity, height: 0),
-  };
+  /// 展开面板本体。
+  ///
+  /// 放映的两颗状态由 `build` 订阅后**传进来**，不在这里 `context.select`：
+  /// 这一处是在 `AnimatedSize(child: ...)` 的位置上被调的，provider 会当场断言
+  /// 「select 只能在 build 里用」（实测撞在 `reader_top_bar_icon_gap_test` 上），
+  /// 而订阅本身放在 `build` 顶部与 `showTopAppBar` 那一颗同一位置才是本仓的写法。
+  Widget _buildExpandedPanel({
+    required bool slideshowRunning,
+    required bool slideshowPaused,
+  }) {
+    return switch (_expandedPanel) {
+      ReaderToolbarPanel.sort => const ReaderPageOrderPanel(
+        key: ValueKey(ReaderToolbarPanel.sort),
+      ),
+      ReaderToolbarPanel.zoom => const ReaderZoomPanel(
+        key: ValueKey(ReaderToolbarPanel.zoom),
+      ),
+      ReaderToolbarPanel.rotate => const ReaderRotatePanel(
+        key: ValueKey(ReaderToolbarPanel.rotate),
+      ),
+      ReaderToolbarPanel.layout => const ReaderLayoutPanel(
+        key: ValueKey(ReaderToolbarPanel.layout),
+      ),
+      ReaderToolbarPanel.slideshow => ReaderSlideshowPanel(
+        key: const ValueKey(ReaderToolbarPanel.slideshow),
+        isRunning: slideshowRunning,
+        isPaused: slideshowPaused,
+        onTogglePaused: widget.onToggleSlideshowPaused ?? () {},
+      ),
+      ReaderToolbarPanel.magnifier => const ReaderMagnifierPanel(
+        key: ValueKey(ReaderToolbarPanel.magnifier),
+      ),
+      null => const SizedBox(width: double.infinity, height: 0),
+    };
+  }
 
   /// 展开 / 收起一块面板：再点一次收起（与 neoview 同一手感）。
   ///
@@ -109,6 +140,14 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           cubit.state.showTopAppBar(pinned: readSetting.topBarPinned),
     );
     final hoverController = ReaderHoverScope.of(context);
+    // 放映状态从这里订阅：控制器不是可观察对象，靠「重建时顺手读一次」的口子，
+    // 暂停了芯片不会当场换相（与 `isAutoReadPaused()` 那种读法的区别就在这里）。
+    final slideshow = context.select(
+      (ReaderCubit cubit) => (
+        running: cubit.state.slideshowRunning,
+        paused: cubit.state.slideshowPaused,
+      ),
+    );
     final appBarShape = BorderRadius.circular(ReaderToolbarMetrics.barRadius);
     // 顶栏材质：玻璃（改造前那一档）或「透明档」的半透明蒙层。
     // 判定与钳制都在 `resolveReaderTopBarSpec` 里，这里只照着画。
@@ -198,7 +237,10 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
                   : ExpressiveMotion.spatialDuration,
               curve: ExpressiveMotion.spatialCurve,
               alignment: Alignment.topCenter,
-              child: _buildExpandedPanel(),
+              child: _buildExpandedPanel(
+                slideshowRunning: slideshow.running,
+                slideshowPaused: slideshow.paused,
+              ),
             ),
           ],
         );
@@ -372,8 +414,30 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
               cubit.updateReadSetting((s) => s.copyWith(autoScroll: false)),
           child: const Text('关闭自动滚屏'),
         ),
+      // 面板入口：**行上没摆出来的那几块一律在这里**。
+      //
+      // 视图组只摆 `kReaderPrimaryToolbarPanels` 那三颗（六颗并排会把这条 48 高度带
+      // 顶成两行，实测中心线偏 54），所以另外三颗在宽档下唯一的入口就是这里。
+      // 老写法把整段圈进 `if (!inlineView && !secondaryRow)`，宽档（`inlineView` 为真）
+      // 时菜单里一颗都不列 —— 那等于把页面排序/幻灯片/放大镜做成没有入口的功能。
+      // 已经摆在行上的那三颗不重复列，否则同一件事会有两处入口、选中态还各画各的。
+      for (
+        final panel in ReaderToolbarPanel.values.where(
+          (panel) =>
+              !kReaderPrimaryToolbarPanels.contains(panel) ||
+              (!inlineView && !secondaryRow),
+        )
+      )
+        MenuItemButton(
+          leadingIcon: GlyphIcon(_readerPanelIcon(panel, fitMode)),
+          trailingIcon: _expandedPanel == panel
+              ? const GlyphIcon(AppGlyphs.check)
+              : null,
+          onPressed: () => _togglePanel(panel),
+          child: Text(_readerPanelLabel(panel, fitMode)),
+        ),
       if (!inlineView && !secondaryRow) ...[
-        // 让位的第一批：下载（整本下载是低频动作）与三块面板的入口。
+        // 让位的第一批：下载（整本下载是低频动作）。
         // 超分芯片不参与让位 —— 用户口径是它最常用，必须留在第一行。
         if (showDownloadEntry)
           MenuItemButton(
@@ -386,16 +450,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
               comicInfo: widget.comicInfo,
               chapterRefs: widget.chapterRefs,
             ),
-            child: Text(t.reader.startDownload),
-          ),
-        for (final panel in ReaderToolbarPanel.values)
-          MenuItemButton(
-            leadingIcon: GlyphIcon(_readerPanelIcon(panel, fitMode)),
-            trailingIcon: _expandedPanel == panel
-                ? const GlyphIcon(AppGlyphs.check)
-                : null,
-            onPressed: () => _togglePanel(panel),
-            child: Text(_readerPanelLabel(panel, fitMode)),
+            child: Text(t.reader.downloadManage),
           ),
         const _ReaderMenuDivider(),
       ],
@@ -443,12 +498,13 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
 /// 保留入口是**刻意的**：将来做出一块就把那颗从菜单搬回主行对应的那一组，
 /// 不用重排列。它们不占主行宽度（改造前靠 `availableWidth >= 900` 决定摆不摆全，
 /// 于是主行的形状跟着窗口宽度跳），统一住在「更多」里。
+///
+/// 页面排序、幻灯片、放大镜三颗已经点亮成真面板，不在这张表里了 ——
+/// 它们的主行入口在 `kReaderPrimaryToolbarPanels` 之外，靠下面这份菜单里的
+/// 同名带文字项进入（`for (final panel in ReaderToolbarPanel.values)` 那一处）。
 const List<(Glyph, String)> _kReaderComingSoon = [
-  (AppGlyphs.sort, '页面排序'),
   (AppGlyphs.panorama, '全景模式'),
   (AppGlyphs.mouse, '悬停滚动'),
-  (AppGlyphs.slideshow, '幻灯片'),
-  (AppGlyphs.zoomIn, '放大镜'),
 ];
 
 /// 自动滚屏那颗开关的**分派**：没开就开启，开着就暂停（没有暂停回调时直接关掉）。
@@ -476,6 +532,9 @@ Glyph _readerPanelIcon(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
       ReaderToolbarPanel.zoom => kReaderFitModeIcons[fitMode]!,
       ReaderToolbarPanel.rotate => AppGlyphs.rotateRight,
       ReaderToolbarPanel.layout => AppGlyphs.gridPlus,
+      ReaderToolbarPanel.sort => AppGlyphs.sort,
+      ReaderToolbarPanel.slideshow => AppGlyphs.slideshow,
+      ReaderToolbarPanel.magnifier => AppGlyphs.zoomIn,
     };
 
 String _readerPanelLabel(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
@@ -483,6 +542,9 @@ String _readerPanelLabel(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
       ReaderToolbarPanel.zoom => '缩放模式：${kReaderFitModeLabels[fitMode]!}',
       ReaderToolbarPanel.rotate => '旋转设置',
       ReaderToolbarPanel.layout => '版式工具',
+      ReaderToolbarPanel.sort => '页面排序',
+      ReaderToolbarPanel.slideshow => '幻灯片放映',
+      ReaderToolbarPanel.magnifier => '放大镜',
     };
 
 /// 主行末尾的「更多」（MD3 `MenuAnchor`）。

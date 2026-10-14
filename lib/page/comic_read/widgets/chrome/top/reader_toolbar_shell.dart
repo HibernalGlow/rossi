@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
@@ -12,11 +13,23 @@ export 'package:zephyr/widgets/expressive/expressive_shape.dart'
 /// 顶栏二级面板的名单。
 ///
 /// neoview 的 `ExpandedPanel` 有六档（sort / zoom / rotate / hover-scroll /
-/// slideshow / magnifier），本仓目前只有真做得起来的这三档 —— **刻意不给
-/// 做不出来的那几档留主行占位按钮**：那五颗现在住在主行末尾的「更多」菜单里
-/// （见 `app_bar.dart` 的 `_buildOverflowItems`），点它们仍然会给一句话，
-/// 不静默失效。哪一块接进了本仓，就从菜单里搬回主行对应的那一组。
-enum ReaderToolbarPanel { zoom, rotate, layout }
+/// slideshow / magnifier）。顺序照那边排，**做出来一档就点亮一档**，
+/// 没做出来的那几颗仍然住在主行末尾的「更多」菜单里（见 `app_bar.dart` 的
+/// `_buildOverflowItems`），点它们会给一句话，不静默失效。
+enum ReaderToolbarPanel { sort, zoom, rotate, layout, slideshow, magnifier }
+
+/// 主行「视图」那一组里真的摆出来的几颗。
+///
+/// 六颗全摆会把这条 48 高度带顶到第二行去（`Wrap` 把整组推下去，实测中心线偏 54，
+/// 钉这条不列的 `reader_top_bar_layout_test` 就是这么红的）。
+/// 其余三颗不住主行，但**不是没有入口**：主行末尾「更多」里每颗都带文字同名项
+/// （见 `app_bar.dart` 里 `for (final panel in ReaderToolbarPanel.values)`），
+/// 与主行那颗共用同一个 `_togglePanel` 入口，所以点下去是同一件事。
+const List<ReaderToolbarPanel> kReaderPrimaryToolbarPanels = [
+  ReaderToolbarPanel.zoom,
+  ReaderToolbarPanel.rotate,
+  ReaderToolbarPanel.layout,
+];
 
 /// 顶栏的度量档：**画图与排布判断读同一份常数**。
 ///
@@ -76,6 +89,9 @@ class ReaderToolbarGroup extends StatelessWidget {
         for (final (index, child) in children.indexed)
           if (index == 0)
             child
+          else if (children[index - 1] is ReaderToolbarOptionalSlot)
+            // 上一颗自己带了间距（而且只在真的画出来时带），这里再加就成两份。
+            child
           else ...[
             const SizedBox(width: ReaderToolbarMetrics.gapWithinGroup),
             child,
@@ -83,6 +99,69 @@ class ReaderToolbarGroup extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 条件可见控件的槽位：**内容不画，间距跟着一起不占**。
+///
+/// 顶栏增强那三颗芯片各自在自己的 `ListenableBuilder` 里判画不画（父层判不了：
+/// 父层要判就得订阅译文/呈现器状态，整条顶栏会跟着翻页重建）。用固定的组内
+/// 间距时，隐藏那颗仍然留下 4 —— 于是同一条图标带上出现两种间距，症状就是
+/// 「某一处比别处宽」。这里把间距挂在**子节点量出来的实际宽度**上：宽 0 则整槽 0。
+class ReaderToolbarOptionalSlot extends SingleChildRenderObjectWidget {
+  const ReaderToolbarOptionalSlot({
+    super.key,
+    required this.gap,
+    required super.child,
+  });
+
+  /// 内容可见时补在**右侧**的间距。放右侧是因为隐藏的那颗可能正好是组里最后一颗
+  /// 有内容的控件之外的位置，而组的左边缘不该被一颗可见性未知的控件推走。
+  final double gap;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderToolbarOptionalSlot(gap);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    // `RenderProxyBox` 而不是那个私有子类：`library_private_types_in_public_api`
+    // 不许把私有的东西摆进公开签名里，而协变收窄本身要的就是这个父类型。
+    covariant RenderProxyBox renderObject,
+  ) {
+    (renderObject as _RenderToolbarOptionalSlot).gap = gap;
+  }
+}
+
+class _RenderToolbarOptionalSlot extends RenderProxyBox {
+  _RenderToolbarOptionalSlot(this._gap);
+
+  double _gap;
+
+  set gap(double value) {
+    if (_gap == value) return;
+    _gap = value;
+    markNeedsLayout();
+  }
+
+  Size _slotSize(Size childSize) => childSize.width == 0
+      ? Size.zero
+      : Size(childSize.width + _gap, childSize.height);
+
+  @override
+  void performLayout() {
+    final child = this.child;
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    child.layout(constraints, parentUsesSize: true);
+    size = constraints.constrain(_slotSize(child.size));
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) =>
+      _slotSize(child?.getDryLayout(constraints) ?? Size.zero);
 }
 
 /// 一组紧密贴合的按钮/控件的外壳（带一层容器底色）。

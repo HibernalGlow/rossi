@@ -13,7 +13,10 @@ import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/page_split.dart';
+import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
+import 'package:zephyr/page/comic_read/widgets/magnifier/reader_magnifier_source.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/config/router/router.gr.dart';
@@ -81,6 +84,112 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
   int get displayIndex => widget.displayNumber ?? widget.index + 1;
   int get cacheIndex => widget.cacheIndex ?? widget.index;
   bool get isColumn => widget.isColumn;
+
+  // ── 放大镜取样窗口：这一页「画在哪」+「像素从哪取」──────────────────────
+  //
+  // 报告口径与渲染同源，所以挂在这里而不是另找一处：这一页在屏幕上的落位只有
+  // 本 widget 自己说得清（`paintSize`、对齐、半页拆分都在这里），而取样要的
+  // 字节两条渲染路各有一套（在线是磁盘文件，本地是 `PageSource.getPageBytes`）。
+  final GlobalKey _magnifierBoxKey = GlobalKey();
+
+  bool _magnifierReportScheduled = false;
+
+  /// 这一页在磁盘上的路径；只有在线那一路有，本地页走字节。
+  String? _magnifierFilePath;
+
+  /// 落位之后把这一页交给放大镜。**不在 build 里直接报**：
+  /// `reportPage` 会 notifyListeners，而子树里的放大镜层正听着这个通知。
+  void _scheduleMagnifierReport() {
+    if (_magnifierReportScheduled) return;
+    if (ReaderMagnifierScope.maybeOf(context) == null) return;
+    _magnifierReportScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _magnifierReportScheduled = false;
+      if (!mounted) return;
+      _reportMagnifierPage();
+    });
+  }
+
+  void _reportMagnifierPage() {
+    final source = ReaderMagnifierScope.maybeOf(context);
+    final box =
+        _magnifierBoxKey.currentContext?.findRenderObject() as RenderBox?;
+    if (source == null || box == null || !box.hasSize) return;
+    var rect = box.localToGlobal(Offset.zero) & box.size;
+    if (rect.width <= 0 || rect.height <= 0) return;
+    final uv = widget.slice.uvRect;
+    final trim =
+        context.readEffectiveReadSetting().autoTrimPageMargins &&
+            !widget.slice.isHalf
+        ? context.read<ImageSizeCubit>().trimLayout.rectFor(
+            cacheIndex,
+            AutoTrimSettings.options.value.cacheKey,
+          )
+        : null;
+    final intrinsic = context.read<ImageSizeCubit>().state.getIntrinsic(
+      cacheIndex,
+    );
+    if (intrinsic != null && intrinsic.width > 0 && intrinsic.height > 0) {
+      final visibleUv = trim ?? Rect.fromLTRB(uv[0], uv[1], uv[2], uv[3]);
+      final content = Size(
+        intrinsic.width * visibleUv.width,
+        intrinsic.height * visibleUv.height,
+      );
+      final fitted = applyBoxFit(BoxFit.contain, content, box.size).destination;
+      rect = Alignment.center.inscribe(fitted, rect);
+    }
+    source.reportPage(
+      pageIdentity: _magnifierPageIdentity(),
+      globalPageRect: rect,
+      // 横长页拆成两半时这一格只是位图的左（或右）半边：不带上这一块，
+      // 放大镜会在半页上取到整页中间。
+      bitmapUvSubRect: trim ?? Rect.fromLTRB(uv[0], uv[1], uv[2], uv[3]),
+      requestImage: _requestMagnifierImage,
+      rotationDegrees: _magnifierRotationDegrees(),
+    );
+  }
+
+  /// 页身份：章 + 稳定尺寸下标 + 半页。
+  ///
+  /// 用 `cacheIndex` 而不是 `widget.index`：前者跨卷/跨章偏移下仍指向同一页，
+  /// 放大镜才不会在翻页动画里把同一张图解两遍。
+  Object _magnifierPageIdentity() =>
+      '${widget.pictureInfo.cartoonId}|${widget.pictureInfo.chapterId}'
+      '|$cacheIndex|${widget.slice.name}|${_magnifierFilePath ?? 'local'}';
+
+  int _magnifierRotationDegrees() {
+    final presentation = context.read<ReaderPresentationCubit>().state;
+    if (presentation.autoRotation == ReaderAutoRotation.none) {
+      return presentation.rotation;
+    }
+    // 自动旋转是按**页面自身**的横竖判的，尺寸还不知道时无从判起 ——
+    // 那种情况下先只算手动旋转，而不是猜一个角度把画面转歪。
+    final intrinsic = context.read<ImageSizeCubit>().state.getIntrinsic(
+      cacheIndex,
+    );
+    if (intrinsic == null) return presentation.rotation;
+    return effectiveReaderRotation(
+      presentation.rotation,
+      presentation.autoRotation,
+      intrinsic,
+    );
+  }
+
+  Future<ui.Image?> _requestMagnifierImage() async {
+    final path = _magnifierFilePath;
+    if (path != null) {
+      final file = File(path);
+      if (!await file.exists()) return null;
+      return decodeReaderLoupeImage(await file.readAsBytes());
+    }
+    final source = LocalReadSession.instance.currentSource;
+    if (source == null) return null;
+    final localIndex =
+        widget.pictureInfo.extern['localIndex'] as int? ?? widget.index;
+    final bytes = await source.getPageBytes(localIndex);
+    if (bytes == null) return null;
+    return decodeReaderLoupeImage(bytes);
+  }
 
   /// 本地视频页。
   ///
@@ -219,6 +328,13 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       final bool isActiveSlot =
           widget.slotIsCurrent ?? (localIndex == currentSlot);
 
+      // 本地页没有磁盘可抄，取样走字节那一条；路径那一位必须清掉，
+      // 否则同一个 State 复用时会拿着上一页的文件路径去解字节。
+      _magnifierFilePath = null;
+      if (isActiveSlot && readSetting.magnifierEnabled) {
+        _scheduleMagnifierReport();
+      }
+
       // 不再写死 context.screenWidth，继承父容器传入的约束（contentWidth），
       // 消除 RenderFlex overflowed 导致的红黄条纹色块。
       //
@@ -266,6 +382,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                         AutoTrimSettings.options.value.cacheKey,
                         rect,
                       );
+                      _scheduleMagnifierReport();
                     },
                     // 条漫（列模式）的上下边可能就是连续画面的接缝，只裁左右。
                     verticalScroll: isColumn,
@@ -307,6 +424,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       // 动图走到那里不会报错，只会安静地变成一张不会动的图。
       // 判定没回来之前先照常画 staticRoute，所以这里没有黑屏空窗。
       return Container(
+        key: _magnifierBoxKey,
         color: readSetting.readerAmbientEnabled
             ? Colors.transparent
             : backgroundColor,
@@ -333,6 +451,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     return BlocProvider(
       create: (context) => PictureBloc()..add(GetPicture(pictureInfoTemp)),
       child: SizedBox(
+        key: _magnifierBoxKey,
         // 呈现层给了尺寸就照它，别再写死 screenWidth —— 侧边留白开着时
         // screenWidth 比父容器给的 contentWidth 宽，那是一条溢出红条。
         width: widget.paintSize?.width ?? context.screenWidth,
@@ -473,6 +592,14 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     if (context.readEffectiveReadSetting().readerAmbientEnabled) {
       unawaited(ReaderAmbientImageSampler.sampleFile(imagePath));
     }
+    // 到这一步才知道「这一页实际上是磁盘上的哪个文件」——译文被认领时
+    // 那是成品页而不是原图，放大镜要的也正是画面这一格现在用的那一份。
+    _magnifierFilePath = imagePath;
+    if (context.readEffectiveReadSetting().magnifierEnabled &&
+        (widget.slotIsCurrent ??
+            (widget.index == context.read<ReaderCubit>().state.currentSlot))) {
+      _scheduleMagnifierReport();
+    }
     return GestureDetector(
       onLongPress: () =>
           context.pushRoute(FullRouteImageRoute(imagePath: imagePath)),
@@ -490,6 +617,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
           // 这条路没有着色器，半页只能由 `ImageDisplay` 自己裁。
           // 成品页与原图同像素尺寸，所以这一刀对它同样成立。
           slice: widget.slice,
+          onTrimResolved: (_) => _scheduleMagnifierReport(),
         ),
       ),
     );
