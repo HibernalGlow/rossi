@@ -13,6 +13,8 @@ class ReaderToolbarFeatureButton extends StatefulWidget {
     required this.label,
     required this.tooltip,
     required this.onPressed,
+    this.onLongPressStart,
+    this.onLongPressEnd,
     this.detail,
     this.selected = false,
     this.busy = false,
@@ -26,6 +28,8 @@ class ReaderToolbarFeatureButton extends StatefulWidget {
   final String label;
   final String tooltip;
   final VoidCallback onPressed;
+  final VoidCallback? onLongPressStart;
+  final VoidCallback? onLongPressEnd;
   final String? detail;
   final bool selected;
   final bool busy;
@@ -89,80 +93,89 @@ class _ReaderToolbarFeatureButtonState extends State<ReaderToolbarFeatureButton>
       child: MergeSemantics(
         child: Semantics(
           selected: widget.selected,
-          child: ActionBubbleTarget(
-            corner: 24,
-            child: ElasticButton(
-              enabled: !MediaQuery.disableAnimationsOf(context),
-              child: ListenableBuilder(
-                listenable: _selection,
-                builder: (context, _) => FilledButton.tonal(
-                  statesController: _states,
-                  onPressed: widget.onPressed,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    maximumSize: const Size(double.infinity, 48),
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    backgroundColor: widget.failed
-                        ? scheme.errorContainer
-                        : Color.lerp(
-                            scheme.surfaceContainerHigh,
-                            scheme.secondaryContainer,
-                            _selection.value.clamp(0, 1),
-                          ),
-                    foregroundColor: fg,
-                    animationDuration: Duration.zero,
-                    shape: widget.shape == null
-                        ? RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              24 - 8 * _selection.value,
+          child: GestureDetector(
+            onLongPressStart: widget.onLongPressStart == null
+                ? null
+                : (_) => widget.onLongPressStart!(),
+            onLongPressEnd: widget.onLongPressEnd == null
+                ? null
+                : (_) => widget.onLongPressEnd!(),
+            onLongPressCancel: widget.onLongPressEnd,
+            child: ActionBubbleTarget(
+              corner: 24,
+              child: ElasticButton(
+                enabled: !MediaQuery.disableAnimationsOf(context),
+                child: ListenableBuilder(
+                  listenable: _selection,
+                  builder: (context, _) => FilledButton.tonal(
+                    statesController: _states,
+                    onPressed: widget.onPressed,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      maximumSize: const Size(double.infinity, 48),
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      backgroundColor: widget.failed
+                          ? scheme.errorContainer
+                          : Color.lerp(
+                              scheme.surfaceContainerHigh,
+                              scheme.secondaryContainer,
+                              _selection.value.clamp(0, 1),
+                            ),
+                      foregroundColor: fg,
+                      animationDuration: Duration.zero,
+                      shape: widget.shape == null
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                24 - 8 * _selection.value,
+                              ),
+                            )
+                          : ExpressiveMorphBorder(
+                              from: widget.shape!,
+                              to: widget.shape!.pressedShape,
+                              progress: _selection.value,
+                            ),
+                    ).merge(ElasticPress.buttonStyle),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.busy &&
+                            !MediaQuery.disableAnimationsOf(context))
+                          SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: fg,
                             ),
                           )
-                        : ExpressiveMorphBorder(
-                            from: widget.shape!,
-                            to: widget.shape!.pressedShape,
-                            progress: _selection.value,
-                          ),
-                  ).merge(ElasticPress.buttonStyle),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.busy &&
-                          !MediaQuery.disableAnimationsOf(context))
-                        SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: fg,
-                          ),
-                        )
-                      else
-                        GlyphIcon(widget.icon, size: 20),
-                      if (widget.showLabel) ...[
-                        const SizedBox(width: 8),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              widget.label,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: fg,
-                              ),
-                            ),
-                            if (widget.detail != null)
+                        else
+                          GlyphIcon(widget.icon, size: 20),
+                        if (widget.showLabel) ...[
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                               Text(
-                                widget.detail!,
-                                style: theme.textTheme.labelSmall?.copyWith(
+                                widget.label,
+                                style: theme.textTheme.labelLarge?.copyWith(
                                   color: fg,
                                 ),
                               ),
+                              if (widget.detail != null)
+                                Text(
+                                  widget.detail!,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: fg,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          if (widget.selected && widget.showSelection) ...[
+                            const SizedBox(width: 6),
+                            const GlyphIcon(AppGlyphs.check, size: 16),
                           ],
-                        ),
-                        if (widget.selected && widget.showSelection) ...[
-                          const SizedBox(width: 6),
-                          const GlyphIcon(AppGlyphs.check, size: 16),
                         ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),

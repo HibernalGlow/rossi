@@ -16,7 +16,7 @@ import 'package:zephyr/icons/icons.dart';
 
 /// 当前页超分状态与本书启停。主体切换原图对比，电源独立启停；
 /// 分辨率和阶段保留在详情及悬停提示中，在线来源回退到本书开关。
-class ReaderUpscaleStatusChip extends StatelessWidget {
+class ReaderUpscaleStatusChip extends StatefulWidget {
   const ReaderUpscaleStatusChip({
     super.key,
     this.availableWidth = double.infinity,
@@ -26,13 +26,48 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   final double availableWidth;
 
   @override
+  State<ReaderUpscaleStatusChip> createState() =>
+      _ReaderUpscaleStatusChipState();
+}
+
+class _ReaderUpscaleStatusChipState extends State<ReaderUpscaleStatusChip> {
+  GpuPresentController? _heldPresenter;
+  bool? _previewBeforeHold;
+
+  void _startHold(GpuPresentController presenter) {
+    if (_heldPresenter != null ||
+        !(presenter.isUpscaleEnabled || presenter.isDenoiseEnabled)) {
+      return;
+    }
+    _heldPresenter = presenter;
+    _previewBeforeHold = presenter.isOriginalPreview;
+    if (!_previewBeforeHold!) unawaited(presenter.setOriginalPreview(true));
+  }
+
+  void _endHold() {
+    final presenter = _heldPresenter;
+    final restore = _previewBeforeHold;
+    _heldPresenter = null;
+    _previewBeforeHold = null;
+    if (presenter != null && restore == false) {
+      unawaited(presenter.setOriginalPreview(false));
+    }
+  }
+
+  @override
+  void dispose() {
+    _endHold();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final GpuPresentController? presenter = LocalReadSession.instance.presenter;
     if (presenter == null) {
       // 在线图源没有呈现器 —— 超分在取图/解码层发生，没有「当前页」可言。
       // 但按用户的口径「超分的显示与开关留在第一行」，这里仍然给一颗绑到
       // 本书覆盖的简版按钮，而不是整块不画。
-      return ReaderOnlineUpscaleChip(availableWidth: availableWidth);
+      return ReaderOnlineUpscaleChip(availableWidth: widget.availableWidth);
     }
     return ListenableBuilder(
       listenable: presenter,
@@ -49,7 +84,7 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
     final status = presenter.currentPageUpscaleStatus;
     final enabled = presenter.isUpscaleEnabled;
     final processing = enabled || presenter.isDenoiseEnabled;
-    final sizeText = superResolutionSizeText(status, availableWidth);
+    final sizeText = superResolutionSizeText(status, widget.availableWidth);
     // 主体继续负责原图对比；独立电源按钮负责本书启停，两个目标都保持 48dp。
     return ReaderToolbarGroup(
       children: [
@@ -64,16 +99,18 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
           shape: ExpressiveButtonShape.cookie4Sided,
           detail:
               sizeText ??
-              (availableWidth >= 880
+              (widget.availableWidth >= 880
                   ? imageEnhancementPhaseLabel(status)
                   : null),
-          tooltip: '${superResolutionTooltip(status)}\n点击对比原图；右侧电源只影响本书',
+          tooltip: '${superResolutionTooltip(status)}\n点击切换；按住暂看原图；右侧电源只影响本书',
           selected: processing && !presenter.isOriginalPreview,
           showSelection: false,
           busy: superResolutionPhaseIsBusy(status.phase),
           failed: status.phase == SuperResolutionPagePhase.failed,
           showLabel: true,
           onPressed: () => _onBodyTap(context, presenter, status, processing),
+          onLongPressStart: () => _startHold(presenter),
+          onLongPressEnd: _endHold,
         ),
         ReaderToolbarFeatureButton(
           icon: AppGlyphs.power,

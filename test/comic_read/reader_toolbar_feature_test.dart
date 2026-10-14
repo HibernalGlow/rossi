@@ -122,4 +122,35 @@ void main() {
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
+
+  testWidgets('长按预览在松手时恢复且不会触发点击', (tester) async {
+    var taps = 0;
+    var starts = 0;
+    var ends = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: ReaderToolbarFeatureButton(
+              icon: AppGlyphs.sparkle,
+              label: '超分',
+              tooltip: '对比原图',
+              onPressed: () => taps++,
+              onLongPressStart: () => starts++,
+              onLongPressEnd: () => ends++,
+            ),
+          ),
+        ),
+      ),
+    );
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(FilledButton)),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(starts, 1);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(ends, 1);
+    expect(taps, 0);
+  });
 }
