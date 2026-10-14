@@ -241,6 +241,44 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get defaultHoverDelaySubtitle => 'Used when a lane has no delay of its own';
+	@override String get defaultHoverDelay => 'Default hover reveal delay';
+	@override String get enterWorkspaceSubtitle => 'Opens with the presentation selected below; use the system back key to exit';
+	@override String get enterWorkspace => 'Enter workspace';
+	@override String get kanbanLaneMoveRight => 'Move lane right';
+	@override String get kanbanLaneMoveLeft => 'Move lane left';
+	@override String get kanbanPanelMoveDown => 'Move panel down';
+	@override String get kanbanPanelMoveUp => 'Move panel up';
+	@override String get kanbanLaneDefaultHidden => 'Hidden by default';
+	@override String get kanbanLanePinned => 'Pinned lane';
+	@override String get kanbanFullyHidden => 'Fully hidden';
+	@override String get kanbanVisible => 'Visible';
+	@override String get kanbanRestoreDefault => 'Restore default layout';
+	@override String get swimlanePanelKanbanDesc => 'Use the kanban to reorder lanes, order the panels on each lane, and show or fully hide them';
+	@override String get laneHoverDelayInherit => 'Restore the inherited global delay';
+	@override String get laneHoverDelay => 'Hover reveal delay';
+	@override String get laneHoverRevealSubtitle => 'After dwelling, move the workspace so this lane shows in full';
+	@override String get laneHoverReveal => 'Reveal in full on hover';
+	@override String get laneKeyboardFollowsMouseSubtitle => 'Once the pointer enters this lane, hand keyboard control to it';
+	@override String get laneKeyboardFollowsMouse => 'Keyboard target follows the pointer';
+	@override String get laneInteraction => 'Lane interaction';
+	@override String get swimlanePanelKanbanSubtitle => 'Lane order · per-lane panel order · show or fully hide panels';
+	@override String get swimlanePanelKanban => 'Lane & panel kanban';
+	@override String get fmNewTabPresetHint => 'Preset defaults apply only when “Use preset defaults” is on; the default recursive scope follows the search settings below. Duplicating a tab or restoring a closed one keeps its own settings.';
+	@override String get fmNewTabShowInternal => 'Show internal entries by default';
+	@override String get fmNewTabShowHidden => 'Show hidden items by default';
+	@override String get fmNewTabPassthrough => 'Passthrough by default';
+	@override String get fmNewTabStartup => 'New tab startup options';
+	@override String get importFileTxtJsonEmm => 'Import file (TXT/JSON/EMM setting.json)';
+	@override String get searchArtistHint => 'Search artists...';
+	@override String get importFileTxtJson => 'Import file (TXT/JSON)';
+	@override String get debugGpuPresentSubtitle => 'Rust decode → wgpu → GPU copy → shared texture, pixels never cross the bridge';
+	@override String get debugGpuPresent => 'GPU present (D3D12 shared texture)';
+	@override String get debugOcrSmokeSubtitle => 'Pick a page → detect / recognise / erase / translate / refill, with per-stage timing and outputs';
+	@override String get debugOcrSmoke => 'OCR finished-page smoke test';
+	@override String get debugLocalSourceSubtitle => 'Direct read of loose-image folders / CBZ / CBR, with per-page timing and rejection categories';
+	@override String get debugLocalSource => 'Local source reading (criterion A)';
+	@override String get setResetPin => 'Set reset PIN';
 	@override String get overviewSubtitle => 'Make Rossi feel like yours';
 	@override String get searchCategories => 'Search settings categories';
 	@override String get noMatchingCategories => 'No matching categories. Try another keyword.';
@@ -556,8 +594,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get clearCacheConfirm => 'Are you sure you want to clear all cache files? This action cannot be undone.';
 	@override String get calculatingCache => 'Calculating...';
 	@override String get calculateCacheFailed => 'Calculate failed';
-	@override String get dataBackup => 'Data Import/Export';
-	@override String get dataBackupSubtitle => 'Backup or restore app data and downloaded comics';
+	@override String get dataBackup => 'Local Import/Export';
+	@override String get dataBackupSubtitle => 'Transfer settings and data between mobile and desktop using ZIP; keep device-specific settings';
 	@override String get includeDownloaded => 'Include downloaded comics';
 	@override String get includeDownloadedSubtitle => 'Pack downloaded comic files when exporting';
 	@override String get exportData => 'Export data';
@@ -931,6 +969,7 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String get confirmDeleteFolderContent => 'Delete this folder? Contents will be deleted recursively.';
 	@override String get confirmRemoveComicTitle => 'Remove from folder';
 	@override String confirmRemoveComicContent({required Object title}) => 'Remove "${title}" from current folder?';
+	@override String get importComicZipOnly => 'Importing comics (zip only)';
 	@override String get importStarted => 'Importing comics (zip only)';
 	@override String importCompleted({required Object title}) => 'Import completed: ${title}';
 	@override String get comicExists => 'Comic already exists';
@@ -1008,6 +1047,19 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get collected => 'Collected';
 	@override String get collect => 'Collect';
 	@override String get download => 'Download';
+	@override String get markRead => 'Mark as read';
+	@override String get markUnread => 'Mark as unread';
+	@override String get markThroughRead => 'Mark up to here as read';
+	@override String get clearReadMark => 'Clear mark';
+	@override String get readStateMenu => 'Reading state';
+	@override String get readStateMenuHint => 'Marks only record your own judgement. They never change reading progress or where “Continue reading” takes you.';
+	@override String markReadDone({required Object count}) => 'Marked ${count} chapters as read';
+	@override String markUnreadDone({required Object count}) => 'Marked ${count} chapters as unread';
+	@override String markThroughReadDone({required Object count}) => 'Marked ${count} earlier chapters as read';
+	@override String get readStateUnread => 'Unread';
+	@override String get readStateInferred => 'Read before';
+	@override String get readStateManualRead => 'Marked read';
+	@override String get readStateManualUnread => 'Marked unread';
 	@override String get downloadForbidden => 'This plugin does not support this feature';
 	@override String get addedToCollection => 'Added to collection';
 	@override String get removedFromCollection => 'Removed from collection';
@@ -1320,6 +1372,8 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get tabTranslate => 'Translate';
 	@override String get chromeSection => 'Bars & margins';
 	@override String get tuningSection => 'Picture tuning';
+	@override String get autoTrimMargins => 'Auto-trim margins';
+	@override String get autoTrimMarginsSubtitle => 'Detect each page\'s content area and zoom to it; original pixels untouched';
 	@override String get pauseAutoRead => 'Pause auto read';
 	@override String get resumeAutoRead => 'Resume auto read';
 	@override String imageLoadFailedRetry({required Object error}) => '${error}\nLoad failed, tap to retry';
@@ -1332,8 +1386,8 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get radialMenuHintMove => 'Move to choose';
 	@override String get radialMenuHintRelease => 'Release to run';
 	@override String get radialMenuHintSwitch => 'Release to switch wheel';
-	@override String get singlePageLtr => 'Single page (LTR)';
-	@override String get singlePageRtl => 'Single page (RTL)';
+	@override String get singlePageLtr => 'Left to right';
+	@override String get singlePageRtl => 'Right to left';
 }
 
 // Path: plugin
@@ -1343,6 +1397,7 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get advancedCapabilityLoading => 'Loading advanced capabilities...';
 	@override String get store => 'Plugin Store';
 	@override String get searchHint => 'Search plugin name or author...';
 	@override String get localInstall => 'Local install';
@@ -1369,6 +1424,7 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String executeFailed({required Object error}) => 'Execute failed: ${error}';
 	@override String get deletePluginSubtitle => 'Delete plugin and related data permanently';
 	@override String get debugMode => 'Debug mode';
+	@override String get debugAddress => 'Debug address';
 	@override String get accountLoginSubtitle => 'Go to login';
 	@override String get accountLogin => 'Account login';
 	@override String get pluginDetail => 'Plugin detail';
@@ -1547,7 +1603,7 @@ class _Translations$dataBackup$en_US extends Translations$dataBackup$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'Data Import/Export';
+	@override String get title => 'Local Import/Export';
 	@override String get exportSection => 'Export';
 	@override String get importSection => 'Import';
 	@override String get includeDownloads => 'Include downloaded comics';
@@ -1569,7 +1625,7 @@ class _Translations$dataBackup$en_US extends Translations$dataBackup$zh_CN {
 	@override String get importing => 'Importing, please wait…';
 	@override String get importFailed => 'Import failed';
 	@override String get importTitle => 'Import data';
-	@override String get importConfirm => 'Import will overwrite all current app data. Continue?';
+	@override String get importConfirm => 'Import will replace backed-up settings and app data. Local paths, proxy, app lock and sync configuration will be kept. Continue?';
 	@override String get includesDownloadsWarning => 'This backup contains downloaded comic files. Existing downloads will be deleted before import.';
 	@override String get versionMismatch => 'Version mismatch. Data import may have issues. Continue?';
 	@override String exportedVersion({required Object version}) => 'Exported version: ${version}';
@@ -1699,6 +1755,54 @@ class _Translations$realSr$en_US extends Translations$realSr$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get deleteCondition => 'Delete condition';
+	@override String get lowerPriority => 'Lower priority';
+	@override String get raisePriority => 'Raise priority';
+	@override String get addCondition => 'Add condition';
+	@override String get openImageFolderHint => 'Reveals the most recent upscaled image; opens the upscale cache folder when there is none yet.';
+	@override String get openImageFolder => 'Open image folder';
+	@override String get viewUpscaleLog => 'View upscale log';
+	@override String get upscaleLog => 'Upscale log';
+	@override String get downloadNativeModel => 'Download Rossi native model';
+	@override String get pagesBefore => 'Pages before:';
+	@override String get pagesAfter => 'Pages after:';
+	@override String get blockSizeLabel => 'Block size:';
+	@override String get outputScaleLabel => 'Output scale:';
+	@override String get imagePathRegex => 'Image path regex (imagePathRegex)';
+	@override String get bookPathRegex => 'Book path regex (bookPathRegex)';
+	@override String get matchAnyOr => 'Any matches (OR)';
+	@override String get matchAllAnd => 'All must match (AND)';
+	@override String get sizeMatchLogic => 'Size match logic:';
+	@override String get maxPixelsMpx => 'Max pixels (MPx)';
+	@override String get minPixelsMpx => 'Min pixels (MPx)';
+	@override String get maxHeightPx => 'Max height (px)';
+	@override String get minHeightPx => 'Min height (px)';
+	@override String get maxWidthPx => 'Max width (px)';
+	@override String get minWidthPx => 'Min width (px)';
+	@override String get conditionName => 'Condition name';
+	@override String get applyImport => 'Apply import';
+	@override String get importConditions => 'Import condition config';
+	@override String get copyToClipboard => 'Copy to clipboard';
+	@override String get exportConditions => 'Export condition config (JSON)';
+	@override String get resetConditionsContent => 'Restore every condition to its factory default? Existing rules will be cleared.';
+	@override String get resetConditions => 'Reset condition upscaling';
+	@override String get downloadInBrowser => 'Download in browser';
+	@override String get importLocalOnnx => 'Import local ONNX';
+	@override String get deleteCurrentModel => 'Delete current model';
+	@override String get redownloadCurrentModel => 'Re-download current model';
+	@override String get downloadCurrentModel => 'Download current model';
+	@override String get customModel => 'Custom upscale model';
+	@override String get onnxModel => 'ONNX model';
+	@override String get exampleCollapsedHint => 'Collapsed by default; the image loads once expanded';
+	@override String get exampleImageNotReady => 'The current page image is not ready yet';
+	@override String get closeExample => 'Close example';
+	@override String get removeModel => 'Remove model';
+	@override String get noOutputYet => 'not generated yet';
+	@override String get logWindowTitle => 'Rossi upscale log (this run)';
+	@override String get logCategory => 'Upscaling';
+	@override String get outputScaleSubtitle => 'Actual scale settings for desktop NCNN models';
+	@override String get outputScale => 'Output scale';
+	@override String get unnamedCondition => 'Unnamed condition';
 	@override String get title => 'Image Super-Resolution (Experimental)';
 	@override String get unlimited => 'Unlimited';
 	@override String get modelDownloadFailed => 'Model download failed';
@@ -1787,21 +1891,25 @@ class _Translations$about$en_US extends Translations$about$zh_CN {
 	@override String get loading => 'Loading...';
 	@override String get fetchFailed => 'Failed to load';
 	@override String get networkError => 'Network error';
+	@override String get tagline => 'Cross-platform comic reader';
 	@override String get projectAddress => 'Project';
 	@override String get projectAddressDesc => 'Like this project? Give it a star on GitHub!';
-	@override String get projectLink => 'Go to GitHub repo (deretame/Breeze) ⭐';
-	@override String get contact => 'Contact';
-	@override String get contactDesc => 'Have ideas or questions? Feel free to reach out~';
+	@override String get projectLink => 'Go to GitHub repo (HibernalGlow/rossi) ⭐';
 	@override String get feedback => 'Feedback';
 	@override String get feedbackDesc => 'Found a bug or have a new idea?';
 	@override String get feedbackLink => 'Open a GitHub Issue';
+	@override String get upstream => 'Upstream';
+	@override String get upstreamDesc => 'Rossi continues development on top of Breeze. Thanks to the upstream author and community.';
+	@override String get upstreamLink => 'Go to upstream repo (deretame/Breeze)';
+	@override String get licenseDesc => 'This project is released under the Mozilla Public License 2.0.';
+	@override String get licenseLink => 'Read the full license text';
 	@override String get contributors => 'Contributors';
 	@override String contributorsCount({required Object count}) => '${count}';
 	@override String contributionsTooltip({required Object login, required Object count}) => '${login} (${count} commits)';
 	@override String get disclaimer => 'Disclaimer';
 	@override String get disclaimerTitle => 'Open Source Disclaimer';
 	@override String get disclaimerItem1Title => '1. Nature and Statement';
-	@override String get disclaimerItem1Content => 'This project is open-source software, independently developed and maintained by the author. It is provided "as-is". The developer makes no express or implied warranties regarding functionality, stability, security, or fitness for purpose.';
+	@override String get disclaimerItem1Content => 'This project is open-source software, developed and maintained jointly by community contributors. It is provided "as-is". The developer makes no express or implied warranties regarding functionality, stability, security, or fitness for purpose.';
 	@override String get disclaimerItem2Title => '2. Limitation of Liability';
 	@override String get disclaimerItem2Content => 'The developer shall not be liable for any direct, indirect, special, incidental, or consequential damages arising from use, modification, or distribution of this project (including but not limited to direct use, secondary development, or integration into other projects). These damages may include but are not limited to data loss, device damage, business interruption, lost profits, or other economic losses.';
 	@override String get disclaimerItem3Title => '3. User Responsibility';
@@ -1813,7 +1921,7 @@ class _Translations$about$en_US extends Translations$about$zh_CN {
 	@override String get disclaimerItem6Title => '6. Modification and Termination';
 	@override String get disclaimerItem6Content => 'The developer reserves the right to modify, suspend, or terminate this project at any time without prior notice. The developer is not responsible for any consequences arising from such changes.';
 	@override String get disclaimerItem7Title => '7. Contributor Responsibility';
-	@override String get disclaimerItem7Content => 'If external contributions are accepted, contributors act in their personal capacity and do not represent the developer\'s views or positions. The developer is not responsible for contributor actions or content.';
+	@override String get disclaimerItem7Content => 'External contributors act in their personal capacity and do not represent the project maintainers\' views or positions. The maintainers are not responsible for contributor actions or content.';
 	@override String get disclaimerItem8Title => '8. Legal Compliance';
 	@override String get disclaimerItem8Content => 'Users must ensure their use complies with applicable laws and regulations. The developer is not responsible for consequences resulting from legal violations.';
 	@override String get disclaimerImportant => 'Important Notice';
@@ -2189,11 +2297,38 @@ class _Translations$download$en_US extends Translations$download$zh_CN {
 	@override String get title => 'Download tasks';
 	@override String get startDownload => 'Start Download';
 	@override String get selectChaptersPrompt => 'Please select chapters to download';
+	@override String selectedCount({required Object selected, required Object total}) => '${selected} / ${total} chapters selected';
+	@override String downloadedCount({required Object count}) => '${count} chapters already downloaded';
+	@override String get skipDownloaded => 'Skip downloaded';
+	@override String skippedAlreadyDownloaded({required Object count}) => 'Skipped ${count} chapters already downloaded';
+	@override String startedWithSkipped({required Object started, required Object skipped}) => 'Started ${started} chapters, skipped ${skipped} already downloaded';
+	@override String get optionsTitle => 'Download this comic';
+	@override String get optionWholeBook => 'Whole book';
+	@override String optionWholeBookCounted({required Object count}) => 'All ${count} chapters';
+	@override String get optionWholeBookPlain => 'Every chapter';
+	@override String optionLatest({required Object count}) => 'Latest ${count} chapters';
+	@override String get optionLatestSubtitle => 'The newest chapters by chapter order';
+	@override String get optionPicker => 'Pick chapters';
+	@override String get optionPickerPlain => 'Tick chapters one by one';
+	@override String get optionSkipHint => 'Whole book and latest-N skip chapters already on disk';
+	@override String get filterAll => 'All';
+	@override String get filterNoMatches => 'No tasks match this filter';
+	@override String overviewRemaining({required Object count}) => '${count} chapters left';
+	@override String overviewPages({required Object done, required Object total}) => '${done}/${total} pages done';
+	@override String overviewFailed({required Object count}) => '${count} failed';
+	@override String get comicScopeAll => 'All comics';
+	@override String comicScopeCounted({required Object name, required Object count}) => '${name} (${count})';
 	@override String get taskStarted => 'Download task started';
 	@override String taskStartFailed({required Object error}) => 'Failed to start download task: ${error}';
 	@override String get noTasks => 'No download tasks';
 	@override String get downloading => 'Downloading';
 	@override String pending({required Object count}) => 'Pending (${count})';
+	@override String failedTasks({required Object count}) => 'Failed (${count})';
+	@override String pausedTasks({required Object count}) => 'Paused (${count})';
+	@override String get pinTask => 'Prioritize';
+	@override String get unpinTask => 'Remove priority';
+	@override String get taskPinned => 'Moved to the front of the queue';
+	@override String get taskUnpinned => 'Priority removed';
 	@override String get taskDeleted => 'Task deleted';
 	@override String get deleteLastChapterContent => 'Deleting this chapter will also delete the download record. Continue?';
 	@override String get cancelTask => 'Cancel Task';
@@ -2203,7 +2338,11 @@ class _Translations$download$en_US extends Translations$download$zh_CN {
 	@override String get failed => 'Failed';
 	@override String get startAll => 'Start all';
 	@override String get pauseAll => 'Pause all';
+	@override String get cancelAll => 'Cancel all';
+	@override String cancelAllConfirm({required Object count}) => 'Cancel all ${count} download tasks? Their downloaded chapter images will be deleted too.';
 	@override String get clearCompleted => 'Clear completed';
+	@override String get viewModeCompact => 'Compact view';
+	@override String get viewModeComfortable => 'Full view';
 	@override String get statusFetchingComicInfo => 'Fetching comic info...';
 	@override String get statusDownloadingCover => 'Downloading cover...';
 	@override String get statusFetchingChapterInfo => 'Fetching chapter info...';
@@ -2214,9 +2353,13 @@ class _Translations$download$en_US extends Translations$download$zh_CN {
 	@override String progressPagesWithSpeed({required Object completed, required Object total, required Object speed}) => 'Downloaded ${completed}/${total} pages · ${speed}';
 	@override String parallelTaskProgress({required Object count, required Object message}) => '${count} tasks downloading · ${message}';
 	@override String get settingsTitle => 'Download settings';
+	@override String settingsValueSummary({required Object chapters, required Object images, required Object delayMs}) => '${chapters} chapters · ${images} images each · ${delayMs} ms apart';
 	@override String settingsBudgetHint({required Object count}) => 'Up to ${count} images download at once (chapters at once × images per chapter)';
 	@override String get offlineTitle => 'Offline comics';
 	@override String get offlineEmpty => 'Nothing downloaded yet';
+	@override String get offlineMeasureSize => 'Measure size';
+	@override String get offlineMeasuring => 'Measuring…';
+	@override String offlineTotalSize({required Object size}) => '${size} total';
 	@override String offlineChapterCount({required Object completed, required Object total}) => '${completed}/${total} chapters downloaded';
 	@override String offlineChapterCountOnly({required Object count}) => '${count} chapters downloaded';
 	@override String statusComicProgress({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => 'Comic progress: ${completedChapters}/${totalChapters} chapters, current chapter: ${currentChapterCompletedImages}/${currentChapterTotalImages} pages';
@@ -2665,6 +2808,44 @@ extension on TranslationsEnUs {
 			'navigation.workspace' => 'Workspace',
 			'navigation.openLocalComic' => 'Open local comic',
 			'navigation.gpuPresent' => 'GPU present',
+			'settings.defaultHoverDelaySubtitle' => 'Used when a lane has no delay of its own',
+			'settings.defaultHoverDelay' => 'Default hover reveal delay',
+			'settings.enterWorkspaceSubtitle' => 'Opens with the presentation selected below; use the system back key to exit',
+			'settings.enterWorkspace' => 'Enter workspace',
+			'settings.kanbanLaneMoveRight' => 'Move lane right',
+			'settings.kanbanLaneMoveLeft' => 'Move lane left',
+			'settings.kanbanPanelMoveDown' => 'Move panel down',
+			'settings.kanbanPanelMoveUp' => 'Move panel up',
+			'settings.kanbanLaneDefaultHidden' => 'Hidden by default',
+			'settings.kanbanLanePinned' => 'Pinned lane',
+			'settings.kanbanFullyHidden' => 'Fully hidden',
+			'settings.kanbanVisible' => 'Visible',
+			'settings.kanbanRestoreDefault' => 'Restore default layout',
+			'settings.swimlanePanelKanbanDesc' => 'Use the kanban to reorder lanes, order the panels on each lane, and show or fully hide them',
+			'settings.laneHoverDelayInherit' => 'Restore the inherited global delay',
+			'settings.laneHoverDelay' => 'Hover reveal delay',
+			'settings.laneHoverRevealSubtitle' => 'After dwelling, move the workspace so this lane shows in full',
+			'settings.laneHoverReveal' => 'Reveal in full on hover',
+			'settings.laneKeyboardFollowsMouseSubtitle' => 'Once the pointer enters this lane, hand keyboard control to it',
+			'settings.laneKeyboardFollowsMouse' => 'Keyboard target follows the pointer',
+			'settings.laneInteraction' => 'Lane interaction',
+			'settings.swimlanePanelKanbanSubtitle' => 'Lane order · per-lane panel order · show or fully hide panels',
+			'settings.swimlanePanelKanban' => 'Lane & panel kanban',
+			'settings.fmNewTabPresetHint' => 'Preset defaults apply only when “Use preset defaults” is on; the default recursive scope follows the search settings below. Duplicating a tab or restoring a closed one keeps its own settings.',
+			'settings.fmNewTabShowInternal' => 'Show internal entries by default',
+			'settings.fmNewTabShowHidden' => 'Show hidden items by default',
+			'settings.fmNewTabPassthrough' => 'Passthrough by default',
+			'settings.fmNewTabStartup' => 'New tab startup options',
+			'settings.importFileTxtJsonEmm' => 'Import file (TXT/JSON/EMM setting.json)',
+			'settings.searchArtistHint' => 'Search artists...',
+			'settings.importFileTxtJson' => 'Import file (TXT/JSON)',
+			'settings.debugGpuPresentSubtitle' => 'Rust decode → wgpu → GPU copy → shared texture, pixels never cross the bridge',
+			'settings.debugGpuPresent' => 'GPU present (D3D12 shared texture)',
+			'settings.debugOcrSmokeSubtitle' => 'Pick a page → detect / recognise / erase / translate / refill, with per-stage timing and outputs',
+			'settings.debugOcrSmoke' => 'OCR finished-page smoke test',
+			'settings.debugLocalSourceSubtitle' => 'Direct read of loose-image folders / CBZ / CBR, with per-page timing and rejection categories',
+			'settings.debugLocalSource' => 'Local source reading (criterion A)',
+			'settings.setResetPin' => 'Set reset PIN',
 			'settings.overviewSubtitle' => 'Make Rossi feel like yours',
 			'settings.searchCategories' => 'Search settings categories',
 			'settings.noMatchingCategories' => 'No matching categories. Try another keyword.',
@@ -2980,8 +3161,8 @@ extension on TranslationsEnUs {
 			'settings.clearCacheConfirm' => 'Are you sure you want to clear all cache files? This action cannot be undone.',
 			'settings.calculatingCache' => 'Calculating...',
 			'settings.calculateCacheFailed' => 'Calculate failed',
-			'settings.dataBackup' => 'Data Import/Export',
-			'settings.dataBackupSubtitle' => 'Backup or restore app data and downloaded comics',
+			'settings.dataBackup' => 'Local Import/Export',
+			'settings.dataBackupSubtitle' => 'Transfer settings and data between mobile and desktop using ZIP; keep device-specific settings',
 			'settings.includeDownloaded' => 'Include downloaded comics',
 			'settings.includeDownloadedSubtitle' => 'Pack downloaded comic files when exporting',
 			'settings.exportData' => 'Export data',
@@ -3012,6 +3193,8 @@ extension on TranslationsEnUs {
 			'settings.einkRefreshHint' => 'A full refresh flashes white or black-and-white to clear the ghost of the previous page.',
 			'settings.einkRefreshNow' => 'Refresh now',
 			'settings.einkRefreshDone' => 'Screen refreshed',
+			_ => null,
+		} ?? switch (path) {
 			'settings.einkAutoRefreshTurns' => 'Auto refresh every N pages',
 			'settings.einkAutoRefreshOff' => 'Never',
 			'settings.einkShowRefreshButton' => 'Show refresh button',
@@ -3050,8 +3233,6 @@ extension on TranslationsEnUs {
 			'settings.colorPreviewVariableFont' => 'Variable Font test',
 			'settings.colorPreviewFontLoaded' => ({required Object path}) => 'Loaded: ${path}',
 			'settings.colorPreviewNoFont' => 'No font loaded. Try the recommended sample or pick a TTF/OTF file.',
-			_ => null,
-		} ?? switch (path) {
 			'settings.colorPreviewLoadRecommended' => 'Load recommended sample',
 			'settings.colorPreviewSelectFont' => 'Select font file',
 			'settings.colorPreviewByWeight' => 'Render by fontWeight',
@@ -3348,6 +3529,7 @@ extension on TranslationsEnUs {
 			'bookshelf.confirmDeleteFolderContent' => 'Delete this folder? Contents will be deleted recursively.',
 			'bookshelf.confirmRemoveComicTitle' => 'Remove from folder',
 			'bookshelf.confirmRemoveComicContent' => ({required Object title}) => 'Remove "${title}" from current folder?',
+			'bookshelf.importComicZipOnly' => 'Importing comics (zip only)',
 			'bookshelf.importStarted' => 'Importing comics (zip only)',
 			'bookshelf.importCompleted' => ({required Object title}) => 'Import completed: ${title}',
 			'bookshelf.comicExists' => 'Comic already exists',
@@ -3416,6 +3598,19 @@ extension on TranslationsEnUs {
 			'comicInfo.collected' => 'Collected',
 			'comicInfo.collect' => 'Collect',
 			'comicInfo.download' => 'Download',
+			'comicInfo.markRead' => 'Mark as read',
+			'comicInfo.markUnread' => 'Mark as unread',
+			'comicInfo.markThroughRead' => 'Mark up to here as read',
+			'comicInfo.clearReadMark' => 'Clear mark',
+			'comicInfo.readStateMenu' => 'Reading state',
+			'comicInfo.readStateMenuHint' => 'Marks only record your own judgement. They never change reading progress or where “Continue reading” takes you.',
+			'comicInfo.markReadDone' => ({required Object count}) => 'Marked ${count} chapters as read',
+			'comicInfo.markUnreadDone' => ({required Object count}) => 'Marked ${count} chapters as unread',
+			'comicInfo.markThroughReadDone' => ({required Object count}) => 'Marked ${count} earlier chapters as read',
+			'comicInfo.readStateUnread' => 'Unread',
+			'comicInfo.readStateInferred' => 'Read before',
+			'comicInfo.readStateManualRead' => 'Marked read',
+			'comicInfo.readStateManualUnread' => 'Marked unread',
 			'comicInfo.downloadForbidden' => 'This plugin does not support this feature',
 			'comicInfo.addedToCollection' => 'Added to collection',
 			'comicInfo.removedFromCollection' => 'Removed from collection',
@@ -3512,6 +3707,8 @@ extension on TranslationsEnUs {
 			'reader.saveToDirectory' => 'Export to Folder',
 			'reader.exportZip' => 'Export as ZIP',
 			'reader.downloadSelected' => 'Download Selected',
+			_ => null,
+		} ?? switch (path) {
 			'reader.selectAll' => 'Select All',
 			'reader.deselectAll' => 'Deselect All',
 			'reader.invertSelection' => 'Invert Selection',
@@ -3564,8 +3761,6 @@ extension on TranslationsEnUs {
 			'reader.readingDirectionRtl' => 'Right to left',
 			'reader.readingDirectionVertical' => 'Top to bottom',
 			'reader.webtoon' => 'Webtoon',
-			_ => null,
-		} ?? switch (path) {
 			'reader.singlePageRow' => 'Single page (horizontal)',
 			'reader.readingDirectionLeftOpen' => 'Left-opening · next page on the left',
 			'reader.readingDirectionRightOpen' => 'Right-opening · next page on the right',
@@ -3721,6 +3916,8 @@ extension on TranslationsEnUs {
 			'reader.tabTranslate' => 'Translate',
 			'reader.chromeSection' => 'Bars & margins',
 			'reader.tuningSection' => 'Picture tuning',
+			'reader.autoTrimMargins' => 'Auto-trim margins',
+			'reader.autoTrimMarginsSubtitle' => 'Detect each page\'s content area and zoom to it; original pixels untouched',
 			'reader.pauseAutoRead' => 'Pause auto read',
 			'reader.resumeAutoRead' => 'Resume auto read',
 			'reader.imageLoadFailedRetry' => ({required Object error}) => '${error}\nLoad failed, tap to retry',
@@ -3733,8 +3930,9 @@ extension on TranslationsEnUs {
 			'reader.radialMenuHintMove' => 'Move to choose',
 			'reader.radialMenuHintRelease' => 'Release to run',
 			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
-			'reader.singlePageLtr' => 'Single page (LTR)',
-			'reader.singlePageRtl' => 'Single page (RTL)',
+			'reader.singlePageLtr' => 'Left to right',
+			'reader.singlePageRtl' => 'Right to left',
+			'plugin.advancedCapabilityLoading' => 'Loading advanced capabilities...',
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
@@ -3761,6 +3959,7 @@ extension on TranslationsEnUs {
 			'plugin.executeFailed' => ({required Object error}) => 'Execute failed: ${error}',
 			'plugin.deletePluginSubtitle' => 'Delete plugin and related data permanently',
 			'plugin.debugMode' => 'Debug mode',
+			'plugin.debugAddress' => 'Debug address',
 			'plugin.accountLoginSubtitle' => 'Go to login',
 			'plugin.accountLogin' => 'Account login',
 			'plugin.pluginDetail' => 'Plugin detail',
@@ -3894,7 +4093,7 @@ extension on TranslationsEnUs {
 			'cache.autoCleanSubtitle' => 'Automatically clean old cache when exceeding limit',
 			'cache.calculating' => 'Calculating...',
 			'cache.calculateFailed' => 'Calculate failed',
-			'dataBackup.title' => 'Data Import/Export',
+			'dataBackup.title' => 'Local Import/Export',
 			'dataBackup.exportSection' => 'Export',
 			'dataBackup.importSection' => 'Import',
 			'dataBackup.includeDownloads' => 'Include downloaded comics',
@@ -3916,7 +4115,7 @@ extension on TranslationsEnUs {
 			'dataBackup.importing' => 'Importing, please wait…',
 			'dataBackup.importFailed' => 'Import failed',
 			'dataBackup.importTitle' => 'Import data',
-			'dataBackup.importConfirm' => 'Import will overwrite all current app data. Continue?',
+			'dataBackup.importConfirm' => 'Import will replace backed-up settings and app data. Local paths, proxy, app lock and sync configuration will be kept. Continue?',
 			'dataBackup.includesDownloadsWarning' => 'This backup contains downloaded comic files. Existing downloads will be deleted before import.',
 			'dataBackup.versionMismatch' => 'Version mismatch. Data import may have issues. Continue?',
 			'dataBackup.exportedVersion' => ({required Object version}) => 'Exported version: ${version}',
@@ -4019,6 +4218,56 @@ extension on TranslationsEnUs {
 			'ocr.engineAppleUnavailable' => 'No system translation on this machine (macOS 15+ / iOS 18+ only)',
 			'ocr.glossaryIgnoredOnApple' => 'System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations',
 			'ocr.engineHunyuanHint' => 'This engine needs a local server first, e.g. llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\nSet base URL to http://127.0.0.1:8080/v1 and use the same model name as --model. The glossary takes effect via its native Terminology mode.\nMeasured: 1.8B is enough (~158 ms/line, ~2.4 s/page) — the glossary fixes ヤモリ/危機契約 line by line and 7B is no better at 4x the size. On macOS --device must be MTL0, otherwise llama.cpp silently uses the CPU (4.8x slower).',
+			'realSr.deleteCondition' => 'Delete condition',
+			'realSr.lowerPriority' => 'Lower priority',
+			'realSr.raisePriority' => 'Raise priority',
+			_ => null,
+		} ?? switch (path) {
+			'realSr.addCondition' => 'Add condition',
+			'realSr.openImageFolderHint' => 'Reveals the most recent upscaled image; opens the upscale cache folder when there is none yet.',
+			'realSr.openImageFolder' => 'Open image folder',
+			'realSr.viewUpscaleLog' => 'View upscale log',
+			'realSr.upscaleLog' => 'Upscale log',
+			'realSr.downloadNativeModel' => 'Download Rossi native model',
+			'realSr.pagesBefore' => 'Pages before:',
+			'realSr.pagesAfter' => 'Pages after:',
+			'realSr.blockSizeLabel' => 'Block size:',
+			'realSr.outputScaleLabel' => 'Output scale:',
+			'realSr.imagePathRegex' => 'Image path regex (imagePathRegex)',
+			'realSr.bookPathRegex' => 'Book path regex (bookPathRegex)',
+			'realSr.matchAnyOr' => 'Any matches (OR)',
+			'realSr.matchAllAnd' => 'All must match (AND)',
+			'realSr.sizeMatchLogic' => 'Size match logic:',
+			'realSr.maxPixelsMpx' => 'Max pixels (MPx)',
+			'realSr.minPixelsMpx' => 'Min pixels (MPx)',
+			'realSr.maxHeightPx' => 'Max height (px)',
+			'realSr.minHeightPx' => 'Min height (px)',
+			'realSr.maxWidthPx' => 'Max width (px)',
+			'realSr.minWidthPx' => 'Min width (px)',
+			'realSr.conditionName' => 'Condition name',
+			'realSr.applyImport' => 'Apply import',
+			'realSr.importConditions' => 'Import condition config',
+			'realSr.copyToClipboard' => 'Copy to clipboard',
+			'realSr.exportConditions' => 'Export condition config (JSON)',
+			'realSr.resetConditionsContent' => 'Restore every condition to its factory default? Existing rules will be cleared.',
+			'realSr.resetConditions' => 'Reset condition upscaling',
+			'realSr.downloadInBrowser' => 'Download in browser',
+			'realSr.importLocalOnnx' => 'Import local ONNX',
+			'realSr.deleteCurrentModel' => 'Delete current model',
+			'realSr.redownloadCurrentModel' => 'Re-download current model',
+			'realSr.downloadCurrentModel' => 'Download current model',
+			'realSr.customModel' => 'Custom upscale model',
+			'realSr.onnxModel' => 'ONNX model',
+			'realSr.exampleCollapsedHint' => 'Collapsed by default; the image loads once expanded',
+			'realSr.exampleImageNotReady' => 'The current page image is not ready yet',
+			'realSr.closeExample' => 'Close example',
+			'realSr.removeModel' => 'Remove model',
+			'realSr.noOutputYet' => 'not generated yet',
+			'realSr.logWindowTitle' => 'Rossi upscale log (this run)',
+			'realSr.logCategory' => 'Upscaling',
+			'realSr.outputScaleSubtitle' => 'Actual scale settings for desktop NCNN models',
+			'realSr.outputScale' => 'Output scale',
+			'realSr.unnamedCondition' => 'Unnamed condition',
 			'realSr.title' => 'Image Super-Resolution (Experimental)',
 			'realSr.unlimited' => 'Unlimited',
 			'realSr.modelDownloadFailed' => 'Model download failed',
@@ -4080,8 +4329,6 @@ extension on TranslationsEnUs {
 			'realSr.variantRealCuganDenoise' => ({required Object noise}) => 'Real-CUGAN denoise ${noise}',
 			'realSr.coremlSpeed' => 'Speed priority (waifu2x)',
 			'realSr.coremlQuality' => 'Quality priority (Real-CUGAN)',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.coremlNoise0' => 'Denoise 0',
 			'realSr.coremlNoDenoise' => 'No denoise',
 			'realSr.coremlInputHint' => 'Enter input image absolute path or asset path',
@@ -4100,21 +4347,25 @@ extension on TranslationsEnUs {
 			'about.loading' => 'Loading...',
 			'about.fetchFailed' => 'Failed to load',
 			'about.networkError' => 'Network error',
+			'about.tagline' => 'Cross-platform comic reader',
 			'about.projectAddress' => 'Project',
 			'about.projectAddressDesc' => 'Like this project? Give it a star on GitHub!',
-			'about.projectLink' => 'Go to GitHub repo (deretame/Breeze) ⭐',
-			'about.contact' => 'Contact',
-			'about.contactDesc' => 'Have ideas or questions? Feel free to reach out~',
+			'about.projectLink' => 'Go to GitHub repo (HibernalGlow/rossi) ⭐',
 			'about.feedback' => 'Feedback',
 			'about.feedbackDesc' => 'Found a bug or have a new idea?',
 			'about.feedbackLink' => 'Open a GitHub Issue',
+			'about.upstream' => 'Upstream',
+			'about.upstreamDesc' => 'Rossi continues development on top of Breeze. Thanks to the upstream author and community.',
+			'about.upstreamLink' => 'Go to upstream repo (deretame/Breeze)',
+			'about.licenseDesc' => 'This project is released under the Mozilla Public License 2.0.',
+			'about.licenseLink' => 'Read the full license text',
 			'about.contributors' => 'Contributors',
 			'about.contributorsCount' => ({required Object count}) => '${count}',
 			'about.contributionsTooltip' => ({required Object login, required Object count}) => '${login} (${count} commits)',
 			'about.disclaimer' => 'Disclaimer',
 			'about.disclaimerTitle' => 'Open Source Disclaimer',
 			'about.disclaimerItem1Title' => '1. Nature and Statement',
-			'about.disclaimerItem1Content' => 'This project is open-source software, independently developed and maintained by the author. It is provided "as-is". The developer makes no express or implied warranties regarding functionality, stability, security, or fitness for purpose.',
+			'about.disclaimerItem1Content' => 'This project is open-source software, developed and maintained jointly by community contributors. It is provided "as-is". The developer makes no express or implied warranties regarding functionality, stability, security, or fitness for purpose.',
 			'about.disclaimerItem2Title' => '2. Limitation of Liability',
 			'about.disclaimerItem2Content' => 'The developer shall not be liable for any direct, indirect, special, incidental, or consequential damages arising from use, modification, or distribution of this project (including but not limited to direct use, secondary development, or integration into other projects). These damages may include but are not limited to data loss, device damage, business interruption, lost profits, or other economic losses.',
 			'about.disclaimerItem3Title' => '3. User Responsibility',
@@ -4126,7 +4377,7 @@ extension on TranslationsEnUs {
 			'about.disclaimerItem6Title' => '6. Modification and Termination',
 			'about.disclaimerItem6Content' => 'The developer reserves the right to modify, suspend, or terminate this project at any time without prior notice. The developer is not responsible for any consequences arising from such changes.',
 			'about.disclaimerItem7Title' => '7. Contributor Responsibility',
-			'about.disclaimerItem7Content' => 'If external contributions are accepted, contributors act in their personal capacity and do not represent the developer\'s views or positions. The developer is not responsible for contributor actions or content.',
+			'about.disclaimerItem7Content' => 'External contributors act in their personal capacity and do not represent the project maintainers\' views or positions. The maintainers are not responsible for contributor actions or content.',
 			'about.disclaimerItem8Title' => '8. Legal Compliance',
 			'about.disclaimerItem8Content' => 'Users must ensure their use complies with applicable laws and regulations. The developer is not responsible for consequences resulting from legal violations.',
 			'about.disclaimerImportant' => 'Important Notice',
@@ -4376,11 +4627,38 @@ extension on TranslationsEnUs {
 			'download.title' => 'Download tasks',
 			'download.startDownload' => 'Start Download',
 			'download.selectChaptersPrompt' => 'Please select chapters to download',
+			'download.selectedCount' => ({required Object selected, required Object total}) => '${selected} / ${total} chapters selected',
+			'download.downloadedCount' => ({required Object count}) => '${count} chapters already downloaded',
+			'download.skipDownloaded' => 'Skip downloaded',
+			'download.skippedAlreadyDownloaded' => ({required Object count}) => 'Skipped ${count} chapters already downloaded',
+			'download.startedWithSkipped' => ({required Object started, required Object skipped}) => 'Started ${started} chapters, skipped ${skipped} already downloaded',
+			'download.optionsTitle' => 'Download this comic',
+			'download.optionWholeBook' => 'Whole book',
+			'download.optionWholeBookCounted' => ({required Object count}) => 'All ${count} chapters',
+			'download.optionWholeBookPlain' => 'Every chapter',
+			'download.optionLatest' => ({required Object count}) => 'Latest ${count} chapters',
+			'download.optionLatestSubtitle' => 'The newest chapters by chapter order',
+			'download.optionPicker' => 'Pick chapters',
+			'download.optionPickerPlain' => 'Tick chapters one by one',
+			'download.optionSkipHint' => 'Whole book and latest-N skip chapters already on disk',
+			'download.filterAll' => 'All',
+			'download.filterNoMatches' => 'No tasks match this filter',
+			'download.overviewRemaining' => ({required Object count}) => '${count} chapters left',
+			'download.overviewPages' => ({required Object done, required Object total}) => '${done}/${total} pages done',
+			'download.overviewFailed' => ({required Object count}) => '${count} failed',
+			'download.comicScopeAll' => 'All comics',
+			'download.comicScopeCounted' => ({required Object name, required Object count}) => '${name} (${count})',
 			'download.taskStarted' => 'Download task started',
 			'download.taskStartFailed' => ({required Object error}) => 'Failed to start download task: ${error}',
 			'download.noTasks' => 'No download tasks',
 			'download.downloading' => 'Downloading',
 			'download.pending' => ({required Object count}) => 'Pending (${count})',
+			'download.failedTasks' => ({required Object count}) => 'Failed (${count})',
+			'download.pausedTasks' => ({required Object count}) => 'Paused (${count})',
+			'download.pinTask' => 'Prioritize',
+			'download.unpinTask' => 'Remove priority',
+			'download.taskPinned' => 'Moved to the front of the queue',
+			'download.taskUnpinned' => 'Priority removed',
 			'download.taskDeleted' => 'Task deleted',
 			'download.deleteLastChapterContent' => 'Deleting this chapter will also delete the download record. Continue?',
 			'download.cancelTask' => 'Cancel Task',
@@ -4390,7 +4668,11 @@ extension on TranslationsEnUs {
 			'download.failed' => 'Failed',
 			'download.startAll' => 'Start all',
 			'download.pauseAll' => 'Pause all',
+			'download.cancelAll' => 'Cancel all',
+			'download.cancelAllConfirm' => ({required Object count}) => 'Cancel all ${count} download tasks? Their downloaded chapter images will be deleted too.',
 			'download.clearCompleted' => 'Clear completed',
+			'download.viewModeCompact' => 'Compact view',
+			'download.viewModeComfortable' => 'Full view',
 			'download.statusFetchingComicInfo' => 'Fetching comic info...',
 			'download.statusDownloadingCover' => 'Downloading cover...',
 			'download.statusFetchingChapterInfo' => 'Fetching chapter info...',
@@ -4401,9 +4683,13 @@ extension on TranslationsEnUs {
 			'download.progressPagesWithSpeed' => ({required Object completed, required Object total, required Object speed}) => 'Downloaded ${completed}/${total} pages · ${speed}',
 			'download.parallelTaskProgress' => ({required Object count, required Object message}) => '${count} tasks downloading · ${message}',
 			'download.settingsTitle' => 'Download settings',
+			'download.settingsValueSummary' => ({required Object chapters, required Object images, required Object delayMs}) => '${chapters} chapters · ${images} images each · ${delayMs} ms apart',
 			'download.settingsBudgetHint' => ({required Object count}) => 'Up to ${count} images download at once (chapters at once × images per chapter)',
 			'download.offlineTitle' => 'Offline comics',
 			'download.offlineEmpty' => 'Nothing downloaded yet',
+			'download.offlineMeasureSize' => 'Measure size',
+			'download.offlineMeasuring' => 'Measuring…',
+			'download.offlineTotalSize' => ({required Object size}) => '${size} total',
 			'download.offlineChapterCount' => ({required Object completed, required Object total}) => '${completed}/${total} chapters downloaded',
 			'download.offlineChapterCountOnly' => ({required Object count}) => '${count} chapters downloaded',
 			'download.statusComicProgress' => ({required Object completedChapters, required Object totalChapters, required Object currentChapterCompletedImages, required Object currentChapterTotalImages}) => 'Comic progress: ${completedChapters}/${totalChapters} chapters, current chapter: ${currentChapterCompletedImages}/${currentChapterTotalImages} pages',
@@ -4449,6 +4735,8 @@ extension on TranslationsEnUs {
 			'shelfMenu.copiedTitle' => ({required Object title}) => 'Copied title “${title}”',
 			'shelfMenu.copiedLink' => ({required Object link}) => 'Copied link “${link}”',
 			'shelfMenu.fileManagerTabOpened' => 'Opened in a new file manager tab',
+			_ => null,
+		} ?? switch (path) {
 			'shelfMenu.fileManagerTabUnavailable' => 'The file manager panel is not ready yet, try again in a moment',
 			'shelfMenu.fileManagerTabNoLocalPath' => 'This comic has no local folder, so it cannot be opened in the file manager',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => 'Added “${title}” to favorites',
@@ -4596,8 +4884,6 @@ extension on TranslationsEnUs {
 			'bindingEditor.swipeDown' => 'Swipe down',
 			'bindingEditor.tap' => 'Tap',
 			'bindingEditor.longPress' => 'Long press',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.fingers' => 'Fingers',
 			'bindingEditor.gesture' => 'Touch gesture',
 			'bindingEditor.directions' => 'Gesture direction sequence',

@@ -373,125 +373,156 @@ const _$SyncServiceTypeEnumMap = {
   SyncServiceType.s3: 's3',
 };
 
-_ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
-    _ReadSettingState(
-      noAnimation: json['noAnimation'] as bool? ?? false,
-      keyboardPageTurnPagesPerSecond:
-          (json['keyboardPageTurnPagesPerSecond'] as num?)?.toDouble() ?? 4.0,
-      keyboardPageTurnHoldDelayMs:
-          (json['keyboardPageTurnHoldDelayMs'] as num?)?.toInt() ?? 350,
-      comicReadTopContainer: json['comicReadTopContainer'] as bool? ?? true,
-      readMode: (json['readMode'] as num?)?.toInt() ?? 0,
-      tapPageTurnMode:
-          $enumDecodeNullable(
-            _$ReaderTapPageTurnModeEnumMap,
-            json['tapPageTurnMode'],
-          ) ??
-          ReaderTapPageTurnMode.rightHand,
-      tapPageTurnInWebtoon: json['tapPageTurnInWebtoon'] as bool? ?? false,
-      reverseHorizontalPageTurn:
-          json['reverseHorizontalPageTurn'] as bool? ?? false,
-      readerBackgroundMode:
-          $enumDecodeNullable(
-            _$ReaderBackgroundModeEnumMap,
-            json['readerBackgroundMode'],
-            unknownValue: ReaderBackgroundMode.auto,
-          ) ??
-          ReaderBackgroundMode.auto,
-      readerAmbientDimPercent:
-          (json['readerAmbientDimPercent'] as num?)?.toInt() ??
-          readerAmbientDimPercentDefault,
-      readFilterEnabled: json['readFilterEnabled'] as bool? ?? true,
-      readFilterOpacityPercent:
-          (json['readFilterOpacityPercent'] as num?)?.toInt() ?? 50,
-      einkOptimization: json['einkOptimization'] as bool? ?? false,
-      einkDelayMs: (json['einkDelayMs'] as num?)?.toInt() ?? 120,
-      autoScroll: json['autoScroll'] as bool? ?? false,
-      autoScrollHidePauseButton:
-          json['autoScrollHidePauseButton'] as bool? ?? false,
-      autoScrollSmooth: json['autoScrollSmooth'] as bool? ?? false,
-      autoScrollColumnIntervalMs:
-          (json['autoScrollColumnIntervalMs'] as num?)?.toInt() ?? 1600,
-      autoScrollPageIntervalMs:
-          (json['autoScrollPageIntervalMs'] as num?)?.toInt() ?? 3000,
-      autoScrollColumnDistancePercent:
-          (json['autoScrollColumnDistancePercent'] as num?)?.toInt() ?? 72,
-      preloadImageCount: (json['preloadImageCount'] as num?)?.toInt() ?? 3,
-      preloadChapterCount: (json['preloadChapterCount'] as num?)?.toInt() ?? 1,
-      readWhileDownloading: json['readWhileDownloading'] as bool? ?? true,
-      landscapeReader: json['landscapeReader'] as bool? ?? false,
-      doublePageMode: json['doublePageMode'] as bool? ?? false,
-      doublePageSeamless: json['doublePageSeamless'] as bool? ?? false,
-      doublePageLeadingBlank: json['doublePageLeadingBlank'] as bool? ?? false,
-      splitLandscapePages: json['splitLandscapePages'] as bool? ?? false,
-      landscapeSplitDirection:
-          (json['landscapeSplitDirection'] as num?)?.toInt() ?? 0,
-      sidePaddingEnabled: json['sidePaddingEnabled'] as bool? ?? false,
-      sidePaddingPercent: (json['sidePaddingPercent'] as num?)?.toInt() ?? 10,
-      volumeKeyPageTurn: json['volumeKeyPageTurn'] as bool? ?? true,
-      volumeKeyPageTurnDistancePercent:
-          (json['volumeKeyPageTurnDistancePercent'] as num?)?.toInt() ?? 72,
-      doubleTapZoom: json['doubleTapZoom'] as bool? ?? false,
-      doubleTapOpenMenu: json['doubleTapOpenMenu'] as bool? ?? false,
-      pageInfoShowPage: json['pageInfoShowPage'] as bool? ?? true,
-      pageInfoShowNetwork: json['pageInfoShowNetwork'] as bool? ?? true,
-      pageInfoShowBattery: json['pageInfoShowBattery'] as bool? ?? false,
-      pageInfoShowTime: json['pageInfoShowTime'] as bool? ?? true,
-      pageInfoVerticalPosition:
-          $enumDecodeNullable(
-            _$ReaderInfoVerticalPositionEnumMap,
-            json['pageInfoVerticalPosition'],
-          ) ??
-          ReaderInfoVerticalPosition.bottom,
-      pageInfoTopInStatusBar: json['pageInfoTopInStatusBar'] as bool? ?? false,
-      pageInfoHorizontalPosition:
-          $enumDecodeNullable(
-            _$ReaderInfoHorizontalPositionEnumMap,
-            json['pageInfoHorizontalPosition'],
-          ) ??
-          ReaderInfoHorizontalPosition.left,
-      pageInfoEdgePadding: (json['pageInfoEdgePadding'] as num?)?.toInt() ?? 12,
-      pageInfoOpacityPercent:
-          (json['pageInfoOpacityPercent'] as num?)?.toInt() ?? 82,
-      pageInfoFontSize: (json['pageInfoFontSize'] as num?)?.toInt() ?? 12,
-      showBottomProgressBar: json['showBottomProgressBar'] as bool? ?? false,
-      bottomProgressBarGlow: json['bottomProgressBarGlow'] as bool? ?? true,
-      hoverRevealEnabled: json['hoverRevealEnabled'] as bool? ?? true,
-      hoverRevealTop: json['hoverRevealTop'] as bool? ?? true,
-      hoverRevealBottom: json['hoverRevealBottom'] as bool? ?? true,
-      hoverTriggerAreaTop: (json['hoverTriggerAreaTop'] as num?)?.toInt() ?? 32,
-      hoverTriggerAreaBottom:
-          (json['hoverTriggerAreaBottom'] as num?)?.toInt() ?? 32,
-      hoverHideDelayMs: (json['hoverHideDelayMs'] as num?)?.toInt() ?? 500,
-      hoverShowVisualIndicator:
-          json['hoverShowVisualIndicator'] as bool? ?? false,
-      centerTapToggleBars: json['centerTapToggleBars'] as bool? ?? true,
-      topBarPinned: json['topBarPinned'] as bool? ?? false,
-      bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
-      showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
-      thumbnailStripOriginalAspectRatio:
-          json['thumbnailStripOriginalAspectRatio'] as bool? ?? false,
-      transparentTopBar: json['transparentTopBar'] as bool? ?? false,
-      topBarScrimOpacityPercent:
-          (json['topBarScrimOpacityPercent'] as num?)?.toInt() ?? 85,
-      readingDirectionToggle: json['readingDirectionToggle'] as bool? ?? true,
-      readerFitMode:
-          $enumDecodeNullable(_$ReaderFitModeEnumMap, json['readerFitMode']) ??
-          ReaderFitMode.fit,
-      readerAutoRotation:
-          $enumDecodeNullable(
-            _$ReaderAutoRotationEnumMap,
-            json['readerAutoRotation'],
-          ) ??
-          ReaderAutoRotation.none,
-      readerWidePageStretch:
-          $enumDecodeNullable(
-            _$ReaderWidePageStretchEnumMap,
-            json['readerWidePageStretch'],
-          ) ??
-          ReaderWidePageStretch.none,
-      swipePreviewEnabled: json['swipePreviewEnabled'] as bool? ?? true,
-    );
+_ReadSettingState _$ReadSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _ReadSettingState(
+  noAnimation: json['noAnimation'] as bool? ?? false,
+  keyboardPageTurnPagesPerSecond:
+      (json['keyboardPageTurnPagesPerSecond'] as num?)?.toDouble() ?? 4.0,
+  keyboardPageTurnHoldDelayMs:
+      (json['keyboardPageTurnHoldDelayMs'] as num?)?.toInt() ?? 350,
+  comicReadTopContainer: json['comicReadTopContainer'] as bool? ?? true,
+  readMode: (json['readMode'] as num?)?.toInt() ?? 0,
+  tapPageTurnMode:
+      $enumDecodeNullable(
+        _$ReaderTapPageTurnModeEnumMap,
+        json['tapPageTurnMode'],
+      ) ??
+      ReaderTapPageTurnMode.rightHand,
+  tapPageTurnInWebtoon: json['tapPageTurnInWebtoon'] as bool? ?? false,
+  reverseHorizontalPageTurn:
+      json['reverseHorizontalPageTurn'] as bool? ?? false,
+  readerBackgroundMode:
+      $enumDecodeNullable(
+        _$ReaderBackgroundModeEnumMap,
+        json['readerBackgroundMode'],
+        unknownValue: ReaderBackgroundMode.auto,
+      ) ??
+      ReaderBackgroundMode.auto,
+  readerAmbientDimPercent:
+      (json['readerAmbientDimPercent'] as num?)?.toInt() ??
+      readerAmbientDimPercentDefault,
+  readFilterEnabled: json['readFilterEnabled'] as bool? ?? true,
+  readFilterOpacityPercent:
+      (json['readFilterOpacityPercent'] as num?)?.toInt() ?? 50,
+  einkOptimization: json['einkOptimization'] as bool? ?? false,
+  einkDelayMs: (json['einkDelayMs'] as num?)?.toInt() ?? 120,
+  autoTrimPageMargins: json['autoTrimPageMargins'] as bool? ?? false,
+  autoScroll: json['autoScroll'] as bool? ?? false,
+  autoScrollHidePauseButton:
+      json['autoScrollHidePauseButton'] as bool? ?? false,
+  autoScrollSmooth: json['autoScrollSmooth'] as bool? ?? false,
+  autoScrollColumnIntervalMs:
+      (json['autoScrollColumnIntervalMs'] as num?)?.toInt() ?? 1600,
+  autoScrollPageIntervalMs:
+      (json['autoScrollPageIntervalMs'] as num?)?.toInt() ?? 3000,
+  autoScrollColumnDistancePercent:
+      (json['autoScrollColumnDistancePercent'] as num?)?.toInt() ?? 72,
+  preloadImageCount: (json['preloadImageCount'] as num?)?.toInt() ?? 3,
+  preloadChapterCount: (json['preloadChapterCount'] as num?)?.toInt() ?? 1,
+  readWhileDownloading: json['readWhileDownloading'] as bool? ?? true,
+  landscapeReader: json['landscapeReader'] as bool? ?? false,
+  doublePageMode: json['doublePageMode'] as bool? ?? false,
+  doublePageSeamless: json['doublePageSeamless'] as bool? ?? false,
+  doublePageLeadingBlank: json['doublePageLeadingBlank'] as bool? ?? false,
+  splitLandscapePages: json['splitLandscapePages'] as bool? ?? false,
+  landscapeSplitDirection:
+      (json['landscapeSplitDirection'] as num?)?.toInt() ?? 0,
+  sidePaddingEnabled: json['sidePaddingEnabled'] as bool? ?? false,
+  sidePaddingPercent: (json['sidePaddingPercent'] as num?)?.toInt() ?? 10,
+  volumeKeyPageTurn: json['volumeKeyPageTurn'] as bool? ?? true,
+  volumeKeyPageTurnDistancePercent:
+      (json['volumeKeyPageTurnDistancePercent'] as num?)?.toInt() ?? 72,
+  doubleTapZoom: json['doubleTapZoom'] as bool? ?? false,
+  doubleTapOpenMenu: json['doubleTapOpenMenu'] as bool? ?? false,
+  pageInfoShowPage: json['pageInfoShowPage'] as bool? ?? true,
+  pageInfoShowNetwork: json['pageInfoShowNetwork'] as bool? ?? true,
+  pageInfoShowBattery: json['pageInfoShowBattery'] as bool? ?? false,
+  pageInfoShowTime: json['pageInfoShowTime'] as bool? ?? true,
+  pageInfoVerticalPosition:
+      $enumDecodeNullable(
+        _$ReaderInfoVerticalPositionEnumMap,
+        json['pageInfoVerticalPosition'],
+      ) ??
+      ReaderInfoVerticalPosition.bottom,
+  pageInfoTopInStatusBar: json['pageInfoTopInStatusBar'] as bool? ?? false,
+  pageInfoHorizontalPosition:
+      $enumDecodeNullable(
+        _$ReaderInfoHorizontalPositionEnumMap,
+        json['pageInfoHorizontalPosition'],
+      ) ??
+      ReaderInfoHorizontalPosition.left,
+  pageInfoEdgePadding: (json['pageInfoEdgePadding'] as num?)?.toInt() ?? 12,
+  pageInfoOpacityPercent:
+      (json['pageInfoOpacityPercent'] as num?)?.toInt() ?? 82,
+  pageInfoFontSize: (json['pageInfoFontSize'] as num?)?.toInt() ?? 12,
+  showBottomProgressBar: json['showBottomProgressBar'] as bool? ?? false,
+  bottomProgressBarGlow: json['bottomProgressBarGlow'] as bool? ?? true,
+  hoverRevealEnabled: json['hoverRevealEnabled'] as bool? ?? true,
+  hoverRevealTop: json['hoverRevealTop'] as bool? ?? true,
+  hoverRevealBottom: json['hoverRevealBottom'] as bool? ?? true,
+  hoverTriggerAreaTop: (json['hoverTriggerAreaTop'] as num?)?.toInt() ?? 32,
+  hoverTriggerAreaBottom:
+      (json['hoverTriggerAreaBottom'] as num?)?.toInt() ?? 32,
+  hoverHideDelayMs: (json['hoverHideDelayMs'] as num?)?.toInt() ?? 500,
+  hoverShowVisualIndicator: json['hoverShowVisualIndicator'] as bool? ?? false,
+  centerTapToggleBars: json['centerTapToggleBars'] as bool? ?? true,
+  topBarPinned: json['topBarPinned'] as bool? ?? false,
+  bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
+  showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
+  thumbnailStripOriginalAspectRatio:
+      json['thumbnailStripOriginalAspectRatio'] as bool? ?? false,
+  transparentTopBar: json['transparentTopBar'] as bool? ?? false,
+  topBarScrimOpacityPercent:
+      (json['topBarScrimOpacityPercent'] as num?)?.toInt() ?? 85,
+  readingDirectionToggle: json['readingDirectionToggle'] as bool? ?? true,
+  readerFitMode:
+      $enumDecodeNullable(_$ReaderFitModeEnumMap, json['readerFitMode']) ??
+      ReaderFitMode.fit,
+  readerAutoRotation:
+      $enumDecodeNullable(
+        _$ReaderAutoRotationEnumMap,
+        json['readerAutoRotation'],
+      ) ??
+      ReaderAutoRotation.none,
+  readerWidePageStretch:
+      $enumDecodeNullable(
+        _$ReaderWidePageStretchEnumMap,
+        json['readerWidePageStretch'],
+      ) ??
+      ReaderWidePageStretch.none,
+  swipePreviewEnabled: json['swipePreviewEnabled'] as bool? ?? true,
+  readerPageOrderMode:
+      $enumDecodeNullable(
+        _$ReaderPageOrderModeEnumMap,
+        json['readerPageOrderMode'],
+        unknownValue: ReaderPageOrderMode.source,
+      ) ??
+      ReaderPageOrderMode.source,
+  slideshowEnabled: json['slideshowEnabled'] as bool? ?? false,
+  slideshowEndAction:
+      $enumDecodeNullable(
+        _$ReaderSlideshowEndActionEnumMap,
+        json['slideshowEndAction'],
+        unknownValue: ReaderSlideshowEndAction.stop,
+      ) ??
+      ReaderSlideshowEndAction.stop,
+  slideshowIntervalMs: (json['slideshowIntervalMs'] as num?)?.toInt() ?? 4000,
+  slideshowColumnStepPercent:
+      (json['slideshowColumnStepPercent'] as num?)?.toInt() ?? 100,
+  slideshowShowProgress: json['slideshowShowProgress'] as bool? ?? true,
+  magnifierEnabled: json['magnifierEnabled'] as bool? ?? false,
+  magnifierMode:
+      $enumDecodeNullable(
+        _$ReaderMagnifierModeEnumMap,
+        json['magnifierMode'],
+        unknownValue: ReaderMagnifierMode.auto,
+      ) ??
+      ReaderMagnifierMode.auto,
+  magnifierZoomPercent: (json['magnifierZoomPercent'] as num?)?.toInt() ?? 300,
+  magnifierSizeLogical: (json['magnifierSizeLogical'] as num?)?.toInt() ?? 220,
+  magnifierLocked: json['magnifierLocked'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$ReadSettingStateToJson(
   _ReadSettingState instance,
@@ -511,6 +542,7 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'readFilterOpacityPercent': instance.readFilterOpacityPercent,
   'einkOptimization': instance.einkOptimization,
   'einkDelayMs': instance.einkDelayMs,
+  'autoTrimPageMargins': instance.autoTrimPageMargins,
   'autoScroll': instance.autoScroll,
   'autoScrollHidePauseButton': instance.autoScrollHidePauseButton,
   'autoScrollSmooth': instance.autoScrollSmooth,
@@ -569,6 +601,19 @@ Map<String, dynamic> _$ReadSettingStateToJson(
   'readerWidePageStretch':
       _$ReaderWidePageStretchEnumMap[instance.readerWidePageStretch]!,
   'swipePreviewEnabled': instance.swipePreviewEnabled,
+  'readerPageOrderMode':
+      _$ReaderPageOrderModeEnumMap[instance.readerPageOrderMode]!,
+  'slideshowEnabled': instance.slideshowEnabled,
+  'slideshowEndAction':
+      _$ReaderSlideshowEndActionEnumMap[instance.slideshowEndAction]!,
+  'slideshowIntervalMs': instance.slideshowIntervalMs,
+  'slideshowColumnStepPercent': instance.slideshowColumnStepPercent,
+  'slideshowShowProgress': instance.slideshowShowProgress,
+  'magnifierEnabled': instance.magnifierEnabled,
+  'magnifierMode': _$ReaderMagnifierModeEnumMap[instance.magnifierMode]!,
+  'magnifierZoomPercent': instance.magnifierZoomPercent,
+  'magnifierSizeLogical': instance.magnifierSizeLogical,
+  'magnifierLocked': instance.magnifierLocked,
 };
 
 const _$ReaderTapPageTurnModeEnumMap = {
@@ -621,6 +666,25 @@ const _$ReaderWidePageStretchEnumMap = {
   ReaderWidePageStretch.none: 'none',
   ReaderWidePageStretch.uniformHeight: 'uniformHeight',
   ReaderWidePageStretch.uniformWidth: 'uniformWidth',
+};
+
+const _$ReaderPageOrderModeEnumMap = {
+  ReaderPageOrderMode.source: 'source',
+  ReaderPageOrderMode.reverse: 'reverse',
+  ReaderPageOrderMode.natural: 'natural',
+  ReaderPageOrderMode.custom: 'custom',
+};
+
+const _$ReaderSlideshowEndActionEnumMap = {
+  ReaderSlideshowEndAction.stop: 'stop',
+  ReaderSlideshowEndAction.loopChapter: 'loopChapter',
+  ReaderSlideshowEndAction.nextChapter: 'nextChapter',
+};
+
+const _$ReaderMagnifierModeEnumMap = {
+  ReaderMagnifierMode.auto: 'auto',
+  ReaderMagnifierMode.hover: 'hover',
+  ReaderMagnifierMode.touch: 'touch',
 };
 
 _EInkSettingState _$EInkSettingStateFromJson(Map<String, dynamic> json) =>
