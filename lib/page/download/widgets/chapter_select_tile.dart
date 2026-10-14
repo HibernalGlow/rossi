@@ -11,69 +11,80 @@ class ChapterSelectTile extends StatelessWidget {
     required this.chapter,
     required this.selected,
     required this.downloaded,
+    this.skipped = false,
     required this.onTap,
   });
 
   final DownloadChapter chapter;
   final bool selected;
   final bool downloaded;
-  final VoidCallback onTap;
+
+  /// 「跳过已下载」开着，而这一行本地已有：不可点、压暗，并画成禁用态。
+  final bool skipped;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.3)
-              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
+    return Opacity(
+      opacity: skipped ? 0.45 : 1,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: skipped ? null : onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
             color: selected
-                ? colorScheme.primary.withValues(alpha: 0.5)
-                : Colors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: <Widget>[
-            GlyphIcon(
-              selected ? AppGlyphs.checkCircle : AppGlyphs.ring,
+                ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
               color: selected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
-              size: 22,
+                  ? colorScheme.primary.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              width: 1,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                chapter.displayName,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurfaceVariant,
+          ),
+          child: Row(
+            children: <Widget>[
+              GlyphIcon(
+                skipped
+                    ? AppGlyphs.block
+                    : selected
+                    ? AppGlyphs.checkCircle
+                    : AppGlyphs.ring,
+                color: selected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+                size: 22,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  chapter.displayName,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    color: selected
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
-            if (downloaded)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: GlyphIcon(
-                  AppGlyphs.cloudDone,
-                  size: 18,
-                  color: colorScheme.onSurfaceVariant,
+              if (downloaded)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: GlyphIcon(
+                    AppGlyphs.cloudDone,
+                    size: 18,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

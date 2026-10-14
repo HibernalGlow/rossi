@@ -9,7 +9,7 @@ import 'package:zephyr/page/comic_info/cubit/episode_download_status_cubit.dart'
 import 'package:zephyr/page/comic_info/cubit/episode_selection_cubit.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
-import 'package:zephyr/page/download/models/unified_comic_download.dart';
+import 'package:zephyr/service/download/download_chapter_gate.dart';
 import 'package:zephyr/service/download/download_delete_service.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
@@ -55,6 +55,10 @@ class EpisodeDownloadController {
 
   bool get downloadUiEnabled => _from.isNotEmpty && _comicId.isNotEmpty;
 
+  /// 插件是否允许下载。多选底栏用它决定下载/删除按钮的可用性 ——
+  /// 进入多选不再受这个开关限制（阅读标记与下载能力无关）。
+  bool get allowDownload => _allowDownload;
+
   /// 详情数据加载完成后调用；key 不变时无动作。
   void attach({
     required String from,
@@ -86,11 +90,8 @@ class EpisodeDownloadController {
     statusCubit.update(downloadedIds: downloadedIds, taskSnaps: taskSnaps);
   }
 
-  static Set<String> _resolveDownloadedIds(UnifiedComicDownload? record) {
-    return record == null
-        ? <String>{}
-        : resolveDownloadChapters(record).map((c) => c.id).toSet();
-  }
+  static Set<String> _resolveDownloadedIds(UnifiedComicDownload? record) =>
+      downloadedChapterIdsOf(record);
 
   void _resubscribe() {
     unawaited(_recordSubscription?.cancel());
@@ -277,7 +278,12 @@ class EpisodeDownloadController {
       return;
     }
     try {
-      await startDownloadTasks(targets.map(_buildTask).toList());
+      // 与整本入口同一道闸：批内去重 + 兜住状态表还没刷新的那一小段窗口。
+      final plan = planDownloadEnqueue(
+        targets.map(_buildTask).toList(),
+        downloadedIds: downloadedIds,
+      );
+      await startDownloadTasks(plan.tasks);
       if (context.mounted) {
         showInfoToast(t.download.taskStarted);
       }

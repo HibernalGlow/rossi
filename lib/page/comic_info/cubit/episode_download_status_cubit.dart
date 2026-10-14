@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
+import 'package:zephyr/service/download/download_chapter_gate.dart';
 
 /// 章节下载状态（详情页章节行右侧按钮用）。
 enum ChapterDownloadStatus {
@@ -51,11 +52,12 @@ class EpisodeDownloadStatusState {
   }
 
   bool isDownloaded(DownloadChapter chapter) {
-    // O(1)：已下载集合里存的就是 DownloadChapter.id，章节的
-    // id / requestId / order 字符串任一命中即视为已下载。
-    if (downloadedIds.contains(chapter.id)) return true;
-    if (downloadedIds.contains(chapter.effectiveRequestId)) return true;
-    return downloadedIds.contains(chapter.order.toString());
+    // 身份匹配宽度收在下载闸门里，入口与角标共用同一判据（三键：
+    // id / requestId / order），免得「已下载」在两处算出不同结果。
+    return downloadChapterIsDownloaded(
+      downloadedIds: downloadedIds,
+      chapter: chapter,
+    );
   }
 
   /// 章节行按 已下载 > 下载中 > 排队中 > 失败 > 未下载 的优先级显示状态。
