@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -317,7 +318,7 @@ class _PluginAdvancedSearchDialogState
       final current = _switchValue(key);
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: SwitchListTile(
+        child: SettingGroup.switchTile(
           value: current,
           title: Text(label),
           contentPadding: EdgeInsets.zero,
