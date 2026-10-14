@@ -10,6 +10,7 @@
 // 库与开关是两层：`tweakcnThemeJson` 存「有哪些 + 选哪个」，`tweakcnThemeEnabled`
 // 存「要不要用导入的」。所以「换回内置配色」不必删主题。
 
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -186,7 +187,7 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
           ),
         ),
         if (!library.isEmpty)
-          SwitchListTile(
+          SettingGroup.switchTile(
             contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             value: state.tweakcnThemeEnabled,
             title: Text(t.settings.tweakcnEnabled),

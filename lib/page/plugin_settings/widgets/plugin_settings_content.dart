@@ -1,10 +1,10 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/plugin_settings/cubit/plugin_settings_cubit.dart';
 import 'package:zephyr/page/plugin_settings/widgets/plugin_settings_sections.dart';
 import 'package:zephyr/page/setting/common/plugin_user_info_card.dart';
-import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/multi_choice_list_dialog.dart';
@@ -129,9 +129,9 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: t.plugin.debugMode,
       subtitle: debugEnabled ? t.common.enabled : t.common.disabled,
-      trailing: Switch(
+      trailing: M3ESwitch(
+        selectedIcon: const Icon(Icons.check, size: 16),
         value: debugEnabled,
-        thumbIcon: kSettingSwitchThumbIcon,
         onChanged: deleted
             ? null
             : (next) => onUpdateDebugConfig(enabled: next, url: debugUrl),
@@ -384,9 +384,9 @@ class PluginSettingsContent extends StatelessWidget {
     return PluginSettingsFieldRow(
       title: label,
       subtitle: current ? t.common.enabled : t.common.disabled,
-      trailing: Switch(
+      trailing: M3ESwitch(
+        selectedIcon: const Icon(Icons.check, size: 16),
         value: current,
-        thumbIcon: kSettingSwitchThumbIcon,
         onChanged: (next) => onCommitField(field, next),
       ),
       onTap: () => onCommitField(field, !current),
