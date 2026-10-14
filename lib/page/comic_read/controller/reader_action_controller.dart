@@ -208,6 +208,18 @@ class ReaderActionController {
     }
   }
 
+  /// 幻灯片的一拍：横翻翻一整槽，条漫推进「一屏」的指定比例。
+  ///
+  /// 与 [onAutoReadTick] 分开是有意的：那条在条漫下是按间隔连续滚动的位移，
+  /// 而放映要的是「停一下、再整屏换」，两者共用一条方法就等于把两种节奏绑死。
+  void onSlideshowTick({required int columnStepPercent}) {
+    if (_readMode == 0) {
+      _scrollVerticalByPercent(percent: columnStepPercent, next: true);
+    } else {
+      _turnPage(isNext: true);
+    }
+  }
+
   // ================= 内部实现 =================
 
   void _scrollVertical({double offset = 0, int durationMs = 0}) {

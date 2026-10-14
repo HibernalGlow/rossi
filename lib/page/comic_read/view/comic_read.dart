@@ -14,13 +14,20 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/comic_read.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
+import 'package:zephyr/page/comic_read/cubit/reader_page_order_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_state.dart';
 import 'package:zephyr/page/comic_read/controller/reader_image_prefetch_controller.dart';
 import 'package:zephyr/page/comic_read/controller/reader_orientation_controller.dart';
+import 'package:zephyr/page/comic_read/controller/reader_slideshow_controller.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_state.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
+import 'package:zephyr/page/comic_read/model/reader_page_order.dart';
+import 'package:zephyr/page/comic_read/model/reader_slideshow.dart';
+import 'package:zephyr/page/comic_read/widgets/overlay/reader_slideshow_progress.dart';
+import 'package:zephyr/page/comic_read/widgets/magnifier/reader_magnifier_layer.dart';
+import 'package:zephyr/page/comic_read/widgets/magnifier/reader_magnifier_source.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
 import 'package:zephyr/page/comic_read/widgets/reader_auto_translate_page.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
@@ -39,6 +46,12 @@ import 'package:zephyr/icons/icons.dart';
 
 // 自动阅读相关：计时器、暂停/继续、悬浮按钮。
 part 'parts/comic_read_auto_read_part.dart';
+// 幻灯片放映：整页驻留计时、结束策略、暂停/继续与屏上回读。
+part 'parts/comic_read_slideshow_part.dart';
+// 放大镜：取样窗口（谁报告当前页、谁跟随指针）。
+part 'parts/comic_read_magnifier_part.dart';
+// 页面排序：把当前章的显示顺序交给会话中枢。
+part 'parts/comic_read_page_order_part.dart';
 // 初始化与释放：控制器、订阅、历史记录、启动收尾。
 part 'parts/comic_read_init_part.dart';
 // 交互相关：手势、缩放、指针事件、阅读模式容器。
@@ -111,13 +124,30 @@ class ComicReadPage extends StatelessWidget {
             settings: context.read<GlobalSettingCubit>(),
           ),
         ),
+        // 手动页序那一档的排列。与上面同一个口径：只活在本次阅读会话里，
+        // 换书换章归零（写在页表下标上的排列存盘就是在埋一颗雷）。
+        BlocProvider(create: (_) => ReaderPageOrderCubit()),
         BlocProvider(
-          create: (_) => ReaderSeamlessCubit(
+          create: (context) => ReaderSeamlessCubit(
             comicId: comicId,
             from: from,
             type: type,
             comicInfo: comicInfo,
             initialOrder: order,
+            // 页面排序：档位在读设置里、手动排列在上面那个 cubit 里，
+            // 到条目构建这一步只压成「这一章按什么顺序铺」这一个函数 ——
+            // 无缝那侧不需要知道这两个来源，也不该知道。
+            pageOrderResolver: (chapterId, docs) {
+              return context.read<ReaderPageOrderCubit>().resolveOrder(
+                chapterId: chapterId,
+                mode: context
+                    .read<GlobalSettingCubit>()
+                    .state
+                    .readSetting
+                    .readerPageOrderMode,
+                docs: docs,
+              );
+            },
           ),
         ),
       ],
@@ -186,6 +216,17 @@ class _ComicReadPageState extends State<_ComicReadPage>
   late final ReaderVolumeController _volumeController; // 音量键翻页控制器
   late final ReaderHistoryController _historyController; // 历史记录控制器
   late final ReaderAutoReadController _autoReadController; // 自动阅读控制器
+
+  /// 幻灯片放映控制器。与自动滚屏**各一张表**：一个是连续滚动、一个是整页驻留，
+  /// 共用一张表会让「改放映间隔」连带把滚屏节奏改掉。
+  late final ReaderSlideshowController _slideshowController =
+      ReaderSlideshowController();
+
+  /// 放大镜的取样窗口（当前页落位 + 那一份位图）。
+  ///
+  /// 一个 route 一份，换书即换一份：它存的是**这一本的某一页**的像素，
+  /// 放进全局单例会串到下一本书的第一页上。
+  final ReaderMagnifierSource _magnifierSource = ReaderMagnifierSource();
   late final ReaderSystemUiController _systemUiController; // 系统 UI 控制器
   late final ReaderLifecycleController _lifecycleController; // 生命周期控制器
   late final ReaderOrientationController _orientationController;
@@ -289,6 +330,8 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _bookNavigation?.dispose();
     _imagePrefetchController.dispose();
     _volumeController.dispose();
+    _slideshowController.dispose();
+    _magnifierSource.dispose();
     _pageController.dispose();
     _transformationController.dispose();
     unawaited(_orientationController.restorePortrait());
@@ -307,121 +350,133 @@ class _ComicReadPageState extends State<_ComicReadPage>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    // 阅读器根背景显式设成「阅读背景色」，不留给主题默认值。
-    //
-    // 主题默认在浅色模式下就是白的，而页面区域的各层（slot / 占位 / 位图 / 纹理）
-    // 在切页那一两帧里完全可能什么都没画上去 —— 漏出来的正是这层底色。
-    // 设成阅读背景色之后，即使漏，漏出来的也是用户本来就该看到的颜色，
-    // 而不是一道白闪。
-    backgroundColor: context
-        .watch<GlobalSettingCubit>()
-        .state
-        .readSetting
-        .resolveReaderBackgroundColor(Theme.of(context).brightness),
-    body: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
-      listener: (context, seamlessState) {
-        final order = seamlessState.currentChapterOrder;
-        if (order != null && order != _jumpChapter.order) {
-          _syncJumpChapterState(order: order);
-        }
-        // 章节加载/卸载会改变总槽位和条目，触发重建以同步 ReaderCubit.totalSlots。
-        final totalSlots = context
-            .read<ReaderSeamlessCubit>()
-            .resolveTotalSlots(
-              context.read<GlobalSettingCubit>().state.readSetting,
-            );
-        final currentSlot = context.read<ReaderCubit>().state.currentSlot;
-        ReaderSessionCoordinator.instance.updateProgress(
-          currentSlot: currentSlot,
-          totalSlots: totalSlots,
-        );
-        setState(() {});
-      },
-      child: BlocBuilder<PageBloc, PageState>(
-        builder: (context, state) {
-          switch (state.status) {
-            case PageStatus.initial:
-              return const Center(child: CircularProgressIndicator());
-            case PageStatus.failure:
-              return ComicErrorWidget(
-                state: state,
-                event: PageEvent(
-                  comicId,
-                  widget.order,
-                  widget.chapterId,
-                  widget.requestId,
-                  widget.storageChapterId,
-                  widget.logicalKey,
-                  widget.chapterExtern,
-                  widget.from,
-                  widget.type,
-                  comicInfo: comicInfo,
-                ),
-              );
-            case PageStatus.success:
-              if (!_lifecycleController.hasBootstrappedReadState) {
-                _lifecycleController.markReadStateBootstrapped();
-                epInfo = state.epInfo!;
-                _initialEpInfo = state.epInfo!;
-                final readSetting = context.readEffectiveReadSetting();
-                context.read<ReaderSeamlessCubit>().bootstrap(
-                  epInfo,
-                  widget.order,
-                  readSetting,
-                );
-              }
-              return ComicReadSuccessWidget(
-                comicId: comicId,
-                from: widget.from,
-                epInfo: _initialEpInfo,
-                chapterOrder: widget.order,
-                resolveTotalSlots: (readSetting) => context
-                    .read<ReaderSeamlessCubit>()
-                    .resolveTotalSlots(readSetting),
-                buildInteractiveViewer: (_) =>
-                    _inputController.buildInteractiveViewer(),
-                buildPageCount: (_) => _pageCountWidget(),
-                buildProgressBar: (_) => _readerProgressBarWidget(),
-                buildAppBar: (_) => _comicReadAppBar(),
-                buildBottom: (innerContext) => _bottomWidget(innerContext),
-                buildAutoReadControl: (_) => _autoReadControlWidget(),
-                buildEinkControl: (_) => _einkRefreshControlWidget(),
-                onReady: (innerContext, readSetting, readMode) {
-                  // 单/双页、首页留白刚被切换过：把位置按「同一张图」对齐，
-                  // 别让它停在旧槽位号上（那是「页数跳回开头」的另一半原因，
-                  // 另一半见 chrome 里那些被删掉的 `changePageIndex(0)`）。
-                  _syncPairingLayoutChange(readSetting);
-                  _syncAutoRead(readSetting: readSetting, readMode: readMode);
-                  _prefetchImagesAroundSlot(
-                    context.read<ReaderCubit>().state.currentSlot,
-                    readSetting,
-                  );
-                  _imageSizeContext = innerContext;
-                  _historyController.markLoaded();
-                  unawaited(
-                    _historyController.handleHistoryScroll(innerContext),
-                  );
-
-                  final readerCubit = context.read<ReaderCubit>();
-                  final seamlessCubit = context.read<ReaderSeamlessCubit>();
-                  final totalSlots = seamlessCubit.resolveTotalSlots(
-                    readSetting,
-                  );
-                  ReaderSessionCoordinator.instance.attachSession(
-                    comicId: comicId,
-                    from: widget.from,
-                    title: epInfo.epName,
-                    epInfo: epInfo,
-                    localSource: LocalReadSession.instance.currentSource,
-                    currentSlot: readerCubit.state.currentSlot,
-                    totalSlots: totalSlots,
-                    jumpToSlot: (slot) => _jumpToGlobalSlot(slot),
-                  );
-                },
-              );
+  Widget build(BuildContext context) => ReaderMagnifierScope(
+    // 必须是正文的祖先：每一页落位之后自己报告「这一页画在哪、像素从哪取」
+    // （见 `ReadImageWidget._reportMagnifierPage`），而覆盖层在同一个 Stack 里读它。
+    source: _magnifierSource,
+    child: Scaffold(
+      // 阅读器根背景显式设成「阅读背景色」，不留给主题默认值。
+      //
+      // 主题默认在浅色模式下就是白的，而页面区域的各层（slot / 占位 / 位图 / 纹理）
+      // 在切页那一两帧里完全可能什么都没画上去 —— 漏出来的正是这层底色。
+      // 设成阅读背景色之后，即使漏，漏出来的也是用户本来就该看到的颜色，
+      // 而不是一道白闪。
+      backgroundColor: context
+          .watch<GlobalSettingCubit>()
+          .state
+          .readSetting
+          .resolveReaderBackgroundColor(Theme.of(context).brightness),
+      body: BlocListener<ReaderSeamlessCubit, ReaderSeamlessState>(
+        listener: (context, seamlessState) {
+          final order = seamlessState.currentChapterOrder;
+          if (order != null && order != _jumpChapter.order) {
+            _syncJumpChapterState(order: order);
           }
+          // 章节加载/卸载会改变总槽位和条目，触发重建以同步 ReaderCubit.totalSlots。
+          final totalSlots = context
+              .read<ReaderSeamlessCubit>()
+              .resolveTotalSlots(
+                context.read<GlobalSettingCubit>().state.readSetting,
+              );
+          final currentSlot = context.read<ReaderCubit>().state.currentSlot;
+          ReaderSessionCoordinator.instance.updateProgress(
+            currentSlot: currentSlot,
+            totalSlots: totalSlots,
+          );
+          setState(() {});
         },
+        child: BlocBuilder<PageBloc, PageState>(
+          builder: (context, state) {
+            switch (state.status) {
+              case PageStatus.initial:
+                return const Center(child: CircularProgressIndicator());
+              case PageStatus.failure:
+                return ComicErrorWidget(
+                  state: state,
+                  event: PageEvent(
+                    comicId,
+                    widget.order,
+                    widget.chapterId,
+                    widget.requestId,
+                    widget.storageChapterId,
+                    widget.logicalKey,
+                    widget.chapterExtern,
+                    widget.from,
+                    widget.type,
+                    comicInfo: comicInfo,
+                  ),
+                );
+              case PageStatus.success:
+                if (!_lifecycleController.hasBootstrappedReadState) {
+                  _lifecycleController.markReadStateBootstrapped();
+                  epInfo = state.epInfo!;
+                  _initialEpInfo = state.epInfo!;
+                  final readSetting = context.readEffectiveReadSetting();
+                  context.read<ReaderSeamlessCubit>().bootstrap(
+                    epInfo,
+                    widget.order,
+                    readSetting,
+                  );
+                }
+                return ComicReadSuccessWidget(
+                  comicId: comicId,
+                  from: widget.from,
+                  epInfo: _initialEpInfo,
+                  chapterOrder: widget.order,
+                  resolveTotalSlots: (readSetting) => context
+                      .read<ReaderSeamlessCubit>()
+                      .resolveTotalSlots(readSetting),
+                  buildInteractiveViewer: (_) =>
+                      _inputController.buildInteractiveViewer(),
+                  buildPageCount: (_) => _pageCountWidget(),
+                  buildProgressBar: (_) => _readerProgressBarWidget(),
+                  buildAppBar: (_) => _comicReadAppBar(),
+                  buildBottom: (innerContext) => _bottomWidget(innerContext),
+                  buildAutoReadControl: (_) => _autoReadControlWidget(),
+                  buildEinkControl: (_) => _einkRefreshControlWidget(),
+                  buildSlideshowControl: (_) => _slideshowControlWidget(),
+                  buildMagnifierLayer: (_) => _magnifierLayerWidget(),
+                  onReady: (innerContext, readSetting, readMode) {
+                    // 单/双页、首页留白刚被切换过：把位置按「同一张图」对齐，
+                    // 别让它停在旧槽位号上（那是「页数跳回开头」的另一半原因，
+                    // 另一半见 chrome 里那些被删掉的 `changePageIndex(0)`）。
+                    _syncPairingLayoutChange(readSetting);
+                    _syncAutoRead(readSetting: readSetting, readMode: readMode);
+                    _syncSlideshow(
+                      readSetting: readSetting,
+                      readMode: readMode,
+                    );
+                    _publishPageOrder(readSetting);
+                    _prefetchImagesAroundSlot(
+                      context.read<ReaderCubit>().state.currentSlot,
+                      readSetting,
+                    );
+                    _imageSizeContext = innerContext;
+                    _historyController.markLoaded();
+                    unawaited(
+                      _historyController.handleHistoryScroll(innerContext),
+                    );
+
+                    final readerCubit = context.read<ReaderCubit>();
+                    final seamlessCubit = context.read<ReaderSeamlessCubit>();
+                    final totalSlots = seamlessCubit.resolveTotalSlots(
+                      readSetting,
+                    );
+                    ReaderSessionCoordinator.instance.attachSession(
+                      comicId: comicId,
+                      from: widget.from,
+                      title: epInfo.epName,
+                      epInfo: epInfo,
+                      localSource: LocalReadSession.instance.currentSource,
+                      currentSlot: readerCubit.state.currentSlot,
+                      totalSlots: totalSlots,
+                      jumpToSlot: (slot) => _jumpToGlobalSlot(slot),
+                    );
+                  },
+                );
+            }
+          },
+        ),
       ),
     ),
   );

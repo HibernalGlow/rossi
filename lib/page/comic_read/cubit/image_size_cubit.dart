@@ -48,6 +48,19 @@ class ImageSizeCubit extends Cubit<ImageSizeState> {
   final int _chapterOrder;
   final ImageSizeCacheStore _cacheStore;
 
+  /// 本次阅读会话里**已经探测过**的页（量到尺寸与否都算）。
+  ///
+  /// 与 `state.resolvedIndices` 分开，因为后者只记「量到了」：阅读器在章节边界
+  /// 会把手上**所有**已加载章节重新交给预解析，只看 `resolvedIndices` 的话，
+  /// 磁盘上还不存在的那些页（在线未下载的、以及本地压缩包里的每一页）
+  /// 每次边界都要重跑一遍多候选路径解析 —— 每页十几次**同步**跨桥
+  /// （`encodePath`）加若干次 mkdir/stat，代价按「已加载章数 × 页」增长，
+  /// 而它恰好落在用户翻到最后一页的那一刻，表现就是「卡一下」。
+  ///
+  /// 负缓存不会把布局钉在占位高度：图片真正上屏时 `ImageDisplay` 仍走
+  /// [updateSize] 照常上报，那条路不看这个集合。
+  final Set<int> _probedIndices = <int>{};
+
   Timer? _saveTimer;
   bool _hasPendingSave = false;
   bool _isFlushing = false;
@@ -152,6 +165,54 @@ class ImageSizeCubit extends Cubit<ImageSizeState> {
       );
       _markDirtyAndScheduleSave();
     }
+  }
+
+  /// 这一页在本会话里是否已经探测过了（探测过 ≠ 量到了）。
+  ///
+  /// 预解析用它做「一次会话只探一次」的判断，见 [_probedIndices]。
+  bool isProbed(int index) =>
+      _probedIndices.contains(index) || state.resolvedIndices.contains(index);
+
+  /// 在真正去做 IO **之前**占坑。
+  ///
+  /// 章节边界会把所有章节重新交给预解析，同一章可能被并发启动；先占坑，
+  /// 后到的那一份就看不到这一页还没探过，不会重复跑多候选路径解析。
+  void claimProbe(int index) => _probedIndices.add(index);
+
+  /// 批量写入尺寸：一次只 emit 一条。
+  ///
+  /// 预解析一个章节会连续命中几十页，逐页 [updateSize] 等于
+  /// 「每页复制一遍整份尺寸表 + 每页通知一次所有监听者」—— 页数的平方级
+  /// 拷贝，而且重建正好和章节边界那几帧叠在一起。攒批是唯一能把这两条
+  /// 都压下去的落点。
+  void updateSizes(Map<int, Size> sizes) {
+    if (sizes.isEmpty) return;
+
+    final newCache = Map<int, Size>.from(state.sizeCache);
+    final newResolved = Set<int>.from(state.resolvedIndices);
+    var changed = false;
+
+    for (final entry in sizes.entries) {
+      final index = entry.key;
+      final size = entry.value;
+      _probedIndices.add(index);
+      if (newResolved.contains(index) && newCache[index] == size) continue;
+      newCache[index] = size;
+      newResolved.add(index);
+      changed = true;
+    }
+
+    if (!changed) return;
+    emit(
+      ImageSizeState(
+        sizeCache: newCache,
+        resolvedIndices: newResolved,
+        defaultWidth: state.defaultWidth,
+        defaultHeight: state.defaultHeight,
+        intrinsicCache: state.intrinsicCache,
+      ),
+    );
+    _markDirtyAndScheduleSave();
   }
 
   /// 记下图片的原始像素尺寸（`reader.original` 用）。不触发落盘。

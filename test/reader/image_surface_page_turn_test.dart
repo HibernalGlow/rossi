@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -88,7 +89,8 @@ class _FakeSource implements PageSource {
   ];
 
   @override
-  RasterTargetRef? rasterTargetFor(int index) => (index < 0 || index >= pageCount)
+  RasterTargetRef? rasterTargetFor(int index) =>
+      (index < 0 || index >= pageCount)
       ? null
       : RasterTargetRef(path: path, index: index);
 
@@ -192,6 +194,7 @@ GpuPresentedFrame _frame(PageSource source, int index) => GpuPresentedFrame(
 /// 共享纹理只有一张、且归当前页用，所以滑动过半时新页 `present` 那一刻，
 /// 旧页手里的纹理里立刻就是别人的画面了。这一组判据钉的就是"那两半"。
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('邻页节点不碰共享纹理，只解自己那份位图，并按 prefetch 许可取页', (
     WidgetTester tester,
   ) async {
@@ -285,9 +288,7 @@ void main() {
     expect(find.byType(RawImage), findsOneWidget, reason: '最终必须真的出图');
   });
 
-  testWidgets('留位图时：上屏成功后仍在后台备一份，退场的那一瞬就有画面', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('留位图时：上屏成功后仍在后台备一份，退场的那一瞬就有画面', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 600);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
@@ -296,9 +297,7 @@ void main() {
     final presenter = _FakePresenter();
     addTearDown(presenter.dispose);
 
-    await tester.pumpWidget(
-      _host(source, 0, presenter, holdOwnBitmap: true),
-    );
+    await tester.pumpWidget(_host(source, 0, presenter, holdOwnBitmap: true));
     await tester.pumpAndSettle();
     expect(find.byType(Texture), findsOneWidget);
     // 上屏成功**不等于**位图白解了：它要在这一页退场时接上。
@@ -309,11 +308,21 @@ void main() {
     // 已经换成了新页的画面。
     presenter.textureNowHolds(source, _frame(source, 1));
     await tester.pumpWidget(
-      _host(source, 0, presenter, drivesPresentation: false, holdOwnBitmap: true),
+      _host(
+        source,
+        0,
+        presenter,
+        drivesPresentation: false,
+        holdOwnBitmap: true,
+      ),
     );
     await tester.pump();
 
-    expect(find.byType(Texture), findsNothing, reason: '纹理里是别人的画面，照画就是页码与画面对不上');
+    expect(
+      find.byType(Texture),
+      findsNothing,
+      reason: '纹理里是别人的画面，照画就是页码与画面对不上',
+    );
     expect(
       find.byType(RawImage),
       findsOneWidget,
@@ -321,9 +330,7 @@ void main() {
     );
   });
 
-  testWidgets('关掉留位图之后：同样的退场就没有画面（这就是那个开关买到的东西）', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('关掉留位图之后：同样的退场就没有画面（这就是那个开关买到的东西）', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 600);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
@@ -332,9 +339,7 @@ void main() {
     final presenter = _FakePresenter();
     addTearDown(presenter.dispose);
 
-    await tester.pumpWidget(
-      _host(source, 0, presenter, holdOwnBitmap: false),
-    );
+    await tester.pumpWidget(_host(source, 0, presenter, holdOwnBitmap: false));
     await tester.pumpAndSettle();
     expect(find.byType(Texture), findsOneWidget);
 
@@ -359,9 +364,7 @@ void main() {
     expect(find.byType(RawImage), findsNothing);
   });
 
-  testWidgets('纹理里不是这一页就绝不照画，哪怕这个节点仍是当前页', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('纹理里不是这一页就绝不照画，哪怕这个节点仍是当前页', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 600);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
@@ -370,9 +373,7 @@ void main() {
     final presenter = _FakePresenter();
     addTearDown(presenter.dispose);
 
-    await tester.pumpWidget(
-      _host(source, 0, presenter, holdOwnBitmap: true),
-    );
+    await tester.pumpWidget(_host(source, 0, presenter, holdOwnBitmap: true));
     await tester.pumpAndSettle();
     await _flushDecode(tester, untilRawImage: false);
     expect(find.byType(Texture), findsOneWidget);

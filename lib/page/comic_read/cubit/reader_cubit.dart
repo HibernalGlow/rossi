@@ -47,6 +47,17 @@ class ReaderCubit extends Cubit<ReaderState> {
     emit(state.copyWith(isComicRolling: rolling));
   }
 
+  /// 幻灯片放映状态：两个值一起写。
+  ///
+  /// 拆成两颗 setter 会让「在跑 / 已暂停」这对**必须同时成立**的状态中间有一瞬
+  /// 只更新了一半，而顶栏芯片与屏上驻留指示读的就是这一对。
+  void updateSlideshowState({required bool running, required bool paused}) {
+    if (state.slideshowRunning == running && state.slideshowPaused == paused) {
+      return;
+    }
+    emit(state.copyWith(slideshowRunning: running, slideshowPaused: paused));
+  }
+
   void setTopHovered(bool hovered) {
     if (state.isTopHovered == hovered) return;
     emit(state.copyWith(isTopHovered: hovered));
