@@ -8,11 +8,17 @@ import 'package:path/path.dart' as p;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/page/setting/data_backup/backup_codec.dart';
 import 'package:zephyr/network/sync/sync_device_id.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/src/rust/api/data_backup.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/network/sync/workspace_sync_codec.dart';
+import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
+import 'package:zephyr/workspace/model/library_presentation_preferences.dart';
+import 'package:zephyr/workspace/service/library_presentation_store.dart';
+import 'package:zephyr/workspace/service/workspace_layout_bridge.dart';
 
 /// 备份包配置信息。
 class BackupConfig {
@@ -57,6 +63,8 @@ Future<String> exportBreezeBackup({
     // 1. 写入 config.json
     final packageInfo = await PackageInfo.fromPlatform();
     final config = <String, dynamic>{
+      'format': 'rossi-data-backup',
+      'formatVersion': 2,
       'version': packageInfo.version,
       'includeDownloads': includeDownloads,
       'exportedAt': DateTime.now().toIso8601String(),
@@ -66,10 +74,36 @@ Future<String> exportBreezeBackup({
     ).writeAsString(jsonEncode(config));
 
     // 2. 写入 objectbox.json
+    final objectBoxData =
+        jsonDecode(await objectbox.collectAllDataJsonAsync(removeIds: true))
+            as Map<String, dynamic>;
+    sanitizeBackupSettings(objectBoxData);
     await File(
       p.join(tempDir.path, 'objectbox.json'),
-    ).writeAsString(await objectbox.collectAllDataJsonAsync(removeIds: true));
+    ).writeAsString(jsonEncode(objectBoxData));
 
+    // 工作台布局不是 ObjectBox 数据，按 WebDAV 的编解码规则单独保存。
+    final workspace = await WorkspaceLayoutBridge.instance.readIfAvailable();
+    if (workspace != null) {
+      await File(
+        p.join(tempDir.path, 'workspace.json'),
+      ).writeAsString(jsonEncode(WorkspaceSyncCodec.encode(workspace)));
+    }
+
+    // 展墙偏好保存在 SharedPreferences，也需要进入完整设置备份。
+    final presentation = await LibraryPresentationStore.instance.readAll();
+    if (presentation.isNotEmpty) {
+      await File(
+        p.join(tempDir.path, 'library_presentation.json'),
+      ).writeAsString(
+        jsonEncode(LibraryPresentationPreferences.encode(presentation)),
+      );
+    }
+
+    // 空下载目录也保留标记，导入时可正确恢复一份没有漫画的备份。
+    if (includeDownloads) {
+      await Directory(p.join(tempDir.path, 'downloads')).create();
+    }
     // 3. 调用 Rust 流式打包
     await createDataBackupZip(
       zipPath: zipPath,
@@ -121,6 +155,7 @@ Future<BackupConfig> readBackupConfig(
 
     final configJson = await readDataBackupConfig(zipPath: cacheZipFile.path);
     final config = jsonDecode(configJson) as Map<String, dynamic>;
+    validateBackupManifest(config);
     return BackupConfig(
       version: config['version'] as String? ?? 'Unknown',
       includeDownloads: config['includeDownloads'] as bool? ?? false,
@@ -192,21 +227,49 @@ Future<void> applyBreezeBackupImport(BackupConfig config) async {
     final configFile = File(p.join(config.extractDir, 'config.json'));
     final backupConfig =
         jsonDecode(await configFile.readAsString()) as Map<String, dynamic>;
+    validateBackupManifest(backupConfig);
     final includeDownloads = backupConfig['includeDownloads'] as bool? ?? false;
 
-    // 2. 清空现有 ObjectBox 数据
-    // 若备份不包含下载文件，则保留本机下载相关记录，避免下载记录被清空后
-    // 已下载文件变成“孤儿文件”。
-    await _clearObjectBoxData(preserveDownloads: !includeDownloads);
-
-    // 3. 恢复 ObjectBox 数据
+    // 先读取并校验全部数据，损坏或缺少 objectbox.json 时不能先清空本机。
     final objectBoxFile = File(p.join(config.extractDir, 'objectbox.json'));
-    if (await objectBoxFile.exists()) {
-      final objectBoxJson =
-          jsonDecode(await objectBoxFile.readAsString())
+    final objectBoxJson = prepareBackupData(
+      jsonDecode(await objectBoxFile.readAsString()) as Map<String, dynamic>,
+      currentSettings:
+          objectbox.userSettingBox.get(1)?.globalSetting ??
+          const GlobalSettingState(),
+      includeDownloads: includeDownloads,
+    );
+    final workspaceFile = File(p.join(config.extractDir, 'workspace.json'));
+    final base = await WorkspaceLayoutBridge.instance.read();
+    var workspace = base;
+    final hasWorkspace = await workspaceFile.exists();
+    if (hasWorkspace) {
+      final raw =
+          jsonDecode(await workspaceFile.readAsString())
               as Map<String, dynamic>;
-      await _restoreObjectBoxData(objectBoxJson);
+      if (!WorkspaceSyncCodec.isUsableBlock(raw)) {
+        throw const FormatException('备份中的工作台布局无效');
+      }
+      workspace = WorkspaceSyncCodec.decode(
+        raw,
+        base: base,
+        adoptDesktopGeometry: hasHoverPointer,
+      );
     }
+    final presentationFile = File(
+      p.join(config.extractDir, 'library_presentation.json'),
+    );
+    final hasPresentation = await presentationFile.exists();
+    final presentation = hasPresentation
+        ? LibraryPresentationPreferences.decode(
+            jsonDecode(await presentationFile.readAsString()),
+          )
+        : <String, LibraryPresentationPreference>{};
+    final currentDeviceId = await ensureSyncDeviceId();
+    objectbox.store.runInTransaction(TxMode.write, () {
+      _clearObjectBoxData(preserveDownloads: !includeDownloads);
+      _restoreObjectBoxData(objectBoxJson, currentDeviceId);
+    });
 
     // 4. 恢复下载文件
     if (includeDownloads) {
@@ -221,6 +284,12 @@ Future<void> applyBreezeBackupImport(BackupConfig config) async {
         await _moveDirectory(exportedDownloadsDir, currentDownloadDir);
       }
     }
+
+    // 使用校验阶段解码的值，移动端保留本机几何与临时面板状态。
+    if (hasWorkspace) await WorkspaceLayoutBridge.instance.apply(workspace);
+    if (hasPresentation) {
+      await LibraryPresentationStore.instance.apply(presentation, force: true);
+    }
   } finally {
     try {
       await cacheDirectory.delete(recursive: true);
@@ -234,7 +303,7 @@ Future<void> applyBreezeBackupImport(BackupConfig config) async {
 /// 不含下载文件的备份，避免本机已下载文件变成无记录的孤儿文件。
 ///
 /// 下载任务在任何情况下都不会被导入，因此 [downloadTaskBox] 总是被清空。
-Future<void> _clearObjectBoxData({bool preserveDownloads = false}) async {
+void _clearObjectBoxData({bool preserveDownloads = false}) {
   objectbox.bikaHistoryBox.removeAll();
   if (!preserveDownloads) objectbox.bikaDownloadBox.removeAll();
   objectbox.jmFavoriteBox.removeAll();
@@ -250,9 +319,27 @@ Future<void> _clearObjectBoxData({bool preserveDownloads = false}) async {
   objectbox.downloadTaskBox.removeAll();
   objectbox.pluginConfigBox.removeAll();
   objectbox.pluginInfoBox.removeAll();
-  objectbox.comicFolderBox.removeAll();
-  objectbox.comicLinkBox.removeAll();
+  if (preserveDownloads) {
+    objectbox.comicFolderBox.removeMany(
+      objectbox.comicFolderBox
+          .getAll()
+          .where((item) => item.typeData != 'download')
+          .map((item) => item.id)
+          .toList(),
+    );
+    objectbox.comicLinkBox.removeMany(
+      objectbox.comicLinkBox
+          .getAll()
+          .where((item) => item.typeData != 'download')
+          .map((item) => item.id)
+          .toList(),
+    );
+  } else {
+    objectbox.comicFolderBox.removeAll();
+    objectbox.comicLinkBox.removeAll();
+  }
   objectbox.comicReadPreferenceBox.removeAll();
+  objectbox.comicChapterReadMarkBox.removeAll();
 }
 
 /// 为缺少 `id` 的 JSON 补一个默认 0，避免 json_serializable 生成代码里对 `id` 做非空强制转换时崩溃。
@@ -267,9 +354,7 @@ Map<String, dynamic> _withDefaultId(Map<String, dynamic> json) {
 ///
 /// 对于 ComicFolder / ComicLink，还会用当前设备的 syncDeviceId 对
 /// versionVectorJson 做一次 bump，避免导入后同步时出现设备 ID 不一致的冲突。
-Future<void> _restoreObjectBoxData(Map<String, dynamic> json) async {
-  final currentDeviceId = await ensureSyncDeviceId();
-
+void _restoreObjectBoxData(Map<String, dynamic> json, String currentDeviceId) {
   String bumpVersionVector(String raw) {
     final map = _parseVersionVector(raw);
     map[currentDeviceId] = (map[currentDeviceId] ?? 0) + 1;
@@ -336,7 +421,7 @@ Future<void> _restoreObjectBoxData(Map<String, dynamic> json) async {
     json['unifiedComicDownload'] as List?,
     (j) => UnifiedComicDownload.fromJson(j),
   );
-  await _restoreUserSetting(json['userSetting'] as List?);
+  _restoreUserSetting(json['userSetting'] as List?);
   // 下载任务不导入，避免恢复后继续执行已过期的下载任务。
   putAll(
     objectbox.pluginConfigBox,
@@ -363,17 +448,19 @@ Future<void> _restoreObjectBoxData(Map<String, dynamic> json) async {
     json['comicReadPreference'] as List?,
     (j) => ComicReadPreference.fromJson(j),
   );
+  putAll(
+    objectbox.comicChapterReadMarkBox,
+    json['comicChapterReadMark'] as List?,
+    (j) => ComicChapterReadMark.fromJson(j),
+  );
 }
 
 /// 恢复 UserSetting。
 ///
 /// 应用大量代码假设 UserSetting 的 ObjectBox id 为 1，因此这里不先清空再插入，
-/// 而是直接替换现有 id=1 记录的内容；没有记录时再插入新记录。
-///
-/// 导入时会保留当前设备上的平台相关/本地-only 设置，避免被备份覆盖：
-/// 自定义导出目录、代理、应用锁（手势密码/PIN）、语言、窗口几何、日志地址、
-/// Impeller 强制启用标志等。
-Future<void> _restoreUserSetting(List<dynamic>? list) async {
+/// 而是直接替换现有 id=1 记录的内容；没有记录时再插入新记录。全局设置通过
+/// 同步侧的可迁移字段白名单恢复，本机事实不会被备份覆盖。
+void _restoreUserSetting(List<dynamic>? list) {
   if (list == null || list.isEmpty) return;
 
   final backup = UserSetting.fromJson(
@@ -385,10 +472,7 @@ Future<void> _restoreUserSetting(List<dynamic>? list) async {
     // 复用现有 id=1 的 slot，直接覆盖设置数据
     if (backup.globalSettingData != null &&
         backup.globalSettingData!.isNotEmpty) {
-      current.globalSetting = _mergeGlobalSettingForImport(
-        backup.globalSetting,
-        current.globalSetting,
-      );
+      current.globalSetting = backup.globalSetting;
     }
     if (backup.bikaSettingData != null && backup.bikaSettingData!.isNotEmpty) {
       current.bikaSettingData = backup.bikaSettingData;
@@ -401,49 +485,8 @@ Future<void> _restoreUserSetting(List<dynamic>? list) async {
   } else {
     // 没有现有记录时直接插入备份数据，让 ObjectBox 自动分配 id（空盒时通常为 1）
     backup.id = 0;
-    if (backup.globalSettingData != null &&
-        backup.globalSettingData!.isNotEmpty) {
-      backup.globalSetting = _mergeGlobalSettingForImport(
-        backup.globalSetting,
-        const GlobalSettingState(),
-      );
-    }
     objectbox.userSettingBox.put(backup);
   }
-}
-
-/// 合并备份的 [GlobalSettingState] 与当前设备的本地设置。
-///
-/// 备份中的通用偏好设置会被采用，但跟平台强相关或不应跨设备同步的字段
-/// 会被 [current] 的值覆盖：
-/// - 自定义导出目录（[customExportPath]）
-/// - SOCKS5 代理（[socks5Proxy] / [socks5ProxyEnabled]）
-/// - 应用锁（[appLockSetting]，含手势密码哈希与 PIN 重置哈希）
-/// - 语言（[locale]）
-/// - 桌面端窗口位置与大小（[windowWidth]/[windowHeight]/[windowX]/[windowY]）
-/// - 日志保存地址（[logAddress]）
-/// - Rust HTTP 请求拦截开关（[blockRustHttpRequests]）
-/// - iOS Impeller 强制启用标志（[forceEnableImpeller]）
-/// - Android 后台保活（[androidKeepAliveEnabled]）
-GlobalSettingState _mergeGlobalSettingForImport(
-  GlobalSettingState backup,
-  GlobalSettingState current,
-) {
-  return backup.copyWith(
-    customExportPath: current.customExportPath,
-    socks5Proxy: current.socks5Proxy,
-    socks5ProxyEnabled: current.socks5ProxyEnabled,
-    appLockSetting: current.appLockSetting,
-    locale: current.locale,
-    windowWidth: current.windowWidth,
-    windowHeight: current.windowHeight,
-    windowX: current.windowX,
-    windowY: current.windowY,
-    logAddress: current.logAddress,
-    blockRustHttpRequests: current.blockRustHttpRequests,
-    forceEnableImpeller: current.forceEnableImpeller,
-    androidKeepAliveEnabled: current.androidKeepAliveEnabled,
-  );
 }
 
 /// 尽可能使用重命名移动目录；失败时回退到递归复制。
