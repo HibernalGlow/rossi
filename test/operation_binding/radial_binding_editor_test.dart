@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_ray_menu/flutter_ray_menu.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -75,12 +76,12 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    await tester.tap(find.byType(Switch).first);
+    await tester.tap(find.byType(M3ESwitch).first);
     await tester.pumpAndSettle();
     expect(doc.enabled, isFalse);
     await tester.tap(find.byKey(const ValueKey('radial-slot:1:0')));
     await tester.pumpAndSettle();
-    expect(find.byType(Switch), findsNWidgets(2));
+    expect(find.byType(M3ESwitch), findsNWidgets(2));
     await tester.tap(find.byTooltip(t.settings.operationBindingRadialPreview));
     await tester.pumpAndSettle();
     expect(

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_editor.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_recorder.dart';
+import 'package:zephyr/widgets/popup_select_field.dart';
 
 void main() {
   testWidgets('触屏可组合区域和单击，切换鼠标保留区域，通用区域可清除', (tester) async {
@@ -30,12 +31,8 @@ void main() {
       ),
     );
     Future<void> select(String label, String value) async {
-      final selector = find.byWidgetPredicate(
-        (w) => w is BindingSelect<String> && w.label == label,
-      );
-      final field = find.descendant(
-        of: selector,
-        matching: find.byType(DropdownMenu<String>),
+      final field = find.byWidgetPredicate(
+        (w) => w is PopupSelectField<String> && w.label == label,
       );
       await tester.ensureVisible(field);
       await tester.tap(field);

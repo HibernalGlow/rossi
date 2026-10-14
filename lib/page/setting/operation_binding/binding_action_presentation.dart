@@ -104,19 +104,26 @@ Glyph bindingActionIcon(String id) => switch (id) {
   'reader.toggle-library' => AppGlyphs.book,
   'radial.open-default' => AppGlyphs.donut,
   'radial.confirm' => AppGlyphs.checkCircle,
+  // 注册表里的「不执行任何动作」哨兵：兜底那颗是 touch，用它会让「无」看起来
+  // 像一个手指操作。
+  'reader.nope' => AppGlyphs.block,
   'video.play-pause' => AppGlyphs.playCircle,
-  'video.seek-backward' => AppGlyphs.skipPrevious,
-  'video.seek-forward' => AppGlyphs.skipNext,
-  'video.seek-mode-toggle' => AppGlyphs.skipNext,
-  'video.frame-step' => AppGlyphs.skipNext,
-  'video.frame-step-back' => AppGlyphs.skipPrevious,
-  'video.speed-up' => AppGlyphs.skipNext,
-  'video.speed-down' => AppGlyphs.skipPrevious,
+  // seek / 逐帧 / 倍速 原先全挤在 skip 那两颗上（一颗顶五行），现在各归各：
+  // 跳段=三角加竖条，快进退=双 V，逐帧=单 V，倍速=上下箭头。
+  'video.seek-backward' => AppGlyphs.seekBackward,
+  'video.seek-forward' => AppGlyphs.seekForward,
+  'video.seek-mode-toggle' => AppGlyphs.toggle,
+  'video.frame-step' => AppGlyphs.chevronForward,
+  'video.frame-step-back' => AppGlyphs.chevronBack,
+  'video.speed-up' => AppGlyphs.arrowUp,
+  'video.speed-down' => AppGlyphs.arrowDown,
   'video.toggle-speed' => AppGlyphs.speed,
   'video.volume-up' => AppGlyphs.volume,
   'video.volume-down' => AppGlyphs.volume,
   'video.toggle-mute' => AppGlyphs.volumeOff,
-  'video.toggle-audio-only' => AppGlyphs.volume,
+  // 「仅音频」和音量 ± 不是一件事：前者是播放模式，用「音频」那颗（与文件类型
+  // 图标、视频控件里同一个意思），音量 ± 才共用 `volume`。
+  'video.toggle-audio-only' => AppGlyphs.music,
   'video.cycle-loop' => AppGlyphs.loop,
   'video.ab-loop-tap' => AppGlyphs.loop,
   'video.ab-loop-clear' => AppGlyphs.clearAll,
