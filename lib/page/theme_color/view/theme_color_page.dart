@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/color_theme_types.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/theme_color/theme_color.dart';
 
 @RoutePage()
@@ -26,9 +28,11 @@ class _ThemeColorPageState extends State<ThemeColorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(t.settings.themeColor)),
-      body: SingleChildScrollView(
+    return SettingPageShell(
+      title: t.settings.themeColor,
+      description: t.settings.themeColorSubtitle,
+      child: SingleChildScrollView(
+        padding: kSettingPagePadding,
         child: Column(
           children: [
             // 颜色选择器
@@ -37,19 +41,13 @@ class _ThemeColorPageState extends State<ThemeColorPage> {
               onColorChanged: _applyColor,
             ),
             // 预设色块
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.settings.colorPresets,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
+            SettingSectionCard(
+              title: t.settings.colorPresets,
+              icon: AppGlyphs.palette,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
@@ -61,8 +59,8 @@ class _ThemeColorPageState extends State<ThemeColorPage> {
                         ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

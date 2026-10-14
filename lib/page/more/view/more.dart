@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/more/more.dart';
 
 @RoutePage()
@@ -31,10 +32,7 @@ class MorePage extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Image.asset('asset/image/app-icon.png', width: 88, height: 88),
-        ),
+        const BrandAppIcon(size: 88),
         const SizedBox(height: 12),
         Text(
           appDisplayName,

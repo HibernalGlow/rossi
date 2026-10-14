@@ -7,6 +7,8 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/webdav_sync/webdav_sync.dart';
 
 import 'package:zephyr/main.dart';
+import 'package:zephyr/page/setting/common/setting_group.dart';
+import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/widgets/dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/util/event/event.dart';
@@ -20,14 +22,6 @@ class WebDavSyncPage extends StatefulWidget {
 }
 
 class _WebDavSyncPageState extends State<WebDavSyncPage> {
-  // Switch.thumbIcon 的签名锁死 WidgetStateProperty<Icon>（Material Icon），
-  // glyph 进不去 —— 与 setting_ui.dart 同款豁免（全仓仅两处）。
-  static const WidgetStateProperty<Icon> _thumbIcon =
-      WidgetStateProperty<Icon>.fromMap(<WidgetStatesConstraint, Icon>{
-        WidgetState.selected: Icon(Icons.check),
-        WidgetState.any: Icon(Icons.close),
-      });
-
   final TextEditingController _webdavHost = TextEditingController();
   final TextEditingController _webdavUsername = TextEditingController();
   final TextEditingController _webdavPassword = TextEditingController();
@@ -82,45 +76,52 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
         ? t.webdavSync.title
         : t.webdavSync.serviceTitle(service: syncServiceType.label);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: <Widget>[
-            if (syncServiceType == SyncServiceType.none) ...[
-              _buildNoneTip(),
-            ] else if (syncServiceType == SyncServiceType.webdav) ...[
-              _buildWebDavForm(),
-            ] else ...[
-              _buildS3Form(),
-            ],
-            const SizedBox(height: 12),
-            if (syncServiceType != SyncServiceType.none)
-              Row(
-                children: [
-                  const Spacer(),
-                  ElevatedButton(
+    return SettingPageShell(
+      title: title,
+      child: ListView(
+        padding: kSettingPagePadding,
+        children: <Widget>[
+          if (syncServiceType == SyncServiceType.none) ...[
+            _buildNoneTip(),
+          ] else ...[
+            SettingSectionCard(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: syncServiceType == SyncServiceType.webdav
+                      ? _buildWebDavForm()
+                      : _buildS3Form(),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    style: settingDangerButtonStyle(context),
                     onPressed: () => _clearConfig(syncServiceType),
                     child: Text(t.webdavSync.deleteConfig),
                   ),
-                  const Spacer(),
-                  ElevatedButton(
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
                     onPressed: () => _testAndSave(syncServiceType),
                     child: Text(t.webdavSync.testAndSave),
                   ),
-                  const Spacer(),
-                ],
-              ),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: () => _showQA(context),
-                child: Text(t.webdavSync.faq),
-              ),
+                ),
+              ],
             ),
           ],
-        ),
+          const SizedBox(height: 20),
+          Center(
+            child: TextButton(
+              onPressed: () => _showQA(context),
+              child: Text(t.webdavSync.faq),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }
@@ -219,9 +220,8 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
           ),
         ),
         const SizedBox(height: 4),
-        SwitchListTile(
+        SettingGroup.switchTile(
           title: Text(t.webdavSync.useSsl),
-          thumbIcon: _thumbIcon,
           value: _s3UseSSL,
           onChanged: (value) {
             setState(() {
@@ -229,10 +229,9 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
             });
           },
         ),
-        SwitchListTile(
+        SettingGroup.switchTile(
           title: Text(t.webdavSync.pathStyle),
           subtitle: Text(t.webdavSync.pathStyleSubtitle),
-          thumbIcon: _thumbIcon,
           value: _s3PathStyle,
           onChanged: (value) {
             setState(() {

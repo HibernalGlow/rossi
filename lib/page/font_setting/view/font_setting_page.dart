@@ -2,6 +2,7 @@ import 'package:auto_route/annotations.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as path;
+import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/font/font_profile.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
@@ -105,21 +106,17 @@ class _FontSettingPageState extends State<FontSettingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          t.fontSetting.title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+    return SettingPageShell(
+      title: t.fontSetting.title,
+      description: t.fontSetting.hint,
+      actions: [
+        IconButton(
+          tooltip: t.fontSetting.clear,
+          onPressed: _clearAll,
+          icon: const GlyphIcon(AppGlyphs.reset),
         ),
-        actions: [
-          IconButton(
-            tooltip: t.fontSetting.clear,
-            onPressed: _clearAll,
-            icon: const GlyphIcon(AppGlyphs.reset),
-          ),
-        ],
-      ),
-      body: AnimatedBuilder(
+      ],
+      child: AnimatedBuilder(
         animation: FontProfileController.instance,
         builder: (context, _) {
           final controller = FontProfileController.instance;
@@ -129,151 +126,167 @@ class _FontSettingPageState extends State<FontSettingPage> {
           final defaultPath = controller.defaultPath ?? '';
           final mode = controller.mode;
           return ListView(
+            padding: kSettingPagePadding,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(t.fontSetting.hint),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(
-                      value: FontProfileController.modeSystem,
-                      label: Text(t.fontSetting.modeSystem),
-                    ),
-                    ButtonSegment(
-                      value: FontProfileController.modeFamily,
-                      label: Text(t.fontSetting.modeFamily),
-                    ),
-                    ButtonSegment(
-                      value: FontProfileController.modeFile,
-                      label: Text(t.fontSetting.modeFile),
-                    ),
-                  ],
-                  selected: {mode},
-                  onSelectionChanged: (selection) => _pickMode(selection.first),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  _modeHint(mode),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              if (mode == FontProfileController.modeFamily)
-                Builder(
-                  builder: (context) {
-                    final systemFamily = controller.systemFamily;
-                    return ListTile(
-                      leading: SizedBox(
-                        width: 86,
-                        child: Text(
-                          t.fontSetting.modeFamily,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
+              SettingSectionCard(
+                title: t.fontSetting.defaultFont,
+                icon: AppGlyphs.textSize,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(t.fontSetting.hint),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment(
+                          value: FontProfileController.modeSystem,
+                          label: Text(t.fontSetting.modeSystem),
                         ),
-                      ),
-                      title: Text(
-                        systemFamily.isEmpty
-                            ? t.fontSetting.familyPickPrompt
-                            : systemFamily,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          _sampleText,
-                          style: controller.applyStyleForWeight(
-                            const TextStyle(fontSize: 16),
-                            400,
-                          ),
+                        ButtonSegment(
+                          value: FontProfileController.modeFamily,
+                          label: Text(t.fontSetting.modeFamily),
                         ),
-                      ),
-                      trailing: Wrap(
-                        spacing: 4,
-                        children: [
-                          if (systemFamily.isNotEmpty)
-                            IconButton(
-                              tooltip: t.fontSetting.clearFile,
-                              onPressed: () async {
-                                await controller.setSystemFamily('');
-                                showSuccessToast(t.fontSetting.cleared);
-                              },
-                              icon: const GlyphIcon(AppGlyphs.close),
+                        ButtonSegment(
+                          value: FontProfileController.modeFile,
+                          label: Text(t.fontSetting.modeFile),
+                        ),
+                      ],
+                      selected: {mode},
+                      onSelectionChanged: (selection) =>
+                          _pickMode(selection.first),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      _modeHint(mode),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  if (mode == FontProfileController.modeFamily)
+                    Builder(
+                      builder: (context) {
+                        final systemFamily = controller.systemFamily;
+                        return ListTile(
+                          leading: SizedBox(
+                            width: 86,
+                            child: Text(
+                              t.fontSetting.modeFamily,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                             ),
-                          IconButton(
-                            tooltip: t.fontSetting.familyPickPrompt,
-                            onPressed: _pickSystemFamily,
-                            icon: const GlyphIcon(AppGlyphs.layoutList),
                           ),
-                        ],
-                      ),
-                      onTap: _pickSystemFamily,
-                    );
-                  },
-                ),
-              if (mode == FontProfileController.modeFile)
-                _FontTile(
-                  label: t.fontSetting.defaultFont,
-                  description: null,
-                  filePath: defaultPath,
-                  sampleText: _sampleText,
-                  previewStyle: controller.applyStyleForWeight(
-                    const TextStyle(fontSize: 16),
-                    400,
-                  ),
-                  onPick: _pickDefault,
-                  onClear: defaultPath.isEmpty ? null : () => _saveDefault(''),
-                ),
-              const Divider(height: 24, indent: 16, endIndent: 16),
-              ListTile(
-                leading: SizedBox(
-                  width: 86,
-                  child: Text(
-                    t.fontSetting.overrides,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                          title: Text(
+                            systemFamily.isEmpty
+                                ? t.fontSetting.familyPickPrompt
+                                : systemFamily,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              _sampleText,
+                              style: controller.applyStyleForWeight(
+                                const TextStyle(fontSize: 16),
+                                400,
+                              ),
+                            ),
+                          ),
+                          trailing: Wrap(
+                            spacing: 4,
+                            children: [
+                              if (systemFamily.isNotEmpty)
+                                IconButton(
+                                  tooltip: t.fontSetting.clearFile,
+                                  onPressed: () async {
+                                    await controller.setSystemFamily('');
+                                    showSuccessToast(t.fontSetting.cleared);
+                                  },
+                                  icon: const GlyphIcon(AppGlyphs.close),
+                                ),
+                              IconButton(
+                                tooltip: t.fontSetting.familyPickPrompt,
+                                onPressed: _pickSystemFamily,
+                                icon: const GlyphIcon(AppGlyphs.layoutList),
+                              ),
+                            ],
+                          ),
+                          onTap: _pickSystemFamily,
+                        );
+                      },
                     ),
-                  ),
-                ),
-                title: Text(
-                  t.fontSetting.overridesHint,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: GlyphIcon(
-                  overridesExpanded
-                      ? AppGlyphs.chevronUp
-                      : AppGlyphs.chevronDown,
-                ),
-                onTap: () =>
-                    setState(() => _overridesExpanded = !_overridesExpanded),
+                  if (mode == FontProfileController.modeFile)
+                    _FontTile(
+                      label: t.fontSetting.defaultFont,
+                      description: null,
+                      filePath: defaultPath,
+                      sampleText: _sampleText,
+                      previewStyle: controller.applyStyleForWeight(
+                        const TextStyle(fontSize: 16),
+                        400,
+                      ),
+                      onPick: _pickDefault,
+                      onClear: defaultPath.isEmpty
+                          ? null
+                          : () => _saveDefault(''),
+                    ),
+                ],
               ),
-              if (overridesExpanded)
-                ..._weights.map((weight) {
-                  final filePath = controller.pathForWeight(weight) ?? '';
-                  return _FontTile(
-                    label: 'w$weight\n${fontWeightLabels[weight]!}',
-                    description: null,
-                    filePath: filePath,
-                    sampleText: _sampleText,
-                    previewStyle: controller.applyStyleForWeight(
-                      TextStyle(
-                        fontSize: 16,
-                        fontWeight: _toFontWeight(weight),
+              SettingSectionCard(
+                title: t.fontSetting.overrides,
+                icon: AppGlyphs.sliders,
+                children: [
+                  ListTile(
+                    leading: SizedBox(
+                      width: 86,
+                      child: Text(
+                        t.fontSetting.overrides,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      weight,
                     ),
-                    onPick: () => _pickWeight(weight),
-                    onClear: filePath.isEmpty
-                        ? null
-                        : () => _saveWeight(weight, ''),
-                  );
-                }),
-              const SizedBox(height: 24),
+                    title: Text(
+                      t.fontSetting.overridesHint,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: GlyphIcon(
+                      overridesExpanded
+                          ? AppGlyphs.chevronUp
+                          : AppGlyphs.chevronDown,
+                    ),
+                    onTap: () => setState(
+                      () => _overridesExpanded = !_overridesExpanded,
+                    ),
+                  ),
+                  if (overridesExpanded)
+                    ..._weights.map((weight) {
+                      final filePath = controller.pathForWeight(weight) ?? '';
+                      return _FontTile(
+                        label: 'w$weight\n${fontWeightLabels[weight]!}',
+                        description: null,
+                        filePath: filePath,
+                        sampleText: _sampleText,
+                        previewStyle: controller.applyStyleForWeight(
+                          TextStyle(
+                            fontSize: 16,
+                            fontWeight: _toFontWeight(weight),
+                          ),
+                          weight,
+                        ),
+                        onPick: () => _pickWeight(weight),
+                        onClear: filePath.isEmpty
+                            ? null
+                            : () => _saveWeight(weight, ''),
+                      );
+                    }),
+                ],
+              ),
+              const SizedBox(height: 32),
             ],
           );
         },
