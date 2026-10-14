@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_info/widgets/comic_inline_details_surface.dart';
 import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
@@ -75,12 +76,12 @@ class _LibraryLocalBookDetailsState extends State<LibraryLocalBookDetails> {
         FilledButton.tonalIcon(
           onPressed: widget.entry.onRead,
           style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
-          icon: const Icon(Icons.menu_book_rounded),
+          icon: const GlyphIcon(AppGlyphs.openBook),
           label: const Text('打开阅读器'),
         ),
         TextButton.icon(
           onPressed: () => Clipboard.setData(ClipboardData(text: widget.path)),
-          icon: const Icon(Icons.copy_rounded),
+          icon: const GlyphIcon(AppGlyphs.copy),
           label: const Text('复制位置'),
         ),
       ],
@@ -120,7 +121,7 @@ class _LibraryLocalBookDetailsState extends State<LibraryLocalBookDetails> {
                   : Center(
                       child: snapshot.connectionState == ConnectionState.waiting
                           ? const CircularProgressIndicator()
-                          : const Icon(Icons.broken_image_outlined),
+                          : const GlyphIcon(AppGlyphs.brokenImage),
                     ),
             ),
             Text('${index + 1}', style: Theme.of(context).textTheme.labelSmall),

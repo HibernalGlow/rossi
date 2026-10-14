@@ -4,6 +4,8 @@ import 'package:zephyr/workspace/model/shelf_timeline.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry_surface.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_inline_expansion.dart';
 
 /// 时间线：按本地日历日分段的书签 / 历史列表。
 ///
@@ -18,7 +20,7 @@ import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 /// 见 `model/shelf_timeline.dart` 的库注释：`LibraryViewMode` 与 Rust 侧
 /// `FileManagerViewMode` 一一对应，为书架专属的东西去动三家共用的枚举与
 /// 映射不划算。
-class ShelfTimelineView extends StatelessWidget {
+class ShelfTimelineView extends StatefulWidget {
   const ShelfTimelineView({
     super.key,
     required this.entries,
@@ -29,9 +31,15 @@ class ShelfTimelineView extends StatelessWidget {
     this.enabled = true,
     this.busy = false,
     this.standalone = false,
+    this.detailBuilder,
+    this.expandedKeys = const {},
+    this.onCloseDetail,
   });
 
   final List<LibraryEntry> entries;
+  final LibraryDetailBuilder? detailBuilder;
+  final Set<String> expandedKeys;
+  final ValueChanged<String>? onCloseDetail;
 
   /// 取一个条目的时间：书签是收藏时间，历史是最后阅读。
   ///
@@ -53,6 +61,24 @@ class ShelfTimelineView extends StatelessWidget {
   /// 独占整个面板时不再套 120~440 的高度限制，口径与 `LibraryEntryList` 一致。
   final bool standalone;
 
+  @override
+  State<ShelfTimelineView> createState() => _ShelfTimelineViewState();
+}
+
+class _ShelfTimelineViewState extends State<ShelfTimelineView> {
+  final _retained = <String>{};
+  List<LibraryEntry> get entries => widget.entries;
+  DateTime Function(LibraryEntry) get timeOf => widget.timeOf;
+  bool get enabled => widget.enabled;
+  bool get busy => widget.busy;
+  bool get standalone => widget.standalone;
+  String get emptyText => widget.emptyText;
+  ValueChanged<LibraryEntry> get onTap => widget.onTap;
+  Widget Function(BuildContext, LibraryEntry, Widget)? get wrapRow =>
+      widget.wrapRow;
+  LibraryDetailBuilder? get detailBuilder => widget.detailBuilder;
+  ValueChanged<String>? get onCloseDetail => widget.onCloseDetail;
+
   static const double _borderRadius = 8;
 
   /// 左轨的宽度与圆点直径。轨道压在行上，不参与行高计算。
@@ -62,6 +88,17 @@ class ShelfTimelineView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) return _buildEmpty(context);
+    final keys = entries.map((e) => e.key).toSet();
+    _retained.removeWhere((k) => !keys.contains(k));
+    _retained.addAll(widget.expandedKeys.where(keys.contains));
+    final closed = _retained
+        .where((k) => !widget.expandedKeys.contains(k))
+        .toList();
+    for (final key in closed.take(
+      (closed.length - 8).clamp(0, closed.length),
+    )) {
+      _retained.remove(key);
+    }
 
     final days = groupShelfTimelineByDay(
       entries.map(timeOf).toList(growable: false),
@@ -86,15 +123,37 @@ class ShelfTimelineView extends StatelessWidget {
           mode: LibraryViewMode.coverList,
           entry: entry,
           onTap: enabled ? () => onTap(entry) : null,
+          onLongPress: enabled ? entry.onLongPress : null,
         );
-        return _buildRailRow(
-          context,
-          entry: entry,
-          row: row,
-          // 一组的第一行不画上延线、最后一行不画下延线，线才不会插进段头
-          // 或者列表末尾的空白里。
-          showTopLine: !cell.isGroupFirst,
-          showBottomLine: !cell.isGroupLast,
+        return LibraryDetailRetention(
+          keep: _retained.contains(entry.key),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildRailRow(
+                context,
+                entry: entry,
+                row: row,
+                // 一组的第一行不画上延线、最后一行不画下延线，线才不会插进段头
+                // 或者列表末尾的空白里。
+                showTopLine: !cell.isGroupFirst,
+                showBottomLine: !cell.isGroupLast,
+              ),
+              if (_retained.contains(entry.key) && detailBuilder != null)
+                LibraryInlineExpansion(
+                  key: ValueKey('timeline-detail:${entry.key}'),
+                  visible: widget.expandedKeys.contains(entry.key),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: detailBuilder!(
+                      context,
+                      entry,
+                      () => onCloseDetail?.call(entry.key),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );
@@ -120,7 +179,10 @@ class ShelfTimelineView extends StatelessWidget {
         standalone
             ? content
             : ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 120, maxHeight: 440),
+                constraints: const BoxConstraints(
+                  minHeight: 120,
+                  maxHeight: 440,
+                ),
                 child: content,
               ),
         if (busy)

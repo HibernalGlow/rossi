@@ -5,6 +5,9 @@ import 'package:zephyr/workspace/widgets/library_view/library_entry_surface.dart
 import 'package:zephyr/workspace/widgets/library_view/library_view_layout.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_legacy_focus.dart';
 
 /// 六档视图的宿主。对应 neoview 的 `ReaderLibraryList`：
 /// 只负责「按当前视图模式把行排出来 + 边框 + 忙遮罩 + 空态」，
@@ -28,8 +31,22 @@ class LibraryEntryList extends StatelessWidget {
     this.busy = false,
     this.standalone = false,
     this.wrapTitle = false,
+    this.editorialScope,
+    this.editorialKey,
+    this.detailBuilder,
+    this.tapOpensDetail = true,
+    this.onDetailChanged,
+    this.onPresentationChanged,
+    this.fileStats = false,
   });
 
+  final String? editorialScope;
+  final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
+  final LibraryDetailBuilder? detailBuilder;
+  final bool tapOpensDetail;
+  final bool fileStats;
+  final ValueChanged<LibraryEntry?>? onDetailChanged;
+  final ValueChanged<LibraryPresentation>? onPresentationChanged;
   final LibraryViewMode mode;
   final List<LibraryEntry> entries;
   final ValueChanged<LibraryEntry> onTap;
@@ -68,6 +85,113 @@ class LibraryEntryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (editorialScope != null) {
+      return LibraryEditorialCanvas(
+        key: editorialKey,
+        scope: editorialScope!,
+        initialPresentation: LibraryPresentation(
+          editorial: !fileStats,
+          hero: !fileStats,
+        ),
+        entries: entries,
+        onTap: onTap,
+        legacyBuilder: _buildLegacy,
+        legacyFocusBuilder: detailBuilder == null ? null : _buildInlineLegacy,
+        standalone: standalone,
+        enabled: enabled && !busy,
+        detailBuilder: detailBuilder,
+        tapOpensDetail: tapOpensDetail,
+        wrapCard: wrapRow,
+        onDoubleTap: onDoubleTap,
+        canDoubleTap: canDoubleTap,
+        viewToken: mode,
+        fileStats: fileStats,
+        onDetailChanged: onDetailChanged,
+        onPresentationChanged: onPresentationChanged,
+      );
+    }
+    return _buildLegacy(context);
+  }
+
+  Widget _buildInlineLegacy(
+    BuildContext context,
+    Map<String, Widget> expandedDetails,
+    ValueChanged<LibraryEntry> toggle,
+    ValueChanged<LibraryEntry> onCoverTap,
+  ) {
+    if (entries.isEmpty) return _buildEmpty(context);
+    final geometry = LibraryViewLayout.list(mode);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final details = mode == LibraryViewMode.details;
+        final width = details
+            ? constraints.maxWidth.clamp(
+                LibraryViewLayout.detailsMinWidth,
+                double.infinity,
+              )
+            : constraints.maxWidth;
+        final columnsCount = geometry.isGrid
+            ? (width / geometry.maxCrossAxisExtent!).ceil().clamp(1, 12)
+            : 1;
+        final list = LibraryLegacyFocus(
+          count: entries.length,
+          columns: columnsCount,
+          extent: geometry.isGrid ? geometry.mainAxisExtent : null,
+          padding: geometry.padding,
+          details: {
+            for (var i = 0; i < entries.length; i++)
+              if (expandedDetails.containsKey(entries[i].key))
+                i: expandedDetails[entries[i].key]!,
+          },
+          header: details ? _buildDetailsHeader(context) : null,
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            final surface = LibraryEntrySurface(
+              key: ValueKey('${mode.name}:${entry.key}'),
+              mode: mode,
+              entry: entry,
+              wrapTitle: wrapTitle,
+              onTap: enabled ? () => onCoverTap(entry) : null,
+              onLongPress: enabled ? entry.onLongPress : null,
+              onDoubleTap: enabled && (canDoubleTap?.call(entry) ?? false)
+                  ? () => onDoubleTap?.call(entry)
+                  : null,
+            );
+            final tile = Stack(
+              children: [
+                surface,
+                Positioned(
+                  right: 0,
+                  top: geometry.isGrid ? null : 0,
+                  bottom: geometry.isGrid ? 0 : null,
+                  child: IconButton(
+                    tooltip: '展开信息',
+                    onPressed: enabled ? () => toggle(entry) : null,
+                    icon: const GlyphIcon(AppGlyphs.info, size: 18),
+                  ),
+                ),
+              ],
+            );
+            return wrapRow?.call(context, entry, tile) ?? tile;
+          },
+        );
+        if (!details) return list;
+        return DetailsColumns(
+          columns: columns,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: width,
+              height: constraints.maxHeight,
+              child: list,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLegacy(BuildContext context) {
     if (entries.isEmpty) return _buildEmpty(context);
 
     final view = _buildView(context);
@@ -134,6 +258,7 @@ class LibraryEntryList extends StatelessWidget {
       mode: mode,
       entry: entry,
       onTap: enabled ? () => onTap(entry) : null,
+      onLongPress: enabled ? entry.onLongPress : null,
       onDoubleTap: enabled && (canDoubleTap?.call(entry) ?? false)
           ? () => onDoubleTap?.call(entry)
           : null,
@@ -267,9 +392,7 @@ class LibraryEntryList extends StatelessWidget {
             if (isActive) ...[
               const SizedBox(width: 2),
               GlyphIcon(
-                sortAscending
-                    ? AppGlyphs.arrowUp
-                    : AppGlyphs.arrowDown,
+                sortAscending ? AppGlyphs.arrowUp : AppGlyphs.arrowDown,
                 size: 13,
                 color: theme.colorScheme.primary,
               ),
