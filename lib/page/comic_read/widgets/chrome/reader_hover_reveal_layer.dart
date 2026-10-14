@@ -28,6 +28,7 @@ bool isHoverRevealLockReleased(ReaderState previous, ReaderState current) =>
 /// 4. 处于手动呼出菜单（`isMenuVisible == true`）或滑块拖拽中（`isSliderRolling == true`）时锁定显示。
 class ReaderHoverController {
   BuildContext _context;
+  ReadSettingState? _effectiveReadSetting;
 
   bool _isTopTriggerHovered = false;
   bool _isTopBarHovered = false;
@@ -42,11 +43,13 @@ class ReaderHoverController {
 
   BuildContext get context => _context;
 
-  void updateContext(BuildContext newContext) {
+  void updateContext(BuildContext newContext, {ReadSettingState? readSetting}) {
     _context = newContext;
+    _effectiveReadSetting = readSetting;
   }
 
   ReadSettingState get _readSetting =>
+      _effectiveReadSetting ??
       _context.read<GlobalSettingCubit>().state.readSetting;
 
   ReaderCubit get _readerCubit => _context.read<ReaderCubit>();
@@ -259,20 +262,55 @@ class ReaderHoverTriggerScope extends InheritedWidget {
       bottomRect != oldWidget.bottomRect;
 }
 
+/// 阅读叠层的统一挂载点，感应带始终最后参与命中，不随新增浮层被盖住。
+class ReaderHoverStack extends StatelessWidget {
+  const ReaderHoverStack({
+    super.key,
+    required this.controller,
+    required this.readSetting,
+    required this.children,
+  });
+
+  final ReaderHoverController controller;
+  final ReadSettingState readSetting;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      ...children,
+      Positioned.fill(
+        child: ReaderHoverRevealOverlay(
+          controller: controller,
+          readSetting: readSetting,
+        ),
+      ),
+    ],
+  );
+}
+
 /// 边缘悬停唤出感应层组件。
 ///
-/// 放置在主 Stack 中漫画图层之上、控制栏图层之下，使用 [HitTestBehavior.translucent]
-/// 保证所有触控与滚动手势完全穿透，仅捕获鼠标指针的 Hover 进入与离开。
+/// 放在阅读器主 Stack 的最后，避免页码底板、栏体等兄弟节点遮住感应带。
+/// MouseRegion 自身不阻止后续命中，装饰也必须 IgnorePointer，让栏内按钮、
+/// 页面点击和滚动继续收到事件。
 class ReaderHoverRevealOverlay extends StatelessWidget {
   final ReaderHoverController controller;
+  final ReadSettingState? readSetting;
 
-  const ReaderHoverRevealOverlay({super.key, required this.controller});
+  const ReaderHoverRevealOverlay({
+    super.key,
+    required this.controller,
+    this.readSetting,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final readSetting = context.select(
-      (GlobalSettingCubit c) => c.state.readSetting,
-    );
+    final ReadSettingState readSetting =
+        this.readSetting ??
+        context.select<GlobalSettingCubit, ReadSettingState>(
+          (c) => c.state.readSetting,
+        );
 
     if (!readSetting.hoverRevealEnabled) {
       return const SizedBox.shrink();
@@ -309,16 +347,21 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
               hitTestBehavior: HitTestBehavior.translucent,
               opaque: false,
               onEnter: (_) => controller.onEnterTopTrigger(),
+              // 状态被点击或异步更新改变时，同一带内移动也能重新唤出，
+              // 不需要先把鼠标移出再移入。Cubit 同值短路，不逐次重建阅读页。
+              onHover: (_) => controller.onEnterTopTrigger(),
               onExit: (_) => controller.onExitTopTrigger(),
               child: (readSetting.hoverShowVisualIndicator && !showTopAppBar)
-                  ? Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        height: 2,
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(1),
+                  ? IgnorePointer(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          height: 2,
+                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
                         ),
                       ),
                     )
@@ -338,19 +381,24 @@ class ReaderHoverRevealOverlay extends StatelessWidget {
                   hitTestBehavior: HitTestBehavior.translucent,
                   opaque: false,
                   onEnter: (_) => controller.onEnterBottomTrigger(),
+                  onHover: (_) => controller.onEnterBottomTrigger(),
                   onExit: (_) => controller.onExitBottomTrigger(),
                   child:
                       (readSetting.hoverShowVisualIndicator && !showBottomBar)
-                      ? Align(
-                          alignment: Alignment.topCenter,
-                          child: Container(
-                            height: 2,
-                            margin: const EdgeInsets.symmetric(horizontal: 24),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary.withValues(
-                                alpha: 0.35,
+                      ? IgnorePointer(
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: Container(
+                              height: 2,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 24,
                               ),
-                              borderRadius: BorderRadius.circular(1),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.35,
+                                ),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
                             ),
                           ),
                         )
