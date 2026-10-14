@@ -152,12 +152,22 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                             label: mode.label,
                             glyph: mode.icon,
                             checked: mode == snapshot.viewMode,
-                            onPressed: () => _apply(
-                              (id) =>
-                                  fileManagerSetViewMode(id: id, mode: mode),
-                            ),
+                            onPressed: () {
+                              _canvasKey.currentState?.showLegacyView();
+                              _apply(
+                                (id) =>
+                                    fileManagerSetViewMode(id: id, mode: mode),
+                              );
+                            },
                           ),
                       ],
+                    ),
+                    within,
+                    LibraryPresentationButton(
+                      canvasKey: _canvasKey,
+                      enabled:
+                          !_busy &&
+                          snapshot.layoutMode == FileManagerLayoutMode.content,
                     ),
                     within,
                     popupTrigger(
@@ -288,6 +298,15 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           checked: _fileOpsEnabled,
                           onPressed: () =>
                               _setFileOperationsEnabled(!_fileOpsEnabled),
+                        ),
+                        // 与上面那颗同组：这一组的两项都是**卡片级**偏好（写全局设置，
+                        // 立刻生效、跨重启保持），下面 divider 之后才是**目录级**的
+                        // 视图偏好（跟着 `settings.db` 按目录记）。
+                        CommonPopupMenuItem(
+                          label: '显示快速切换栏',
+                          glyph: AppGlyphs.storage,
+                          checked: _showRootsBar,
+                          onPressed: () => _setShowRootsBar(!_showRootsBar),
                         ),
                         const CommonPopupMenuItem.divider(),
                         CommonPopupMenuItem(

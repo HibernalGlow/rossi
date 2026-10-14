@@ -109,6 +109,7 @@ FileManagerEntry _entry(
   bool directory = false,
   int children = 0,
   String? searchDirectory,
+  bool penetratable = false,
   String? path,
 }) => FileManagerEntry(
   path: path ?? '/books/$name',
@@ -121,6 +122,10 @@ FileManagerEntry _entry(
   size: BigInt.from(1024),
   modifiedSecs: 1700000000,
   hasChildren: directory,
+  // 核心对「这一行的单击会不会被穿透劫走」的判决（见 `penetratable` 字段）。
+  // 替身默认给假：那正是「文件夹行不挂双击、单击立刻生效」的那一档，
+  // 已有用例（例如多选那组点文件夹）都建立在它之上。
+  penetratable: penetratable,
   searchDirectory: searchDirectory,
   childNames: List.generate(
     children,
@@ -153,6 +158,7 @@ FileManagerSnapshot _snapshot({
   bool canSortPreference = true,
   bool rememberViewState = true,
   bool subfolders = false,
+  bool folderPenetratable = false,
   bool searchActive = false,
   bool depthLimited = false,
   bool noEntries = false,
@@ -214,7 +220,12 @@ FileManagerSnapshot _snapshot({
         ]
       : [
           _entry('book.cbz'),
-          _entry('series with a long name', directory: true, children: 8),
+          _entry(
+            'series with a long name',
+            directory: true,
+            children: 8,
+            penetratable: folderPenetratable,
+          ),
         ],
   roots: const [LocalRootLocation(label: '主目录', path: '/home')],
   penetrationEnabled: true,

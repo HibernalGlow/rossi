@@ -1,3 +1,5 @@
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
@@ -27,6 +29,9 @@ import 'package:zephyr/workspace/widgets/cards/file_manager_content_layout.dart'
 import 'package:zephyr/workspace/widgets/cards/file_manager_toolbar.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
+import 'package:zephyr/workspace/service/library_file_statistics.dart';
+import 'package:zephyr/workspace/widgets/cards/file_manager_inline_details.dart';
 import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -54,6 +59,7 @@ part 'parts/file_manager_card_file_ops_part.dart';
 part 'parts/file_manager_card_open_part.dart';
 part 'parts/file_manager_card_toolbar_part.dart';
 part 'parts/file_manager_card_view_part.dart';
+part 'parts/file_manager_card_editorial_part.dart';
 
 /// 搜索层数的可选档位。`12` 是核心 `MAX_SEARCH_DEPTH` 的夹值，不是这里自己拍的数。
 ///
@@ -93,6 +99,8 @@ class FileManagerCard extends StatefulWidget {
 }
 
 class _FileManagerCardState extends State<FileManagerCard> {
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
+
   /// 增量搜索的防抖窗口。再短会让每敲一个字都发一次桥调用，再长打中文
   /// （拼音候选要来回改）会感觉没反应。
   static const _searchDebounceDuration = Duration(milliseconds: 180);
@@ -175,6 +183,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 在 [build] 里订阅一次、同一个 build pass 里大家读它。
   bool _fileOpsEnabled = true;
 
+  /// 这一帧的「快速切换栏」显隐（全局设置，卷 / 根目录 / 主目录那一排胶囊）。
+  ///
+  /// 与 [_fileOpsEnabled] 同样在 [build] 里订阅一次：这一行画不画由它决定，
+  /// 而工具栏「更多」菜单里那一行也要读它来画勾选态。
+  bool _showRootsBar = true;
+
   /// 工具栏那颗「多选」开关摁没摁下。
   ///
   /// 只有这一个布尔留在 Dart：**它是「用户要哪种手感」的意图，不是选中集合的副本**
@@ -184,6 +198,13 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   /// 文件树面板。展开/懒扫描/游标的正本在 Rust 的 `FolderPaneState` 里，
   /// 这里只有「开没开」与最近一次投影。
+  final _fileStatistics = LibraryFileStatisticsCache();
+  bool _recursiveStatistics = false;
+  String? _statisticsRevision;
+  String? _previewPath;
+  final _previewAutoExpanded = <String>{};
+  bool _previewExpanding = false;
+  bool get _treeRequested => _treeEnabled || _previewPath != null;
   bool get _treeEnabled => _snapshot?.layoutMode == FileManagerLayoutMode.tree;
   FileManagerTreeSnapshot? _tree;
   BigInt? _treeGeneration;
@@ -208,6 +229,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
 
   @override
   void dispose() {
+    _fileStatistics.dispose();
     _disposed = true;
     _searchDebounce?.cancel();
     _endSearchFeedback();
@@ -311,6 +333,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
     _fileOpsEnabled = context.select<GlobalSettingCubit, bool>(
       (cubit) => cubit.state.fileManagerSetting.fileOperations,
     );
+    _showRootsBar = context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.fileManagerSetting.showRootsBar,
+    );
     if (snapshot != null &&
         !_busy &&
         _syncedRememberViewState != remember &&
@@ -398,7 +423,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
               ],
             ),
           ),
-          _buildRoots(context, snapshot),
+          // 快速切换栏（挂载卷 / 根目录 / 主目录）：「更多」菜单里那颗开关收掉整行。
+          // 与下面的「文件操作」同一口径 —— 卡片级偏好只看这一处，
+          // `_buildRoots` 只管「有卷的时候怎么画」。
+          if (_showRootsBar) _buildRoots(context, snapshot),
           if (_error != null) _buildInlineError(context),
           // 操作条紧贴列表上方：它管的就是下面那一批行。
           if (_fileOpsEnabled && _selectedPaths.isNotEmpty) ...[
@@ -479,11 +507,21 @@ class _FileManagerCardState extends State<FileManagerCard> {
     // `snapshot.entries` 就是该画的东西：普通浏览时是当前目录，搜索结果页签时
     // 是命中列表。这一层不需要知道这两种情况的存在。
     final query = snapshot.searchQuery;
+    final displayed = entries ?? snapshot.entries;
+    _queueFileStatistics(snapshot, displayed);
     return LibraryEntryList(
+      key: ValueKey('file-wall:${snapshot.activeTabId}:${snapshot.activePath}'),
+      editorialScope: entries == null ? 'file-manager' : null,
+      editorialKey: entries == null ? _canvasKey : null,
+      tapOpensDetail: false,
+      fileStats: true,
+      onPresentationChanged: _onFilePresentationChanged,
+      onDetailChanged: _onFileDetailChanged,
+      detailBuilder: (context, row, close) =>
+          _fileInlineDetails(context, row, close),
       mode: mode,
       entries: [
-        for (final entry in entries ?? snapshot.entries)
-          _libraryEntry(context, entry, mode),
+        for (final entry in displayed) _libraryEntry(context, entry, mode),
       ],
       emptyText: _searchSlow
           ? '正在递归搜索，结果扫完一次给出…'
@@ -507,10 +545,19 @@ class _FileManagerCardState extends State<FileManagerCard> {
       },
       onTap: (row) =>
           (onEntryTap ?? _onEntryTap)(row.source! as FileManagerEntry),
-      // 双击只对压缩包有意义：多选模式下「打开」由那颗模式开关管着（不在模式里时
-      // 单击就够得着打开），不必为此把每一行的双击都改成打开。
-      canDoubleTap: (row) => (row.source! as FileManagerEntry).isArchive,
-      onDoubleTap: (row) => _openArchive(row.source! as FileManagerEntry),
+      // 双击只对两类行有意义：压缩包（不动位置直接开）；以及**会被穿透劫走**的文件夹 ——
+      // 那里单击交出的是链末的那本书，双击把「进这一层」还回去（核心的 force_enter，
+      // 与紧凑/封面档那颗「进入文件夹」按钮同一条路）。
+      // 多选模式下「打开」由那颗模式开关管着（不在模式里时单击就够得着打开），
+      // 所以其余行不值得为它挂双击。
+      // 挂上双击识别器的代价是这一行的单击要等满 kDoubleTapTimeout（300ms），
+      // 所以只在单击与双击**真的**是两件事时才挂：核心把「单击会不会被穿透劫走」
+      // 投影成 `penetratable`，判不出来的行（搜索结果页签）一律不挂。
+      canDoubleTap: (row) {
+        final entry = row.source! as FileManagerEntry;
+        return entry.isArchive || entry.penetratable;
+      },
+      onDoubleTap: (row) => _onEntryDoubleTap(row.source! as FileManagerEntry),
       titleColumn: _detailsTitleColumn,
       columns: _detailsColumns,
       sortKey: snapshot.sortField.name,
@@ -530,8 +577,27 @@ class _FileManagerCardState extends State<FileManagerCard> {
       key: entry.path,
       title: entry.name,
       source: entry,
+      preserveMedia: true,
+      section: entry.isDir
+          ? '文件夹'
+          : entry.isArchive
+          ? '漫画归档'
+          : entry.isImage
+          ? '图片'
+          : '其他媒体',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(
+        entry.modifiedSecs.toInt() * 1000,
+      ),
+      itemCount: entry.isDir ? _fileStatistics.values[entry.path]?.count : 1,
+      byteSize: entry.isDir
+          ? _fileStatistics.values[entry.path]?.bytes.toDouble()
+          : entry.size.toDouble(),
       subtitle: _subtitle(entry, mode),
-      metaText: hasSize ? _formatSize(entry.size) : null,
+      metaText: entry.isDir
+          ? _directoryStatisticsLabel(entry.path)
+          : hasSize
+          ? _formatSize(entry.size)
+          : null,
       media:
           (
             context, {
@@ -544,7 +610,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
             width: width,
             height: height,
             borderRadius: radius,
-            fit: fit,
+            fit: BoxFit.contain,
           ),
       badge: _semanticIcon(context, entry),
       thumbModes: _thumbModes,

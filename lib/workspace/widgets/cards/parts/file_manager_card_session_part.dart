@@ -318,7 +318,7 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
         _snapshot?.activePath != snapshot.activePath ||
         _snapshot?.layoutMode != snapshot.layoutMode) {
       _previewPath = null;
-      _previewAutoExpanded = null;
+      _previewAutoExpanded.clear();
       if (snapshot.layoutMode == FileManagerLayoutMode.content)
         _treePoll?.cancel();
     } else if (_snapshot?.generation != snapshot.generation) {

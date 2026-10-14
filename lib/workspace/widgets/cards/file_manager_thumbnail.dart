@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:zephyr/widgets/library_image_geometry.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
@@ -24,7 +25,7 @@ class FileManagerThumbnailWidget extends StatefulWidget {
     this.width = 38,
     this.height = 38,
     this.borderRadius,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
   });
 
   @override
@@ -117,12 +118,15 @@ class _FileManagerThumbnailWidgetState
 
     Widget inner;
     if (_bytes != null && _bytes!.isNotEmpty) {
-      inner = Image.memory(
-        _bytes!,
-        width: widget.width,
-        height: widget.height,
-        fit: widget.fit,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(context),
+      inner = LibraryImageGeometryReporter(
+        provider: MemoryImage(_bytes!),
+        child: Image.memory(
+          _bytes!,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          errorBuilder: (context, error, stackTrace) => _buildFallback(context),
+        ),
       );
     } else if (_isLoading) {
       inner = _buildLoading(context);
