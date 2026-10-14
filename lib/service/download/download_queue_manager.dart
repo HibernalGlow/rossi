@@ -14,6 +14,8 @@ import 'package:zephyr/service/download/download_notification_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
 import 'package:zephyr/service/notify/notify_topic.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
+import 'package:zephyr/service/download/download_task_order.dart';
+import 'package:zephyr/service/download/download_task_pin_store.dart';
 import 'package:zephyr/service/download/download_task_scheduler.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/service/lifecycle/foreground_task/foreground_task_service.dart';
@@ -23,6 +25,9 @@ import 'package:zephyr/util/macos_activity.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
+
+part 'download_queue_bulk_task_ops.dart';
+part 'download_queue_priority_task_ops.dart';
 
 const _kQjsRuntimeCancelledMessage = '__QJS_RUNTIME_CANCELLED__';
 
@@ -59,6 +64,11 @@ class DownloadQueueManager {
 
   /// 正在执行的章节任务 key。占位与释放都在主 Isolate 同步完成。
   final Set<String> _runningTaskKeys = <String>{};
+
+  /// 「优先下载」那张表：队首在前的 chapterKey，设备本地（[DownloadTaskPinStore]）。
+  static const _pinStore = DownloadTaskPinStore();
+  List<String> _pinnedTaskKeys = const <String>[];
+  bool _pinnedOrderLoaded = false;
 
   StreamSubscription? _watchSubscription;
   Timer? _startupResumeTimer;
@@ -244,10 +254,13 @@ class DownloadQueueManager {
               .toList();
 
     final capacity = _maxParallelTasks() - _runningTaskKeys.length;
+    // 置顶表只在挑任务之前读一次；它不参与状态判定，读失败也不会挡住本轮。
+    await _ensurePinnedOrderLoaded();
     final toStart = selectDownloadTasksToStart(
       pendingTasks: pendingTasks,
       runningTaskKeys: _runningTaskKeys,
       capacity: capacity,
+      pinnedKeys: _pinnedTaskKeys,
     );
     logger.d(
       '_processQueue: 待处理 ${pendingTasks.length} 个, 正在跑 ${_runningTaskKeys.length} 个, 本轮启动 ${toStart.length} 个',
