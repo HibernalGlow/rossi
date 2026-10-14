@@ -77,6 +77,7 @@ pub mod final_pipeline;
 #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
 pub mod jxl_backend;
 pub mod margin_fit;
+pub mod local_adjust;
 pub mod media_formats;
 pub mod operation_binding;
 pub mod page_load_scheduler;
