@@ -1,3 +1,5 @@
+import 'package:zephyr/page/comic_read/widgets/image/enhanced_online_page.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
@@ -401,7 +403,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     final scope = onlineTranslatedPageScope(widget.pictureInfo);
     if (scope == null) {
       _reportImageInfoForPath(resolvedPath);
-      return _paintPage(context, resolvedPath, backgroundColor);
+      return _enhancePage(context, resolvedPath, backgroundColor);
     }
     final track = OnlineTranslatedPageTrack.instance;
     return ListenableBuilder(
@@ -416,10 +418,26 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
           sourcePath: resolvedPath,
         );
         _reportImageInfoForPath(path);
-        return _paintPage(context, path, backgroundColor);
+        return _enhancePage(context, path, backgroundColor);
       },
     );
   }
+
+  Widget _enhancePage(
+    BuildContext context,
+    String path,
+    Color backgroundColor,
+  ) => EnhancedOnlinePage(
+    sourcePath: path,
+    bookKey: RealSrBookScope.keyFor(
+      from: widget.pictureInfo.from,
+      comicId: widget.pictureInfo.cartoonId,
+    ),
+    builder: (context, displayed) {
+      _reportImageInfoForPath(displayed);
+      return _paintPage(context, displayed, backgroundColor);
+    },
+  );
 
   Widget _paintPage(
     BuildContext context,

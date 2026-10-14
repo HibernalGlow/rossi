@@ -1,7 +1,7 @@
 import 'package:zephyr/main.dart';
-import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/page/setting/real_sr/service/online_image_processing.dart';
 
-/// 跑一次「超分 + WebP 转换」，失败**不往上抛**，让调用方交出已经落盘的原图。
+/// 另存一次降噪 / 超分结果，失败**不往上抛**，让调用方交出已经落盘的原图。
 ///
 /// `getCachePicture` 原来四个超分点里只有缓存命中那两个包了 `try/catch`，新下载的两个
 /// 没包：超分一抛（安卓那条链路是明确 `rethrow` 的 —— 见 `real_sr_super_resolution.dart`
@@ -15,9 +15,9 @@ import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dar
 /// **外面** —— 也就是说那条「损坏 → 删掉重下」的恢复路径本来就够不到损坏。
 Future<void> upscaleOrKeepOriginal(String path, {String? bookKey}) async {
   try {
-    await RealSrSuperResolution.upscaleAndConvertToWebp(path, bookKey: bookKey);
+    await OnlineImageProcessing.process(path, bookKey: bookKey);
   } catch (e, s) {
-    logger.w('超分失败，改用未超分的原图: $path', error: e, stackTrace: s);
+    logger.w('图像增强失败，继续显示原图: $path', error: e, stackTrace: s);
   }
 }
 
@@ -34,14 +34,13 @@ const int maxPendingUpscales = 12;
 
 int _pendingUpscales = 0;
 
-/// 后台跑一次「超分 + WebP 转换」，**不阻塞调用方**。
+/// 后台另存一次降噪 / 超分结果，**不阻塞调用方**。
 ///
 /// 阅读器的显示路径只能交已经落盘的原图：这台机器上一页超分实测 6–22 s，而打开
 /// 一本书时当前页 + 预取会一起排队，等到超分完成才显示就是「图片加载不出来」。
-/// 超分完成后 [RealSrSuperResolution.upscaleAndConvertToWebp] 内部会
-/// `UpscaledImageCache.notifyReplaced`，已挂载的 `ImageDisplay` 自己重解码换高清。
+/// 处理完成后 `EnhancedOnlinePage` 切换到独立缓存文件；原图仍用于 OCR 和对比。
 ///
-/// 同一路径不会重复排队（去重在 `upscaleAndConvertToWebp` 的在飞表里）；
+/// 同一源版本与参数不会重复推理（去重在派生图片缓存的在飞表里）；
 /// 失败不抛（[upscaleOrKeepOriginal] 已吞）。
 Future<void> upscaleInBackground(String path, {String? bookKey}) async {
   if (_pendingUpscales >= maxPendingUpscales) {
