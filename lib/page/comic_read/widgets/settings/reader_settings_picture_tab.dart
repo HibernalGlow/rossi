@@ -14,6 +14,8 @@ class _ReaderSettingsPictureTab extends StatelessWidget {
         children: [
           SuperResolutionSection(),
           SizedBox(height: 18),
+          ImageDenoiseSection(),
+          SizedBox(height: 18),
           ImageTuningSection(),
           SizedBox(height: 18),
           _MediaFormatSection(),

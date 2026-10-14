@@ -1,3 +1,4 @@
+import 'package:zephyr/page/comic_read/widgets/settings/sections/image_denoise_section.dart';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -220,6 +221,10 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
             )
           : ListView(
               children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: ImageDenoiseSection(globalOnly: true),
+                ),
                 settingSectionTitle(context, t.realSr.autoUpscaleSection),
                 SwitchListTile(
                   secondary: const GlyphIcon(AppGlyphs.wand),

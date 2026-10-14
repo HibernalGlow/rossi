@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/super_resolution_section.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/sections/image_denoise_section.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/real_sr_model_management_section.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
@@ -38,6 +39,7 @@ class SuperResolutionCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SuperResolutionSection(),
+        ImageDenoiseSection(),
         RealSrModelManagementSection(grouped: true),
       ],
     );

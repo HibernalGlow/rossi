@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/sections/auto_trim_section.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -21,6 +22,7 @@ class ImageTuningSection extends StatelessWidget {
       title: t.reader.tuningSection,
       icon: AppGlyphs.wand,
       children: [
+        const AutoTrimSection(),
         SettingsCardGroup(
           children: [
             SettingsSwitchTile(
