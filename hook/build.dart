@@ -229,6 +229,12 @@ Map<String, String> _androidExtraCargoEnv(
   final env = <String, String>{
     'CXXFLAGS_${triple.replaceAll('-', '_')}': '-DUNIX_TIME_NS',
     'CARGO_PROFILE_DEV_STRIP': 'none',
+    // release 构建要关同一条：`--release` 下 cargo 默认带 `-C strip=debuginfo`，
+    // 在这台 macOS 的 1.96.1 上是同一个 Mach-O 改写问题（症状同为 E0463，
+    // `dart ./script/build_apk.dart` 与 `flutter build apk --release` 各撞一次）。
+    // 只在本机加：CI 的 release 产物在 Linux 上搬，那边 strip 正常，
+    // 不为本机把出货的 .so 撑大。
+    if (Platform.isMacOS) 'CARGO_PROFILE_RELEASE_STRIP': 'none',
   };
   final sysrootPkgConfig = p.join(
     projectRoot,
