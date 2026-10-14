@@ -6,6 +6,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_read_button.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_cover_caption_scope.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_summary.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class LibraryEditorialTile extends StatelessWidget {
   const LibraryEditorialTile({
@@ -158,7 +159,9 @@ class LibraryEditorialTile extends StatelessWidget {
                         right: 6,
                         bottom: 6,
                         child: IconButton.filledTonal(
-                          tooltip: selected ? '收起信息' : '展开信息',
+                          tooltip: selected
+                              ? t.workspace.collapseInformation
+                              : t.workspace.expandInformation,
                           onPressed: onInfo,
                           style: IconButton.styleFrom(
                             backgroundColor: colors.surfaceContainerHigh

@@ -7,6 +7,7 @@ import 'package:zephyr/reader/local_page_source.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class LibraryLocalBookDetails extends StatefulWidget {
   const LibraryLocalBookDetails({
@@ -77,19 +78,19 @@ class _LibraryLocalBookDetailsState extends State<LibraryLocalBookDetails> {
           onPressed: widget.entry.onRead,
           style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
           icon: const GlyphIcon(AppGlyphs.openBook),
-          label: const Text('打开阅读器'),
+          label: Text(t.workspace.openReader),
         ),
         TextButton.icon(
           onPressed: () => Clipboard.setData(ClipboardData(text: widget.path)),
           icon: const GlyphIcon(AppGlyphs.copy),
-          label: const Text('复制位置'),
+          label: Text(t.workspace.copyPosition),
         ),
       ],
     ),
     metadata: Wrap(
       spacing: 8,
       children: [
-        const Chip(label: Text('本地作品')),
+        Chip(label: Text(t.workspace.localWorks)),
         if (_source != null) Chip(label: Text('${_source!.pageCount} 页')),
       ],
     ),

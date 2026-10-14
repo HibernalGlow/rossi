@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_workhole.dart';
 import 'package:zephyr/workspace/widgets/panels/lane_panel_host.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// Workhole 的内容浮层。
 ///
@@ -34,8 +35,12 @@ class WorkholePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = isLeft ? '资源工作孔' : '阅读工作孔';
-    final subtitle = isLeft ? '书架 · 收藏 · 文件' : '图源 · 工具 · OCR';
+    final title = isLeft
+        ? t.workspace.resourceWorkhole
+        : t.workspace.readingWorkhole;
+    final subtitle = isLeft
+        ? t.workspace.shelfFavoriteFiles
+        : t.workspace.sourcesToolsOcr;
     final icon = isLeft ? AppGlyphs.openBook : AppGlyphs.sliders;
 
     return DecoratedBox(
@@ -170,7 +175,7 @@ class _WorkholeHeader extends StatelessWidget {
             ),
             IconButton(
               icon: const GlyphIcon(AppGlyphs.close, size: 18),
-              tooltip: '关闭工作孔',
+              tooltip: t.workspace.closeWorkhole,
               onPressed: onClose,
               visualDensity: VisualDensity.compact,
             ),
@@ -217,7 +222,7 @@ class _WorkholeFooter extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    '工作孔尺寸',
+                    t.workspace.workholeSize,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -239,7 +244,7 @@ class _WorkholeFooter extends StatelessWidget {
           ),
           IconButton(
             icon: const GlyphIcon(AppGlyphs.resize, size: 16),
-            tooltip: '恢复默认尺寸',
+            tooltip: t.workspace.restoreDefaultSize,
             onPressed: onResetSize,
             visualDensity: VisualDensity.compact,
           ),
@@ -296,9 +301,9 @@ class _SizeButton extends StatelessWidget {
 
 extension on WorkspaceWorkholeSize {
   String get label => switch (this) {
-    WorkspaceWorkholeSize.peek => '窥视',
+    WorkspaceWorkholeSize.peek => t.workspace.peep,
     WorkspaceWorkholeSize.workbench => '工作台',
-    WorkspaceWorkholeSize.takeover => '接管',
+    WorkspaceWorkholeSize.takeover => t.workspace.takeOver,
     WorkspaceWorkholeSize.custom => '自定义',
   };
 }

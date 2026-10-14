@@ -22,6 +22,7 @@ import 'package:zephyr/video/service/video_materializer.dart';
 import 'package:zephyr/video/service/video_poster_service.dart';
 import 'package:zephyr/video/service/video_waveform_service.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 export 'package:zephyr/util/path_util.dart'
     show isLocalComicSource, isLocalPictureRequest, normalizeLocalComicPath;
@@ -106,7 +107,7 @@ Future<NormalComicEpInfo> getLocalComicEpInfo(String path) async {
 
   switch (result) {
     case PageSourceRejected(:final message):
-      throw StateError('无法打开本地漫画: $message');
+      throw StateError(t.reader.cannotOpenLocalComic(error: message));
 
     case PageSourceOpened(:final source):
       LocalReadSession.instance.setSource(source);

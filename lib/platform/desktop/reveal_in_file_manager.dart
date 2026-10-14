@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 在**系统**文件管理器里定位一个路径：访达 / 资源管理器 / xdg-open。
 ///
@@ -90,13 +91,13 @@ RevealCommand? buildRevealCommand({
 String revealMenuLabel(RevealHost host) {
   switch (host) {
     case RevealHost.macos:
-      return '在访达中显示';
+      return t.common.showInFinder;
     case RevealHost.windows:
-      return '在资源管理器中显示';
+      return t.common.showInExplorer;
     case RevealHost.linux:
-      return '在文件管理器中打开所在目录';
+      return t.common.revealInFileManagerFolder;
     case RevealHost.unsupported:
-      return '在文件管理器中显示';
+      return t.common.showInFileManager;
   }
 }
 

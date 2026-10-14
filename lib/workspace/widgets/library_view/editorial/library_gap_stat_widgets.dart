@@ -1,6 +1,8 @@
 /// 展墙空隙里的**标签、创作者、进度、篇幅与来源构成类** MD3 Expressive 小组件。
 library;
 
+import 'package:zephyr/i18n/strings.g.dart';
+
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
@@ -37,7 +39,9 @@ List<MapEntry<String, int>> topGapCreators(List<LibraryEntry> entries) {
     for (final m in matches) {
       final raw = m.group(1)?.trim() ?? '';
       if (raw.isEmpty || _kIgnoredBracketToken.hasMatch(raw)) continue;
-      if (raw.contains('汉化') || raw.contains('漢化') || raw.contains('翻訳')) {
+      if (raw.contains('汉化') ||
+          raw.contains(t.workspace.chineseLocalized) ||
+          raw.contains(t.workspace.jpTranslated)) {
         continue;
       }
       counts[raw] = (counts[raw] ?? 0) + 1;
@@ -254,7 +258,7 @@ class GapCreatorsBody extends StatelessWidget {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            '${top[i].value} 部',
+                            t.workspace.worksCount(n: top[i].value),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -353,7 +357,7 @@ class GapProgressBody extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      active > 0 ? '平均进度 $pct%' : '继续上次阅读',
+                      active > 0 ? '平均进度 $pct%' : t.workspace.resumeLastReading,
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w600,
@@ -439,8 +443,8 @@ class GapPageScaleBody extends StatelessWidget {
     final maxPage = pages.reduce(math.max);
     return GapExpressiveMetricBody(
       value: '$avg',
-      unit: '平均页/话数',
-      pillText: '最高 $maxPage',
+      unit: t.workspace.avgPagesPerBook,
+      pillText: t.workspace.highestPage(value: maxPage),
     );
   }
 }

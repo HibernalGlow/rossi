@@ -38,13 +38,13 @@ class ShelfFormatException implements Exception {
 /// 点「导入」之前需要看到的东西是同一件：**结论 + 为什么跳过**。所以这里只收
 /// 一句结论、要写的条数、跳过原因，外加一个把写入真正执行出去的 [apply]。
 class ShelfImportPlan {
-  const ShelfImportPlan({
+  ShelfImportPlan({
     required this.summary,
     required this.writeCount,
     required this.apply,
     this.rejectedLines = const [],
-    this.note = '只合并，不会删除或覆盖已有的记录。',
-  });
+    String? note,
+  }) : note = note ?? t.workspace.mergeOnlyHistory;
 
   /// 给用户看的一句话结论（`新增 3 条 · 跳过 1 条`）。
   final String summary;
@@ -78,7 +78,8 @@ Future<void> exportShelfDocument({
     return;
   }
   if (count == 0) {
-    if (context.mounted) showWarningToast('$label还是空的，没有可导出的内容');
+    if (context.mounted)
+      showWarningToast(t.workspace.portListEmpty(label: label));
     return;
   }
   final fileName =
@@ -98,14 +99,17 @@ Future<void> exportShelfDocument({
     await File(target).writeAsString(encode());
     if (!context.mounted) return;
     if (Platform.isIOS) {
-      showSuccessToast('已写入缓存，请在分享面板里保存');
+      showSuccessToast(t.workspace.writtenToCacheShare);
       await OpenFile.open(target);
     } else {
-      showSuccessToast('已导出 $count 条$label\n$target');
+      showSuccessToast(
+        t.workspace.portExportDone(count: count, label: label, target: target),
+      );
     }
   } on Object catch (e, s) {
     logger.e('导出$label失败', error: e, stackTrace: s);
-    if (context.mounted) showErrorToast('导出$label失败：$e');
+    if (context.mounted)
+      showErrorToast(t.workspace.portExportFailed(label: label, error: e));
   } finally {
     if (context.mounted) onBusyChanged(false);
   }
@@ -143,10 +147,12 @@ Future<void> importShelfDocument({
     plan.apply();
     showSuccessToast(plan.summary, context: context);
   } on ShelfFormatException catch (e) {
-    if (context.mounted) showErrorToast('读不了这个文件：${e.message}');
+    if (context.mounted)
+      showErrorToast(t.workspace.portFileUnreadable(error: e.message));
   } on Object catch (e, s) {
     logger.e('导入$label失败', error: e, stackTrace: s);
-    if (context.mounted) showErrorToast('导入$label失败：$e');
+    if (context.mounted)
+      showErrorToast(t.workspace.portImportFailed(label: label, error: e));
   } finally {
     if (context.mounted) onBusyChanged(false);
   }
@@ -171,7 +177,11 @@ Future<bool> _confirmImport(
           if (plan.rejectedLines.isNotEmpty) ...[
             const SizedBox(height: 8),
             // 只列前 5 条：一份坏文件能跳过几十条，全列出来这个对话框就没边了。
-            Text('跳过的条目：\n${plan.rejectedLines.take(5).join('\n')}'),
+            Text(
+              t.workspace.portSkippedLines(
+                lines: plan.rejectedLines.take(5).join('\n'),
+              ),
+            ),
           ],
         ],
       ),

@@ -178,7 +178,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                 minLines: 5,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
-                  hintText: 'school_lolita | 学校萝莉 | School Lolita\nloli',
+                  hintText: t.settings.favoriteTagExampleHint,
                   filled: true,
                   fillColor: Theme.of(
                     dialogContext,

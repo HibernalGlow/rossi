@@ -38,7 +38,7 @@ extension _FileManagerCardEditorialPart on _FileManagerCardState {
 
   String _directoryStatisticsLabel(String path) {
     final stats = _fileStatistics.values[path];
-    if (stats == null) return '统计中';
+    if (stats == null) return t.workspace.counting;
     return '${stats.complete ? '' : '至少 '}${stats.count} 项 · ${_formatSize(BigInt.from(stats.bytes))}';
   }
 

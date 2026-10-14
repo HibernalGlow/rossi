@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as p;
 import 'package:win32/win32.dart' as win32;
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// Windows 资源管理器右键菜单「用 Rossi 打开」的注册与注销。
 ///
@@ -29,7 +30,7 @@ class WindowsShellContextMenu {
 
   /// 右键菜单里那一行的文字。注册表存的是**写进去那一刻**的值，之后换界面语言不会
   /// 自动改写已注册的值 —— 把开关关掉再打开即刷新。
-  static const verbLabel = '用 Rossi 打开';
+  static String get verbLabel => t.common.openWithRossi;
 
   /// 注册到「打开方式」时顺带声明能接的后缀。
   ///

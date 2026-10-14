@@ -1,4 +1,5 @@
 import 'package:zephyr/workspace/model/history_insights.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 只合并展示列，保留全部七个星期；每条记录仍计入一个格子。
 class HeatmapBucket {
@@ -14,7 +15,11 @@ class HeatmapBucket {
   final int count;
   String get range =>
       '${firstHour.toString().padLeft(2, '0')}:00–${(firstHour + hours).toString().padLeft(2, '0')}:00';
-  String get label => '${weekdayFullLabels[weekday]} $range：$count 条记录';
+  String get label => t.workspace.heatmapCell(
+    weekday: weekdayFullLabels[weekday],
+    range: range,
+    count: count,
+  );
 }
 
 List<HeatmapBucket> heatmapBuckets(ReadingHeatmapSummary summary, int hours) {

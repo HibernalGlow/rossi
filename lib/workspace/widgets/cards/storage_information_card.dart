@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 存储信息卡（对齐 Neo 的 `storage-information`）：
 /// 来源根路径 / 归档类型 / 页表总量 + Rust 侧内存占用。
@@ -103,7 +104,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
         final hasSession = coordinator.hasActiveSession;
         return CollapsibleCard(
           cardId: 'storage_information',
-          title: '存储信息',
+          title: t.workspace.storageInformation,
           icon: AppGlyphs.storage,
           expressive: true,
           isExpanded: widget.isExpanded,
@@ -113,14 +114,14 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
           onHide: widget.onHide,
           child: hasSession
               ? _buildRows(source)
-              : const InfoEmpty(
+              : InfoEmpty(
                   icon: AppGlyphs.box,
-                  text: '打开书本后显示存储信息',
-                  hint: 'Rust 内存只在展开时取，收起不轮询',
+                  text: t.workspace.showStorageWhenOpen,
+                  hint: t.workspace.rustMemoryPollHint,
                   fields: [
-                    ('来源类型', AppGlyphs.box),
-                    ('页表总量', AppGlyphs.storage),
-                    ('Rust 内存', AppGlyphs.memory),
+                    (t.workspace.sourceType, AppGlyphs.box),
+                    (t.workspace.pageListTotal, AppGlyphs.storage),
+                    (t.workspace.rustMemory, AppGlyphs.memory),
                   ],
                 ),
         );
@@ -145,7 +146,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
 
     final path = source?.path;
     final kindLabel = path == null
-        ? '在线'
+        ? t.workspace.onlineLabel
         : p.extension(path).toUpperCase().replaceFirst('.', '');
 
     final memory = _memory;
@@ -171,25 +172,27 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
               value: source != null
                   ? '${source.pages.length}'
                   : '${coordinator.docs.length}',
-              label: '总页数',
+              label: t.workspace.totalPagesLabel,
               icon: AppGlyphs.layers,
               highlight: true,
             ),
             ExpressiveStatTile(
               value: isLocal ? formatInfoBytes(total) : '—',
-              label: '页表总量',
+              label: t.workspace.pageListTotal,
               icon: AppGlyphs.storage,
-              caption: isLocal ? kindLabel : '在线图源没有归档',
+              caption: isLocal ? kindLabel : t.workspace.onlineSourceNoArchive,
             ),
             ExpressiveStatTile(
               value: memory == null
                   ? (_memoryFailed ? '—' : '…')
                   : formatInfoBytes(memory.totalAllocated),
-              label: 'Rust 内存',
+              label: t.workspace.rustMemory,
               icon: AppGlyphs.memory,
               caption: memory == null
-                  ? '展开时每 3 秒取一次'
-                  : '峰值 ${formatInfoBytes(memory.peakAllocated)}',
+                  ? t.workspace.polledEvery3s
+                  : t.workspace.peakAllocated(
+                      value: formatInfoBytes(memory.peakAllocated),
+                    ),
               gauge: memory == null || memory.peakAllocated <= BigInt.zero
                   ? null
                   : memory.totalAllocated.toDouble() /
@@ -201,14 +204,18 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
         InfoFacts(
           children: [
             InfoRow(
-              label: '来源类型',
-              value: isLocal ? kindLabel : '在线图源',
+              label: t.workspace.sourceType,
+              value: isLocal ? kindLabel : t.workspace.onlineSource,
               icon: AppGlyphs.box,
             ),
             if (isLocal)
-              InfoRow(label: '根路径', value: path, icon: AppGlyphs.folder),
+              InfoRow(
+                label: t.workspace.rootPath,
+                value: path,
+                icon: AppGlyphs.folder,
+              ),
             InfoRow(
-              label: '总页数',
+              label: t.workspace.totalPagesLabel,
               value: source != null
                   ? '${source.pages.length}'
                   : '${coordinator.docs.length}',
@@ -216,32 +223,36 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
             ),
             if (isLocal)
               InfoRow(
-                label: '页表总量',
+                label: t.workspace.pageListTotal,
                 value: formatInfoBytes(total),
                 icon: AppGlyphs.storage,
               ),
             if (isLocal)
               InfoRow(
-                label: '当前页大小',
+                label: t.workspace.currentPageSize,
                 value: formatInfoBytes(currentPageSize),
                 icon: AppGlyphs.cardMedium,
               ),
             InfoRow(
-              label: 'Rust 内存',
+              label: t.workspace.rustMemory,
               value: memory == null
-                  ? (_memoryFailed ? '—' : '获取中…')
+                  ? (_memoryFailed ? '—' : t.workspace.fetching)
                   : formatInfoBytes(memory.totalAllocated),
               emphasis: memory != null,
               icon: AppGlyphs.memory,
             ),
             if (memory != null)
               InfoRow(
-                label: '峰值',
+                label: t.workspace.peakValue,
                 value: formatInfoBytes(memory.peakAllocated),
                 icon: AppGlyphs.trend,
               ),
             if (topTags != null)
-              InfoRow(label: '主要占用', value: topTags, icon: AppGlyphs.equalizer),
+              InfoRow(
+                label: t.workspace.mainOccupancy,
+                value: topTags,
+                icon: AppGlyphs.equalizer,
+              ),
           ],
         ),
       ],

@@ -59,8 +59,8 @@ void _runBootFailureApp(String stage, Object error, StackTrace stack) {
                     size: 44,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '应用启动失败',
+                  Text(
+                    t.common.appStartupFailed,
                     style: TextStyle(
                       color: Color(0xFFE6EDF3),
                       fontSize: 18,
@@ -69,7 +69,7 @@ void _runBootFailureApp(String stage, Object error, StackTrace stack) {
                   ),
                   const SizedBox(height: 6),
                   SelectableText(
-                    '阶段: $stage',
+                    t.common.startupStage(stage: stage),
                     style: const TextStyle(
                       color: Color(0xFF8B949E),
                       fontSize: 12,

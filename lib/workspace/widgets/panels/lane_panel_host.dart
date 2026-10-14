@@ -14,6 +14,7 @@ import 'package:zephyr/config/global/global_setting.dart'
     show eInkInstantRoutes;
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// **一条面板泳道的内容宿主**：只画「当前面板是什么」。
 ///
@@ -192,7 +193,7 @@ class _LanePanelHostState extends State<LanePanelHost> {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
-          '这条泳道里的面板都已隐藏 ——\n可在「全局设置 → 泳道面板看板」中开启需要显示的面板。',
+          t.settings.allLanePanelsHidden,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
@@ -236,7 +237,7 @@ class PanelHeaderBar extends StatelessWidget {
         final showHiddenCount = width >= 420;
 
         final hiddenButton = FluentPopupMenuButton<String>(
-          tooltip: '恢复被收起的卡片',
+          tooltip: t.workspace.restoreCollapsedCards,
           onSelected: (cardId) => cubit.setCardVisible(cardId, true),
           itemBuilder: (context) => [
             for (final card in hidden)
@@ -294,7 +295,9 @@ class PanelHeaderBar extends StatelessWidget {
 
         final editButton = iconOnly
             ? Tooltip(
-                message: isEditing ? '完成布局' : '自定义布局',
+                message: isEditing
+                    ? t.workspace.finishLayout
+                    : t.workspace.customLayout,
                 child: IconButton.filledTonal(
                   onPressed: onToggleEditing,
                   icon: AnimatedSwitcher(
@@ -339,7 +342,9 @@ class PanelHeaderBar extends StatelessWidget {
                 label: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
                   child: Text(
-                    isEditing ? '完成布局' : '自定义布局',
+                    isEditing
+                        ? t.workspace.finishLayout
+                        : t.workspace.customLayout,
                     key: ValueKey<bool>(isEditing),
                   ),
                 ),

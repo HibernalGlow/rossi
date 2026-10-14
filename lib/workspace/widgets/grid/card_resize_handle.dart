@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 尺寸手柄在按下时接管指针，横向泳道与纵向内容滚动不会抢走拖拽。
 class CardResizeHandle extends StatefulWidget {
@@ -54,12 +55,12 @@ class _CardResizeHandleState extends State<CardResizeHandle> {
       ExpressiveMotion.effectDuration,
     );
     return Semantics(
-      label: '拖动调整大小',
+      label: t.workspace.dragToResize,
       value: widget.label,
       child: MouseRegion(
         cursor: SystemMouseCursors.resizeUpLeftDownRight,
         child: Tooltip(
-          message: _pressed ? widget.label : '拖动调整大小',
+          message: _pressed ? widget.label : t.workspace.dragToResize,
           child: RawGestureDetector(
             behavior: HitTestBehavior.opaque,
             gestures: {

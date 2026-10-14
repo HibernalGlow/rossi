@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/widgets/insights/compact_heatmap_view.dart';
 import 'package:zephyr/workspace/widgets/card_header_actions.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_header_controls.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class ReadingHeatmapView extends StatefulWidget {
   const ReadingHeatmapView({
@@ -73,7 +74,10 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
       children: [
         if (top != null)
           InsightBadge(
-            text: '高峰 · ${top.weekdayLabel} ${top.hourLabel}',
+            text: t.workspace.heatPeakLabel(
+              weekday: top.weekdayLabel,
+              hour: top.hourLabel,
+            ),
             glyph: AppGlyphs.calendar,
           ),
         const SizedBox(height: 14),
@@ -161,7 +165,7 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Text('少'),
+            Text(t.workspace.heatLegendLow),
             for (var i = 0; i <= 4; i++)
               Container(
                 width: 14,
@@ -177,7 +181,7 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-            const Text('多 · 描边为选中项'),
+            Text(t.workspace.multiOutlinedSelected),
           ],
         ),
         const SizedBox(height: 12),
@@ -197,10 +201,14 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
         ),
         const SizedBox(height: 8),
         Text(
-          '${cell.weekdayLabel} ${cell.hourLabel} · ${cell.count} 条记录',
+          t.workspace.heatCellLine(
+            weekday: cell.weekdayLabel,
+            hour: cell.hourLabel,
+            count: cell.count,
+          ),
           style: Theme.of(context).textTheme.bodyMedium,
         ),
-        const InsightFootnote(),
+        InsightFootnote(),
       ],
     );
     return LayoutBuilder(
@@ -214,7 +222,7 @@ class _ReadingHeatmapViewState extends State<ReadingHeatmapView> {
             actions: ActionBubbleRegion(
               child: InsightDetailButton(
                 label: '',
-                title: '阅读热力',
+                title: t.workspace.readingHeat,
                 detailBuilder: (_) => ReadingHeatmapView(
                   summary: summary,
                   initialSelection: _selected,

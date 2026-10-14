@@ -168,10 +168,10 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
       final cardItems = <Widget>[
         if (!_loading && hasBook && supportsMImageOnnx)
           SettingsDropdownTile<ImageEnhancementMode>(
-            title: '本书：图像处理',
+            title: t.reader.bookImageProcessing,
             subtitle: _denoiseEnabled && !_denoiseModelReady
-                ? 'JPEG 降噪模型未安装'
-                : '不修改原图；降噪在超分之前运行',
+                ? t.reader.denoiseModelMissing
+                : t.reader.denoiseOriginalSafeBefore,
             icon: AppGlyphs.wand,
             badgeShape: ExpressiveButtonShape.flower,
             badgeTone: ExpressiveTone.tertiary,
@@ -187,12 +187,12 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
           ),
         if (!_loading)
           SettingsSwitchTile(
-            title: '本书：启用 AI 超分辨率',
+            title: t.reader.bookEnableAiUpscale,
             subtitle: !hasBook
-                ? '现在没有打开的书 —— 开一本之后这一颗才能给它单独设'
+                ? t.reader.noBookOpenYet
                 : _modelReady
-                ? '只影响这本书，其它书仍按全局设置'
-                : '只影响这本书；模型未下载，开启时会先问一句',
+                ? t.reader.onlyThisBookGlobalOthers
+                : t.reader.onlyThisBookAskFirst,
             icon: AppGlyphs.sparkle,
             badgeShape: ExpressiveButtonShape.sunny,
             badgeTone: ExpressiveTone.primary,
@@ -204,8 +204,8 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
           ValueListenableBuilder(
             valueListenable: OnlineImageProcessing.originalPreview,
             builder: (_, _, _) => SettingsSwitchTile(
-              title: '对比原图',
-              subtitle: '临时切回原图，关闭后恢复处理结果',
+              title: t.reader.compareOriginal,
+              subtitle: t.reader.peekBackToOriginal,
               icon: AppGlyphs.split,
               badgeShape: ExpressiveButtonShape.gem,
               badgeTone: ExpressiveTone.secondary,
@@ -219,8 +219,8 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
             isExpanded:
                 presenter.isUpscaleEnabled || presenter.isDenoiseEnabled,
             child: SettingsSwitchTile(
-              title: '对比原图',
-              subtitle: '临时查看原图，关闭后恢复处理结果',
+              title: t.reader.compareOriginal,
+              subtitle: t.reader.peekOriginalBriefly,
               icon: AppGlyphs.split,
               badgeShape: ExpressiveButtonShape.gem,
               badgeTone: ExpressiveTone.secondary,
@@ -233,8 +233,8 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
           SettingsSwitchTile(
             title: t.realSr.autoUpscale,
             subtitle: _globalEnabled
-                ? '所有书的默认（与设置页那条同一条）'
-                : '所有书的默认，现在关着；打开后没有单独设置的书都会跟着开',
+                ? t.reader.allBooksDefaultShared
+                : t.reader.allBooksDefaultCurrentlyOff,
             icon: AppGlyphs.rocket,
             badgeShape: ExpressiveButtonShape.clover8Leaf,
             badgeTone: ExpressiveTone.primary,
@@ -258,7 +258,7 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
       if (cardItems.isEmpty && !hasEngineChoice) return const SizedBox.shrink();
 
       return SettingsSection(
-        title: 'AI 超分辨率',
+        title: t.reader.aiSuperResolution,
         icon: AppGlyphs.sparkle,
         showTitle: widget.showTitle,
         children: [

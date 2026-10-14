@@ -12,6 +12,7 @@ import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
 import 'package:zephyr/reader/auto_trim_settings.dart';
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/reader/super_resolution_status.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 只持有预览缩略图；面板收起、换页后释放，不持有整页位图或模型会话。
 class ProcessingPreview {
@@ -78,14 +79,14 @@ abstract final class ProcessingPreviewLoader {
         ? ref.trimLayout?.rectFor(index, key)
         : null;
     final status = !ref.trimEnabled
-        ? '当前图片未被裁剪 · 此漫画的裁边开关未开启'
+        ? t.realSr.previewTrimOff
         : ref.halfPage
-        ? '当前图片未被裁剪 · 分割半页保持原样'
+        ? t.realSr.previewTrimSplitPage
         : !ready
-        ? '当前图片尚未完成裁边检测 · 等待读取结果'
+        ? t.realSr.previewTrimPending
         : rect == null
-        ? '当前图片未被裁剪 · 无需裁边，保持原样'
-        : '当前图片已应用显示裁边 · ${_trimSummary(rect)}';
+        ? t.realSr.previewTrimNotNeeded
+        : t.realSr.previewTrimApplied(summary: _trimSummary(rect));
     // 本地页对应原纹理；文件页必须解当前显示文件，矩形可能检测自增强图或译文。
     final (image, _) = await _decodeRef(ref, displayed: true);
     return ProcessingPreview(before: image, trimRect: rect, status: status);
@@ -93,8 +94,12 @@ abstract final class ProcessingPreviewLoader {
 
   static String _trimSummary(Rect rect) {
     String pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
-    return '左 ${pct(rect.left)} · 上 ${pct(rect.top)} · '
-        '右 ${pct(1 - rect.right)} · 下 ${pct(1 - rect.bottom)}';
+    return t.realSr.trimInsets(
+      left: pct(rect.left),
+      top: pct(rect.top),
+      right: pct(1 - rect.right),
+      bottom: pct(1 - rect.bottom),
+    );
   }
 
   static Future<ProcessingPreview?> denoise(
@@ -111,11 +116,11 @@ abstract final class ProcessingPreviewLoader {
       String? resultPath;
       String status;
       if (options.jpegOnly && !decoded.$2) {
-        status = '当前图片未被降噪 · 仅处理 JPEG 页面，此页保持原样';
+        status = t.realSr.previewDenoiseJpegOnly;
       } else if (ref.presenter case final presenter?) {
         final pageStatus = presenter.upscaleStatusForPage(ref.index!);
         if (!presenter.isDenoiseEnabled) {
-          status = '当前图片未被降噪 · 此漫画的降噪开关未开启';
+          status = t.realSr.previewDenoiseOff;
         } else if (pageStatus.phase == SuperResolutionPagePhase.applied &&
             identical(presenter.presentedFrame?.source, ref.source) &&
             presenter.presentedFrame?.index == ref.index) {
@@ -130,23 +135,25 @@ abstract final class ProcessingPreviewLoader {
             'sr_${ref.source!.path.hashCode}_${ref.index}_$key.png',
           );
           status = presenter.isUpscaleEnabled
-              ? '当前图片已应用降噪及超分 · 对比已上屏的增强结果'
-              : '当前图片已应用 JPEG 降噪 · RealPLKSR 1×';
+              ? t.realSr.previewBothApplied
+              : t.realSr.previewDenoiseApplied;
         } else {
-          status = '当前图片尚未应用降噪 · ${imageEnhancementPhaseLabel(pageStatus)}';
+          status = t.realSr.previewDenoisePending(
+            phase: imageEnhancementPhaseLabel(pageStatus),
+          );
         }
       } else if (await ImageDenoiseSettings.enabledFor(ref.bookKey) &&
           ref.originalPath != null &&
           ref.filePath != ref.originalPath) {
         resultPath = ref.filePath;
-        status = '当前图片已应用降噪处理 · 对比阅读器正在显示的增强结果';
+        status = t.realSr.previewDenoiseCompare;
       } else {
-        status = '当前图片未应用降噪 · 当前画面仍为原图';
+        status = t.realSr.previewDenoiseOriginal;
       }
       if (cancelled()) return null;
       if (resultPath != null) {
         after = await _decodeFile(File(resultPath));
-        if (after == null) status = '当前增强结果暂时无法读取，无法显示对比';
+        if (after == null) status = t.realSr.previewEnhancedUnreadable;
       }
       final preview = ProcessingPreview(
         before: before,

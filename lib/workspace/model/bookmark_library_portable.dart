@@ -14,6 +14,7 @@
 library;
 
 import 'dart:convert';
+import 'package:zephyr/i18n/strings.g.dart';
 
 const String kBookmarkLibraryVersion = 'v1';
 
@@ -128,7 +129,9 @@ BookmarkLibraryParseResult parseBookmarkLibrary(String raw) {
   try {
     decoded = jsonDecode(raw);
   } on FormatException catch (e) {
-    throw BookmarkLibraryFormatException('不是合法的 JSON：${e.message}');
+    throw BookmarkLibraryFormatException(
+      t.workspace.invalidJson(error: e.message),
+    );
   }
   if (decoded is! Map) {
     throw BookmarkLibraryFormatException('顶层必须是一个对象');
@@ -138,7 +141,9 @@ BookmarkLibraryParseResult parseBookmarkLibrary(String raw) {
     throw BookmarkLibraryFormatException('缺少 version 字段');
   }
   if (version.split('.').first != kBookmarkLibraryVersion) {
-    throw BookmarkLibraryFormatException('不支持的格式版本 $version');
+    throw BookmarkLibraryFormatException(
+      t.workspace.unsupportedFormatVersion(version: version),
+    );
   }
   final list = decoded['items'];
   if (list is! List) {
@@ -151,7 +156,10 @@ BookmarkLibraryParseResult parseBookmarkLibrary(String raw) {
     final entry = list[index];
     if (entry is! Map) {
       rejected.add(
-        BookmarkRejection(label: '第 ${index + 1} 条', reason: '不是对象'),
+        BookmarkRejection(
+          label: t.workspace.itemNumber(n: index + 1),
+          reason: t.workspace.notAnObject,
+        ),
       );
       continue;
     }
@@ -174,9 +182,12 @@ BookmarkLibraryParseResult parseBookmarkLibrary(String raw) {
 Object _itemAt(Map<dynamic, dynamic> json, int index) {
   final source = json['source']?.toString().trim() ?? '';
   final comicId = json['comicId']?.toString().trim() ?? '';
-  final label = '第 ${index + 1} 条';
+  final label = t.workspace.itemNumber(n: index + 1);
   if (source.isEmpty || comicId.isEmpty) {
-    return BookmarkRejection(label: label, reason: '缺少 source 或 comicId');
+    return BookmarkRejection(
+      label: label,
+      reason: t.workspace.missingSourceOrComicId,
+    );
   }
   final expected = BookmarkLibraryItem.keyFor(source: source, comicId: comicId);
   final declared = json['uniqueKey']?.toString().trim() ?? '';
@@ -185,12 +196,15 @@ Object _itemAt(Map<dynamic, dynamic> json, int index) {
   if (declared.isNotEmpty && declared != expected) {
     return BookmarkRejection(
       label: '$label（$declared）',
-      reason: 'uniqueKey 与 source:comicId 不一致，应为 $expected',
+      reason: t.workspace.keyMismatch(expected: expected),
     );
   }
   final title = json['title']?.toString().trim() ?? '';
   if (title.isEmpty) {
-    return BookmarkRejection(label: '$label（$expected）', reason: '缺少标题');
+    return BookmarkRejection(
+      label: '$label（$expected）',
+      reason: t.workspace.missingTitle,
+    );
   }
   return BookmarkLibraryItem(
     uniqueKey: expected,
@@ -271,11 +285,12 @@ class BookmarkMergePlan {
   /// 给用户看的一句话结论。
   String get summary {
     final parts = [
-      '新增 $addCount 条',
-      '复活 $reviveCount 条',
-      '已存在 $duplicateCount 条',
+      t.workspace.addedCount(n: addCount),
+      t.workspace.revivedCount(n: reviveCount),
+      t.workspace.alreadyPresentCount(n: duplicateCount),
     ];
-    if (rejected.isNotEmpty) parts.add('跳过 ${rejected.length} 条');
+    if (rejected.isNotEmpty)
+      parts.add(t.workspace.skippedCount(n: rejected.length));
     return parts.join(' · ');
   }
 }

@@ -5,6 +5,7 @@ import 'package:zephyr/widgets/navigation/navigation_shape.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_settings_controls.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class LibraryCoverTapSettings extends StatelessWidget {
   const LibraryCoverTapSettings({
@@ -20,9 +21,9 @@ class LibraryCoverTapSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return LibrarySettingsGroup(
-      title: '点击封面',
+      title: t.workspace.tapCover,
       glyph: AppGlyphs.touch,
-      description: '只调整当前面板。封面右下角的详情按钮始终向下展开。',
+      description: t.workspace.onlyThisPanelDetailsBelow,
       children: [
         for (final action in LibraryCoverTapAction.values)
           Padding(

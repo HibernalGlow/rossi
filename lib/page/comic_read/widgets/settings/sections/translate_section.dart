@@ -146,8 +146,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
       _progress = 0;
     });
     OcrLog.add(
-      '阅读器设置里开始下载权重：'
-      '${_missingWeights.isEmpty ? "（没有缺失项，直接过）" : "缺 ${_missingWeights.join('、')}"}',
+      '${t.reader.startWeightsInReaderSettings}${_missingWeights.isEmpty ? t.reader.noMissingWeights : t.reader.missingWeightsCount(count: _missingWeights.join('、'))}',
     );
     try {
       await OcrModelDownloader.ensure(
@@ -311,10 +310,12 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
               ? ExpressiveTone.primary
               : ExpressiveTone.secondary,
           active: _autoTranslate,
-          title: _autoTranslate ? '翻页自动翻译已开启' : '按需嵌字翻译与端侧 OCR',
+          title: _autoTranslate
+              ? t.reader.autoTranslateEnabled
+              : t.reader.onDemandTranslateOcr,
           subtitle: _draft.engine.requiresEndpoint
-              ? '当前使用云端 API 端点翻译，自动擦除原气泡并回填译文'
-              : '当前使用端侧离线翻译引擎，无需网络即可生成译文页',
+              ? t.reader.translateCloudEndpointNow
+              : t.reader.translateOnDeviceNow,
           pills: [
             ExpressiveStatusPill(
               text: _engineLabel(_draft.engine),
@@ -326,7 +327,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
               tone: ExpressiveTone.primary,
             ),
             ExpressiveStatusPill(
-              text: '目标 ${_draft.targetLanguage}',
+              text: t.reader.targetLanguageLabel(lang: _draft.targetLanguage),
               icon: AppGlyphs.language,
               dot: false,
               compact: true,
@@ -334,7 +335,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
             ),
             ExpressiveStatusPill(
               text: weightReady
-                  ? 'OCR 权重就绪'
+                  ? t.reader.ocrWeightsReady
                   : '缺 ${_missingWeights.length} 项权重',
               icon: weightReady ? AppGlyphs.checkCircle : AppGlyphs.warning,
               dot: false,
@@ -345,7 +346,7 @@ class TranslateSettingsSectionState extends State<TranslateSettingsSection> {
             ),
             if (_cacheCount > 0)
               ExpressiveStatusPill(
-                text: '已缓存 $_cacheCount 页',
+                text: t.reader.cachedPages(count: _cacheCount),
                 icon: AppGlyphs.box,
                 dot: false,
                 compact: true,

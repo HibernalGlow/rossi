@@ -5,6 +5,7 @@ import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 切段与展开入口固定在标题栏；窄标题只显示进度，极窄时保留展开入口。
 class InsightPagerHeader extends StatelessWidget {
@@ -61,7 +62,7 @@ class InsightPagerHeader extends StatelessWidget {
             height: 48,
             child: Row(
               children: [
-                arrow(AppGlyphs.chevronUp, '上一段', onPrevious),
+                arrow(AppGlyphs.chevronUp, t.workspace.prevSegment, onPrevious),
                 Expanded(
                   child: Semantics(
                     liveRegion: true,
@@ -70,15 +71,19 @@ class InsightPagerHeader extends StatelessWidget {
                           ? '${labels[index]} ${index + 1}/${labels.length}'
                           : '${index + 1}/${labels.length}',
                       title: title,
-                      description:
-                          '${labels[index]} · ${index + 1}/${labels.length} · 展开$title',
+                      description: t.workspace.insightHeaderExpand(
+                        label: labels[index],
+                        position: index + 1,
+                        total: labels.length,
+                        title: title,
+                      ),
                       detailBuilder: detailBuilder,
                       showIcon: false,
                       compact: true,
                     ),
                   ),
                 ),
-                arrow(AppGlyphs.chevronDown, '下一段', onNext),
+                arrow(AppGlyphs.chevronDown, t.workspace.nextSegment, onNext),
               ],
             ),
           ),

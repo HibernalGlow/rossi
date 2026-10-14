@@ -8,6 +8,7 @@
 
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/model/workspace_workhole.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 泳道 ID 常量
 class LaneId {
@@ -179,14 +180,14 @@ class WorkspaceLayoutConfig {
   });
 
   factory WorkspaceLayoutConfig.defaults() {
-    return const WorkspaceLayoutConfig(
+    return WorkspaceLayoutConfig(
       laneOrder: LaneId.defaultOrder,
       lanes: {
         LaneId.left: LaneConfig(
           width: 380.0,
           minWidth: 300.0,
           maxWidth: 700.0,
-          title: '书架 (Bookshelf)',
+          title: t.workspace.bookshelfEn,
         ),
         // 阅读器：宽度是视口的一半，最少 400、最多 2000 —— 拖宽改的是比例本身，
         // 所以改窗口大小不会把记录下来的「用户想要多宽」弄丢。
@@ -195,13 +196,13 @@ class WorkspaceLayoutConfig {
           widthRatio: 0.5,
           minWidth: 400.0,
           maxWidth: 2000.0,
-          title: '阅读器 (Reader)',
+          title: t.workspace.readerEn,
         ),
         LaneId.right: LaneConfig(
           width: 360.0,
           minWidth: 280.0,
           maxWidth: 620.0,
-          title: '发现与工具 (Tools)',
+          title: t.workspace.discoverToolsEn,
         ),
       },
     );

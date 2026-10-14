@@ -1,27 +1,42 @@
 import 'dart:math' as math;
 
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 enum LibraryWeight {
-  signals('偏好标签'),
-  order('跟随排序'),
-  count('内容数量'),
-  bytes('占用体积'),
-  recent('最近使用'),
-  progress('阅读状态'),
-  imageShape('原图比例'),
-  balanced('综合');
+  signals,
+  order,
+  count,
+  bytes,
+  recent,
+  progress,
+  imageShape,
+  balanced;
 
-  const LibraryWeight(this.label);
-  final String label;
+  const LibraryWeight();
+
+  String get label => switch (this) {
+    LibraryWeight.signals => t.workspace.favouriteTags,
+    LibraryWeight.order => t.workspace.followSort,
+    LibraryWeight.count => t.workspace.contentCount,
+    LibraryWeight.bytes => t.workspace.occupiedSize,
+    LibraryWeight.recent => t.workspace.recentlyUsed,
+    LibraryWeight.progress => t.workspace.readingStatus,
+    LibraryWeight.imageShape => t.workspace.originalRatio,
+    LibraryWeight.balanced => t.workspace.weightBalanced,
+  };
 }
 
 enum LibraryCoverTapAction {
-  expandDetails('向下展开详情'),
-  openDetails('打开详情页');
+  expandDetails,
+  openDetails;
 
-  const LibraryCoverTapAction(this.label);
-  final String label;
+  const LibraryCoverTapAction();
+
+  String get label => switch (this) {
+    LibraryCoverTapAction.expandDetails => t.workspace.expandDetailsBelow,
+    LibraryCoverTapAction.openDetails => t.workspace.openDetailsPage,
+  };
 }
 
 /// 不规则轮廓之间的空隙填什么。
@@ -30,13 +45,19 @@ enum LibraryCoverTapAction {
 /// 行尾还会留横向余量。[widgets] 与 [shapes] 各选一种，[both] 让两者并存 ——
 /// 此时**每款小组件一面墙最多出现一次**，重复的位置改用随机图形。
 enum LibraryGapFill {
-  off('不填充'),
-  shapes('随机图形'),
-  widgets('小组件'),
-  both('组件 + 图形');
+  off,
+  shapes,
+  widgets,
+  both;
 
-  const LibraryGapFill(this.label);
-  final String label;
+  const LibraryGapFill();
+
+  String get label => switch (this) {
+    LibraryGapFill.off => t.workspace.noFill,
+    LibraryGapFill.shapes => t.workspace.randomShapes,
+    LibraryGapFill.widgets => t.workspace.miniWidgets,
+    LibraryGapFill.both => t.workspace.widgetsPlusShapes,
+  };
 }
 
 /// 信号定义由宿主提供；通用展墙不认识漫画标签或业务种类。

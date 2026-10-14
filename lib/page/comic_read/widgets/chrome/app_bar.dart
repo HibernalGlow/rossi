@@ -1,12 +1,13 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_online_translated_page_chip.dart';
-import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_sheet.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_layout_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_magnifier_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_page_order_panel.dart';
@@ -405,14 +406,18 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
               cubit.updateReadSetting((s) => s.copyWith(autoScroll: enabled)),
           onTogglePause: widget.onToggleAutoRead,
         ),
-        child: Text(readSetting.autoScroll ? '暂停 / 继续自动滚屏' : '开启自动滚屏'),
+        child: Text(
+          readSetting.autoScroll
+              ? t.reader.pauseResumeAutoScroll
+              : t.reader.enableAutoScroll,
+        ),
       ),
       if (readSetting.autoScroll)
         MenuItemButton(
           leadingIcon: const GlyphIcon(AppGlyphs.stopCircle),
           onPressed: () =>
               cubit.updateReadSetting((s) => s.copyWith(autoScroll: false)),
-          child: const Text('关闭自动滚屏'),
+          child: Text(t.reader.disableAutoScroll),
         ),
       // 面板入口：**行上没摆出来的那几块一律在这里**。
       //
@@ -482,7 +487,7 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
         const _ReaderMenuDivider(),
       ],
       // 占位的说明写在菜单里，不用点一下才知道：这一节整段是「还没接」的。
-      MenuItemButton(onPressed: null, child: const Text('以下尚未接进本仓')),
+      MenuItemButton(onPressed: null, child: Text(t.reader.notWiredBelow)),
       for (final (icon, name) in _kReaderComingSoon)
         MenuItemButton(
           leadingIcon: GlyphIcon(icon),
@@ -502,9 +507,9 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
 /// 页面排序、幻灯片、放大镜三颗已经点亮成真面板，不在这张表里了 ——
 /// 它们的主行入口在 `kReaderPrimaryToolbarPanels` 之外，靠下面这份菜单里的
 /// 同名带文字项进入（`for (final panel in ReaderToolbarPanel.values)` 那一处）。
-const List<(Glyph, String)> _kReaderComingSoon = [
-  (AppGlyphs.panorama, '全景模式'),
-  (AppGlyphs.mouse, '悬停滚动'),
+List<(Glyph, String)> get _kReaderComingSoon => [
+  (AppGlyphs.panorama, t.reader.panoramaMode),
+  (AppGlyphs.mouse, t.reader.hoverScroll),
 ];
 
 /// 自动滚屏那颗开关的**分派**：没开就开启，开着就暂停（没有暂停回调时直接关掉）。
@@ -519,7 +524,7 @@ void _toggleReaderAutoScroll({
 }) {
   if (!isEnabled) {
     onToggleAutoScroll(true);
-    showInfoToast('已开启自动滚屏');
+    showInfoToast(t.reader.autoScrollEnabled);
   } else if (onTogglePause != null) {
     onTogglePause();
   } else {
@@ -539,12 +544,14 @@ Glyph _readerPanelIcon(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
 
 String _readerPanelLabel(ReaderToolbarPanel panel, ReaderFitMode fitMode) =>
     switch (panel) {
-      ReaderToolbarPanel.zoom => '缩放模式：${kReaderFitModeLabels[fitMode]!}',
-      ReaderToolbarPanel.rotate => '旋转设置',
-      ReaderToolbarPanel.layout => '版式工具',
-      ReaderToolbarPanel.sort => '页面排序',
-      ReaderToolbarPanel.slideshow => '幻灯片放映',
-      ReaderToolbarPanel.magnifier => '放大镜',
+      ReaderToolbarPanel.zoom => t.reader.zoomModeValue(
+        mode: kReaderFitModeLabels[fitMode]!,
+      ),
+      ReaderToolbarPanel.rotate => t.reader.rotationSettings,
+      ReaderToolbarPanel.layout => t.reader.layoutTools,
+      ReaderToolbarPanel.sort => t.reader.pageSorting,
+      ReaderToolbarPanel.slideshow => t.reader.slideshow,
+      ReaderToolbarPanel.magnifier => t.reader.loupe,
     };
 
 /// 主行末尾的「更多」（MD3 `MenuAnchor`）。

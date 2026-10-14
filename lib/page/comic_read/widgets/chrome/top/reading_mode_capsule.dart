@@ -72,8 +72,12 @@ class DoublePageToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReaderToolbarToggleChip(
       icon: isDoublePage ? AppGlyphs.openBook : AppGlyphs.cropPortrait,
-      label: showLabel ? (isDoublePage ? '双页' : '单页') : null,
-      tooltip: isDoublePage ? '双页模式（点击切为单页）' : '单页模式（点击切为双页）',
+      label: showLabel
+          ? (isDoublePage ? t.reader.twoPages : t.reader.singlePage)
+          : null,
+      tooltip: isDoublePage
+          ? t.reader.twoPageModeTap
+          : t.reader.singlePageModeTap,
       selected: isDoublePage,
       onTap: () => onToggle(!isDoublePage),
     );
@@ -146,17 +150,24 @@ class CompactReadingModeButton extends StatelessWidget {
 
     if (currentMode == kReadModeColumn) {
       icon = AppGlyphs.rowsTwo;
-      tooltip =
-          '${t.reader.webtoon}（点击切为${t.reader.readingDirectionRightOpen}）';
+      tooltip = t.reader.tapToSwitchMode(
+        from: t.reader.webtoon,
+        to: t.reader.readingDirectionRightOpen,
+      );
       nextMode = kReadModeRowLtr;
     } else if (currentMode == kReadModeRowLtr) {
       icon = AppGlyphs.chevronForward;
-      tooltip =
-          '${t.reader.readingDirectionRightOpen}（点击切为${t.reader.readingDirectionLeftOpen}）';
+      tooltip = t.reader.tapToSwitchMode(
+        from: t.reader.readingDirectionRightOpen,
+        to: t.reader.readingDirectionLeftOpen,
+      );
       nextMode = kReadModeRowRtl;
     } else {
       icon = AppGlyphs.chevronBack;
-      tooltip = '${t.reader.readingDirectionLeftOpen}（点击切为${t.reader.webtoon}）';
+      tooltip = t.reader.tapToSwitchMode(
+        from: t.reader.readingDirectionLeftOpen,
+        to: t.reader.webtoon,
+      );
       nextMode = kReadModeColumn;
     }
 

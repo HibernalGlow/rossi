@@ -7,6 +7,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 时间信息卡（对齐 Neo 的 `time-information`）：
 /// 来源文件与当前页文件的修改 / 访问 / 变更时间。
@@ -132,7 +133,7 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
         final facts = _facts;
         return CollapsibleCard(
           cardId: 'time_information',
-          title: '时间信息',
+          title: t.workspace.timeInformation,
           icon: AppGlyphs.clock,
           expressive: true,
           isExpanded: widget.isExpanded,
@@ -141,21 +142,21 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
           onMoveDown: widget.onMoveDown,
           onHide: widget.onHide,
           child: !hasSession
-              ? const InfoEmpty(
+              ? InfoEmpty(
                   icon: AppGlyphs.history,
-                  text: '打开书本后显示文件时间',
-                  hint: 'dart:io 没有创建时间，只报量得到的这几项',
+                  text: t.workspace.showFileTimesWhenOpen,
+                  hint: t.workspace.noCreationTimeField,
                   fields: [
-                    ('来源', AppGlyphs.folder),
-                    ('修改', AppGlyphs.edit),
-                    ('访问', AppGlyphs.history),
+                    (t.workspace.sourceLabel, AppGlyphs.folder),
+                    (t.workspace.modify, AppGlyphs.edit),
+                    (t.workspace.visits, AppGlyphs.history),
                   ],
                 )
               : facts?.rootPath == null
-              ? const InfoEmpty(
+              ? InfoEmpty(
                   icon: AppGlyphs.cloud,
-                  text: '在线图源没有本地文件时间',
-                  hint: '这一项要落到本地归档才有量具',
+                  text: t.workspace.onlineSourceNoFileTime,
+                  hint: t.workspace.itemNeedsLocalArchive,
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -166,14 +167,14 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
                       children: [
                         ExpressiveStatTile(
                           value: formatInfoTimeOfDay(facts!.rootModified),
-                          label: '来源修改于',
+                          label: t.workspace.sourceModifiedAt,
                           icon: AppGlyphs.clock,
                           highlight: true,
                           caption: formatInfoDateTime(facts.rootModified),
                         ),
                         ExpressiveStatTile(
                           value: formatInfoTimeOfDay(facts.pageModified),
-                          label: '当前页修改于',
+                          label: t.workspace.currentPageModifiedAt,
                           icon: AppGlyphs.photos,
                           caption: formatInfoDateTime(facts.pageModified),
                         ),
@@ -183,34 +184,34 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
                     InfoFacts(
                       children: [
                         InfoRow(
-                          label: '来源',
+                          label: t.workspace.sourceLabel,
                           value: facts.rootPath,
                           icon: AppGlyphs.folder,
                         ),
                         InfoRow(
-                          label: '修改',
+                          label: t.workspace.modify,
                           value: formatInfoDateTime(facts.rootModified),
                           icon: AppGlyphs.edit,
                         ),
                         InfoRow(
-                          label: '访问',
+                          label: t.workspace.visits,
                           value: formatInfoDateTime(facts.rootAccessed),
                           icon: AppGlyphs.history,
                         ),
                         InfoRow(
-                          label: '变更',
+                          label: t.workspace.changesLabel,
                           value: formatInfoDateTime(facts.rootChanged),
                           icon: AppGlyphs.info,
                         ),
                         if (facts.pagePath != null) ...[
                           const SizedBox(height: 4),
                           InfoRow(
-                            label: '当前页文件',
+                            label: t.workspace.currentPageFile,
                             value: facts.pagePath,
                             icon: AppGlyphs.cardMedium,
                           ),
                           InfoRow(
-                            label: '页修改',
+                            label: t.workspace.pagesModified,
                             value: formatInfoDateTime(facts.pageModified),
                             icon: AppGlyphs.photos,
                           ),

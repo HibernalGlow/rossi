@@ -940,7 +940,9 @@ class _ComicInfoState extends State<_ComicInfo>
       }
     } on FavoriteWorkflowIncompleteException catch (error) {
       if (mounted) {
-        showInfoToast(error.result.message ?? '云端收藏操作未完成');
+        showInfoToast(
+          error.result.message ?? t.comicInfo.cloudFavoriteIncomplete,
+        );
       }
     } catch (e) {
       showErrorToast(

@@ -36,72 +36,78 @@ extension _PageListContentPart on _PageListCardState {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
         ),
       ),
-      child: filteredIndices.isEmpty
-          ? Center(
+      child: LibraryEditorialCanvas(
+        key: _ctrl.canvasKey,
+        scope: 'reader-pages',
+        standalone: true,
+        initialPresentation: const LibraryPresentation(
+          editorial: false,
+          hero: false,
+          weight: LibraryWeight.imageShape,
+        ),
+        viewToken: _ctrl.viewMode,
+        entries: [
+          for (final pageIndex in filteredIndices)
+            LibraryEntry(
+              key: 'page:$pageIndex',
+              title: '#${pageIndex + 1}',
+              source: pageIndex,
+              preserveMedia: true,
+              media:
+                  (
+                    context, {
+                    required width,
+                    required height,
+                    required radius,
+                    required fit,
+                  }) => ReaderThumbnailWidget(
+                    index: pageIndex,
+                    doc: pageIndex < docs.length ? docs[pageIndex] : null,
+                    localSource: coordinator.localSource,
+                    comicId: coordinator.comicId ?? '',
+                    from: coordinator.from ?? '',
+                    width: width,
+                    height: height,
+                    fit: BoxFit.contain,
+                    borderRadius: radius,
+                  ),
+            ),
+        ],
+        onPresentationChanged: (value) {
+          _ctrl.setPageEditorial(value.editorial);
+        },
+        onTap: (entry) => coordinator.jumpTo(entry.source! as int),
+        cardBuilder: (_, entry, tap) => _buildThumbnailGridTile(
+          coordinator: coordinator,
+          pageIndex: entry.source! as int,
+          doc: (entry.source! as int) < docs.length
+              ? docs[entry.source! as int]
+              : null,
+          isActive: entry.source == currentSlot,
+        ),
+        legacyBuilder: (_) {
+          if (!hasSession) {
+            return _buildEmptyContent();
+          }
+          if (filteredIndices.isEmpty) {
+            return Center(
               child: Text(
-                '没有匹配的页面',
+                t.workspace.noMatchingPages,
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            )
-          : LibraryEditorialCanvas(
-              key: _ctrl.canvasKey,
-              scope: 'reader-pages',
-              standalone: true,
-              initialPresentation: const LibraryPresentation(
-                editorial: false,
-                hero: false,
-                weight: LibraryWeight.imageShape,
-              ),
-              viewToken: _ctrl.viewMode,
-              entries: [
-                for (final pageIndex in filteredIndices)
-                  LibraryEntry(
-                    key: 'page:$pageIndex',
-                    title: '#${pageIndex + 1}',
-                    source: pageIndex,
-                    preserveMedia: true,
-                    media:
-                        (
-                          context, {
-                          required width,
-                          required height,
-                          required radius,
-                          required fit,
-                        }) => ReaderThumbnailWidget(
-                          index: pageIndex,
-                          doc: pageIndex < docs.length ? docs[pageIndex] : null,
-                          localSource: coordinator.localSource,
-                          comicId: coordinator.comicId ?? '',
-                          from: coordinator.from ?? '',
-                          width: width,
-                          height: height,
-                          fit: BoxFit.contain,
-                          borderRadius: radius,
-                        ),
-                  ),
-              ],
-              onPresentationChanged: (value) {
-                _ctrl.setPageEditorial(value.editorial);
-              },
-              onTap: (entry) => coordinator.jumpTo(entry.source! as int),
-              cardBuilder: (_, entry, tap) => _buildThumbnailGridTile(
-                coordinator: coordinator,
-                pageIndex: entry.source! as int,
-                doc: (entry.source! as int) < docs.length
-                    ? docs[entry.source! as int]
-                    : null,
-                isActive: entry.source == currentSlot,
-              ),
-              legacyBuilder: (_) => _buildContentByMode(
-                coordinator: coordinator,
-                filteredIndices: filteredIndices,
-                currentSlot: currentSlot,
-                docs: docs,
-              ),
-            ),
+            );
+          }
+          return _buildContentByMode(
+            coordinator: coordinator,
+            filteredIndices: filteredIndices,
+            currentSlot: currentSlot,
+            docs: docs,
+          );
+        },
+      ),
     );
   }
 

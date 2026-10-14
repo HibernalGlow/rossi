@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/search/search_history_field.dart';
 import 'package:zephyr/widgets/search/search_history_store.dart';
@@ -46,9 +47,10 @@ class PageListSearchCard extends StatelessWidget {
         }
         return CollapsibleCard(
           cardId: WorkspaceCardRegistry.pageListSearch,
-          title: '搜索栏',
+          title: t.workspace.searchField,
           icon: AppGlyphs.search,
           expressive: true,
+          headerless: true,
           scrollContent: false,
           margin: EdgeInsets.zero,
           contentPadding: const EdgeInsets.symmetric(
@@ -63,12 +65,22 @@ class PageListSearchCard extends StatelessWidget {
           trailing: ExpressiveStatusPill(
             text: ctrl.searchQuery.isEmpty
                 ? ctrl.viewModeLabel
-                : '筛选: ${ctrl.searchQuery}',
+                : t.workspace.filteringBy(query: ctrl.searchQuery),
             compact: true,
             dot: false,
             tone: ctrl.searchQuery.isEmpty
                 ? ExpressiveTone.neutral
                 : ExpressiveTone.primary,
+          ),
+          collapsedChild: Text(
+            ctrl.searchQuery.isEmpty
+                ? t.workspace.searchPageOrFileName
+                : t.workspace.filteringBy(query: ctrl.searchQuery),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           child: Align(alignment: Alignment.centerLeft, child: bar),
         );
@@ -98,7 +110,7 @@ class PageListSearchToolbar extends StatelessWidget {
                 controller: controller.searchController,
                 style: const TextStyle(fontSize: 12),
                 decoration: InputDecoration(
-                  hintText: '搜索页码或文件名...',
+                  hintText: t.workspace.searchPageOrFileName,
                   hintStyle: TextStyle(
                     fontSize: 11,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -120,8 +132,13 @@ class PageListSearchToolbar extends StatelessWidget {
           IconButton(
             iconSize: 18,
             visualDensity: VisualDensity.compact,
-            tooltip: controller.followProgress ? '正在跟随阅读进度' : '已暂停跟随阅读进度',
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            padding: EdgeInsets.zero,
+            tooltip: controller.followProgress
+                ? t.workspace.followingProgress
+                : t.workspace.followProgressPaused,
             style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               backgroundColor: controller.followProgress
                   ? theme.colorScheme.secondaryContainer
                   : null,
@@ -136,7 +153,12 @@ class PageListSearchToolbar extends StatelessWidget {
           IconButton(
             iconSize: 18,
             visualDensity: VisualDensity.compact,
-            tooltip: '视图模式',
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            padding: EdgeInsets.zero,
+            tooltip: t.workspace.viewModeLabel,
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             onPressed: controller.cycleViewMode,
             icon: GlyphIcon(controller.viewModeIcon),
           ),

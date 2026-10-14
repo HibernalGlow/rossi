@@ -109,8 +109,8 @@ extension NavigationEntryIdX on NavigationEntryId {
   /// `NavigationRail.trailing` 上的 tooltip，当时就没补 i18n 词条（它们是
   /// 本仓自有的开发期入口），这里保持原样、不顺手改口径。
   String get tooltip => switch (this) {
-    NavigationEntryId.workspace => '泳道/工作孔工作台 (NeoView Workspace)',
-    NavigationEntryId.openLocalComic => '打开本地漫画（Rossi 原版阅读器 + GPU 零拷贝）',
+    NavigationEntryId.workspace => t.common.neoViewWorkspace,
+    NavigationEntryId.openLocalComic => t.common.openLocalComicRossi,
     NavigationEntryId.gpuPresent => 'GPU 上屏（D3D12 共享纹理）',
     NavigationEntryId.search => t.common.search,
     NavigationEntryId.customizeNavigation => t.navigation.customizeHint,

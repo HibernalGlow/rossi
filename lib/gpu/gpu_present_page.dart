@@ -12,6 +12,7 @@ import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/gpu/local_file_tree_sheet.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// GPU 上屏调试页（Windows）。
 ///
@@ -302,7 +303,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
         ),
         actions: <Widget>[
           IconButton(
-            tooltip: '刷新统计',
+            tooltip: t.settings.debugRefreshStats,
             onPressed: _refreshCounters,
             icon: const GlyphIcon(AppGlyphs.refresh),
           ),
@@ -383,9 +384,9 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               Expanded(
                 child: TextField(
                   controller: _pathController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
-                    labelText: '本地来源（散图文件夹 / .cbz / .cbr）',
+                    labelText: t.settings.debugLocalSourceGroup,
                     border: OutlineInputBorder(),
                   ),
                   onSubmitted: (_) => _open(),
@@ -398,7 +399,7 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
                 ),
                 onPressed: _busy ? null : _browseLocalTree,
                 icon: const GlyphIcon(AppGlyphs.folder, size: 18),
-                label: const Text('浏览...'),
+                label: Text(t.settings.debugBrowse),
               ),
               const SizedBox(width: 8),
               FilledButton(
@@ -552,10 +553,10 @@ class _GpuPresentPageState extends State<GpuPresentPage> {
               stats.probeRaw.isEmpty &&
               (_presenter.state == GpuPresentState.ready ||
                   _presenter.state == GpuPresentState.failed))
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text(
-                'native 侧没有返回 Rust 侧诊断（DLL 与桥的版本可能不匹配）。',
+                t.settings.debugNoRustDiagnostics,
                 style: TextStyle(fontSize: 12, color: Color(0xFFFF9C6B)),
               ),
             ),

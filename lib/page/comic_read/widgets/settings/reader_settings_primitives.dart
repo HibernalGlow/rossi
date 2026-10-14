@@ -9,6 +9,7 @@ import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 阅读设置那一套**行级控件**的唯一出处。
 ///
@@ -22,25 +23,32 @@ import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 /// 根据设置项标题自动推断语义图标（调用方显式传入 `icon` 时以传入值为准）。
 Glyph inferSettingsGlyph(String title) {
-  if (title.contains('动画')) return AppGlyphs.motion;
+  if (title.contains(t.reader.animated)) return AppGlyphs.motion;
   if (title.contains('滤镜')) return AppGlyphs.moon;
   if (title.contains('墨水屏')) return AppGlyphs.contrast;
   if (title.contains('超分')) return AppGlyphs.sparkle;
-  if (title.contains('对比原图')) return AppGlyphs.split;
-  if (title.contains('图像处理') || title.contains('降噪')) return AppGlyphs.wand;
-  if (title.contains('分辨率') || title.contains('阈值')) {
+  if (title.contains(t.reader.compareOriginal)) return AppGlyphs.split;
+  if (title.contains(t.reader.imageProcessing) ||
+      title.contains(t.reader.denoiseShort))
+    return AppGlyphs.wand;
+  if (title.contains(t.reader.resolution) ||
+      title.contains(t.reader.thresholdLabel)) {
     return AppGlyphs.aspectRatio;
   }
-  if (title.contains('分块')) return AppGlyphs.gridPlus;
-  if (title.contains('自动译') || title.contains('翻译')) return AppGlyphs.translate;
-  if (title.contains('引擎')) return AppGlyphs.rocket;
+  if (title.contains(t.reader.blockLabel)) return AppGlyphs.gridPlus;
+  if (title.contains(t.reader.autoTranslateShort) || title.contains('翻译'))
+    return AppGlyphs.translate;
+  if (title.contains(t.reader.engine)) return AppGlyphs.rocket;
   if (title.contains('语言')) return AppGlyphs.language;
-  if (title.contains('推理') || title.contains('后端')) return AppGlyphs.cpu;
-  if (title.contains('权重') || title.contains('下载') || title.contains('模型')) {
+  if (title.contains(t.reader.inference) || title.contains(t.reader.backend))
+    return AppGlyphs.cpu;
+  if (title.contains(t.reader.weights) ||
+      title.contains('下载') ||
+      title.contains('模型')) {
     return AppGlyphs.download;
   }
   if (title.contains('缓存')) return AppGlyphs.box;
-  if (title.contains('日志')) return AppGlyphs.article;
+  if (title.contains(t.reader.logLabel)) return AppGlyphs.article;
   return AppGlyphs.sliders;
 }
 

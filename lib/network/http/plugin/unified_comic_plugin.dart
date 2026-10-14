@@ -5,6 +5,7 @@ import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
 import 'package:zephyr/network/http/plugin/unauthorized_payload.dart';
 import 'package:zephyr/util/event/event.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 Future<Map<String, dynamic>> callUnifiedComicPlugin({
   String? from,
@@ -36,7 +37,10 @@ Future<Map<String, dynamic>> callUnifiedComicPlugin({
       fnPath: resolvedFnPath,
       argsJson: argsJson,
     );
-    final decoded = requireJsonMap(jsonDecode(raw), message: '插件返回格式错误');
+    final decoded = requireJsonMap(
+      jsonDecode(raw),
+      message: t.plugin.badResponseFormat,
+    );
     return _normalizePluginSourceFields(decoded, resolvedPluginId);
   } catch (error) {
     final unauthorized = parseUnauthorizedPayload(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:zephyr/page/setting/real_sr/model/super_resolution_condition.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class UpscaleConditionImportResult {
   final List<SuperResolutionCondition> conditions;
@@ -21,7 +22,7 @@ UpscaleConditionImportResult parseUpscaleConditionImport(String text) {
   try {
     parsed = jsonDecode(text);
   } catch (e) {
-    throw FormatException('JSON 格式无效: $e');
+    throw FormatException(t.realSr.importJsonInvalid(error: e));
   }
 
   final unwrapped = _unwrapConditions(parsed);
@@ -35,7 +36,7 @@ UpscaleConditionImportResult parseUpscaleConditionImport(String text) {
   for (var i = 0; i < unwrapped.length; i++) {
     final item = unwrapped[i];
     if (item is! Map) {
-      warnings.add('跳过第 ${i + 1} 项：数据不是对象');
+      warnings.add(t.realSr.importSkipNotObject(index: i + 1));
       continue;
     }
 
@@ -46,7 +47,7 @@ UpscaleConditionImportResult parseUpscaleConditionImport(String text) {
         conditions.add(SuperResolutionCondition.fromJson(normalized));
       }
     } catch (e) {
-      warnings.add('第 ${i + 1} 项解析失败: $e');
+      warnings.add(t.realSr.importItemFailed(index: i + 1, error: e));
     }
   }
 
@@ -90,7 +91,8 @@ Map<String, dynamic>? _normalizeConditionMap(
   final id =
       raw['id']?.toString() ??
       'condition-${DateTime.now().millisecondsSinceEpoch}-$priority';
-  final name = raw['name']?.toString() ?? '条件 ${priority + 1}';
+  final name =
+      raw['name']?.toString() ?? t.realSr.conditionN(index: priority + 1);
   final enabled = raw['enabled'] is bool ? raw['enabled'] as bool : true;
 
   final rawMatch = raw['match'] is Map

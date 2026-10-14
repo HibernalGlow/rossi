@@ -73,10 +73,10 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   /// 「全部」这一档不是数据库里的列表，得用一个不可能撞上的哨兵。
   static const _kAllLists = '\u0000all';
 
-  static const _kDetailsColumns = [
+  static List<LibraryColumn> get _kDetailsColumns => [
     LibraryColumn(key: 'author', label: '作者', width: 90),
-    LibraryColumn(key: 'source', label: '来源', width: 70),
-    LibraryColumn(key: 'time', label: '收藏时间', width: 90),
+    LibraryColumn(key: 'source', label: t.workspace.sourceLabel, width: 70),
+    LibraryColumn(key: 'time', label: t.workspace.favouriteTime, width: 90),
   ];
 
   final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
@@ -198,7 +198,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         }
         return CollapsibleCard(
           cardId: 'favorite',
-          title: '书签 (Favorites)',
+          title: t.workspace.favoritesEn,
           icon: AppGlyphs.bookmark,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
@@ -266,7 +266,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           onKeywordChanged: (value) => setState(() => _keyword = value),
           count: rows.length,
           busy: _busy,
-          portLabel: '书签数据',
+          portLabel: t.workspace.bookmarkData,
           onExport: _export,
           onImport: _import,
           timelineOn: _timeline,
@@ -310,14 +310,14 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       standalone: widget.isStandalone,
       busy: _busy,
       emptyText: libraryEmpty
-          ? '还没有书签，去详情页点收藏吧'
+          ? t.workspace.noBookmarksYet
           : _keyword.trim().isNotEmpty
-          ? '没有匹配的书签'
-          : '这个列表里还没有书签',
+          ? t.workspace.noMatchingBookmarks
+          : t.workspace.listHasNoBookmarks,
       onTap: (row) => _open(context, row.source! as UnifiedComicFavorite),
-      titleColumn: const LibraryColumn(
+      titleColumn: LibraryColumn(
         key: 'title',
-        label: '标题',
+        label: t.workspace.titleLabel,
         flex: LibraryViewLayout.detailsTitleFlex,
       ),
       columns: _kDetailsColumns,
@@ -342,52 +342,6 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         child: child,
       ),
     );
-  }
-
-  /// 时间线档：按「收藏时间」那一天分段。
-  ///
-  /// 行内容仍然由 `ShelfTimelineView` 转给 `LibraryEntrySurface`，这里只供
-  /// 时间与右键壳子 —— 与列表档共用同一套，两档不会长歪。
-  final _timelineExpanded = <String>{};
-
-  Widget _buildTimeline(
-    BuildContext context,
-    List<LibraryEntry> rows,
-    bool libraryEmpty,
-    bool menuEnabled,
-  ) {
-    final timeline = ShelfTimelineView(
-      entries: rows,
-      expandedKeys: _timelineExpanded,
-      onCloseDetail: (key) => setState(() => _timelineExpanded.remove(key)),
-      detailBuilder: (context, row, close) {
-        final item = row.source! as UnifiedComicFavorite;
-        return LibraryBookDetails(
-          entry: row,
-          comicId: item.comicId,
-          from: item.source,
-          onClose: close,
-        );
-      },
-      standalone: widget.isStandalone,
-      timeOf: (row) => (row.source! as UnifiedComicFavorite).updatedAt,
-      emptyText: libraryEmpty
-          ? '还没有书签，去详情页点收藏吧'
-          : _keyword.trim().isNotEmpty
-          ? '没有匹配的书签'
-          : '这个列表里还没有书签',
-      onTap: (row) => setState(() {
-        if (!_timelineExpanded.remove(row.key)) _timelineExpanded.add(row.key);
-      }),
-      wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
-        enabled: menuEnabled,
-        inputBuilder: () => _menuInput(row.source! as UnifiedComicFavorite),
-        onAction: (context, action) =>
-            _onMenuAction(context, row.source! as UnifiedComicFavorite, action),
-        child: child,
-      ),
-    );
-    return timeline;
   }
 
   // ── 列表轨 ────────────────────────────────────────────────────────────────
@@ -427,9 +381,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       presentation: PopupPresentation.relative,
       context: context,
       builder: (context) => ShelfListEditor(
-        title: current != null ? '重命名书签列表' : '新建书签列表',
-        label: '列表名称',
-        description: '按主题整理书签。创建后可以把书签移动到这个列表。',
+        title: current != null
+            ? t.workspace.renameBookmarkList
+            : t.workspace.newBookmarkList,
+        label: t.workspace.listName,
+        description: t.workspace.bookmarkListDesc,
         initialName: current?.split('/').last ?? '',
         onSave: (name) => context.pop(_ListEditorResult(name)),
         onDelete: current == null
@@ -470,7 +426,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     final items = BookmarkLibraryService.collect();
     await exportShelfDocument(
       context: context,
-      label: '书签',
+      label: t.workspace.bookmarks,
       fileStem: 'bookmarks',
       count: items.length,
       encode: () => encodeBookmarkLibrary(items),
@@ -480,8 +436,8 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
 
   Future<void> _import() => importShelfDocument(
     context: context,
-    label: '书签',
-    fileLabel: '书签文件',
+    label: t.workspace.bookmarks,
+    fileLabel: t.workspace.bookmarkFile,
     planFrom: (path) async {
       final BookmarkMergePlan plan;
       try {
@@ -496,7 +452,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           for (final rejection in plan.rejected)
             '${rejection.label} — ${rejection.reason}',
         ],
-        note: '只合并，不会删除或覆盖已有的书签。',
+        note: t.workspace.mergeOnlyBookmarks,
         apply: () {
           BookmarkLibraryService.applyPlan(plan);
           _loadLists();

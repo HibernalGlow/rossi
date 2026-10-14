@@ -6,6 +6,7 @@ import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/widgets/navigation/navigation_shape.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 复用工作台托盘的弹簧路由，选择菜单不走 Flutter 默认下拉路由。
 class LibraryWeightSelector extends StatefulWidget {
@@ -42,7 +43,7 @@ class _LibraryWeightSelectorState extends State<LibraryWeightSelector> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('面积依据', style: theme.textTheme.labelLarge),
+          Text(t.workspace.areaBasis, style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
           CommonPopupBox<void>(
             targetBuilder: (open) => ElasticButton(
@@ -106,14 +107,14 @@ class _LibraryWeightSelectorState extends State<LibraryWeightSelector> {
           const SizedBox(height: 8),
           Text(
             switch (widget.value) {
-              LibraryWeight.signals => '按自定义标签权重突出内容。',
-              LibraryWeight.imageShape => '根据原图横竖比例分配卡片空间。',
-              LibraryWeight.order => '优先突出当前排序靠前的内容。',
-              LibraryWeight.count => '内容数量越多，展示面积越大。',
-              LibraryWeight.bytes => '按文件占用空间分配展示面积。',
-              LibraryWeight.recent => '突出最近使用的内容。',
-              LibraryWeight.progress => '突出正在阅读的内容。',
-              LibraryWeight.balanced => '综合内容数量、最近使用与阅读状态。',
+              LibraryWeight.signals => t.workspace.emphasiseByTagWeights,
+              LibraryWeight.imageShape => t.workspace.areaByAspectRatio,
+              LibraryWeight.order => t.workspace.emphasiseTopSorted,
+              LibraryWeight.count => t.workspace.moreContentMoreArea,
+              LibraryWeight.bytes => t.workspace.areaByDiskUsage,
+              LibraryWeight.recent => t.workspace.emphasiseRecent,
+              LibraryWeight.progress => t.workspace.emphasiseReading,
+              LibraryWeight.balanced => t.workspace.weightBlendsEverything,
             },
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,

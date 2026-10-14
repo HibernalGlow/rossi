@@ -39,6 +39,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	TranslationsEnUs $copyWith({TranslationMetadata<AppLocale, Translations>? meta}) => TranslationsEnUs(meta: meta ?? this.$meta);
 
 	// Translations
+	@override late final _Translations$workspace$en_US workspace = _Translations$workspace$en_US._(_root);
 	@override String get appName => 'Rossi';
 	@override late final _Translations$common$en_US common = _Translations$common$en_US._(_root);
 	@override late final _Translations$error$en_US error = _Translations$error$en_US._(_root);
@@ -81,6 +82,709 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$plat$en_US plat = _Translations$plat$en_US._(_root);
 }
 
+// Path: workspace
+class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
+	_Translations$workspace$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String laneTapExpandHint({required Object title}) => '${title} (tap to expand the lane)';
+	@override String laneDragHint({required Object title}) => '${title} — press and hold to drag lanes into a new order';
+	@override String laneSortHint({required Object title}) => '${title} (pick “Edit layout” in the lane menu to reorder)';
+	@override String allowedRange({required Object min, required Object max}) => 'Allowed ${min}–${max}';
+	@override String dockToName({required Object label}) => 'Dock: ${label}';
+	@override String laneWidthPx({required Object px}) => 'Lane width: ${px} px';
+	@override String dockToLabel({required Object label}) => 'Dock to ${label}';
+	@override String slotCount({required Object count}) => '${count} slots';
+	@override String columnsPerRow({required Object columns}) => '${columns} slots per row now';
+	@override String imagesCountBadge({required Object n}) => '${n} images';
+	@override String highestPage({required Object value}) => 'Highest: ${value}';
+	@override String worksCount({required Object n}) => '${n} works';
+	@override String sharePercent({required Object v}) => '${v}% of the total';
+	@override String get heatLegendLow => 'Low';
+	@override String periodDetailLine({required Object label, required Object count, required Object hours}) => '${label} · ${count} records\n${hours}';
+	@override String restoreNamed({required Object title}) => 'Restore “${title}”';
+	@override String get fullWidthFullHeight => 'Full width and full height';
+	@override String resizePreview({required Object w, required Object h}) => '${w} × ${h} · release to save';
+	@override String portSkippedLines({required Object lines}) => 'Skipped entries:\n${lines}';
+	@override String streakNowDays({required Object n}) => 'Current streak: ${n} days';
+	@override String mostlyAt({required Object period}) => 'Mostly ${period}';
+	@override String monthsAgo({required Object months}) => '${months} months ago';
+	@override String artbookCount({required Object n}) => '${n} art books';
+	@override String seenAtPage({required Object pageNum}) => 'Seen at p.${pageNum}';
+	@override String sourceMixItem({required Object count, required Object percent}) => '${count} records · ${percent}%';
+	@override String sourceMixHeader({required Object n}) => 'Sample records · ${n} sources';
+	@override String streakPointLine({required Object date, required Object value}) => '${date}: ${value} days in a row';
+	@override String streakDaysLine({required Object label, required Object value}) => '${label}: ${value} days';
+	@override String insightHeaderExpand({required Object label, required Object position, required Object total, required Object title}) => '${label} · ${position}/${total} · expand ${title}';
+	@override String heatCellLine({required Object weekday, required Object hour, required Object count}) => '${weekday} ${hour} · ${count} records';
+	@override String heatPeakLabel({required Object weekday, required Object hour}) => 'Peak · ${weekday} ${hour}';
+	@override String heatPeakShort({required Object weekday, required Object hour}) => 'Peak ${weekday} ${hour}';
+	@override String compactHeatmapExpandHours({required Object day, required Object hours}) => '${day} · ${hours} h per cell · expand the reading heatmap';
+	@override String hoursPerCell({required Object hours}) => '${hours} h per cell';
+	@override String compactHeatmapExpand({required Object day}) => '${day} · expand the reading heatmap';
+	@override String busiestPeriodLabel({required Object period}) => 'Most records in ${period}';
+	@override String weekdayRecordLine({required Object day, required Object count}) => '${day}: ${count} records';
+	@override String busiestWeekdayLabel({required Object day}) => 'Busiest on ${day}';
+	@override String selectedLastReadLines({required Object key, required Object count}) => '${key} · ${count} last-read records';
+	@override String dayRecordLine({required Object key, required Object count}) => '${key}: ${count} records';
+	@override String activeDaysCount({required Object n}) => '${n} active days';
+	@override String collapseNamed({required Object title}) => 'Collapse ${title}';
+	@override String insertTarget({required Object name}) => 'Insert into: ${name}';
+	@override String activeSwitchCount({required Object activeCount}) => '${activeCount} switches on';
+	@override String switchToastActiveOf3({required Object activeCount}) => '${activeCount} of 3 switches on';
+	@override String peakAllocated({required Object value}) => 'Peak ${value}';
+	@override String failedWith({required Object error}) => 'Failed · ${error}';
+	@override String registeredCount({required Object n}) => '${n} registered in total';
+	@override String readyOfTotal({required Object ready, required Object total}) => '${ready} of ${total} ready';
+	@override String sourceCountLabel({required Object n}) => '${n} sources';
+	@override String fileKindLabel({required Object kind}) => '${kind} file';
+	@override String passthroughDepthLabel({required Object value}) => 'Passthrough depth: ${value}';
+	@override String contentLayoutLabel({required Object value}) => 'Content layout: ${value}';
+	@override String sortFieldLabel({required Object value}) => 'Sort: ${value}';
+	@override String entryStyleLabel({required Object value}) => 'Entry style: ${value}';
+	@override String filterTypeLabel({required Object value}) => 'Type: ${value}';
+	@override String depthLimitLabel({required Object n}) => 'Depth ≤${n}';
+	@override String notSearchedBelow({required Object n}) => 'Below level ${n} not searched';
+	@override String searchScanned({required Object n}) => '${n} scanned';
+	@override String searchHits({required Object n}) => '${n} hits';
+	@override String tenThousandRecords({required Object v}) => '${v}×10k records';
+	@override String slowScanNote({required Object label}) => '${label} · tens of seconds on a slow disk; results appear after one pass';
+	@override String recursiveSearchScanned({required Object scanned}) => 'Searching recursively · scanned ${scanned}';
+	@override String restoreTabTitle({required Object title}) => 'Restore tab: ${title}';
+	@override String selectedCount({required Object n}) => '${n} selected';
+	@override String filteringBy({required Object query}) => 'Filter: ${query}';
+	@override String pageN({required Object n}) => 'Page ${n}';
+	@override String openLocalComicFailed({required Object error}) => 'Error opening the local comic: ${error}';
+	@override String daysAgo({required Object days}) => '${days} days ago';
+	@override String childCount({required Object n}) => '${n} items';
+	@override String noMatchThisLevelSuggest({required Object query}) => 'Nothing at this level matches “${query}”; use “search subfolders” above to look deeper';
+	@override String noMatchInSubdirs({required Object query}) => 'No entries in subfolders match “${query}”';
+	@override String tasksCount({required Object n}) => '${n} tasks';
+	@override String booksCount({required Object n}) => '${n} books';
+	@override String get builtinWord => 'Built-in';
+	@override String onlineSourceFrom({required Object from}) => 'Online source · ${from}';
+	@override String pagesRemaining({required Object n}) => '${n} pages left';
+	@override String currentOfTotalPages({required Object total}) => 'Current page · ${total} pages';
+	@override String dateMD({required Object month, required Object day}) => '${month}/${day}';
+	@override String dateYMD({required Object year, required Object month, required Object day}) => '${year}-${month}-${day}';
+	@override String heatmapCell({required Object weekday, required Object range, required Object count}) => '${weekday} ${range}: ${count} records';
+	@override String theseCountItems({required Object count}) => 'these ${count} items';
+	@override String duplicateInFileCount({required Object n}) => '${n} duplicated inside the file';
+	@override String keptLocalCount({required Object n}) => '${n} kept from this device';
+	@override String progressUpdatedCount({required Object n}) => '${n} progress entries updated';
+	@override String skippedCount({required Object n}) => '${n} skipped';
+	@override String alreadyPresentCount({required Object n}) => '${n} already present';
+	@override String revivedCount({required Object n}) => '${n} revived';
+	@override String addedCount({required Object n}) => '${n} added';
+	@override String keyMismatch({required Object expected}) => 'uniqueKey doesn\'t match source:comicId; expected ${expected}';
+	@override String itemNumber({required Object n}) => 'Entry #${n}';
+	@override String unsupportedFormatVersion({required Object version}) => 'Unsupported format version ${version}';
+	@override String invalidJson({required Object error}) => 'Not valid JSON: ${error}';
+	@override String portImportFailed({required Object label, required Object error}) => 'Importing ${label} failed: ${error}';
+	@override String portFileUnreadable({required Object error}) => 'Can\'t read this file: ${error}';
+	@override String portExportFailed({required Object label, required Object error}) => 'Exporting ${label} failed: ${error}';
+	@override String portExportDone({required Object count, required Object label, required Object target}) => 'Exported ${count} ${label} entries\n${target}';
+	@override String portListEmpty({required Object label}) => '${label} is still empty — there is nothing to export';
+	@override String opFirstFailure({required Object summary, required Object failure}) => '${summary} — first failure reason: ${failure}';
+	@override String pickPasteTarget({required Object verb, required Object subject}) => '${verb}${subject} — pick a folder to paste into';
+	@override String movedToTrashSystem({required Object subject, required Object hint}) => 'Moved ${subject} to the trash, ${hint} (in the system trash)';
+	@override String movedToTrash({required Object subject, required Object hint}) => 'Moved ${subject} to the trash, ${hint}';
+	@override String cannotOpenFileManager({required Object error}) => 'Can\'t open the file manager: ${error}';
+	@override String pathsCopied({required Object count}) => 'Copied ${count} paths';
+	@override String deleteConfirmSubject({required Object subject, required Object outcome}) => '${subject} will be deleted. ${outcome}.';
+	@override String deleteForeverWarning({required Object subject}) => '${subject} will be deleted permanently — not sent to the trash and can\'t be undone.';
+	@override String get loadingShort => 'Loading';
+	@override String get readingHubTitle => 'Reading hub';
+	@override String get chapterIdLabel => 'Chapter ID';
+	@override String get portraitFormat => 'Portrait';
+	@override String get peep => 'Peek';
+	@override String get topTags => 'Top tags';
+	@override String get libraryLabel => 'Library';
+	@override String get preloadPath => 'Preload path';
+	@override String get preloadStatus => 'Preload status';
+	@override String get topBarIsThatRow => 'The top bar is the row with exit / title / mode switch / reset layout';
+	@override String get pagePath => 'Page path';
+	@override String get pageTemplateBookVars => 'Page templates can also use {{book.*}} variables; tap any variable chip to insert it.';
+	@override String get pageTitleTemplate => 'Page title template';
+	@override String get pageFileName => 'Page file name';
+	@override String get pageToastTemplate => 'Page toast template';
+	@override String get pageDescriptionTemplate => 'Page description template';
+	@override String get pageNavigation => 'Page navigation';
+	@override String get pageListNotReady => 'Page list not ready';
+	@override String get pageListTotal => 'Page-list total';
+	@override String get pageList => 'Page list';
+	@override String get pageNumber => 'Page number';
+	@override String get pageUrl => 'Page URL';
+	@override String get pagesModified => 'pages modified';
+	@override String get audioLabel => 'Audio';
+	@override String get areaBasis => 'Area basis';
+	@override String get panelBarFloating => 'Panel bar: floating';
+	@override String get panelBarHint => 'Panel bar (drag to another edge or make it floating; right-click or long-press for settings)';
+	@override String get hideLaneWidthBadge => 'Hide the lane width badge';
+	@override String get hideWorkspaceTopBar => 'Hide the workspace top bar';
+	@override String get refreshPerPageNoGuessing => 'Refreshes per page; anything unmeasured stays a guess-free blank';
+	@override String get randomRoam => 'Random browse';
+	@override String get randomLabel => 'Random';
+	@override String get matchRelativePath => 'Matches the relative path under the search root as well as the entry name';
+	@override String get confineToLane => 'Confine to the lane';
+	@override String get confineToThisLane => 'Confine to this lane';
+	@override String get readingProgressPercent => 'Reading progress (%)';
+	@override String get readingProgressLabel => 'Reading progress';
+	@override String get readingHeat => 'Reading heat';
+	@override String get readingFilter => 'Reading filter';
+	@override String get readingInsights => 'Reading insights';
+	@override String get readingOverview => 'Reading overview';
+	@override String get readingSources => 'Reading sources';
+	@override String get readingPeriods => 'Reading time of day';
+	@override String get readingWorkhole => 'Reading workhole';
+	@override String get readerLaneIdle => 'The reader lane is idle';
+	@override String get readerEn => 'Reader';
+	@override String get readingHistoryEn => 'History';
+	@override String get readingHistory => 'Reading history';
+	@override String get readingToastOverlay => 'Reading switch overlay toast';
+	@override String get readingLabel => 'Reading';
+	@override String get longPressDragReorder => 'Long-press and drag to reorder or change lane';
+	@override String get imageHeaderUnmeasured => 'Can\'t read the image header';
+	@override String get resetLayoutHint => 'Reset the layout (doesn\'t affect the book you\'re reading)';
+	@override String get renameBookmarkList => 'Rename bookmark list';
+	@override String get renameDeleteList => 'Rename / delete this list';
+	@override String get booksQueued => 'books queued';
+	@override String get layoutFitsPanel => 'Layout and sizes that suit the current panel';
+	@override String get exitSoloEn => 'Exit solo';
+	@override String get exitSolo => 'Exit solo';
+	@override String get exitTimeline => 'Exit the timeline';
+	@override String get exitSearchToFolder => 'Leave the search results and return to this tab\'s own folder';
+	@override String get exitWorkspaceHint => 'Exit the workspace (Esc works too)';
+	@override String get exitWorkspace => 'Exit the workspace';
+	@override String get exitMultiselect => 'Exit multi-select';
+	@override String get restoreSwipeAfterExit => 'Restores horizontal swiping between panels when it exits';
+	@override String get streakReading => 'Reading streak';
+	@override String get streakDays => 'Streak days';
+	@override String get streakLabel => 'Streak';
+	@override String get runningTasks => 'Running tasks';
+	@override String get progressLabel => 'Progress';
+	@override String get enterFolder => 'Enter the folder';
+	@override String get thisIsSwitchToastPreview => 'This is a switch-toast preview';
+	@override String get allCardsCollapsed => 'Every card in this panel is collapsed';
+	@override String get noFileManagerOnPlatform => 'This platform has no file manager to invoke';
+	@override String get listHasNoBookmarks => 'This list has no bookmarks yet';
+	@override String get itemNeedsLocalArchive => 'This item needs to be a local archive before it can be measured';
+	@override String get thisItem => 'this item';
+	@override String get thisWall => 'this wall';
+	@override String get noPluginsInstalled => 'No plugins installed yet';
+	@override String get noBookmarksYet => 'No bookmarks yet — add one from the details page';
+	@override String get last7ReadingTrend => 'Reading trend (7 days)';
+	@override String get last7Records => 'Records (7 days)';
+	@override String get last7Days => 'Last 7 days';
+	@override String get last3Days => 'Last 3 days';
+	@override String get last28Records => 'Records (28 days)';
+	@override String get last28Active => 'Active days (28)';
+	@override String get last28NoRecords => 'No records in the last 28 days';
+	@override String get last28Days => 'Last 28 days';
+	@override String get boundaryToastText => 'Boundary toast text';
+	@override String get carrierDistribution => 'Medium distribution';
+	@override String get carrierLabel => 'Medium';
+	@override String get goToFolder => 'Go to the folder';
+	@override String get jumpBar => 'Jump bar';
+	@override String get pathActions => 'Path actions';
+	@override String get pathLabel => 'Path';
+	@override String get aggregateSourceSearch => 'Aggregate search across sources';
+	@override String get trendLabel => 'Trend';
+	@override String get upscaleStage => 'Upscale stage';
+	@override String get upscaleSwitch => 'Upscale switch';
+	@override String get afterUpscale => 'After upscaling';
+	@override String get resourceWorkhole => 'Resource workhole';
+	@override String get debugSource => 'Debug source';
+	@override String get toastAtChapterEnd => 'Remind when turning past the end of a chapter';
+	@override String get detailedInformation => 'Details';
+	@override String get detailedLabel => 'Detailed';
+	@override String get laneMoreEditLayout => 'This lane · edit layout';
+	@override String get visits => 'Visits';
+	@override String get settingsAndTools => 'Settings and tools';
+	@override String get triggerCondition => 'Trigger condition';
+	@override String get triggersAllOff => 'All triggers off';
+	@override String get decodeBufferPlusCache => 'Decode buffer + image cache';
+	@override String get viewModeNotInTimeline => 'View mode (not available in the timeline)';
+	@override String get viewModeLabel => 'View mode';
+	@override String get seeDetailsBelow => 'See the details below';
+	@override String get decorativeShapes => 'Decorative shapes';
+	@override String get installNewSource => 'Install a new source';
+	@override String get fetching => 'Fetching…';
+	@override String get freeThumbnails => 'Free thumbnails';
+	@override String get customLayout => 'Custom layout';
+	@override String get pageTurnToast => 'Page-turn toast';
+	@override String get pageToastShowsNumber => 'Shows the page number live when turning or jumping';
+	@override String get pageAnimation => 'Page-turn animation';
+	@override String get jpTranslated => 'Translated';
+	@override String get networkImageCached => 'Network image · downloaded then served from the image cache';
+	@override String get missingTitle => 'Missing title';
+	@override String get missingSourceOrComicId => 'Missing source or comicId';
+	@override String get thumbnailsLabel => 'Thumbnails';
+	@override String get editPath => 'Edit path';
+	@override String get editLongPressHints => 'While editing, long-press a tab to reorder or move it across lanes, or long-press the header icon to reorder lanes';
+	@override String get editLayout => 'Edit layout';
+	@override String get encodedFormat => 'Encoded format';
+	@override String get encodedSize => 'Encoded size';
+	@override String get weightBlendsEverything => 'Blends content count, recent use and reading status.';
+	@override String get resumeLastReading => 'Resume the last reading';
+	@override String get counting => 'Counting';
+	@override String get textureReady => 'Texture ready';
+	@override String get texture => 'Texture';
+	@override String get compactList => 'Compact list';
+	@override String get pasteIntoItem => 'Paste into this item';
+	@override String get pasteHere => 'Paste into this folder';
+	@override String get lengthDistribution => 'Length distribution';
+	@override String get lengthLabel => 'Length';
+	@override String get emphasiseReading => 'Emphasises what you are reading.';
+	@override String get emphasiseRecent => 'Emphasises recently used content.';
+	@override String get passthroughMode => 'Passthrough mode';
+	@override String get gapFill => 'Gap fill';
+	@override String get idleState => 'Idle';
+	@override String get moveToTrashNoUndo => 'Move to trash (can\'t be undone)';
+	@override String get moveToTrash => 'Move to trash';
+	@override String get folderPath => 'Folder path';
+	@override String get folderLabel => 'Folder';
+	@override String get imageTuning => 'Image tuning';
+	@override String get aspectComposition => 'Aspect mix';
+	@override String get aspectFormat => 'Aspect';
+	@override String get fillWithExpressiveShapes => 'Fills the gaps with random Expressive outlines and icons.';
+	@override String get soloThisLaneEn => 'Solo';
+	@override String get soloThisLane => 'Make this lane solo';
+	@override String get statusLabel => 'Status';
+	@override String get clickToCollapse => 'Tap to collapse';
+	@override String get clickToExpand => 'Tap to expand';
+	@override String get tapCover => 'Tap the cover';
+	@override String get clickToFill => 'Tap to fill';
+	@override String get comicArchive => 'Comic archive';
+	@override String get comicIdLabel => 'Comic ID';
+	@override String get chineseLocalized => 'CN-localised';
+	@override String get renderPath => 'Render path';
+	@override String get clearSearchAndCollapse => 'Clear the search and collapse';
+	@override String get lateNight => 'Late night';
+	@override String get activePeak => 'Active peak';
+	@override String get activeDays => 'Active days';
+	@override String get activeState => 'Active';
+	@override String get noEntriesAfterFilter => 'No entries match the search or type filter';
+	@override String get noEntries => 'No entries';
+	@override String get noEnabledSource => 'No enabled image source';
+	@override String get nothingToDisplay => 'Nothing to display';
+	@override String get noMatchingPages => 'No matching pages';
+	@override String get noMatchingHistory => 'No matching reading records';
+	@override String get noMatchingBookmarks => 'No matching bookmarks';
+	@override String get immersiveWorkhole => 'Immersive workhole';
+	@override String get deleteForeverQuestion => 'Delete permanently?';
+	@override String get deleteForever => 'Delete permanently';
+	@override String get weeklyReadingRhythm => 'Weekly reading rhythm';
+	@override String get everyFieldIsMeasured => 'Every value comes from a recorded field, not from "I tweaked it so it must be fine"';
+	@override String get normalState => 'Normal';
+	@override String get recursiveSearchPending => 'Searching recursively; results appear after one pass…';
+	@override String get recursiveSearching => 'Searching recursively…';
+	@override String get followingProgress => 'Following the reading progress';
+	@override String get editingLayoutFinishInMenu => 'Editing the layout · finish in the menu';
+	@override String get countingReadingHistory => 'Counting reading history';
+	@override String get bannerLabel => 'Banner';
+	@override String get rootPath => 'Root path';
+	@override String get areaByAspectRatio => 'Allocates card space by the source aspect ratio.';
+	@override String get longestSampleDays => 'Longest in sample · days';
+	@override String get longestSample => 'Longest in sample';
+	@override String get theWidthBadgeNextToHeader => 'The "400px" badge to the right of the lane header';
+	@override String get titleLabel => 'Title';
+	@override String get sourceKey => 'Source key';
+	@override String get sourceType => 'Source type';
+	@override String get sourceComposition => 'Source mix';
+	@override String get sourceBreakdown => 'Source breakdown';
+	@override String get sourceModifiedAt => 'Source modified';
+	@override String get sourceLabel => 'Source';
+	@override String get entryCount => 'Entries';
+	@override String get itemsUpdated => 'items updated';
+	@override String get itemsContent => 'items';
+	@override String get chapterDonePreparingNext => 'This chapter is finished · preparing the next one';
+	@override String get platformUnsupported => 'Not supported on this platform';
+	@override String get localComicsEn => 'Local Manga';
+	@override String get localComics => 'Local comics';
+	@override String get localWorks => 'Local works';
+	@override String get localLabel => 'Local';
+	@override String get lastPageToast => 'Last-page toast';
+	@override String get notTurnedOn => 'Off';
+	@override String get notEnabled => 'Not enabled';
+	@override String get serverLabel => 'Server';
+	@override String get maxThirtyTwoLevels => 'At most 32 levels';
+	@override String get lastPageToastText => 'Last-page toast text';
+	@override String get noReadingHistory => 'No reading history yet';
+	@override String get noRecordsYet => 'No records yet';
+	@override String get noHeatRecords => 'No heat records yet';
+	@override String get noEnabledPlugins => 'No enabled plugins yet';
+	@override String get noVisitHistory => 'No visit history yet';
+	@override String get normalOneWideTwoSlots => 'Normal cards take 1 slot, wide cards 2';
+	@override String get eveningNight => 'Night';
+	@override String get eveningLabel => 'Evening';
+	@override String get showHiddenFiles => 'Show hidden files';
+	@override String get showTarget => 'Show target';
+	@override String get showQuickSwitchBar => 'Show the quick-switch bar';
+	@override String get showWorkspaceTopBar => 'Show the workspace top bar';
+	@override String get showSubFileNames => 'Show sub-file names';
+	@override String get timeInformation => 'Time information';
+	@override String get timePeriod => 'Time of day';
+	@override String get earlyFavourites => 'Early favourites';
+	@override String get cannotUndo => 'Can\'t be undone';
+	@override String get noAnimation => 'No animation';
+	@override String get squareFormat => 'Square';
+	@override String get newTab => 'New tab';
+	@override String get newBookmarkList => 'New bookmark list';
+	@override String get newName => 'New name';
+	@override String get fileManagement => 'File manager';
+	@override String get fileBrowsing => 'File browsing';
+	@override String get fileOperations => 'File operations (copy / move / delete)';
+	@override String get foldersFirst => 'Folders first';
+	@override String get fileNameLabel => 'File name';
+	@override String get weightBiggerWins => 'Larger values stand out more; 0 disables it. When several match, the highest weight wins.';
+	@override String get switchToFloating => 'Switch to floating';
+	@override String get collapseSearch => 'Collapse search';
+	@override String get collapseChildren => 'Collapse children';
+	@override String get collapseSubfolders => 'Collapse subfolders';
+	@override String get collapseInformation => 'Collapse info';
+	@override String get favouriteTime => 'Favourited at';
+	@override String get favouriteList => 'Favourites';
+	@override String get localOpenSupportDesc => 'Supports zip, cbz, folders, PDFs and image archives. Rust unpacks quickly and feeds the D3D12/Metal composition chain directly.';
+	@override String get undoLastStep => 'Undo the last step';
+	@override String get summaryLabel => 'Summary';
+	@override String get searchSpaceExclude => 'Search (space-separated, - to exclude)';
+	@override String get searchPageOrFileName => 'Search page number or file name...';
+	@override String get searchField => 'Search bar';
+	@override String get searchTitleAuthorSource => 'Search title / author / source';
+	@override String get pluginRunState => 'Plugin running state';
+	@override String get pluginMarket => 'Plugin market';
+	@override String get controlPanel => 'Control panel';
+	@override String get takeOver => 'Take over';
+	@override String get keepReading => 'Continue reading';
+	@override String get sortingTimelineFixed => 'Sorting (the timeline always sorts by time)';
+	@override String get sortMode => 'Sort mode';
+	@override String get emphasiseByTagWeights => 'Emphasises content using your custom tag weights.';
+	@override String get areaByDiskUsage => 'Allocates display area by how much disk space each entry takes.';
+	@override String get timelineByDay => 'Timeline by day';
+	@override String get dragTitleToReorder => 'Press and hold the title to drag-reorder';
+	@override String get bookmarkListDesc => 'Organise bookmarks by topic. After creating one, bookmarks can be moved into this list.';
+	@override String get dragResizeWorkhole => 'Drag to resize the workhole';
+	@override String get dragToResize => 'Drag to resize';
+	@override String get collapseToBarEn => 'Collapse';
+	@override String get collapseToBar => 'Collapse into a compact bar';
+	@override String get saveSearchAsTab => 'Save these search results as a new tab';
+	@override String get setHomeHere => 'Make this folder the home';
+	@override String get openReader => 'Open the reader';
+	@override String get openLocal => 'Open local';
+	@override String get toastOnOpenOrSwitch => 'Pops when a comic is opened or switched to';
+	@override String get openWorkhole => 'Open the workhole';
+	@override String get showPageNavWhenOpen => 'Shows page navigation once a book is open';
+	@override String get showFileTimesWhenOpen => 'Shows file times once a book is open';
+	@override String get showCurrentPageWhenOpen => 'Shows current-page info once a book is open';
+	@override String get showStorageWhenOpen => 'Shows storage info once a book is open';
+	@override String get showPresentPrefetchWhenOpen => 'Shows presenter and prefetch status once a book is open';
+	@override String get showBookInfoWhenOpen => 'Shows book info once a book is open';
+	@override String get imFeelingLucky => 'I\'m feeling lucky';
+	@override String get restoreDefaultSize => 'Restore the default size';
+	@override String get readerLaneSoloHint => 'Anything opened from the shelf on the left or discover on the right is read in this lane; tap the solo button in the bar header to make it fill the viewport instantly.';
+	@override String get footnoteSampleStreakDays => 'Consecutive days with records in the sample · not the full reading log';
+	@override String get footnoteSampleStreak => 'Consecutive days within the sample · not the full reading log';
+	@override String get footnotePeriod28 => 'Last 28 days · distributed by local time of the last read';
+	@override String get footnoteWeekday28 => 'Last 28 days · last-reading records summed by weekday';
+	@override String get footnoteLast500 => 'Last-reading records of the most recent 500 comics · not a total count or reading time';
+	@override String searchDepthTooltip({required Object depths, required Object detail}) => 'Tap to cycle the recursion depth (${depths} levels). ${detail}';
+	@override String get shortSat => 'Sat';
+	@override String get shortFri => 'Fri';
+	@override String get shortThu => 'Thu';
+	@override String get shortWed => 'Wed';
+	@override String get shortTue => 'Tue';
+	@override String get shortMon => 'Mon';
+	@override String get shortSun => 'Sun';
+	@override String get restoreDefaultWidth => 'Restore the default width';
+	@override String get restorePanelBarPosition => 'Restore the panel bar\'s default position';
+	@override String get restoreCollapsedCards => 'Restore collapsed cards';
+	@override String get restoreClosedTabs => 'Restore closed tabs';
+	@override String get totalPagesLabel => 'Total pages';
+	@override String get toContinue => 'To continue';
+	@override String get queueStackCards => 'Queue stack';
+	@override String get currentPageCost => 'Current page time';
+	@override String get currentPageNumber => 'Current page number';
+	@override String get currentPageFile => 'Current page file';
+	@override String get currentPageSize => 'Current page size';
+	@override String get currentPageModifiedAt => 'Current page modified';
+	@override String get currentPageHandoffMs => 'Current page hand-off time (ms)';
+	@override String get currentStreakDays => 'Current streak · days';
+	@override String get currentStreak => 'Current streak';
+	@override String get noHitThisLevel => 'No hits at this level; turn on "include subfolders" and search again (a full scan takes tens of seconds on a slow disk)';
+	@override String get folderNoMedia => 'This folder has no browsable comics or media files';
+	@override String get folderNoChildren => 'This folder has nothing to show';
+	@override String get folderNotInSnapshot => 'This folder is not in the current search or folder snapshot. Enter it to see what is inside.';
+	@override String get archiveLabel => 'Archive';
+	@override String get onComparingOriginal => 'On (comparing with the original)';
+	@override String get switchedOn => 'On';
+	@override String get fieldsFillOnOpen => 'These cells fill in as soon as a book opens; anything unmeasurable stays —';
+	@override String get linking => 'Linking';
+	@override String get avgPagesPerBook => 'Average pages per book';
+	@override String get regularWidth => 'Regular width';
+	@override String get commonTags => 'Common tags';
+	@override String get topCreators => 'Top creators';
+	@override String get market => 'Market';
+	@override String get limitReached => 'Limit reached';
+	@override String get isLastPage => 'This is the last page';
+	@override String get searchHistoryCleared => 'Search history cleared';
+	@override String get followProgressPaused => 'Paused following the reading progress';
+	@override String get fileManagerOpened => 'File manager opened';
+	@override String get gpuReadyState => 'Ready';
+	@override String get pathCopied => 'Path copied';
+	@override String get copied => 'Copied';
+	@override String get pagesPresented => 'Pages presented';
+	@override String get cutDone => 'Cut';
+	@override String get writtenToCacheShare => 'Written to the cache; save it from the share sheet';
+	@override String get aborted => 'Aborted';
+	@override String get workholeSize => 'Workhole size';
+	@override String get peakDay => 'Peak day';
+	@override String get peakValue => 'Peak';
+	@override String get expandLane => 'Expand lane';
+	@override String get polledEvery3s => 'Polled every 3 s while expanded';
+	@override String get expandChildren => 'Expand children';
+	@override String get expandSubfolders => 'Expand subfolders';
+	@override String get expandInformation => 'Expand information';
+	@override String get expandLabel => 'Expand';
+	@override String get displayWallSettings => 'Display wall settings · long-press to toggle the wall';
+	@override String get displayWallCustom => 'Display wall customise';
+	@override String get displayWall => 'Display wall';
+	@override String get searchDepthCostHint => 'More depth is slower: one full-library scan takes tens of seconds on a slow disk; too shallow misses deeper folders';
+	@override String get readyWaiting => 'Ready, waiting';
+	@override String get readyState => 'Ready';
+	@override String get dustyReread => 'Shelf finds';
+	@override String get widgetsOnceThenShapes => 'Each widget appears once per wall; the remaining gaps are filled with random shapes.';
+	@override String get coverGrid => 'Cover grid';
+	@override String get coverCollage => 'Cover collage';
+	@override String get coverList => 'Cover list';
+	@override String get coverLabel => 'Cover';
+	@override String get exportAsJson => 'Export as JSON';
+	@override String get importExport => 'Import / export';
+	@override String get cardWidthAutoColumns => 'Width is the target size; the column count adapts to the panel. Wide cards take two slots and can sit beside normal ones.';
+	@override String get finishEditing => 'Finish editing';
+	@override String get finishLayout => 'Finish layout';
+	@override String get storageInformation => 'Storage information';
+	@override String get saveAsTab => 'Save as tab';
+	@override String get subFilesShowAll => 'Sub-files: show all';
+	@override String get subFilesShowOne => 'Sub-files: show one';
+	@override String get daysWithRecords => 'days with records';
+	@override String get sizeCompare => 'Size comparison';
+	@override String get sizeLabel => 'Size';
+	@override String get multiColumnLanes => 'Multi-column lanes';
+	@override String get searchAnyToken => 'Union across tokens (by default every token must match)';
+	@override String get multiOutlinedSelected => 'Multiple · the outline marks the selection';
+	@override String get duplicateTab => 'Duplicate tab';
+	@override String get copyPath => 'Copy path';
+	@override String get copyPosition => 'Copy position';
+	@override String get einkRefresh => 'E-ink refresh';
+	@override String get basedOnLast500 => 'Based on the last-reading records of the most recent 500 comics';
+	@override String get readingProgress => 'Reading progress';
+	@override String get currentlyReading => 'Reading';
+	@override String get onlineSourceNoFileTime => 'Online sources have no local file times';
+	@override String get onlineSourceNoArchive => 'Online sources have no archive';
+	@override String get onlineSource => 'Online source';
+	@override String get onlineLabel => 'Online';
+	@override String get openInNewTab => 'Open in a new tab';
+	@override String get readerLaneReadsHint => 'Anything opened from the shelf on the left or discover on the right is read in this lane;';
+	@override String get searchSubdirs => 'Search inside subfolders';
+	@override String get gallery => 'Gallery';
+	@override String get imageSize => 'Image size';
+	@override String get imagesLabel => 'Images';
+	@override String get sourceLocalAggregate => 'Local source aggregate';
+	@override String get sourceExtensions => 'Source extensions';
+	@override String get sourceShortcuts => 'Source shortcuts';
+	@override String get imageSourcesEn => 'Extensions';
+	@override String get imageSources => 'Sources and extensions';
+	@override String get sourcesToolsOcr => 'Sources · Tools · OCR';
+	@override String get imageProcessingStage => 'Image processing stage';
+	@override String get imageInformation => 'Image information';
+	@override String get pinTab => 'Pin tab';
+	@override String get pinHere => 'Pin here';
+	@override String get backToFolder => 'Back to the folder';
+	@override String get backHome => 'Back home';
+	@override String get backToLaneHeaderDefault => 'Back to the default docked-in-header form';
+	@override String get heatmapFourRowsHint => 'Four consecutive weeks · the outline marks the selected day · stronger colour means more activity';
+	@override String get weekdaySun => 'Sun';
+	@override String get weekdaySat => 'Sat';
+	@override String get weekdayFri => 'Fri';
+	@override String get weekdayThu => 'Thu';
+	@override String get weekdayWed => 'Wed';
+	@override String get weekdayTue => 'Tue';
+	@override String get weekdayMon => 'Mon';
+	@override String get presenter => 'Presenter';
+	@override String get includeSubdirStats => 'Include subfolder stats';
+	@override String get includeSubdirs => 'Include subfolders';
+	@override String get recursiveSearchHint => 'Searches downward recursively; the depth cap is clamped on the Rust side';
+	@override String get back => 'Back';
+	@override String get searchSyntaxHint => 'Name and path · space-separated · -exclude · "phrases"';
+	@override String get nameLabel => 'Name';
+	@override String get undoable => 'Can be undone';
+	@override String get onlyThisPanelDetailsBelow => 'Applies to this panel only. The cover\'s details button always expands downward.';
+	@override String get onlyFittingWidgetsRepeat => 'Inserts only the summary widgets that fit the gap; the same one may repeat.';
+	@override String get mergeOnlyHistoryDetail => 'Merge only: no history entry is deleted; where local progress is newer than the file, local wins.';
+	@override String get mergeOnlyHistory => 'Merges only — existing records are never deleted or overwritten.';
+	@override String get mergeOnlyBookmarks => 'Merges only — existing bookmarks are never deleted or overwritten.';
+	@override String get changesLabel => 'Changes';
+	@override String get discoverToolsEn => 'Tools';
+	@override String get switchToWorkholeEn => 'Workhole';
+	@override String get switchToSwimlaneEn => 'Swimlane';
+	@override String get closeSidebarEn => 'Close';
+	@override String get closeCurrentComicFull => 'Close the current comic (back to empty)';
+	@override String get closeCurrentComicPlain => 'Close the current comic (back to empty)';
+	@override String get favoritesEn => 'Favourites';
+	@override String get bookshelfEn => 'Bookshelf';
+	@override String get downloadsOfflineEn => 'Downloads';
+	@override String get topEntriesStillWork => 'The three entries above still work: install a source and each one shows here';
+	@override String get widgetsPlusShapes => 'Widgets + shapes';
+	@override String get miniWidgets => 'Widgets';
+	@override String get randomShapes => 'Random shapes';
+	@override String get openDetailsPage => 'Open the details page';
+	@override String get expandDetailsBelow => 'Expand details below';
+	@override String get weightBalanced => 'Balanced';
+	@override String get readingStatus => 'Reading status';
+	@override String get recentlyUsed => 'Recently used';
+	@override String get followSort => 'Follow the sort';
+	@override String get yesterday => 'Yesterday';
+	@override String get cancelPathEdit => 'Cancel path editing';
+	@override String get unpin => 'Unpin';
+	@override String get discoverTools => 'Discover and tools';
+	@override String get doubleTapResetLaneWidth => 'Double-tap resets this column\'s width · right-click opens the lane menu';
+	@override String get installOrImportPlugin => 'Install a source from the plugin market, or import a local plugin package';
+	@override String get originalRatio => 'Original ratio';
+	@override String get historyFile => 'History file';
+	@override String get historyData => 'History data';
+	@override String get volume => 'Volume';
+	@override String get cardHeight => 'Card height';
+	@override String get cardSpacing => 'Card spacing';
+	@override String get cardLayout => 'Card layout';
+	@override String get cardWidth => 'Card width';
+	@override String get cardPosition => 'Card position';
+	@override String get occupiedSize => 'Occupied size';
+	@override String get matchPath => 'Match path';
+	@override String get loadingState => 'Loading';
+	@override String get cut => 'Cut';
+	@override String get forward => 'Forward';
+	@override String get last7DaysRecords => 'Last 7 days';
+	@override String get refreshCurrentFolder => 'Refresh the current folder';
+	@override String get toastOnLastPage => 'Show a toast on the last page';
+	@override String get reachedLastPage => 'That\'s the end — no more pages';
+	@override String get deleteQuestion => 'Delete?';
+	@override String get creating => 'Creating';
+	@override String get create => 'Create';
+	@override String get creator => 'Creator';
+	@override String get listName => 'List name';
+	@override String get toastOnPageSwitch => 'Show a toast when switching pages';
+	@override String get switchToastTest => 'Switch toast test';
+	@override String get switchToast => 'Switch toast';
+	@override String get toastOnBookSwitch => 'Show a toast when switching books';
+	@override String get switchToWorkhole => 'Switch to the immersive workhole';
+	@override String get switchToSwimlane => 'Switch to multi-column lanes';
+	@override String get switchDescending => 'Switch to descending';
+	@override String get switchAscending => 'Switch to ascending';
+	@override String get bookSwitchToast => 'Book-switch toast';
+	@override String get internalThumbnails => 'Internal thumbnails';
+	@override String get builtin => 'Built-in';
+	@override String get moreContentMoreArea => 'More content means a larger share of the area.';
+	@override String get contentCount => 'Content count';
+	@override String get contentSections => 'Content sections';
+	@override String get otherMedia => 'Other media';
+	@override String get closeTab => 'Close tab';
+	@override String get closeSidebar => 'Close sidebar';
+	@override String get closePassthroughMode => 'Turn off passthrough mode';
+	@override String get closeCurrentComic => 'Close the current comic (back to empty)';
+	@override String get closeWorkhole => 'Close the workhole';
+	@override String get closeTabsLeft => 'Close tabs to the left';
+	@override String get closeTabsRight => 'Close tabs to the right';
+	@override String get closeOtherTabs => 'Close other tabs';
+	@override String get turnedOff => 'Off';
+	@override String get manageAll => 'Manage all';
+	@override String get allHealthy => 'All healthy';
+	@override String get allImageSources => 'All image sources';
+	@override String get closeAllTabs => 'Close all';
+	@override String get fullWidth => 'Full width';
+	@override String get allowLeaveLane => 'Allow dragging out of the lane';
+	@override String get pixelSize => 'Pixel size';
+	@override String get serendipity => 'Serendipity';
+	@override String get favouriteTagWeight => 'Favourite tag weight';
+	@override String get favouriteTags => 'Favourite tags';
+	@override String get modifiedTime => 'Modified time';
+	@override String get modifiedDate => 'Modified date';
+	@override String get modify => 'Modify';
+	@override String get egBookPath => 'e.g. Path: {{book.path}}';
+	@override String get egPageIndex => 'e.g. Page {{page.indexDisplay}}';
+	@override String get egLastPage => 'e.g. This is the last page';
+	@override String get egSwitchedToBook => 'e.g. Switched to {{book.displayName}}';
+	@override String get egPageName => 'e.g. {{page.name}}';
+	@override String get sizeVolume => 'Size';
+	@override String get toastStyleInSettings => 'Position and look are set under Settings → Toast style.';
+	@override String get emphasiseTopSorted => 'Emphasises whatever sorts to the top.';
+	@override String get anyToken => 'Any token';
+	@override String get collapseFromPanel => 'Collapse from this panel';
+	@override String get newFromThisTab => 'New from this tab';
+	@override String get pickComicFolderFromDisk => 'Choose a comic folder on disk';
+	@override String get importFromJson => 'Import from JSON';
+	@override String get today => 'Today';
+	@override String get desktopOnly => 'Desktop only';
+	@override String get bookPathLocalOnly => 'Book path (only set for local sources)';
+	@override String get bookTitleTemplate => 'Book title template';
+	@override String get bookDisplayName => 'Book display name';
+	@override String get bookToastTemplate => 'Book toast template';
+	@override String get bookDescriptionTemplate => 'Book description template';
+	@override String get bookInformation => 'Book information';
+	@override String get bookmarkFile => 'Bookmark file';
+	@override String get bookmarkData => 'Bookmark data';
+	@override String get bookmarks => 'Bookmarks';
+	@override String get bookshelfUpstream => 'Bookshelf (upstream original)';
+	@override String get bookshelfAggregateCard => 'Bookshelf aggregate card';
+	@override String get shelfFavoriteFiles => 'Shelf · Favourites · Files';
+	@override String get bookshelfTab => 'Bookshelf';
+	@override String get bookTitle => 'Book title';
+	@override String get homeNotSetYet => 'Home: not set · tap to make the current folder the home';
+	@override String get homeCurrentManageHint => 'Home (current) · right-click or long-press to manage';
+	@override String get homeSetTo => 'Home set to';
+	@override String get homeManageHint => 'Home · right-click or long-press to manage';
+	@override String get heroVisual => 'Hero visual';
+	@override String get mainOccupancy => 'Main occupancy';
+	@override String get temporarySort => 'Temporary sort (not remembered for this folder)';
+	@override String get abortRecursiveSearch => 'Stop the recursive search (keep results already found)';
+	@override String get samePathAsHeaderDoubleClick => 'Same path as double-tapping the lane header';
+	@override String get samePathAsBackKey => 'Same path as Esc and the system back key';
+	@override String get keepGapIrregularOutline => 'Keeps blank space between irregular outlines.';
+	@override String get notAnObject => 'Not an object';
+	@override String get asymmetric => 'Asymmetric';
+	@override String get noFill => 'Do not fill';
+	@override String get downloadTaskList => 'Download task list';
+	@override String get downloadsOffline => 'Downloads and offline';
+	@override String get bothWeeksNoRecord => 'Neither week has records';
+	@override String get earlyAfternoon => 'Early afternoon';
+	@override String get noon => 'Noon';
+	@override String get earlyMorning => 'Early morning';
+	@override String get afternoon => 'Afternoon';
+	@override String get morning => 'Morning';
+	@override String get parentDirectory => 'Up one level';
+	@override String get prevWindowNoRecord => 'No records in the previous window';
+	@override String get nextSegment => 'Next segment';
+	@override String get prevSegment => 'Previous segment';
+	@override String get noCreationTimeField => 'dart:io has no creation time, so only the fields that report back are shown';
+	@override String get rustMemoryPollHint => 'Rust memory is only read when expanded; collapsed stops polling';
+	@override String get rustMemory => 'Rust memory';
+	@override String get gpuZeroCopyEngine => 'Zero-copy GPU engine';
+	@override String get gpuLinking => 'Building the GPU link';
+	@override String get gpuReady => 'GPU ready';
+	@override String get gpuSharedTexture => 'GPU shared texture';
+	@override String get cpuDecodeFallback => 'CPU decode fallback';
+	@override String get cpuDecodePreload => 'CPU decode / image cache preloading';
+	@override String get compressedArchive => 'Compressed archive';
+	@override String get archiveZip => 'ZIP archive';
+	@override String get archiveTar => 'TAR archive';
+	@override String get archiveRar => 'RAR archive';
+	@override String get archiveCbz => 'CBZ archive';
+	@override String get archiveCbr => 'CBR archive';
+	@override String get archive7z => '7Z archive';
+}
+
 // Path: common
 class _Translations$common$en_US extends Translations$common$zh_CN {
 	_Translations$common$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
@@ -88,6 +792,18 @@ class _Translations$common$en_US extends Translations$common$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get nameNoSlash => 'The name can\'t contain / or \\';
+	@override String startupStage({required Object stage}) => 'Stage: ${stage}';
+	@override String get appStartupFailed => 'The app failed to start';
+	@override String get openLocalComicRossi => 'Open a local comic (Rossi\'s own reader + zero-copy GPU)';
+	@override String get neoViewWorkspace => 'NeoView workspace';
+	@override String get openWithRossi => 'Open with Rossi';
+	@override String get showInExplorer => 'Show in Explorer';
+	@override String get showInFinder => 'Show in Finder';
+	@override String get showInFileManager => 'Show in file manager';
+	@override String get revealInFileManagerFolder => 'Open the containing folder in the file manager';
+	@override String get deleteListLabel => 'Delete list';
+	@override String get pleaseEnterName => 'Please enter a name';
 	@override String get ok => 'OK';
 	@override String get cancel => 'Cancel';
 	@override String get save => 'Save';
@@ -241,6 +957,58 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get allLanePanelsHidden => 'Every panel in this lane is hidden —\nenable the ones you need under Global settings → Lane panel kanban.';
+	@override String localTreeArchiveSize({required Object size}) => 'Comic archive · ${size}';
+	@override String get localTreeOpenThisFolder => 'Open this folder directly';
+	@override String get localTreeEmpty => 'No subfolders or comic files in this folder';
+	@override String localTreeReadFailed({required Object error}) => 'Read failed: ${error}';
+	@override String get localTreeOpenFolder => 'Open this folder';
+	@override String get localTreeTitle => 'Local file tree (mImageViewer core)';
+	@override String get debugNoRustDiagnostics => 'The native side returned no Rust diagnostics (the DLL and the bridge may be out of sync).';
+	@override String get debugBrowse => 'Browse...';
+	@override String get debugLocalSourceGroup => 'Local sources (loose folders / .cbz / .cbr)';
+	@override String get debugRefreshStats => 'Refresh stats';
+	@override String get tabSideRight => 'Vertical (right)';
+	@override String get tabSideLeft => 'Vertical (left)';
+	@override String get tabSideTop => 'Horizontal (top bar)';
+	@override String get tabPolicyTriggering => 'Inherit the triggering tab';
+	@override String get tabPolicyRecent => 'Inherit the most recently used tab';
+	@override String get tabPolicyDefaults => 'Use preset defaults';
+	@override String get dragToLaneEnd => 'Drag a panel here to append it';
+	@override String get dropToLaneEnd => 'Release to append to this lane';
+	@override String get moveToLeftLane => 'Move to left lane';
+	@override String get moveToRightLane => 'Move to right lane';
+	@override String kanbanRank({required Object n}) => 'Rank #${n}';
+	@override String get kanbanShowPanel => 'Show this panel in the panel bar';
+	@override String get kanbanHideCompletely => 'Hide from the panel bar (leaves no hidden icon)';
+	@override String get kanbanReaderLaneDesc => 'This lane is reserved for the comic page you are reading. Use the lane-order bar above or the arrows at the top-right of this column to move the reader to the left, centre or right.';
+	@override String get kanbanReaderCanvasTitle => 'Comic reader main canvas';
+	@override String kanbanVisibleHidden({required Object visible, required Object hidden}) => '${visible} visible · ${hidden} hidden';
+	@override String kanbanAllVisible({required Object count}) => '${count} panels (all visible)';
+	@override String get kanbanReaderLaneTitle => 'Reader main-view lane';
+	@override String kanbanLaneIndex({required Object n}) => 'Lane ${n}';
+	@override String get kanbanLaneOrderTitle => 'Lane order (drag sideways or tap the arrows to move)';
+	@override String kanbanHiddenPanels({required Object count}) => '${count} panels fully hidden';
+	@override String kanbanVisiblePanels({required Object count}) => '${count} panels visible';
+	@override String kanbanLaneOrder({required Object order}) => 'Lane order: ${order}';
+	@override String get kanbanDragHint => 'Drag or use the buttons to reorder lanes, reorder the panels within each lane, and toggle visibility. Hidden panels are removed from the panel bar entirely, with no hidden icon left behind.';
+	@override String get rightLane => 'Right lane';
+	@override String get leftLane => 'Left lane';
+	@override String get swimlanePanelKanbanConfigTitle => 'Lane panel kanban configuration';
+	@override String get revealZonePointerHint => 'This device has no hover pointer: these reveal zones only work when the mouse hugs the edge. On touch, use the narrow rails on either side of the solo Reader to switch lanes.';
+	@override String get laneCustomDelayMs => 'This lane · milliseconds';
+	@override String inheritedGlobalDelay({required Object ms}) => 'Inherited from global: ${ms} ms';
+	@override String get fmViewColumns => 'Columns view';
+	@override String get fmViewTree => 'Tree view';
+	@override String get fmViewContent => 'Content view';
+	@override String get fmDefaultContentLayout => 'Default content layout';
+	@override String get fmDefaultEntryStyle => 'Default entry style';
+	@override String get fmTabPolicyHint => '“Recent” follows the active tab; “Triggering” follows the tab that started the action. Only browsing and search options are inherited — query, results, history and selection stay separate. With no source on first open, the preset is used.';
+	@override String get fmTabPolicySource => 'Policy source';
+	@override String get favoriteTagExampleHint => 'school_lolita | 学校萝莉 | School Lolita\nloli';
+	@override String get noMatchingArtist => 'No matching artists';
+	@override String get favoriteArtistExampleHint => 'Artist name\n[Circle name (artist)]\nAnother artist';
+	@override String get confirmResetPin => 'Confirm reset PIN';
 	@override String get defaultHoverDelaySubtitle => 'Used when a lane has no delay of its own';
 	@override String get defaultHoverDelay => 'Default hover reveal delay';
 	@override String get enterWorkspaceSubtitle => 'Opens with the presentation selected below; use the system back key to exit';
@@ -540,6 +1308,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get startWithWorkspace => 'Workspace';
 	@override String get workspaceSleepCoveredUi => 'Sleep home pages while workspace is open';
 	@override String get workspaceSleepCoveredUiSubtitle => 'Release image memory of covered lists; images reload when you return';
+	@override String get panelTabRightClickHide => 'Hide Panel When Right-Clicking Its Icon';
+	@override String get panelTabRightClickHideSubtitle => 'When off, the icons on a lane\'s panel bar only switch panels - right-click and long-press no longer hide one. Hiding is silent: the icon disappears from the bar and there is no restore entry there, so a mis-click means going back to the "Lanes & Panels" board to bring it back.';
 	@override String get skipUpdateCheck => 'Skip update check';
 	@override String get skipUpdateCheckSubtitle => 'This build is a fork: it won\'t query the upstream release on startup and won\'t show update prompts';
 	@override String get desktopCloseBehavior => 'Close behavior';
@@ -931,6 +1701,10 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get collectedWorks => 'Collected';
+	@override String get readingNow => 'Reading';
+	@override String get unreadWorks => 'Unread';
+	@override String get createFolderHint => 'Groups related comics together so you can find them again later.';
 	@override String get title => 'Bookshelf';
 	@override String get favorite => 'Favorites';
 	@override String get history => 'History';
@@ -1029,6 +1803,18 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String chapterCount({required Object count}) => 'Chapters · ${count}';
+	@override String get pageClosedFavoriteCancelled => 'The page closed; the favourite action was cancelled';
+	@override String get previewLoadFailed => 'Preview failed to load';
+	@override String get showMoreChapters => 'Show more chapters';
+	@override String get noChaptersYet => 'No chapters yet';
+	@override String get reverseOrderLabel => 'Reverse';
+	@override String get restoreForwardOrder => 'Restore forward order';
+	@override String get imagePreview => 'Image preview';
+	@override String get collapseDetails => 'Collapse details';
+	@override String get workTools => 'Work tools';
+	@override String get refreshInformation => 'Refresh info';
+	@override String get cloudFavoriteIncomplete => 'The cloud favourite operation didn\'t finish';
 	@override String get follow => 'Follow updates';
 	@override String get unfollow => 'Unfollow';
 	@override String get exportComic => 'Export comic';
@@ -1147,6 +1933,264 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String switchBookFailed({required Object error}) => 'Switching books failed: ${error}';
+	@override String pageDecodeFailed({required Object n}) => 'Page ${n} could not be decoded';
+	@override String cannotOpenPath({required Object path}) => 'Can\'t open: ${path}';
+	@override String get aiJpegDenoise => 'AI JPEG denoise';
+	@override String get noMatchingOfflineComics => 'No downloaded comics match';
+	@override String get searchOfflineComics => 'Search downloaded comics';
+	@override String get stateNotDownloadedAsk => 'Not downloaded (it asks first when you turn this on)';
+	@override String get stateDownloaded => 'Downloaded';
+	@override String get stateOff => 'Off';
+	@override String get stateOn => 'On';
+	@override String cannotOpenLocalComic({required Object error}) => 'Can\'t open the local comic: ${error}';
+	@override String cachedPages({required Object count}) => '${count} pages cached';
+	@override String targetLanguageLabel({required Object lang}) => 'Target ${lang}';
+	@override String bottomRevealPx({required Object px}) => 'Bottom reveal (${px}px)';
+	@override String topRevealPx({required Object px}) => 'Top reveal (${px}px)';
+	@override String sourcePageOf({required Object index, required Object total}) => 'Source page ${index} of ${total}';
+	@override String manualPageOrderFor({required Object name}) => 'Manual page order · ${name}';
+	@override String tapToSwitchMode({required Object from, required Object to}) => '${from} (tap to switch to ${to})';
+	@override String modelState({required Object state}) => 'Model: ${state}';
+	@override String modelDownloadFailed({required Object error}) => 'Model download failed: ${error}';
+	@override String activeThreshold({required Object value}) => 'Effective threshold: ${value}';
+	@override String globalDefaultState({required Object state}) => 'Global (default for all books): ${state}';
+	@override String thisBookState({required Object state}) => 'This book: ${state}';
+	@override String upscaleChipTail({required Object tooltip}) => '${tooltip}\nTap to toggle; hold to peek at the original; the power button on the right affects this book only';
+	@override String notWiredIntoReader({required Object name}) => '${name} isn\'t wired into this repo\'s reader yet';
+	@override String notImplementedYet({required Object name}) => '${name} (not implemented in this repo yet)';
+	@override String oneScreenPercent({required Object percent}) => '${percent}% of a screen';
+	@override String slideshowDwellHint({required Object step, required Object min, required Object max}) => 'How long each page stays: ${step} per step, between ${min} and ${max}';
+	@override String manualRotationDeg({required Object deg}) => 'Manual rotation ${deg}°';
+	@override String loupeSizeRange({required Object min, required Object max}) => 'Window edge, logical pixels (${min}–${max}, 20 per step)';
+	@override String loupeZoomRange({required Object min, required Object max}) => 'Magnification (${min}%–${max}%, 25% per step, doubling steps from 400%)';
+	@override String intervalSeconds({required Object seconds}) => 'Interval ${seconds}s';
+	@override String tapToExpandPanel({required Object label}) => '${label} (tap to open the panel)';
+	@override String zoomModeValue({required Object mode}) => 'Zoom mode: ${mode}';
+	@override String get imageProcessingOffReaderHint => 'Image processing is off; turn it on in the reader settings';
+	@override String get gpuTextureUnsupported => 'This platform doesn\'t support GPU texture processing';
+	@override String get thisPage => 'This page';
+	@override String get pendingUpscale => 'Awaiting upscale';
+	@override String get upscaleFailedState => 'Upscale failed';
+	@override String get noUpscaleNeeded => 'No upscaling needed';
+	@override String get upscaledState => 'Upscaled';
+	@override String get generatedState => 'Generated';
+	@override String get upscalingState => 'Upscaling';
+	@override String get queuedState => 'Queued';
+	@override String get originalCompareChip => 'Comparing original';
+	@override String get upscaleOff => 'Upscale off';
+	@override String get notSupported => 'Not supported';
+	@override String get noProcessingNeeded => 'No processing needed';
+	@override String get denoiseFailed => 'Denoise failed';
+	@override String get enhanceFailed => 'Enhance failed';
+	@override String get pendingDenoise => 'Awaiting denoise';
+	@override String get pendingEnhance => 'Awaiting enhance';
+	@override String get denoisedDone => 'Denoised';
+	@override String get enhancedDone => 'Enhanced';
+	@override String get denoising => 'Denoising';
+	@override String get enhancing => 'Enhancing';
+	@override String get upscaleShort => 'Upscale';
+	@override String get jpegDenoise => 'JPEG denoise';
+	@override String get denoisePlusUpscale => 'Denoise + upscale';
+	@override String tooltipIdle({required Object page, required Object process, required Object hint}) => '${page} hasn\'t started ${process} yet${hint}';
+	@override String tooltipFailed({required Object page, required Object process, required Object hint}) => '${page} · ${process} failed, still showing the original${hint}';
+	@override String tooltipSkipped({required Object page, required Object hint}) => '${page} needs no processing${hint}';
+	@override String tooltipApplied({required Object page, required Object process, required Object hint}) => '${page} already uses the ${process} image${hint}; tap here to compare with the original';
+	@override String tooltipReady({required Object page, required Object hint}) => '${page}\'s processed image is ready, waiting to be shown${hint}';
+	@override String tooltipRunning({required Object page, required Object process, required Object hint}) => '${page} · ${process}…${hint}';
+	@override String tooltipQueued({required Object page, required Object process, required Object hint}) => '${page} is queued, waiting for ${process}${hint}';
+	@override String tooltipComparing({required Object hint}) => 'Comparing with the original; tap here to return to the processed image${hint}';
+	@override String sizeHintSource({required Object source}) => '(original ${source})';
+	@override String sizeHintEnhanced({required Object enhanced}) => '(processed ${enhanced})';
+	@override String sizeHintBoth({required Object source, required Object enhanced}) => '(original ${source} → processed ${enhanced})';
+	@override String pageNumberN({required Object page}) => 'Page ${page}';
+	@override String missingWeightsCount({required Object count}) => 'missing ${count} weights';
+	@override String get noMissingWeights => '(nothing missing, proceeding as-is)';
+	@override String get fitWindow => 'Fit to window';
+	@override String get autoTrimEnabledByDefault => 'Enable auto-trim by default';
+	@override String get alignHeight => 'Align height (two pages share one height)';
+	@override String get dwellIndicatorOff => 'The dwell indicator is off; you can only guess which page is showing';
+	@override String get firstPageAloneOn => 'Show the first page alone: on';
+	@override String get firstPageAloneOff => 'Show the first page alone: off';
+	@override String get rotateClockwise90 => 'Rotate 90° clockwise';
+	@override String get pageSorting => 'Page sorting';
+	@override String get pageLayout => 'Page layout';
+	@override String get pageOrder => 'Page order';
+	@override String get trimSideLimitHint => 'Caps how much of each side may be trimmed; 0% keeps the full page';
+	@override String get denoiseAdvancedSettings => 'Advanced denoise settings';
+	@override String get denoiseBlockSize => 'Denoise block size';
+	@override String get denoiseShort => 'Denoise';
+	@override String get thresholdLabel => 'Threshold';
+	@override String get startWeightsInReaderSettings => 'Start downloading the weights in the reader settings:';
+	@override String get readerSafeMarginBothSides => 'Whether the reader keeps a moderate safety margin on both sides';
+	@override String get intervalLabel => 'Interval';
+	@override String get lockLoupe => 'Lock';
+	@override String get fillWholeWindow => 'Fill the whole window';
+	@override String get resetViewTransform => 'Reset zoom, rotation and wide-page policy (keeps page mode and reading direction)';
+	@override String get rotateCounterclockwise90 => 'Rotate 90° counter-clockwise';
+	@override String get fitHeight => 'Fit to height';
+	@override String get fitWidth => 'Fit to width';
+	@override String get pageNotLoadedYet => 'This page has not loaded yet; wait a moment and translate again';
+	@override String get loadingSettings => 'Loading settings…';
+	@override String get translationHiddenByCompare => 'The translation is generated and injected but hidden by "compare with original"; switch back to upscaling to see it';
+	@override String get trigger => 'Trigger';
+	@override String get trimAdvancedSettings => 'Advanced trim settings';
+	@override String get pointerTypeAuto => 'Auto: decided by the pointer itself — mouse and trackpad follow hover, finger and stylus need a press (platform-independent, so touch laptops plus an external mouse both resolve correctly)';
+	@override String get autoTranslateShort => 'Auto-translate';
+	@override String get autoRotate => 'Auto-rotate';
+	@override String get autoSplitLandscapeOn => 'Auto-split landscape pages: on';
+	@override String get autoSplitLandscapeOff => 'Auto-split landscape pages: off';
+	@override String get backgroundTolerance => 'Background detection tolerance';
+	@override String get autoTranslateEnabled => 'Auto-translate on page turn is enabled';
+	@override String get zoomMode => 'Zoom mode';
+	@override String get editManualOrder => 'Edit this chapter\'s manual order';
+	@override String get rotatePortraitLeft => 'Rotate portrait pages left';
+	@override String get rotatePortraitRight => 'Rotate portrait pages right';
+	@override String get chapterShort => 'Chapter';
+	@override String get downloadNow => 'Download now';
+	@override String get confirmResetAndRedownload => 'Reset the progress and download this comic again?';
+	@override String get zoomShortReset => 'Short press resets to 100%; press and hold to enter a percentage';
+	@override String get marginWhitespace => 'Whitespace';
+	@override String get noBookOpenYet => 'No book is open now — open one before this can be set per book';
+	@override String get layoutTools => 'Layout tools';
+	@override String get autoScroll => 'Auto-scroll';
+	@override String get clearManualOrder => 'Clear this chapter\'s manual order';
+	@override String get removeTwoPageSeam => 'Removes the seam between the two pages';
+	@override String get downloadingUpscaleInBackground => 'Downloading the upscale model in the background...';
+	@override String get landscape => 'Landscape';
+	@override String get rotateLandscapeLeft => 'Rotate landscape pages left';
+	@override String get rotateLandscapeRight => 'Rotate landscape pages right';
+	@override String get formatLabel => 'Format';
+	@override String get webtoonStepScreens => 'How many screens a webtoon advances per tick: webtoons only; paginated books move a whole page';
+	@override String get webtoonTrimSidesOnly => 'Webtoons trim only the sides, keeping the vertical seam. Full-bleed or unreliable detections stay as-is.';
+	@override String get weights => 'Weights';
+	@override String get noManualOrderHere => 'This chapter has no manual order to clear';
+	@override String get bookImageProcessing => 'This book: image processing';
+	@override String get bookEnableAiUpscale => 'This book: enable AI super-resolution';
+	@override String get bookUpscaleOnFetch => 'Upscaling is on for this book (later fetches are processed at the fetch layer)';
+	@override String get bookAiUpscaleOn => 'AI upscaling is enabled for this book';
+	@override String get bookTrimOnOverride => 'Trim is on for this book alone · global is off';
+	@override String get bookTrimOffOverride => 'Trim is off for this book alone · global is on, so this session will not trim';
+	@override String get bookUpscaleOff => 'Upscaling is off for this book (other books follow the global setting)';
+	@override String get bookAiUpscaleOff => 'AI upscaling is off for this book (other books follow the global setting)';
+	@override String get bookEnableJpegDenoise => 'Enable JPEG denoise for this book';
+	@override String get loupeUnlockedFollows => 'Unlocked: the window closes as soon as the pointer leaves or the finger lifts; when locked it stays put, so you can drag it aside and then aim';
+	@override String get notDownloaded => 'Not downloaded';
+	@override String get pauseResumeAutoScroll => 'Pause / resume auto-scroll';
+	@override String get logLabel => 'Log';
+	@override String get alignNone => 'No alignment (keep original ratios)';
+	@override String get rotationSettings => 'Rotation settings';
+	@override String get fileSize => 'File size';
+	@override String get pageOrderNatural => 'Natural file-name order (page2 before page10)';
+	@override String get fileLabel => 'File';
+	@override String get slideshowOffTapStart => 'The slideshow is off: tap to start it';
+	@override String get slideshowDwellIndicator => 'Show which page is up and whether it is paused during the slideshow';
+	@override String get slideshowOnButIdle => 'The slideshow is on but not ticking: tap to continue';
+	@override String get slideshowStoppedAtEnd => 'The slideshow stopped at the chapter end';
+	@override String get slideshowPlayingTapPause => 'Playing; tap to pause';
+	@override String get slideshowPlaying => 'Playing';
+	@override String get slideshowFinished => 'Finished';
+	@override String get loupeTooltip => 'Loupe: magnifies a small patch of pixels under the pointer as-is into the side window (checking screentone and edge detail)';
+	@override String get loupeEnabled => 'Loupe is on: a small patch of pixels under the pointer is magnified as-is into the side window';
+	@override String get loupe => 'Loupe';
+	@override String get slideshowAdvanceChapter => 'At chapter end, go on to the next chapter; stop when there is none';
+	@override String get slideshowLoopInChapter => 'At chapter end, jump back to the first page and keep playing';
+	@override String get slideshowStopAtChapterEnd => 'Stop at the last page of the chapter and turn the slideshow off';
+	@override String get inference => 'Inference';
+	@override String get onDemandTranslateOcr => 'On-demand inset translation and on-device OCR';
+	@override String get detectByFileHeader => 'Detected by file header. PNG, WebP and similar pages stay as-is.';
+	@override String get dragReorderStaysOnPage => 'Drag to change the display order; applying keeps you on the current page';
+	@override String get openChapterListToDrag => 'Open this chapter\'s page list and drag to reorder (starting from the current order)';
+	@override String get perBookAfterOpening => 'Set per book after opening an online or local comic';
+	@override String get touchHoldToShow => 'Touch: press and hold to open the window, release to close it (with lock you can drag it)';
+	@override String get manualOrderDragList => 'Manual order (drag in the page list)';
+	@override String get manualZoom => 'Manual zoom';
+	@override String get denoiseDefaultForAll => 'Enable denoise for all comics by default';
+	@override String get allBooksDefaultCurrentlyOff => 'Default for all books, currently off; when on, every book without its own setting follows';
+	@override String get allBooksDefaultShared => 'Default for all books (the same entry as in the settings page)';
+	@override String get hoverFollowsMouse => 'Hover: follows the mouse only and closes when the pointer leaves the page';
+	@override String get hoverScroll => 'Hover scroll';
+	@override String get restoreDefaultParams => 'Restore default parameters';
+	@override String get restoreConservativeDefaults => 'Restore conservative defaults';
+	@override String get mimageModelMissingPrompt => 'This device has not downloaded the mImage ONNX upscale model (about 5.4 MB). Download and enable it now?';
+	@override String get noImageInfoAvailable => 'No image information available to read right now';
+	@override String get noRealPlksrBackendHere => 'This platform has no RealPLKSR inference backend yet';
+	@override String get pageAnimationOn => 'Smooth page-turn animation is currently on';
+	@override String get pageAnimationOff => 'Page-turn animation is currently off';
+	@override String get currentImage => 'Current image';
+	@override String get translateOnDeviceNow => 'Using an on-device offline engine right now; translated pages need no network';
+	@override String get translateCloudEndpointNow => 'Translating through a cloud API endpoint right now; erases the original bubbles and fills in the translation';
+	@override String get force => 'Force';
+	@override String get engine => 'Engine';
+	@override String get enableAutoScroll => 'Enable auto-scroll';
+	@override String get enableBookUpscale => 'Turn on upscaling for this book';
+	@override String get slideshow => 'Slideshow';
+	@override String get loupeLockedOn => 'Locked: the window stays after the pointer leaves and the finger lifts; drag the window itself to move it; double-tap it to unlock';
+	@override String get requeuedToDownload => 'Added back to the download queue';
+	@override String get alreadyDisabled => 'Disabled';
+	@override String get manualOrderClearedDone => 'Cleared this chapter\'s manual order';
+	@override String get slideshowPausedTapResume => 'Paused; tap to resume the slideshow (settings unchanged)';
+	@override String get autoScrollEnabled => 'Auto-scroll enabled';
+	@override String get trimOnAutoDetect => 'On · white and black edges auto-detected';
+	@override String get denoiseOnRealPlksr => 'On · RealPLKSR 1×';
+	@override String get switchedToOriginalCompare => 'Switched to the original comparison';
+	@override String get switchedBackToProcessed => 'Switched back to the processed image';
+	@override String get trimOffFullPage => 'Off · the full page is shown';
+	@override String get trimOffOriginalKept => 'Off · original left unchanged';
+	@override String get fitWindowLeft => 'Fit to window, aligned left';
+	@override String get fitWindowRight => 'Fit to window, aligned right';
+	@override String get compareOriginal => 'Compare with the original';
+	@override String get widePagePolicy => 'Wide page policy';
+	@override String get alignWidth => 'Align width (two pages share one width)';
+	@override String get safeMargin => 'Safe margin';
+	@override String get processingStatus => 'Processing status';
+	@override String get bgToleranceHint => 'Raising it tolerates paper tint and light noise; use a smaller value when pale detail is common';
+	@override String get onlineUpscaleAtFetchLayer => 'Online sources: upscaling happens at the fetch/decode layer, so this is the per-book switch (no per-page state)';
+	@override String get sharedUpscaleEnlarge => 'Shared by online and local comics; enlarges content while reading';
+	@override String get sharedDenoiseThenUpscale => 'Shared by online and local comics; keeps resolution, denoises then upscales';
+	@override String get trimSafeMarginKeeps => 'Keeps extra space around detected content to protect text, page numbers and linework';
+	@override String get pageOrderSource => 'Source order (as the plugin or archive provides it)';
+	@override String get imageProcessing => 'Image processing';
+	@override String get readback => 'Read-back';
+	@override String get backend => 'Backend';
+	@override String get onlyThisBookAskFirst => 'Affects this book only; the model is not downloaded, so it asks first when you enable it';
+	@override String get onlyThisBookGlobalOthers => 'Affects this book only; other books follow the global setting';
+	@override String get onlyThisComicUpscaleOwn => 'Affects this comic only; upscaling has its own switch';
+	@override String get twoPagesIndependent => 'Two pages independent';
+	@override String get twoPageModeTap => 'Two-page mode (tap for single page)';
+	@override String get twoPages => 'Two pages';
+	@override String get originalSize => 'Original size';
+	@override String get comparingOriginal => 'Comparing with the original';
+	@override String get singlePageModeTap => 'Single page mode (tap for two pages)';
+	@override String get singlePage => 'Single page';
+	@override String get trimSideLimit => 'Max trim per side';
+	@override String get animatedNotProcessed => 'Animated pages are not processed. Model strength is fixed; original, denoised and upscaled results are cached separately.';
+	@override String get animated => 'Animated';
+	@override String get toggleReaderFilter => 'Toggle the reading filter and eye-comfort overlay';
+	@override String get resolution => 'Resolution';
+	@override String get blockLabel => 'Blocks';
+	@override String get disableAutoScroll => 'Turn off auto-scroll';
+	@override String get disableAutoRotate => 'Turn off auto-rotate';
+	@override String get disableBookUpscale => 'Turn off upscaling for this book';
+	@override String get wholeBook => 'Whole book';
+	@override String get panoramaMode => 'Panorama mode';
+	@override String get pageOrderReversed => 'Reversed (the whole chapter page list flipped)';
+	@override String get scaleLabel => 'Scale';
+	@override String get notWiredBelow => 'Not yet wired into this repo';
+	@override String get jpegPagesOnly => 'Processes JPEG pages only';
+	@override String get peekOriginalBriefly => 'Briefly view the original; the processed result returns when it closes';
+	@override String get peekBackToOriginal => 'Temporarily switch back to the original; the processed result returns when it closes';
+	@override String get denoiseBlockIndependentHint => 'Independent of upscaling. Smaller blocks cut inference memory; fixed-input models use their own size';
+	@override String get denoiseOriginalSafeBefore => 'Originals untouched; denoise runs before upscaling';
+	@override String get denoiseOriginalSafeBookOverride => 'Originals untouched; the per-book switch can still override it in reader settings';
+	@override String get downloadPreference => 'Download preference';
+	@override String get downloadAiUpscaleModel => 'Download AI upscale model';
+	@override String get rotateAlwaysLeft => 'Always rotate left';
+	@override String get rotateAlwaysRight => 'Always rotate right';
+	@override String get ocrWeightsReady => 'OCR weights ready';
+	@override String get neoviewViewportDemo => 'NeoView viewport-aware interaction sketch';
+	@override String get denoiseModelMissing => 'JPEG denoise model not installed';
+	@override String get aiSuperResolution => 'AI super-resolution';
 	@override String get downloadManage => 'Download Manager';
 	@override String get startDownload => 'Start Download';
 	@override String get pauseDownload => 'Pause Download';
@@ -1397,6 +2441,9 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get getInfoJsonBadFormat => 'getInfoJson returned malformed data';
+	@override String get getInfoBadFormat => 'getInfo returned malformed data';
+	@override String get badResponseFormat => 'The plugin returned a malformed response';
 	@override String get advancedCapabilityLoading => 'Loading advanced capabilities...';
 	@override String get store => 'Plugin Store';
 	@override String get searchHint => 'Search plugin name or author...';
@@ -1755,6 +2802,135 @@ class _Translations$realSr$en_US extends Translations$realSr$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String openedUpscaleCache({required Object dir}) => 'No upscale output yet; opened the upscale cache folder: ${dir}';
+	@override String openedRecentLocation({required Object output}) => 'Opened the folder holding the latest output: ${output}';
+	@override String openFolderFailed({required Object error}) => 'Opening the folder failed: ${error}';
+	@override String openFolderUnsupported({required Object dir}) => 'This platform can\'t open folders: ${dir}';
+	@override String get coremlModelPhoto => 'Real-ESRGAN x4plus · photo / CG';
+	@override String mimageInferenceFailed({required Object error}) => 'mImage ONNX inference failed: ${error}';
+	@override String modelUnavailableHint({required Object engine}) => 'Model unavailable: ${engine}. Download it in the upscale settings first.';
+	@override String archiveMissingOnnx({required Object file}) => 'Archive is missing the mImage ONNX model ${file}';
+	@override String archiveContentMismatch({required Object missing}) => 'Archive contents don\'t meet this engine\'s requirements: ${missing}';
+	@override String modelFileNameMismatch({required Object expected, required Object actual}) => 'File name doesn\'t match the current model: expected ${expected}, got ${actual}';
+	@override String missingOnnxDownload({required Object file}) => 'Missing mImage ONNX model ${file}; download it in the settings';
+	@override String importJsonInvalid({required Object error}) => 'Invalid JSON: ${error}';
+	@override String get copyLog => 'Copy log';
+	@override String blockInfoDetail({required Object contentSize, required Object blockSize, required Object shrink}) => 'Tiling: content block ${contentSize}×${contentSize}, model input ${blockSize}×${blockSize} (includes ${shrink} px reflection padding); fixed by the model';
+	@override String deleteModelConfirmNamed({required Object name}) => 'Delete ${name}? You can download it again if needed.';
+	@override String actionFailedDetail({required Object error}) => 'Operation failed: ${error}';
+	@override String importConditionSuccess({required Object count}) => 'Successfully imported ${count} conditions';
+	@override String get logEmptyText => 'No upscale log yet. Once upscaling runs, inference and replacement are logged here.';
+	@override String get upscaleLogCopied => 'Upscale log copied';
+	@override String get expandEditor => 'Expand editor';
+	@override String get collapseEditor => 'Collapse editor';
+	@override String conditionListSummary({required Object total, required Object enabled}) => 'Conditions (${total}, ${enabled} enabled)';
+	@override String get conditionNeedsAutoUpscale => 'Enable [Auto upscaling] above first; only then do conditions apply while reading and preloading.';
+	@override String get conditionUpscaleSubtitle => 'Dispatch upscale actions and skip rules by image size, path regex and metadata';
+	@override String get conditionUpscaleTitle => 'Condition upscaling (neo)';
+	@override String get advancedOptionsTitle => 'Advanced upscale options (pre-upscale / log)';
+	@override String get ncnnCliDesc => 'Runs the waifu2x / Real-CUGAN ncnn-vulkan executables; mode, scale, concurrency and tiling are set at the bottom of the “Image upscaling” page.';
+	@override String get coremlDesc => 'Swift calls Apple CoreML directly and reuses the loaded model.';
+	@override String nativeScaleLabel({required Object x}) => 'Native ${x}×';
+	@override String get modeCuganQuality => 'Real-CUGAN · quality first';
+	@override String get modeWaifuFast => 'waifu2x · speed first';
+	@override String get nativeModel => 'Rossi native model';
+	@override String get engineSwitchHint => 'Switching reprocesses the current page; each engine keeps its own model choice.';
+	@override String get hardwareAcceleration => 'Hardware acceleration';
+	@override String get upscaleEngine => 'Upscale engine';
+	@override String get preUpscaleHint => 'One page at a time to avoid memory contention; set both to 0 to disable pre-upscaling.';
+	@override String pageCount({required Object n}) => '${n} pages';
+	@override String get preUpscaleCurrentFirst => 'Pre-upscale (current page first)';
+	@override String get enableTta => 'Enable TTA';
+	@override String get writeResultCache => 'Write results to cache';
+	@override String get enableTile => 'Enable tiling (Tile)';
+	@override String get actionUpscaleHit => 'When matched: run upscaling';
+	@override String get actionSkipHit => 'When matched: skip upscaling (no processing)';
+	@override String get actionSectionTitle => 'Trigger action (Action)';
+	@override String get excludePreUpscale => 'Exclude from the pre-upscale queue';
+	@override String get matchArchivePath => 'Match paths inside the archive';
+	@override String get regexExampleOr => 'or';
+	@override String get regexExamplePrefix => 'e.g. ';
+	@override String get matchSectionTitle => 'Size and rule matching (Match)';
+	@override String get enableThisCondition => 'Enable this condition';
+	@override String get conditionEnabledBadge => 'Enabled';
+	@override String importSuccessSkipped({required Object imported, required Object skipped}) => 'Imported ${imported} conditions, skipped ${skipped} incompatible ones';
+	@override String get importContentEmpty => 'Import content cannot be empty';
+	@override String get importJsonSample => '[\n  {\n    "name": "Example condition",\n    ...\n  }\n]';
+	@override String get pasteExportedJson => 'Paste the exported JSON array or backup object text:';
+	@override String get conditionJsonCopied => 'Condition JSON copied to clipboard';
+	@override String get conditionsRestored => 'Default conditions restored';
+	@override String get keepAtLeastOneCondition => 'Keep at least one upscale condition';
+	@override String conditionCopy({required Object name}) => '${name} (copy)';
+	@override String get importLocalHint => 'For local import, pick the mImage ONNX model matching the file name above. After switching, the current page is re-upscaled.';
+	@override String get modelNotInstalled => 'Current model not installed; download or import it before use';
+	@override String get modelInstalled => 'Current model installed';
+	@override String modelRuntime({required Object runtime}) => 'Runtime: ${runtime}';
+	@override String get modelDenoiseFixed => 'Denoise: fixed by the model, no separate strength control';
+	@override String get modelDenoiseCugan => 'Denoise: Real-CUGAN conservative repair, strength fixed by the model';
+	@override String modelScaleNote({required Object scale}) => 'Scale: native ${scale}× (set by the model)';
+	@override String get exampleBuiltinHint => 'No page is being read, so the built-in sample is shown; open a comic and expand again to see the current page.';
+	@override String exampleSemantics({required Object title, required Object before, required Object after, required Object description}) => '${title} sample. ${before} compared with ${after}. Tap to view full size. ${description}';
+	@override String exampleTitleSuffix({required Object title}) => '${title} (sample)';
+	@override String get exampleLiveSource => 'Taken from the page you are reading; released as soon as the preview closes.';
+	@override String beforeUnchanged({required Object before}) => '${before} (kept as-is)';
+	@override String beforeTrimmedShadow({required Object before}) => '${before} (shaded area is what gets trimmed)';
+	@override String get loadingTrimResult => 'Reading the current page\'s trim result…';
+	@override String get loadingDenoiseResult => 'Reading the current page\'s denoise result…';
+	@override String get exampleImageNotReadyRetry => 'The current page image is not ready yet; turn the page or try again shortly';
+	@override String previewFailed({required Object error}) => 'Preview failed: ${error}';
+	@override String get afterDenoise => 'Denoised';
+	@override String get afterTrim => 'Trimmed';
+	@override String get exampleDenoiseDesc => 'The same JPEG crop actually processed by RealPLKSR 1×; resolution stays the same. Results vary with the source image.';
+	@override String get exampleTrimDesc => 'Removes the surrounding margins so the comic fills more of the screen. The sample image does not change with the settings.';
+	@override String get exampleDenoiseTitle => 'Denoise preview';
+	@override String get exampleTrimTitle => 'Auto-trim preview';
+	@override String get denoiseAttribution => 'From mImageViewer · CC BY 4.0\nDownloaded on first use; installed once size and SHA-256 check out.';
+	@override String get retryDownload => 'Retry download';
+	@override String get denoiseProgressTooltip => 'Model download progress';
+	@override String get denoiseVerifyTooltip => 'Verify model integrity';
+	@override String get denoiseSubtitle => 'RealPLKSR · JPEG denoise · 1×';
+	@override String get denoiseUpdateFailed => 'Update failed · the installed model still works';
+	@override String denoiseInstalled({required Object size}) => 'Model installed · ${size}';
+	@override String get denoiseVerifying => 'Verifying model';
+	@override String get denoiseMissing => 'Model not installed';
+	@override String get denoiseChecking => 'Checking model';
+	@override String get modelIncomplete => 'Model is incomplete';
+	@override String get modelDownloadDone => 'Model download finished';
+	@override String get manualImportUnsupported => 'This platform does not support manual upscale-model import';
+	@override String get missingModelDirs => 'Missing model directories (models-pro / models-se etc.)';
+	@override String get missingExecutable => 'Missing waifu2x / Real-CUGAN executable';
+	@override String missingModelFile({required Object file}) => 'Missing model file ${file}';
+	@override String missingModelDir({required Object dir}) => 'Missing model directory ${dir}';
+	@override String missingOnnxModel({required Object file}) => 'Missing mImage ONNX model ${file}';
+	@override String get previewEnhancedUnreadable => 'The enhanced result can\'t be read right now, so no comparison is shown';
+	@override String get previewDenoiseOriginal => 'Denoise not applied · the page shown is still the original';
+	@override String get previewDenoiseCompare => 'Denoise applied · compared against the enhanced page the reader shows';
+	@override String previewDenoisePending({required Object phase}) => 'Denoise not applied yet · ${phase}';
+	@override String get previewDenoiseApplied => 'JPEG denoise applied · RealPLKSR 1×';
+	@override String get previewBothApplied => 'Denoise and upscale applied · compared against the enhanced page on screen';
+	@override String get previewDenoiseOff => 'This image is not denoised · denoise is off for this comic';
+	@override String get previewDenoiseJpegOnly => 'This image is not denoised · only JPEG pages are processed, this one stays as-is';
+	@override String trimInsets({required Object left, required Object top, required Object right, required Object bottom}) => 'left ${left} · top ${top} · right ${right} · bottom ${bottom}';
+	@override String previewTrimApplied({required Object summary}) => 'Display trim applied · ${summary}';
+	@override String get previewTrimNotNeeded => 'This image is not trimmed · nothing to trim, kept as-is';
+	@override String get previewTrimPending => 'Trim detection not finished · waiting for the result';
+	@override String get previewTrimSplitPage => 'This image is not trimmed · split double pages stay as-is';
+	@override String get previewTrimOff => 'This image is not trimmed · auto-trim is off for this comic';
+	@override String get tileSizeHint => 'Lower this if it crashes; “Auto” uses the model\'s recommended block size, and a model that declares a fixed input size takes precedence';
+	@override String conditionN({required Object index}) => 'Condition ${index}';
+	@override String importItemFailed({required Object index, required Object error}) => 'Failed to parse item ${index}: ${error}';
+	@override String importSkipNotObject({required Object index}) => 'Skipped item ${index}: entry is not an object';
+	@override String get defaultCondition => 'Default condition';
+	@override String get engineDesktopNcnn => 'Desktop NCNN (waifu2x / Real-CUGAN)';
+	@override String get engineNativeCoreML => 'Rossi native CoreML';
+	@override String get modelFast => 'Fast general (Real-ESR General 4x)';
+	@override String get modelPhoto => 'Photo / CG (Real-ESRGAN 4x)';
+	@override String get modelAnime => 'Illustration / anime (Real-ESRGAN Anime 6B 4x)';
+	@override String get modelComic => 'Comic (Real-CUGAN 4x)';
+	@override String get modeDenoiseThenUpscale => 'Denoise then upscale';
+	@override String get modeUpscaleOnly => 'Upscale only';
+	@override String get modeDenoiseOnly => 'JPEG denoise only';
+	@override String get modeOriginal => 'Original';
 	@override String get deleteCondition => 'Delete condition';
 	@override String get lowerPriority => 'Lower priority';
 	@override String get raisePriority => 'Raise priority';
@@ -2078,6 +3254,10 @@ class _Translations$comicList$en_US extends Translations$comicList$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get chineseLocalized => 'CN-localised';
+	@override String get downloadedAtLabel => 'Downloaded at';
+	@override String get likedArtists => 'Favourite artists';
+	@override String get likedTags => 'Favourite tags';
 	@override String get defaultTitle => 'Comic List';
 	@override String get missingSource => 'Missing plugin source, cannot load list';
 	@override String get reload => 'Reload';
@@ -2097,6 +3277,7 @@ class _Translations$comicEntry$en_US extends Translations$comicEntry$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String seenAtPage({required Object page}) => 'Read up to page ${page}';
 	@override String updatedAt({required Object time}) => 'Updated: ${time}';
 	@override String get finished => 'Finished';
 	@override String get ongoing => 'Ongoing';
@@ -2681,7 +3862,715 @@ class _Translations$plat$en_US extends Translations$plat$zh_CN {
 extension on TranslationsEnUs {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
+			'workspace.laneTapExpandHint' => ({required Object title}) => '${title} (tap to expand the lane)',
+			'workspace.laneDragHint' => ({required Object title}) => '${title} — press and hold to drag lanes into a new order',
+			'workspace.laneSortHint' => ({required Object title}) => '${title} (pick “Edit layout” in the lane menu to reorder)',
+			'workspace.allowedRange' => ({required Object min, required Object max}) => 'Allowed ${min}–${max}',
+			'workspace.dockToName' => ({required Object label}) => 'Dock: ${label}',
+			'workspace.laneWidthPx' => ({required Object px}) => 'Lane width: ${px} px',
+			'workspace.dockToLabel' => ({required Object label}) => 'Dock to ${label}',
+			'workspace.slotCount' => ({required Object count}) => '${count} slots',
+			'workspace.columnsPerRow' => ({required Object columns}) => '${columns} slots per row now',
+			'workspace.imagesCountBadge' => ({required Object n}) => '${n} images',
+			'workspace.highestPage' => ({required Object value}) => 'Highest: ${value}',
+			'workspace.worksCount' => ({required Object n}) => '${n} works',
+			'workspace.sharePercent' => ({required Object v}) => '${v}% of the total',
+			'workspace.heatLegendLow' => 'Low',
+			'workspace.periodDetailLine' => ({required Object label, required Object count, required Object hours}) => '${label} · ${count} records\n${hours}',
+			'workspace.restoreNamed' => ({required Object title}) => 'Restore “${title}”',
+			'workspace.fullWidthFullHeight' => 'Full width and full height',
+			'workspace.resizePreview' => ({required Object w, required Object h}) => '${w} × ${h} · release to save',
+			'workspace.portSkippedLines' => ({required Object lines}) => 'Skipped entries:\n${lines}',
+			'workspace.streakNowDays' => ({required Object n}) => 'Current streak: ${n} days',
+			'workspace.mostlyAt' => ({required Object period}) => 'Mostly ${period}',
+			'workspace.monthsAgo' => ({required Object months}) => '${months} months ago',
+			'workspace.artbookCount' => ({required Object n}) => '${n} art books',
+			'workspace.seenAtPage' => ({required Object pageNum}) => 'Seen at p.${pageNum}',
+			'workspace.sourceMixItem' => ({required Object count, required Object percent}) => '${count} records · ${percent}%',
+			'workspace.sourceMixHeader' => ({required Object n}) => 'Sample records · ${n} sources',
+			'workspace.streakPointLine' => ({required Object date, required Object value}) => '${date}: ${value} days in a row',
+			'workspace.streakDaysLine' => ({required Object label, required Object value}) => '${label}: ${value} days',
+			'workspace.insightHeaderExpand' => ({required Object label, required Object position, required Object total, required Object title}) => '${label} · ${position}/${total} · expand ${title}',
+			'workspace.heatCellLine' => ({required Object weekday, required Object hour, required Object count}) => '${weekday} ${hour} · ${count} records',
+			'workspace.heatPeakLabel' => ({required Object weekday, required Object hour}) => 'Peak · ${weekday} ${hour}',
+			'workspace.heatPeakShort' => ({required Object weekday, required Object hour}) => 'Peak ${weekday} ${hour}',
+			'workspace.compactHeatmapExpandHours' => ({required Object day, required Object hours}) => '${day} · ${hours} h per cell · expand the reading heatmap',
+			'workspace.hoursPerCell' => ({required Object hours}) => '${hours} h per cell',
+			'workspace.compactHeatmapExpand' => ({required Object day}) => '${day} · expand the reading heatmap',
+			'workspace.busiestPeriodLabel' => ({required Object period}) => 'Most records in ${period}',
+			'workspace.weekdayRecordLine' => ({required Object day, required Object count}) => '${day}: ${count} records',
+			'workspace.busiestWeekdayLabel' => ({required Object day}) => 'Busiest on ${day}',
+			'workspace.selectedLastReadLines' => ({required Object key, required Object count}) => '${key} · ${count} last-read records',
+			'workspace.dayRecordLine' => ({required Object key, required Object count}) => '${key}: ${count} records',
+			'workspace.activeDaysCount' => ({required Object n}) => '${n} active days',
+			'workspace.collapseNamed' => ({required Object title}) => 'Collapse ${title}',
+			'workspace.insertTarget' => ({required Object name}) => 'Insert into: ${name}',
+			'workspace.activeSwitchCount' => ({required Object activeCount}) => '${activeCount} switches on',
+			'workspace.switchToastActiveOf3' => ({required Object activeCount}) => '${activeCount} of 3 switches on',
+			'workspace.peakAllocated' => ({required Object value}) => 'Peak ${value}',
+			'workspace.failedWith' => ({required Object error}) => 'Failed · ${error}',
+			'workspace.registeredCount' => ({required Object n}) => '${n} registered in total',
+			'workspace.readyOfTotal' => ({required Object ready, required Object total}) => '${ready} of ${total} ready',
+			'workspace.sourceCountLabel' => ({required Object n}) => '${n} sources',
+			'workspace.fileKindLabel' => ({required Object kind}) => '${kind} file',
+			'workspace.passthroughDepthLabel' => ({required Object value}) => 'Passthrough depth: ${value}',
+			'workspace.contentLayoutLabel' => ({required Object value}) => 'Content layout: ${value}',
+			'workspace.sortFieldLabel' => ({required Object value}) => 'Sort: ${value}',
+			'workspace.entryStyleLabel' => ({required Object value}) => 'Entry style: ${value}',
+			'workspace.filterTypeLabel' => ({required Object value}) => 'Type: ${value}',
+			'workspace.depthLimitLabel' => ({required Object n}) => 'Depth ≤${n}',
+			'workspace.notSearchedBelow' => ({required Object n}) => 'Below level ${n} not searched',
+			'workspace.searchScanned' => ({required Object n}) => '${n} scanned',
+			'workspace.searchHits' => ({required Object n}) => '${n} hits',
+			'workspace.tenThousandRecords' => ({required Object v}) => '${v}×10k records',
+			'workspace.slowScanNote' => ({required Object label}) => '${label} · tens of seconds on a slow disk; results appear after one pass',
+			'workspace.recursiveSearchScanned' => ({required Object scanned}) => 'Searching recursively · scanned ${scanned}',
+			'workspace.restoreTabTitle' => ({required Object title}) => 'Restore tab: ${title}',
+			'workspace.selectedCount' => ({required Object n}) => '${n} selected',
+			'workspace.filteringBy' => ({required Object query}) => 'Filter: ${query}',
+			'workspace.pageN' => ({required Object n}) => 'Page ${n}',
+			'workspace.openLocalComicFailed' => ({required Object error}) => 'Error opening the local comic: ${error}',
+			'workspace.daysAgo' => ({required Object days}) => '${days} days ago',
+			'workspace.childCount' => ({required Object n}) => '${n} items',
+			'workspace.noMatchThisLevelSuggest' => ({required Object query}) => 'Nothing at this level matches “${query}”; use “search subfolders” above to look deeper',
+			'workspace.noMatchInSubdirs' => ({required Object query}) => 'No entries in subfolders match “${query}”',
+			'workspace.tasksCount' => ({required Object n}) => '${n} tasks',
+			'workspace.booksCount' => ({required Object n}) => '${n} books',
+			'workspace.builtinWord' => 'Built-in',
+			'workspace.onlineSourceFrom' => ({required Object from}) => 'Online source · ${from}',
+			'workspace.pagesRemaining' => ({required Object n}) => '${n} pages left',
+			'workspace.currentOfTotalPages' => ({required Object total}) => 'Current page · ${total} pages',
+			'workspace.dateMD' => ({required Object month, required Object day}) => '${month}/${day}',
+			'workspace.dateYMD' => ({required Object year, required Object month, required Object day}) => '${year}-${month}-${day}',
+			'workspace.heatmapCell' => ({required Object weekday, required Object range, required Object count}) => '${weekday} ${range}: ${count} records',
+			'workspace.theseCountItems' => ({required Object count}) => 'these ${count} items',
+			'workspace.duplicateInFileCount' => ({required Object n}) => '${n} duplicated inside the file',
+			'workspace.keptLocalCount' => ({required Object n}) => '${n} kept from this device',
+			'workspace.progressUpdatedCount' => ({required Object n}) => '${n} progress entries updated',
+			'workspace.skippedCount' => ({required Object n}) => '${n} skipped',
+			'workspace.alreadyPresentCount' => ({required Object n}) => '${n} already present',
+			'workspace.revivedCount' => ({required Object n}) => '${n} revived',
+			'workspace.addedCount' => ({required Object n}) => '${n} added',
+			'workspace.keyMismatch' => ({required Object expected}) => 'uniqueKey doesn\'t match source:comicId; expected ${expected}',
+			'workspace.itemNumber' => ({required Object n}) => 'Entry #${n}',
+			'workspace.unsupportedFormatVersion' => ({required Object version}) => 'Unsupported format version ${version}',
+			'workspace.invalidJson' => ({required Object error}) => 'Not valid JSON: ${error}',
+			'workspace.portImportFailed' => ({required Object label, required Object error}) => 'Importing ${label} failed: ${error}',
+			'workspace.portFileUnreadable' => ({required Object error}) => 'Can\'t read this file: ${error}',
+			'workspace.portExportFailed' => ({required Object label, required Object error}) => 'Exporting ${label} failed: ${error}',
+			'workspace.portExportDone' => ({required Object count, required Object label, required Object target}) => 'Exported ${count} ${label} entries\n${target}',
+			'workspace.portListEmpty' => ({required Object label}) => '${label} is still empty — there is nothing to export',
+			'workspace.opFirstFailure' => ({required Object summary, required Object failure}) => '${summary} — first failure reason: ${failure}',
+			'workspace.pickPasteTarget' => ({required Object verb, required Object subject}) => '${verb}${subject} — pick a folder to paste into',
+			'workspace.movedToTrashSystem' => ({required Object subject, required Object hint}) => 'Moved ${subject} to the trash, ${hint} (in the system trash)',
+			'workspace.movedToTrash' => ({required Object subject, required Object hint}) => 'Moved ${subject} to the trash, ${hint}',
+			'workspace.cannotOpenFileManager' => ({required Object error}) => 'Can\'t open the file manager: ${error}',
+			'workspace.pathsCopied' => ({required Object count}) => 'Copied ${count} paths',
+			'workspace.deleteConfirmSubject' => ({required Object subject, required Object outcome}) => '${subject} will be deleted. ${outcome}.',
+			'workspace.deleteForeverWarning' => ({required Object subject}) => '${subject} will be deleted permanently — not sent to the trash and can\'t be undone.',
+			'workspace.loadingShort' => 'Loading',
+			'workspace.readingHubTitle' => 'Reading hub',
+			'workspace.chapterIdLabel' => 'Chapter ID',
+			'workspace.portraitFormat' => 'Portrait',
+			'workspace.peep' => 'Peek',
+			'workspace.topTags' => 'Top tags',
+			'workspace.libraryLabel' => 'Library',
+			'workspace.preloadPath' => 'Preload path',
+			'workspace.preloadStatus' => 'Preload status',
+			'workspace.topBarIsThatRow' => 'The top bar is the row with exit / title / mode switch / reset layout',
+			'workspace.pagePath' => 'Page path',
+			'workspace.pageTemplateBookVars' => 'Page templates can also use {{book.*}} variables; tap any variable chip to insert it.',
+			'workspace.pageTitleTemplate' => 'Page title template',
+			'workspace.pageFileName' => 'Page file name',
+			'workspace.pageToastTemplate' => 'Page toast template',
+			'workspace.pageDescriptionTemplate' => 'Page description template',
+			'workspace.pageNavigation' => 'Page navigation',
+			'workspace.pageListNotReady' => 'Page list not ready',
+			'workspace.pageListTotal' => 'Page-list total',
+			'workspace.pageList' => 'Page list',
+			'workspace.pageNumber' => 'Page number',
+			'workspace.pageUrl' => 'Page URL',
+			'workspace.pagesModified' => 'pages modified',
+			'workspace.audioLabel' => 'Audio',
+			'workspace.areaBasis' => 'Area basis',
+			'workspace.panelBarFloating' => 'Panel bar: floating',
+			'workspace.panelBarHint' => 'Panel bar (drag to another edge or make it floating; right-click or long-press for settings)',
+			'workspace.hideLaneWidthBadge' => 'Hide the lane width badge',
+			'workspace.hideWorkspaceTopBar' => 'Hide the workspace top bar',
+			'workspace.refreshPerPageNoGuessing' => 'Refreshes per page; anything unmeasured stays a guess-free blank',
+			'workspace.randomRoam' => 'Random browse',
+			'workspace.randomLabel' => 'Random',
+			'workspace.matchRelativePath' => 'Matches the relative path under the search root as well as the entry name',
+			'workspace.confineToLane' => 'Confine to the lane',
+			'workspace.confineToThisLane' => 'Confine to this lane',
+			'workspace.readingProgressPercent' => 'Reading progress (%)',
+			'workspace.readingProgressLabel' => 'Reading progress',
+			'workspace.readingHeat' => 'Reading heat',
+			'workspace.readingFilter' => 'Reading filter',
+			'workspace.readingInsights' => 'Reading insights',
+			'workspace.readingOverview' => 'Reading overview',
+			'workspace.readingSources' => 'Reading sources',
+			'workspace.readingPeriods' => 'Reading time of day',
+			'workspace.readingWorkhole' => 'Reading workhole',
+			'workspace.readerLaneIdle' => 'The reader lane is idle',
+			'workspace.readerEn' => 'Reader',
+			'workspace.readingHistoryEn' => 'History',
+			'workspace.readingHistory' => 'Reading history',
+			'workspace.readingToastOverlay' => 'Reading switch overlay toast',
+			'workspace.readingLabel' => 'Reading',
+			'workspace.longPressDragReorder' => 'Long-press and drag to reorder or change lane',
+			'workspace.imageHeaderUnmeasured' => 'Can\'t read the image header',
+			'workspace.resetLayoutHint' => 'Reset the layout (doesn\'t affect the book you\'re reading)',
+			'workspace.renameBookmarkList' => 'Rename bookmark list',
+			'workspace.renameDeleteList' => 'Rename / delete this list',
+			'workspace.booksQueued' => 'books queued',
+			'workspace.layoutFitsPanel' => 'Layout and sizes that suit the current panel',
+			'workspace.exitSoloEn' => 'Exit solo',
+			'workspace.exitSolo' => 'Exit solo',
+			'workspace.exitTimeline' => 'Exit the timeline',
+			'workspace.exitSearchToFolder' => 'Leave the search results and return to this tab\'s own folder',
+			'workspace.exitWorkspaceHint' => 'Exit the workspace (Esc works too)',
+			'workspace.exitWorkspace' => 'Exit the workspace',
+			'workspace.exitMultiselect' => 'Exit multi-select',
+			'workspace.restoreSwipeAfterExit' => 'Restores horizontal swiping between panels when it exits',
+			'workspace.streakReading' => 'Reading streak',
+			'workspace.streakDays' => 'Streak days',
+			'workspace.streakLabel' => 'Streak',
+			'workspace.runningTasks' => 'Running tasks',
+			'workspace.progressLabel' => 'Progress',
+			'workspace.enterFolder' => 'Enter the folder',
+			'workspace.thisIsSwitchToastPreview' => 'This is a switch-toast preview',
+			'workspace.allCardsCollapsed' => 'Every card in this panel is collapsed',
+			'workspace.noFileManagerOnPlatform' => 'This platform has no file manager to invoke',
+			'workspace.listHasNoBookmarks' => 'This list has no bookmarks yet',
+			'workspace.itemNeedsLocalArchive' => 'This item needs to be a local archive before it can be measured',
+			'workspace.thisItem' => 'this item',
+			'workspace.thisWall' => 'this wall',
+			'workspace.noPluginsInstalled' => 'No plugins installed yet',
+			'workspace.noBookmarksYet' => 'No bookmarks yet — add one from the details page',
+			'workspace.last7ReadingTrend' => 'Reading trend (7 days)',
+			'workspace.last7Records' => 'Records (7 days)',
+			'workspace.last7Days' => 'Last 7 days',
+			'workspace.last3Days' => 'Last 3 days',
+			'workspace.last28Records' => 'Records (28 days)',
+			'workspace.last28Active' => 'Active days (28)',
+			'workspace.last28NoRecords' => 'No records in the last 28 days',
+			'workspace.last28Days' => 'Last 28 days',
+			'workspace.boundaryToastText' => 'Boundary toast text',
+			'workspace.carrierDistribution' => 'Medium distribution',
+			'workspace.carrierLabel' => 'Medium',
+			'workspace.goToFolder' => 'Go to the folder',
+			'workspace.jumpBar' => 'Jump bar',
+			'workspace.pathActions' => 'Path actions',
+			'workspace.pathLabel' => 'Path',
+			'workspace.aggregateSourceSearch' => 'Aggregate search across sources',
+			'workspace.trendLabel' => 'Trend',
+			'workspace.upscaleStage' => 'Upscale stage',
+			'workspace.upscaleSwitch' => 'Upscale switch',
+			'workspace.afterUpscale' => 'After upscaling',
+			'workspace.resourceWorkhole' => 'Resource workhole',
+			'workspace.debugSource' => 'Debug source',
+			'workspace.toastAtChapterEnd' => 'Remind when turning past the end of a chapter',
+			'workspace.detailedInformation' => 'Details',
+			'workspace.detailedLabel' => 'Detailed',
+			'workspace.laneMoreEditLayout' => 'This lane · edit layout',
+			'workspace.visits' => 'Visits',
+			'workspace.settingsAndTools' => 'Settings and tools',
+			'workspace.triggerCondition' => 'Trigger condition',
+			'workspace.triggersAllOff' => 'All triggers off',
+			'workspace.decodeBufferPlusCache' => 'Decode buffer + image cache',
+			'workspace.viewModeNotInTimeline' => 'View mode (not available in the timeline)',
+			'workspace.viewModeLabel' => 'View mode',
+			'workspace.seeDetailsBelow' => 'See the details below',
+			'workspace.decorativeShapes' => 'Decorative shapes',
+			'workspace.installNewSource' => 'Install a new source',
+			'workspace.fetching' => 'Fetching…',
+			'workspace.freeThumbnails' => 'Free thumbnails',
+			'workspace.customLayout' => 'Custom layout',
+			'workspace.pageTurnToast' => 'Page-turn toast',
+			'workspace.pageToastShowsNumber' => 'Shows the page number live when turning or jumping',
+			'workspace.pageAnimation' => 'Page-turn animation',
+			'workspace.jpTranslated' => 'Translated',
+			'workspace.networkImageCached' => 'Network image · downloaded then served from the image cache',
+			'workspace.missingTitle' => 'Missing title',
+			'workspace.missingSourceOrComicId' => 'Missing source or comicId',
+			'workspace.thumbnailsLabel' => 'Thumbnails',
+			'workspace.editPath' => 'Edit path',
+			'workspace.editLongPressHints' => 'While editing, long-press a tab to reorder or move it across lanes, or long-press the header icon to reorder lanes',
+			'workspace.editLayout' => 'Edit layout',
+			'workspace.encodedFormat' => 'Encoded format',
+			'workspace.encodedSize' => 'Encoded size',
+			'workspace.weightBlendsEverything' => 'Blends content count, recent use and reading status.',
+			'workspace.resumeLastReading' => 'Resume the last reading',
+			'workspace.counting' => 'Counting',
+			'workspace.textureReady' => 'Texture ready',
+			'workspace.texture' => 'Texture',
+			'workspace.compactList' => 'Compact list',
+			'workspace.pasteIntoItem' => 'Paste into this item',
+			'workspace.pasteHere' => 'Paste into this folder',
+			'workspace.lengthDistribution' => 'Length distribution',
+			'workspace.lengthLabel' => 'Length',
+			'workspace.emphasiseReading' => 'Emphasises what you are reading.',
+			'workspace.emphasiseRecent' => 'Emphasises recently used content.',
+			'workspace.passthroughMode' => 'Passthrough mode',
+			'workspace.gapFill' => 'Gap fill',
+			'workspace.idleState' => 'Idle',
+			'workspace.moveToTrashNoUndo' => 'Move to trash (can\'t be undone)',
+			'workspace.moveToTrash' => 'Move to trash',
+			'workspace.folderPath' => 'Folder path',
+			'workspace.folderLabel' => 'Folder',
+			'workspace.imageTuning' => 'Image tuning',
+			'workspace.aspectComposition' => 'Aspect mix',
+			'workspace.aspectFormat' => 'Aspect',
+			'workspace.fillWithExpressiveShapes' => 'Fills the gaps with random Expressive outlines and icons.',
+			'workspace.soloThisLaneEn' => 'Solo',
+			'workspace.soloThisLane' => 'Make this lane solo',
+			'workspace.statusLabel' => 'Status',
+			'workspace.clickToCollapse' => 'Tap to collapse',
+			'workspace.clickToExpand' => 'Tap to expand',
+			'workspace.tapCover' => 'Tap the cover',
+			'workspace.clickToFill' => 'Tap to fill',
+			'workspace.comicArchive' => 'Comic archive',
+			'workspace.comicIdLabel' => 'Comic ID',
+			'workspace.chineseLocalized' => 'CN-localised',
+			'workspace.renderPath' => 'Render path',
+			'workspace.clearSearchAndCollapse' => 'Clear the search and collapse',
+			'workspace.lateNight' => 'Late night',
+			'workspace.activePeak' => 'Active peak',
+			'workspace.activeDays' => 'Active days',
+			'workspace.activeState' => 'Active',
+			'workspace.noEntriesAfterFilter' => 'No entries match the search or type filter',
+			'workspace.noEntries' => 'No entries',
+			'workspace.noEnabledSource' => 'No enabled image source',
+			'workspace.nothingToDisplay' => 'Nothing to display',
+			'workspace.noMatchingPages' => 'No matching pages',
+			'workspace.noMatchingHistory' => 'No matching reading records',
+			'workspace.noMatchingBookmarks' => 'No matching bookmarks',
+			'workspace.immersiveWorkhole' => 'Immersive workhole',
+			'workspace.deleteForeverQuestion' => 'Delete permanently?',
+			'workspace.deleteForever' => 'Delete permanently',
+			'workspace.weeklyReadingRhythm' => 'Weekly reading rhythm',
+			'workspace.everyFieldIsMeasured' => 'Every value comes from a recorded field, not from "I tweaked it so it must be fine"',
+			'workspace.normalState' => 'Normal',
+			'workspace.recursiveSearchPending' => 'Searching recursively; results appear after one pass…',
+			'workspace.recursiveSearching' => 'Searching recursively…',
+			'workspace.followingProgress' => 'Following the reading progress',
+			'workspace.editingLayoutFinishInMenu' => 'Editing the layout · finish in the menu',
+			'workspace.countingReadingHistory' => 'Counting reading history',
+			'workspace.bannerLabel' => 'Banner',
+			'workspace.rootPath' => 'Root path',
+			'workspace.areaByAspectRatio' => 'Allocates card space by the source aspect ratio.',
+			'workspace.longestSampleDays' => 'Longest in sample · days',
+			'workspace.longestSample' => 'Longest in sample',
+			'workspace.theWidthBadgeNextToHeader' => 'The "400px" badge to the right of the lane header',
+			'workspace.titleLabel' => 'Title',
+			'workspace.sourceKey' => 'Source key',
+			'workspace.sourceType' => 'Source type',
+			'workspace.sourceComposition' => 'Source mix',
+			'workspace.sourceBreakdown' => 'Source breakdown',
+			'workspace.sourceModifiedAt' => 'Source modified',
+			'workspace.sourceLabel' => 'Source',
+			'workspace.entryCount' => 'Entries',
+			'workspace.itemsUpdated' => 'items updated',
+			'workspace.itemsContent' => 'items',
+			'workspace.chapterDonePreparingNext' => 'This chapter is finished · preparing the next one',
+			'workspace.platformUnsupported' => 'Not supported on this platform',
+			'workspace.localComicsEn' => 'Local Manga',
+			'workspace.localComics' => 'Local comics',
+			'workspace.localWorks' => 'Local works',
+			'workspace.localLabel' => 'Local',
+			'workspace.lastPageToast' => 'Last-page toast',
+			'workspace.notTurnedOn' => 'Off',
+			'workspace.notEnabled' => 'Not enabled',
+			'workspace.serverLabel' => 'Server',
+			'workspace.maxThirtyTwoLevels' => 'At most 32 levels',
+			'workspace.lastPageToastText' => 'Last-page toast text',
+			'workspace.noReadingHistory' => 'No reading history yet',
+			'workspace.noRecordsYet' => 'No records yet',
+			'workspace.noHeatRecords' => 'No heat records yet',
+			'workspace.noEnabledPlugins' => 'No enabled plugins yet',
+			'workspace.noVisitHistory' => 'No visit history yet',
+			'workspace.normalOneWideTwoSlots' => 'Normal cards take 1 slot, wide cards 2',
+			'workspace.eveningNight' => 'Night',
+			'workspace.eveningLabel' => 'Evening',
+			'workspace.showHiddenFiles' => 'Show hidden files',
+			'workspace.showTarget' => 'Show target',
+			'workspace.showQuickSwitchBar' => 'Show the quick-switch bar',
+			'workspace.showWorkspaceTopBar' => 'Show the workspace top bar',
+			'workspace.showSubFileNames' => 'Show sub-file names',
+			'workspace.timeInformation' => 'Time information',
+			'workspace.timePeriod' => 'Time of day',
+			'workspace.earlyFavourites' => 'Early favourites',
+			'workspace.cannotUndo' => 'Can\'t be undone',
+			'workspace.noAnimation' => 'No animation',
+			'workspace.squareFormat' => 'Square',
+			'workspace.newTab' => 'New tab',
+			'workspace.newBookmarkList' => 'New bookmark list',
+			'workspace.newName' => 'New name',
+			'workspace.fileManagement' => 'File manager',
+			'workspace.fileBrowsing' => 'File browsing',
+			'workspace.fileOperations' => 'File operations (copy / move / delete)',
+			'workspace.foldersFirst' => 'Folders first',
+			'workspace.fileNameLabel' => 'File name',
+			'workspace.weightBiggerWins' => 'Larger values stand out more; 0 disables it. When several match, the highest weight wins.',
+			'workspace.switchToFloating' => 'Switch to floating',
+			'workspace.collapseSearch' => 'Collapse search',
+			'workspace.collapseChildren' => 'Collapse children',
+			'workspace.collapseSubfolders' => 'Collapse subfolders',
+			'workspace.collapseInformation' => 'Collapse info',
+			'workspace.favouriteTime' => 'Favourited at',
+			'workspace.favouriteList' => 'Favourites',
+			'workspace.localOpenSupportDesc' => 'Supports zip, cbz, folders, PDFs and image archives. Rust unpacks quickly and feeds the D3D12/Metal composition chain directly.',
+			'workspace.undoLastStep' => 'Undo the last step',
+			'workspace.summaryLabel' => 'Summary',
+			'workspace.searchSpaceExclude' => 'Search (space-separated, - to exclude)',
+			'workspace.searchPageOrFileName' => 'Search page number or file name...',
+			'workspace.searchField' => 'Search bar',
+			'workspace.searchTitleAuthorSource' => 'Search title / author / source',
+			'workspace.pluginRunState' => 'Plugin running state',
+			'workspace.pluginMarket' => 'Plugin market',
+			'workspace.controlPanel' => 'Control panel',
+			'workspace.takeOver' => 'Take over',
+			'workspace.keepReading' => 'Continue reading',
+			'workspace.sortingTimelineFixed' => 'Sorting (the timeline always sorts by time)',
+			'workspace.sortMode' => 'Sort mode',
+			'workspace.emphasiseByTagWeights' => 'Emphasises content using your custom tag weights.',
+			'workspace.areaByDiskUsage' => 'Allocates display area by how much disk space each entry takes.',
+			'workspace.timelineByDay' => 'Timeline by day',
+			'workspace.dragTitleToReorder' => 'Press and hold the title to drag-reorder',
+			'workspace.bookmarkListDesc' => 'Organise bookmarks by topic. After creating one, bookmarks can be moved into this list.',
+			'workspace.dragResizeWorkhole' => 'Drag to resize the workhole',
+			'workspace.dragToResize' => 'Drag to resize',
+			'workspace.collapseToBarEn' => 'Collapse',
+			'workspace.collapseToBar' => 'Collapse into a compact bar',
+			'workspace.saveSearchAsTab' => 'Save these search results as a new tab',
+			'workspace.setHomeHere' => 'Make this folder the home',
+			'workspace.openReader' => 'Open the reader',
+			'workspace.openLocal' => 'Open local',
+			'workspace.toastOnOpenOrSwitch' => 'Pops when a comic is opened or switched to',
+			'workspace.openWorkhole' => 'Open the workhole',
+			'workspace.showPageNavWhenOpen' => 'Shows page navigation once a book is open',
+			'workspace.showFileTimesWhenOpen' => 'Shows file times once a book is open',
+			'workspace.showCurrentPageWhenOpen' => 'Shows current-page info once a book is open',
+			'workspace.showStorageWhenOpen' => 'Shows storage info once a book is open',
+			'workspace.showPresentPrefetchWhenOpen' => 'Shows presenter and prefetch status once a book is open',
+			'workspace.showBookInfoWhenOpen' => 'Shows book info once a book is open',
+			'workspace.imFeelingLucky' => 'I\'m feeling lucky',
+			'workspace.restoreDefaultSize' => 'Restore the default size',
+			'workspace.readerLaneSoloHint' => 'Anything opened from the shelf on the left or discover on the right is read in this lane; tap the solo button in the bar header to make it fill the viewport instantly.',
+			'workspace.footnoteSampleStreakDays' => 'Consecutive days with records in the sample · not the full reading log',
+			'workspace.footnoteSampleStreak' => 'Consecutive days within the sample · not the full reading log',
+			'workspace.footnotePeriod28' => 'Last 28 days · distributed by local time of the last read',
+			'workspace.footnoteWeekday28' => 'Last 28 days · last-reading records summed by weekday',
+			'workspace.footnoteLast500' => 'Last-reading records of the most recent 500 comics · not a total count or reading time',
+			'workspace.searchDepthTooltip' => ({required Object depths, required Object detail}) => 'Tap to cycle the recursion depth (${depths} levels). ${detail}',
+			'workspace.shortSat' => 'Sat',
+			'workspace.shortFri' => 'Fri',
+			'workspace.shortThu' => 'Thu',
+			'workspace.shortWed' => 'Wed',
+			'workspace.shortTue' => 'Tue',
+			'workspace.shortMon' => 'Mon',
+			'workspace.shortSun' => 'Sun',
+			'workspace.restoreDefaultWidth' => 'Restore the default width',
+			'workspace.restorePanelBarPosition' => 'Restore the panel bar\'s default position',
+			'workspace.restoreCollapsedCards' => 'Restore collapsed cards',
+			'workspace.restoreClosedTabs' => 'Restore closed tabs',
+			'workspace.totalPagesLabel' => 'Total pages',
+			'workspace.toContinue' => 'To continue',
+			'workspace.queueStackCards' => 'Queue stack',
+			'workspace.currentPageCost' => 'Current page time',
+			'workspace.currentPageNumber' => 'Current page number',
+			'workspace.currentPageFile' => 'Current page file',
+			'workspace.currentPageSize' => 'Current page size',
+			'workspace.currentPageModifiedAt' => 'Current page modified',
+			'workspace.currentPageHandoffMs' => 'Current page hand-off time (ms)',
+			'workspace.currentStreakDays' => 'Current streak · days',
+			'workspace.currentStreak' => 'Current streak',
+			'workspace.noHitThisLevel' => 'No hits at this level; turn on "include subfolders" and search again (a full scan takes tens of seconds on a slow disk)',
+			'workspace.folderNoMedia' => 'This folder has no browsable comics or media files',
+			'workspace.folderNoChildren' => 'This folder has nothing to show',
+			'workspace.folderNotInSnapshot' => 'This folder is not in the current search or folder snapshot. Enter it to see what is inside.',
+			'workspace.archiveLabel' => 'Archive',
+			'workspace.onComparingOriginal' => 'On (comparing with the original)',
+			'workspace.switchedOn' => 'On',
+			'workspace.fieldsFillOnOpen' => 'These cells fill in as soon as a book opens; anything unmeasurable stays —',
+			'workspace.linking' => 'Linking',
+			'workspace.avgPagesPerBook' => 'Average pages per book',
+			'workspace.regularWidth' => 'Regular width',
+			'workspace.commonTags' => 'Common tags',
+			'workspace.topCreators' => 'Top creators',
+			'workspace.market' => 'Market',
+			'workspace.limitReached' => 'Limit reached',
+			'workspace.isLastPage' => 'This is the last page',
+			'workspace.searchHistoryCleared' => 'Search history cleared',
+			'workspace.followProgressPaused' => 'Paused following the reading progress',
+			'workspace.fileManagerOpened' => 'File manager opened',
+			'workspace.gpuReadyState' => 'Ready',
+			'workspace.pathCopied' => 'Path copied',
+			'workspace.copied' => 'Copied',
+			'workspace.pagesPresented' => 'Pages presented',
+			'workspace.cutDone' => 'Cut',
+			'workspace.writtenToCacheShare' => 'Written to the cache; save it from the share sheet',
+			'workspace.aborted' => 'Aborted',
+			'workspace.workholeSize' => 'Workhole size',
+			'workspace.peakDay' => 'Peak day',
+			'workspace.peakValue' => 'Peak',
+			'workspace.expandLane' => 'Expand lane',
+			'workspace.polledEvery3s' => 'Polled every 3 s while expanded',
+			'workspace.expandChildren' => 'Expand children',
+			'workspace.expandSubfolders' => 'Expand subfolders',
+			'workspace.expandInformation' => 'Expand information',
+			'workspace.expandLabel' => 'Expand',
+			'workspace.displayWallSettings' => 'Display wall settings · long-press to toggle the wall',
+			'workspace.displayWallCustom' => 'Display wall customise',
+			'workspace.displayWall' => 'Display wall',
+			'workspace.searchDepthCostHint' => 'More depth is slower: one full-library scan takes tens of seconds on a slow disk; too shallow misses deeper folders',
+			'workspace.readyWaiting' => 'Ready, waiting',
+			'workspace.readyState' => 'Ready',
+			'workspace.dustyReread' => 'Shelf finds',
+			'workspace.widgetsOnceThenShapes' => 'Each widget appears once per wall; the remaining gaps are filled with random shapes.',
+			'workspace.coverGrid' => 'Cover grid',
+			'workspace.coverCollage' => 'Cover collage',
+			'workspace.coverList' => 'Cover list',
+			'workspace.coverLabel' => 'Cover',
+			'workspace.exportAsJson' => 'Export as JSON',
+			'workspace.importExport' => 'Import / export',
+			'workspace.cardWidthAutoColumns' => 'Width is the target size; the column count adapts to the panel. Wide cards take two slots and can sit beside normal ones.',
+			'workspace.finishEditing' => 'Finish editing',
+			'workspace.finishLayout' => 'Finish layout',
+			'workspace.storageInformation' => 'Storage information',
+			'workspace.saveAsTab' => 'Save as tab',
+			'workspace.subFilesShowAll' => 'Sub-files: show all',
+			'workspace.subFilesShowOne' => 'Sub-files: show one',
+			'workspace.daysWithRecords' => 'days with records',
+			'workspace.sizeCompare' => 'Size comparison',
+			'workspace.sizeLabel' => 'Size',
+			'workspace.multiColumnLanes' => 'Multi-column lanes',
+			'workspace.searchAnyToken' => 'Union across tokens (by default every token must match)',
+			'workspace.multiOutlinedSelected' => 'Multiple · the outline marks the selection',
+			'workspace.duplicateTab' => 'Duplicate tab',
+			'workspace.copyPath' => 'Copy path',
+			'workspace.copyPosition' => 'Copy position',
+			'workspace.einkRefresh' => 'E-ink refresh',
+			'workspace.basedOnLast500' => 'Based on the last-reading records of the most recent 500 comics',
+			'workspace.readingProgress' => 'Reading progress',
+			'workspace.currentlyReading' => 'Reading',
+			'workspace.onlineSourceNoFileTime' => 'Online sources have no local file times',
+			'workspace.onlineSourceNoArchive' => 'Online sources have no archive',
+			'workspace.onlineSource' => 'Online source',
+			'workspace.onlineLabel' => 'Online',
+			'workspace.openInNewTab' => 'Open in a new tab',
+			'workspace.readerLaneReadsHint' => 'Anything opened from the shelf on the left or discover on the right is read in this lane;',
+			'workspace.searchSubdirs' => 'Search inside subfolders',
+			'workspace.gallery' => 'Gallery',
+			'workspace.imageSize' => 'Image size',
+			'workspace.imagesLabel' => 'Images',
+			'workspace.sourceLocalAggregate' => 'Local source aggregate',
+			'workspace.sourceExtensions' => 'Source extensions',
+			'workspace.sourceShortcuts' => 'Source shortcuts',
+			'workspace.imageSourcesEn' => 'Extensions',
+			'workspace.imageSources' => 'Sources and extensions',
+			'workspace.sourcesToolsOcr' => 'Sources · Tools · OCR',
+			'workspace.imageProcessingStage' => 'Image processing stage',
+			'workspace.imageInformation' => 'Image information',
+			'workspace.pinTab' => 'Pin tab',
+			_ => null,
+		} ?? switch (path) {
+			'workspace.pinHere' => 'Pin here',
+			'workspace.backToFolder' => 'Back to the folder',
+			'workspace.backHome' => 'Back home',
+			'workspace.backToLaneHeaderDefault' => 'Back to the default docked-in-header form',
+			'workspace.heatmapFourRowsHint' => 'Four consecutive weeks · the outline marks the selected day · stronger colour means more activity',
+			'workspace.weekdaySun' => 'Sun',
+			'workspace.weekdaySat' => 'Sat',
+			'workspace.weekdayFri' => 'Fri',
+			'workspace.weekdayThu' => 'Thu',
+			'workspace.weekdayWed' => 'Wed',
+			'workspace.weekdayTue' => 'Tue',
+			'workspace.weekdayMon' => 'Mon',
+			'workspace.presenter' => 'Presenter',
+			'workspace.includeSubdirStats' => 'Include subfolder stats',
+			'workspace.includeSubdirs' => 'Include subfolders',
+			'workspace.recursiveSearchHint' => 'Searches downward recursively; the depth cap is clamped on the Rust side',
+			'workspace.back' => 'Back',
+			'workspace.searchSyntaxHint' => 'Name and path · space-separated · -exclude · "phrases"',
+			'workspace.nameLabel' => 'Name',
+			'workspace.undoable' => 'Can be undone',
+			'workspace.onlyThisPanelDetailsBelow' => 'Applies to this panel only. The cover\'s details button always expands downward.',
+			'workspace.onlyFittingWidgetsRepeat' => 'Inserts only the summary widgets that fit the gap; the same one may repeat.',
+			'workspace.mergeOnlyHistoryDetail' => 'Merge only: no history entry is deleted; where local progress is newer than the file, local wins.',
+			'workspace.mergeOnlyHistory' => 'Merges only — existing records are never deleted or overwritten.',
+			'workspace.mergeOnlyBookmarks' => 'Merges only — existing bookmarks are never deleted or overwritten.',
+			'workspace.changesLabel' => 'Changes',
+			'workspace.discoverToolsEn' => 'Tools',
+			'workspace.switchToWorkholeEn' => 'Workhole',
+			'workspace.switchToSwimlaneEn' => 'Swimlane',
+			'workspace.closeSidebarEn' => 'Close',
+			'workspace.closeCurrentComicFull' => 'Close the current comic (back to empty)',
+			'workspace.closeCurrentComicPlain' => 'Close the current comic (back to empty)',
+			'workspace.favoritesEn' => 'Favourites',
+			'workspace.bookshelfEn' => 'Bookshelf',
+			'workspace.downloadsOfflineEn' => 'Downloads',
+			'workspace.topEntriesStillWork' => 'The three entries above still work: install a source and each one shows here',
+			'workspace.widgetsPlusShapes' => 'Widgets + shapes',
+			'workspace.miniWidgets' => 'Widgets',
+			'workspace.randomShapes' => 'Random shapes',
+			'workspace.openDetailsPage' => 'Open the details page',
+			'workspace.expandDetailsBelow' => 'Expand details below',
+			'workspace.weightBalanced' => 'Balanced',
+			'workspace.readingStatus' => 'Reading status',
+			'workspace.recentlyUsed' => 'Recently used',
+			'workspace.followSort' => 'Follow the sort',
+			'workspace.yesterday' => 'Yesterday',
+			'workspace.cancelPathEdit' => 'Cancel path editing',
+			'workspace.unpin' => 'Unpin',
+			'workspace.discoverTools' => 'Discover and tools',
+			'workspace.doubleTapResetLaneWidth' => 'Double-tap resets this column\'s width · right-click opens the lane menu',
+			'workspace.installOrImportPlugin' => 'Install a source from the plugin market, or import a local plugin package',
+			'workspace.originalRatio' => 'Original ratio',
+			'workspace.historyFile' => 'History file',
+			'workspace.historyData' => 'History data',
+			'workspace.volume' => 'Volume',
+			'workspace.cardHeight' => 'Card height',
+			'workspace.cardSpacing' => 'Card spacing',
+			'workspace.cardLayout' => 'Card layout',
+			'workspace.cardWidth' => 'Card width',
+			'workspace.cardPosition' => 'Card position',
+			'workspace.occupiedSize' => 'Occupied size',
+			'workspace.matchPath' => 'Match path',
+			'workspace.loadingState' => 'Loading',
+			'workspace.cut' => 'Cut',
+			'workspace.forward' => 'Forward',
+			'workspace.last7DaysRecords' => 'Last 7 days',
+			'workspace.refreshCurrentFolder' => 'Refresh the current folder',
+			'workspace.toastOnLastPage' => 'Show a toast on the last page',
+			'workspace.reachedLastPage' => 'That\'s the end — no more pages',
+			'workspace.deleteQuestion' => 'Delete?',
+			'workspace.creating' => 'Creating',
+			'workspace.create' => 'Create',
+			'workspace.creator' => 'Creator',
+			'workspace.listName' => 'List name',
+			'workspace.toastOnPageSwitch' => 'Show a toast when switching pages',
+			'workspace.switchToastTest' => 'Switch toast test',
+			'workspace.switchToast' => 'Switch toast',
+			'workspace.toastOnBookSwitch' => 'Show a toast when switching books',
+			'workspace.switchToWorkhole' => 'Switch to the immersive workhole',
+			'workspace.switchToSwimlane' => 'Switch to multi-column lanes',
+			'workspace.switchDescending' => 'Switch to descending',
+			'workspace.switchAscending' => 'Switch to ascending',
+			'workspace.bookSwitchToast' => 'Book-switch toast',
+			'workspace.internalThumbnails' => 'Internal thumbnails',
+			'workspace.builtin' => 'Built-in',
+			'workspace.moreContentMoreArea' => 'More content means a larger share of the area.',
+			'workspace.contentCount' => 'Content count',
+			'workspace.contentSections' => 'Content sections',
+			'workspace.otherMedia' => 'Other media',
+			'workspace.closeTab' => 'Close tab',
+			'workspace.closeSidebar' => 'Close sidebar',
+			'workspace.closePassthroughMode' => 'Turn off passthrough mode',
+			'workspace.closeCurrentComic' => 'Close the current comic (back to empty)',
+			'workspace.closeWorkhole' => 'Close the workhole',
+			'workspace.closeTabsLeft' => 'Close tabs to the left',
+			'workspace.closeTabsRight' => 'Close tabs to the right',
+			'workspace.closeOtherTabs' => 'Close other tabs',
+			'workspace.turnedOff' => 'Off',
+			'workspace.manageAll' => 'Manage all',
+			'workspace.allHealthy' => 'All healthy',
+			'workspace.allImageSources' => 'All image sources',
+			'workspace.closeAllTabs' => 'Close all',
+			'workspace.fullWidth' => 'Full width',
+			'workspace.allowLeaveLane' => 'Allow dragging out of the lane',
+			'workspace.pixelSize' => 'Pixel size',
+			'workspace.serendipity' => 'Serendipity',
+			'workspace.favouriteTagWeight' => 'Favourite tag weight',
+			'workspace.favouriteTags' => 'Favourite tags',
+			'workspace.modifiedTime' => 'Modified time',
+			'workspace.modifiedDate' => 'Modified date',
+			'workspace.modify' => 'Modify',
+			'workspace.egBookPath' => 'e.g. Path: {{book.path}}',
+			'workspace.egPageIndex' => 'e.g. Page {{page.indexDisplay}}',
+			'workspace.egLastPage' => 'e.g. This is the last page',
+			'workspace.egSwitchedToBook' => 'e.g. Switched to {{book.displayName}}',
+			'workspace.egPageName' => 'e.g. {{page.name}}',
+			'workspace.sizeVolume' => 'Size',
+			'workspace.toastStyleInSettings' => 'Position and look are set under Settings → Toast style.',
+			'workspace.emphasiseTopSorted' => 'Emphasises whatever sorts to the top.',
+			'workspace.anyToken' => 'Any token',
+			'workspace.collapseFromPanel' => 'Collapse from this panel',
+			'workspace.newFromThisTab' => 'New from this tab',
+			'workspace.pickComicFolderFromDisk' => 'Choose a comic folder on disk',
+			'workspace.importFromJson' => 'Import from JSON',
+			'workspace.today' => 'Today',
+			'workspace.desktopOnly' => 'Desktop only',
+			'workspace.bookPathLocalOnly' => 'Book path (only set for local sources)',
+			'workspace.bookTitleTemplate' => 'Book title template',
+			'workspace.bookDisplayName' => 'Book display name',
+			'workspace.bookToastTemplate' => 'Book toast template',
+			'workspace.bookDescriptionTemplate' => 'Book description template',
+			'workspace.bookInformation' => 'Book information',
+			'workspace.bookmarkFile' => 'Bookmark file',
+			'workspace.bookmarkData' => 'Bookmark data',
+			'workspace.bookmarks' => 'Bookmarks',
+			'workspace.bookshelfUpstream' => 'Bookshelf (upstream original)',
+			'workspace.bookshelfAggregateCard' => 'Bookshelf aggregate card',
+			'workspace.shelfFavoriteFiles' => 'Shelf · Favourites · Files',
+			'workspace.bookshelfTab' => 'Bookshelf',
+			'workspace.bookTitle' => 'Book title',
+			'workspace.homeNotSetYet' => 'Home: not set · tap to make the current folder the home',
+			'workspace.homeCurrentManageHint' => 'Home (current) · right-click or long-press to manage',
+			'workspace.homeSetTo' => 'Home set to',
+			'workspace.homeManageHint' => 'Home · right-click or long-press to manage',
+			'workspace.heroVisual' => 'Hero visual',
+			'workspace.mainOccupancy' => 'Main occupancy',
+			'workspace.temporarySort' => 'Temporary sort (not remembered for this folder)',
+			'workspace.abortRecursiveSearch' => 'Stop the recursive search (keep results already found)',
+			'workspace.samePathAsHeaderDoubleClick' => 'Same path as double-tapping the lane header',
+			'workspace.samePathAsBackKey' => 'Same path as Esc and the system back key',
+			'workspace.keepGapIrregularOutline' => 'Keeps blank space between irregular outlines.',
+			'workspace.notAnObject' => 'Not an object',
+			'workspace.asymmetric' => 'Asymmetric',
+			'workspace.noFill' => 'Do not fill',
+			'workspace.downloadTaskList' => 'Download task list',
+			'workspace.downloadsOffline' => 'Downloads and offline',
+			'workspace.bothWeeksNoRecord' => 'Neither week has records',
+			'workspace.earlyAfternoon' => 'Early afternoon',
+			'workspace.noon' => 'Noon',
+			'workspace.earlyMorning' => 'Early morning',
+			'workspace.afternoon' => 'Afternoon',
+			'workspace.morning' => 'Morning',
+			'workspace.parentDirectory' => 'Up one level',
+			'workspace.prevWindowNoRecord' => 'No records in the previous window',
+			'workspace.nextSegment' => 'Next segment',
+			'workspace.prevSegment' => 'Previous segment',
+			'workspace.noCreationTimeField' => 'dart:io has no creation time, so only the fields that report back are shown',
+			'workspace.rustMemoryPollHint' => 'Rust memory is only read when expanded; collapsed stops polling',
+			'workspace.rustMemory' => 'Rust memory',
+			'workspace.gpuZeroCopyEngine' => 'Zero-copy GPU engine',
+			'workspace.gpuLinking' => 'Building the GPU link',
+			'workspace.gpuReady' => 'GPU ready',
+			'workspace.gpuSharedTexture' => 'GPU shared texture',
+			'workspace.cpuDecodeFallback' => 'CPU decode fallback',
+			'workspace.cpuDecodePreload' => 'CPU decode / image cache preloading',
+			'workspace.compressedArchive' => 'Compressed archive',
+			'workspace.archiveZip' => 'ZIP archive',
+			'workspace.archiveTar' => 'TAR archive',
+			'workspace.archiveRar' => 'RAR archive',
+			'workspace.archiveCbz' => 'CBZ archive',
+			'workspace.archiveCbr' => 'CBR archive',
+			'workspace.archive7z' => '7Z archive',
 			'appName' => 'Rossi',
+			'common.nameNoSlash' => 'The name can\'t contain / or \\',
+			'common.startupStage' => ({required Object stage}) => 'Stage: ${stage}',
+			'common.appStartupFailed' => 'The app failed to start',
+			'common.openLocalComicRossi' => 'Open a local comic (Rossi\'s own reader + zero-copy GPU)',
+			'common.neoViewWorkspace' => 'NeoView workspace',
+			'common.openWithRossi' => 'Open with Rossi',
+			'common.showInExplorer' => 'Show in Explorer',
+			'common.showInFinder' => 'Show in Finder',
+			'common.showInFileManager' => 'Show in file manager',
+			'common.revealInFileManagerFolder' => 'Open the containing folder in the file manager',
+			'common.deleteListLabel' => 'Delete list',
+			'common.pleaseEnterName' => 'Please enter a name',
 			'common.ok' => 'OK',
 			'common.cancel' => 'Cancel',
 			'common.save' => 'Save',
@@ -2808,6 +4697,58 @@ extension on TranslationsEnUs {
 			'navigation.workspace' => 'Workspace',
 			'navigation.openLocalComic' => 'Open local comic',
 			'navigation.gpuPresent' => 'GPU present',
+			'settings.allLanePanelsHidden' => 'Every panel in this lane is hidden —\nenable the ones you need under Global settings → Lane panel kanban.',
+			'settings.localTreeArchiveSize' => ({required Object size}) => 'Comic archive · ${size}',
+			'settings.localTreeOpenThisFolder' => 'Open this folder directly',
+			'settings.localTreeEmpty' => 'No subfolders or comic files in this folder',
+			'settings.localTreeReadFailed' => ({required Object error}) => 'Read failed: ${error}',
+			'settings.localTreeOpenFolder' => 'Open this folder',
+			'settings.localTreeTitle' => 'Local file tree (mImageViewer core)',
+			'settings.debugNoRustDiagnostics' => 'The native side returned no Rust diagnostics (the DLL and the bridge may be out of sync).',
+			'settings.debugBrowse' => 'Browse...',
+			'settings.debugLocalSourceGroup' => 'Local sources (loose folders / .cbz / .cbr)',
+			'settings.debugRefreshStats' => 'Refresh stats',
+			'settings.tabSideRight' => 'Vertical (right)',
+			'settings.tabSideLeft' => 'Vertical (left)',
+			'settings.tabSideTop' => 'Horizontal (top bar)',
+			'settings.tabPolicyTriggering' => 'Inherit the triggering tab',
+			'settings.tabPolicyRecent' => 'Inherit the most recently used tab',
+			'settings.tabPolicyDefaults' => 'Use preset defaults',
+			'settings.dragToLaneEnd' => 'Drag a panel here to append it',
+			'settings.dropToLaneEnd' => 'Release to append to this lane',
+			'settings.moveToLeftLane' => 'Move to left lane',
+			'settings.moveToRightLane' => 'Move to right lane',
+			'settings.kanbanRank' => ({required Object n}) => 'Rank #${n}',
+			'settings.kanbanShowPanel' => 'Show this panel in the panel bar',
+			'settings.kanbanHideCompletely' => 'Hide from the panel bar (leaves no hidden icon)',
+			'settings.kanbanReaderLaneDesc' => 'This lane is reserved for the comic page you are reading. Use the lane-order bar above or the arrows at the top-right of this column to move the reader to the left, centre or right.',
+			'settings.kanbanReaderCanvasTitle' => 'Comic reader main canvas',
+			'settings.kanbanVisibleHidden' => ({required Object visible, required Object hidden}) => '${visible} visible · ${hidden} hidden',
+			'settings.kanbanAllVisible' => ({required Object count}) => '${count} panels (all visible)',
+			'settings.kanbanReaderLaneTitle' => 'Reader main-view lane',
+			'settings.kanbanLaneIndex' => ({required Object n}) => 'Lane ${n}',
+			'settings.kanbanLaneOrderTitle' => 'Lane order (drag sideways or tap the arrows to move)',
+			'settings.kanbanHiddenPanels' => ({required Object count}) => '${count} panels fully hidden',
+			'settings.kanbanVisiblePanels' => ({required Object count}) => '${count} panels visible',
+			'settings.kanbanLaneOrder' => ({required Object order}) => 'Lane order: ${order}',
+			'settings.kanbanDragHint' => 'Drag or use the buttons to reorder lanes, reorder the panels within each lane, and toggle visibility. Hidden panels are removed from the panel bar entirely, with no hidden icon left behind.',
+			'settings.rightLane' => 'Right lane',
+			'settings.leftLane' => 'Left lane',
+			'settings.swimlanePanelKanbanConfigTitle' => 'Lane panel kanban configuration',
+			'settings.revealZonePointerHint' => 'This device has no hover pointer: these reveal zones only work when the mouse hugs the edge. On touch, use the narrow rails on either side of the solo Reader to switch lanes.',
+			'settings.laneCustomDelayMs' => 'This lane · milliseconds',
+			'settings.inheritedGlobalDelay' => ({required Object ms}) => 'Inherited from global: ${ms} ms',
+			'settings.fmViewColumns' => 'Columns view',
+			'settings.fmViewTree' => 'Tree view',
+			'settings.fmViewContent' => 'Content view',
+			'settings.fmDefaultContentLayout' => 'Default content layout',
+			'settings.fmDefaultEntryStyle' => 'Default entry style',
+			'settings.fmTabPolicyHint' => '“Recent” follows the active tab; “Triggering” follows the tab that started the action. Only browsing and search options are inherited — query, results, history and selection stay separate. With no source on first open, the preset is used.',
+			'settings.fmTabPolicySource' => 'Policy source',
+			'settings.favoriteTagExampleHint' => 'school_lolita | 学校萝莉 | School Lolita\nloli',
+			'settings.noMatchingArtist' => 'No matching artists',
+			'settings.favoriteArtistExampleHint' => 'Artist name\n[Circle name (artist)]\nAnother artist',
+			'settings.confirmResetPin' => 'Confirm reset PIN',
 			'settings.defaultHoverDelaySubtitle' => 'Used when a lane has no delay of its own',
 			'settings.defaultHoverDelay' => 'Default hover reveal delay',
 			'settings.enterWorkspaceSubtitle' => 'Opens with the presentation selected below; use the system back key to exit',
@@ -2947,6 +4888,8 @@ extension on TranslationsEnUs {
 			'settings.maskedKeywords' => 'Masked keywords',
 			'settings.maskedKeywordsSubtitle' => 'Add keywords to filter unwanted content (search only)',
 			'settings.maskedKeywordsEmpty' => 'No masked keywords',
+			_ => null,
+		} ?? switch (path) {
 			'settings.maskedKeywordsInputHint' => 'Enter new keyword...',
 			'settings.favoriteArtistHighlight' => 'Highlight Favorite Artists',
 			'settings.favoriteArtistHighlightSubtitle' => 'Highlight comics by preferred artists on cards and detail page',
@@ -3107,6 +5050,8 @@ extension on TranslationsEnUs {
 			'settings.startWithWorkspace' => 'Workspace',
 			'settings.workspaceSleepCoveredUi' => 'Sleep home pages while workspace is open',
 			'settings.workspaceSleepCoveredUiSubtitle' => 'Release image memory of covered lists; images reload when you return',
+			'settings.panelTabRightClickHide' => 'Hide Panel When Right-Clicking Its Icon',
+			'settings.panelTabRightClickHideSubtitle' => 'When off, the icons on a lane\'s panel bar only switch panels - right-click and long-press no longer hide one. Hiding is silent: the icon disappears from the bar and there is no restore entry there, so a mis-click means going back to the "Lanes & Panels" board to bring it back.',
 			'settings.skipUpdateCheck' => 'Skip update check',
 			'settings.skipUpdateCheckSubtitle' => 'This build is a fork: it won\'t query the upstream release on startup and won\'t show update prompts',
 			'settings.desktopCloseBehavior' => 'Close behavior',
@@ -3193,8 +5138,6 @@ extension on TranslationsEnUs {
 			'settings.einkRefreshHint' => 'A full refresh flashes white or black-and-white to clear the ghost of the previous page.',
 			'settings.einkRefreshNow' => 'Refresh now',
 			'settings.einkRefreshDone' => 'Screen refreshed',
-			_ => null,
-		} ?? switch (path) {
 			'settings.einkAutoRefreshTurns' => 'Auto refresh every N pages',
 			'settings.einkAutoRefreshOff' => 'Never',
 			'settings.einkShowRefreshButton' => 'Show refresh button',
@@ -3459,6 +5402,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialSlotsSubtitle' => 'Tap an empty or filled slot on the wheel',
 			'settings.operationBindingRadialName' => 'Wheel name',
 			'settings.operationBindingRadialSlotLabel' => ({required Object layer, required Object sector}) => 'Layer ${layer} · slot ${sector}',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingRadialEmptySlot' => 'Empty slot',
 			'settings.operationBindingRadialUnbindSlot' => 'Unbind this slot',
 			'settings.operationBindingRadialMaxMenus' => ({required Object max}) => 'Up to ${max} wheels',
@@ -3491,6 +5436,10 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialPickHint' => 'Tap a sector on the wheel to pick it; empty ones show +',
 			'settings.operationBindingRadialEmptySlotRow' => '(empty)',
 			'settings.operationBindingRadialActionLabel' => 'Action',
+			'bookshelf.collectedWorks' => 'Collected',
+			'bookshelf.readingNow' => 'Reading',
+			'bookshelf.unreadWorks' => 'Unread',
+			'bookshelf.createFolderHint' => 'Groups related comics together so you can find them again later.',
 			'bookshelf.title' => 'Bookshelf',
 			'bookshelf.favorite' => 'Favorites',
 			'bookshelf.history' => 'History',
@@ -3580,6 +5529,18 @@ extension on TranslationsEnUs {
 			'bookshelf.confirmDeleteSelectedFavorites' => ({required Object count}) => 'Delete selected ${count} favorite records?',
 			'bookshelf.confirmDeleteSelectedHistory' => ({required Object count}) => 'Delete selected ${count} history records?',
 			'bookshelf.confirmDeleteSelectedDownloads' => ({required Object count}) => 'Delete selected ${count} download records and files?',
+			'comicInfo.chapterCount' => ({required Object count}) => 'Chapters · ${count}',
+			'comicInfo.pageClosedFavoriteCancelled' => 'The page closed; the favourite action was cancelled',
+			'comicInfo.previewLoadFailed' => 'Preview failed to load',
+			'comicInfo.showMoreChapters' => 'Show more chapters',
+			'comicInfo.noChaptersYet' => 'No chapters yet',
+			'comicInfo.reverseOrderLabel' => 'Reverse',
+			'comicInfo.restoreForwardOrder' => 'Restore forward order',
+			'comicInfo.imagePreview' => 'Image preview',
+			'comicInfo.collapseDetails' => 'Collapse details',
+			'comicInfo.workTools' => 'Work tools',
+			'comicInfo.refreshInformation' => 'Refresh info',
+			'comicInfo.cloudFavoriteIncomplete' => 'The cloud favourite operation didn\'t finish',
 			'comicInfo.follow' => 'Follow updates',
 			'comicInfo.unfollow' => 'Unfollow',
 			'comicInfo.exportComic' => 'Export comic',
@@ -3689,6 +5650,264 @@ extension on TranslationsEnUs {
 			'comicInfo.confirmAdd' => 'Confirm add',
 			'comicInfo.resolveComicIdFailed' => ({required Object type}) => 'Cannot resolve comic ID for reading: ${type}',
 			'comicInfo.resolveEpsCountFailed' => ({required Object type}) => 'Cannot resolve episode count for reading: ${type}',
+			'reader.switchBookFailed' => ({required Object error}) => 'Switching books failed: ${error}',
+			'reader.pageDecodeFailed' => ({required Object n}) => 'Page ${n} could not be decoded',
+			'reader.cannotOpenPath' => ({required Object path}) => 'Can\'t open: ${path}',
+			'reader.aiJpegDenoise' => 'AI JPEG denoise',
+			'reader.noMatchingOfflineComics' => 'No downloaded comics match',
+			'reader.searchOfflineComics' => 'Search downloaded comics',
+			'reader.stateNotDownloadedAsk' => 'Not downloaded (it asks first when you turn this on)',
+			'reader.stateDownloaded' => 'Downloaded',
+			'reader.stateOff' => 'Off',
+			'reader.stateOn' => 'On',
+			'reader.cannotOpenLocalComic' => ({required Object error}) => 'Can\'t open the local comic: ${error}',
+			'reader.cachedPages' => ({required Object count}) => '${count} pages cached',
+			'reader.targetLanguageLabel' => ({required Object lang}) => 'Target ${lang}',
+			'reader.bottomRevealPx' => ({required Object px}) => 'Bottom reveal (${px}px)',
+			'reader.topRevealPx' => ({required Object px}) => 'Top reveal (${px}px)',
+			'reader.sourcePageOf' => ({required Object index, required Object total}) => 'Source page ${index} of ${total}',
+			'reader.manualPageOrderFor' => ({required Object name}) => 'Manual page order · ${name}',
+			'reader.tapToSwitchMode' => ({required Object from, required Object to}) => '${from} (tap to switch to ${to})',
+			'reader.modelState' => ({required Object state}) => 'Model: ${state}',
+			'reader.modelDownloadFailed' => ({required Object error}) => 'Model download failed: ${error}',
+			'reader.activeThreshold' => ({required Object value}) => 'Effective threshold: ${value}',
+			'reader.globalDefaultState' => ({required Object state}) => 'Global (default for all books): ${state}',
+			'reader.thisBookState' => ({required Object state}) => 'This book: ${state}',
+			'reader.upscaleChipTail' => ({required Object tooltip}) => '${tooltip}\nTap to toggle; hold to peek at the original; the power button on the right affects this book only',
+			'reader.notWiredIntoReader' => ({required Object name}) => '${name} isn\'t wired into this repo\'s reader yet',
+			'reader.notImplementedYet' => ({required Object name}) => '${name} (not implemented in this repo yet)',
+			'reader.oneScreenPercent' => ({required Object percent}) => '${percent}% of a screen',
+			'reader.slideshowDwellHint' => ({required Object step, required Object min, required Object max}) => 'How long each page stays: ${step} per step, between ${min} and ${max}',
+			'reader.manualRotationDeg' => ({required Object deg}) => 'Manual rotation ${deg}°',
+			'reader.loupeSizeRange' => ({required Object min, required Object max}) => 'Window edge, logical pixels (${min}–${max}, 20 per step)',
+			'reader.loupeZoomRange' => ({required Object min, required Object max}) => 'Magnification (${min}%–${max}%, 25% per step, doubling steps from 400%)',
+			'reader.intervalSeconds' => ({required Object seconds}) => 'Interval ${seconds}s',
+			'reader.tapToExpandPanel' => ({required Object label}) => '${label} (tap to open the panel)',
+			'reader.zoomModeValue' => ({required Object mode}) => 'Zoom mode: ${mode}',
+			'reader.imageProcessingOffReaderHint' => 'Image processing is off; turn it on in the reader settings',
+			'reader.gpuTextureUnsupported' => 'This platform doesn\'t support GPU texture processing',
+			'reader.thisPage' => 'This page',
+			'reader.pendingUpscale' => 'Awaiting upscale',
+			'reader.upscaleFailedState' => 'Upscale failed',
+			'reader.noUpscaleNeeded' => 'No upscaling needed',
+			'reader.upscaledState' => 'Upscaled',
+			'reader.generatedState' => 'Generated',
+			'reader.upscalingState' => 'Upscaling',
+			'reader.queuedState' => 'Queued',
+			'reader.originalCompareChip' => 'Comparing original',
+			'reader.upscaleOff' => 'Upscale off',
+			'reader.notSupported' => 'Not supported',
+			'reader.noProcessingNeeded' => 'No processing needed',
+			'reader.denoiseFailed' => 'Denoise failed',
+			'reader.enhanceFailed' => 'Enhance failed',
+			'reader.pendingDenoise' => 'Awaiting denoise',
+			'reader.pendingEnhance' => 'Awaiting enhance',
+			'reader.denoisedDone' => 'Denoised',
+			'reader.enhancedDone' => 'Enhanced',
+			'reader.denoising' => 'Denoising',
+			'reader.enhancing' => 'Enhancing',
+			'reader.upscaleShort' => 'Upscale',
+			'reader.jpegDenoise' => 'JPEG denoise',
+			'reader.denoisePlusUpscale' => 'Denoise + upscale',
+			'reader.tooltipIdle' => ({required Object page, required Object process, required Object hint}) => '${page} hasn\'t started ${process} yet${hint}',
+			'reader.tooltipFailed' => ({required Object page, required Object process, required Object hint}) => '${page} · ${process} failed, still showing the original${hint}',
+			'reader.tooltipSkipped' => ({required Object page, required Object hint}) => '${page} needs no processing${hint}',
+			'reader.tooltipApplied' => ({required Object page, required Object process, required Object hint}) => '${page} already uses the ${process} image${hint}; tap here to compare with the original',
+			'reader.tooltipReady' => ({required Object page, required Object hint}) => '${page}\'s processed image is ready, waiting to be shown${hint}',
+			'reader.tooltipRunning' => ({required Object page, required Object process, required Object hint}) => '${page} · ${process}…${hint}',
+			'reader.tooltipQueued' => ({required Object page, required Object process, required Object hint}) => '${page} is queued, waiting for ${process}${hint}',
+			'reader.tooltipComparing' => ({required Object hint}) => 'Comparing with the original; tap here to return to the processed image${hint}',
+			'reader.sizeHintSource' => ({required Object source}) => '(original ${source})',
+			'reader.sizeHintEnhanced' => ({required Object enhanced}) => '(processed ${enhanced})',
+			'reader.sizeHintBoth' => ({required Object source, required Object enhanced}) => '(original ${source} → processed ${enhanced})',
+			'reader.pageNumberN' => ({required Object page}) => 'Page ${page}',
+			'reader.missingWeightsCount' => ({required Object count}) => 'missing ${count} weights',
+			'reader.noMissingWeights' => '(nothing missing, proceeding as-is)',
+			'reader.fitWindow' => 'Fit to window',
+			'reader.autoTrimEnabledByDefault' => 'Enable auto-trim by default',
+			'reader.alignHeight' => 'Align height (two pages share one height)',
+			'reader.dwellIndicatorOff' => 'The dwell indicator is off; you can only guess which page is showing',
+			'reader.firstPageAloneOn' => 'Show the first page alone: on',
+			'reader.firstPageAloneOff' => 'Show the first page alone: off',
+			'reader.rotateClockwise90' => 'Rotate 90° clockwise',
+			'reader.pageSorting' => 'Page sorting',
+			'reader.pageLayout' => 'Page layout',
+			'reader.pageOrder' => 'Page order',
+			'reader.trimSideLimitHint' => 'Caps how much of each side may be trimmed; 0% keeps the full page',
+			'reader.denoiseAdvancedSettings' => 'Advanced denoise settings',
+			'reader.denoiseBlockSize' => 'Denoise block size',
+			'reader.denoiseShort' => 'Denoise',
+			'reader.thresholdLabel' => 'Threshold',
+			'reader.startWeightsInReaderSettings' => 'Start downloading the weights in the reader settings:',
+			'reader.readerSafeMarginBothSides' => 'Whether the reader keeps a moderate safety margin on both sides',
+			'reader.intervalLabel' => 'Interval',
+			'reader.lockLoupe' => 'Lock',
+			'reader.fillWholeWindow' => 'Fill the whole window',
+			'reader.resetViewTransform' => 'Reset zoom, rotation and wide-page policy (keeps page mode and reading direction)',
+			'reader.rotateCounterclockwise90' => 'Rotate 90° counter-clockwise',
+			'reader.fitHeight' => 'Fit to height',
+			'reader.fitWidth' => 'Fit to width',
+			'reader.pageNotLoadedYet' => 'This page has not loaded yet; wait a moment and translate again',
+			'reader.loadingSettings' => 'Loading settings…',
+			'reader.translationHiddenByCompare' => 'The translation is generated and injected but hidden by "compare with original"; switch back to upscaling to see it',
+			'reader.trigger' => 'Trigger',
+			'reader.trimAdvancedSettings' => 'Advanced trim settings',
+			'reader.pointerTypeAuto' => 'Auto: decided by the pointer itself — mouse and trackpad follow hover, finger and stylus need a press (platform-independent, so touch laptops plus an external mouse both resolve correctly)',
+			'reader.autoTranslateShort' => 'Auto-translate',
+			'reader.autoRotate' => 'Auto-rotate',
+			'reader.autoSplitLandscapeOn' => 'Auto-split landscape pages: on',
+			'reader.autoSplitLandscapeOff' => 'Auto-split landscape pages: off',
+			'reader.backgroundTolerance' => 'Background detection tolerance',
+			'reader.autoTranslateEnabled' => 'Auto-translate on page turn is enabled',
+			'reader.zoomMode' => 'Zoom mode',
+			'reader.editManualOrder' => 'Edit this chapter\'s manual order',
+			'reader.rotatePortraitLeft' => 'Rotate portrait pages left',
+			'reader.rotatePortraitRight' => 'Rotate portrait pages right',
+			'reader.chapterShort' => 'Chapter',
+			'reader.downloadNow' => 'Download now',
+			'reader.confirmResetAndRedownload' => 'Reset the progress and download this comic again?',
+			'reader.zoomShortReset' => 'Short press resets to 100%; press and hold to enter a percentage',
+			'reader.marginWhitespace' => 'Whitespace',
+			'reader.noBookOpenYet' => 'No book is open now — open one before this can be set per book',
+			'reader.layoutTools' => 'Layout tools',
+			'reader.autoScroll' => 'Auto-scroll',
+			'reader.clearManualOrder' => 'Clear this chapter\'s manual order',
+			'reader.removeTwoPageSeam' => 'Removes the seam between the two pages',
+			'reader.downloadingUpscaleInBackground' => 'Downloading the upscale model in the background...',
+			'reader.landscape' => 'Landscape',
+			'reader.rotateLandscapeLeft' => 'Rotate landscape pages left',
+			'reader.rotateLandscapeRight' => 'Rotate landscape pages right',
+			'reader.formatLabel' => 'Format',
+			'reader.webtoonStepScreens' => 'How many screens a webtoon advances per tick: webtoons only; paginated books move a whole page',
+			'reader.webtoonTrimSidesOnly' => 'Webtoons trim only the sides, keeping the vertical seam. Full-bleed or unreliable detections stay as-is.',
+			'reader.weights' => 'Weights',
+			'reader.noManualOrderHere' => 'This chapter has no manual order to clear',
+			'reader.bookImageProcessing' => 'This book: image processing',
+			'reader.bookEnableAiUpscale' => 'This book: enable AI super-resolution',
+			'reader.bookUpscaleOnFetch' => 'Upscaling is on for this book (later fetches are processed at the fetch layer)',
+			'reader.bookAiUpscaleOn' => 'AI upscaling is enabled for this book',
+			'reader.bookTrimOnOverride' => 'Trim is on for this book alone · global is off',
+			'reader.bookTrimOffOverride' => 'Trim is off for this book alone · global is on, so this session will not trim',
+			'reader.bookUpscaleOff' => 'Upscaling is off for this book (other books follow the global setting)',
+			'reader.bookAiUpscaleOff' => 'AI upscaling is off for this book (other books follow the global setting)',
+			'reader.bookEnableJpegDenoise' => 'Enable JPEG denoise for this book',
+			'reader.loupeUnlockedFollows' => 'Unlocked: the window closes as soon as the pointer leaves or the finger lifts; when locked it stays put, so you can drag it aside and then aim',
+			'reader.notDownloaded' => 'Not downloaded',
+			'reader.pauseResumeAutoScroll' => 'Pause / resume auto-scroll',
+			'reader.logLabel' => 'Log',
+			'reader.alignNone' => 'No alignment (keep original ratios)',
+			'reader.rotationSettings' => 'Rotation settings',
+			'reader.fileSize' => 'File size',
+			'reader.pageOrderNatural' => 'Natural file-name order (page2 before page10)',
+			'reader.fileLabel' => 'File',
+			'reader.slideshowOffTapStart' => 'The slideshow is off: tap to start it',
+			'reader.slideshowDwellIndicator' => 'Show which page is up and whether it is paused during the slideshow',
+			'reader.slideshowOnButIdle' => 'The slideshow is on but not ticking: tap to continue',
+			'reader.slideshowStoppedAtEnd' => 'The slideshow stopped at the chapter end',
+			'reader.slideshowPlayingTapPause' => 'Playing; tap to pause',
+			'reader.slideshowPlaying' => 'Playing',
+			'reader.slideshowFinished' => 'Finished',
+			'reader.loupeTooltip' => 'Loupe: magnifies a small patch of pixels under the pointer as-is into the side window (checking screentone and edge detail)',
+			'reader.loupeEnabled' => 'Loupe is on: a small patch of pixels under the pointer is magnified as-is into the side window',
+			'reader.loupe' => 'Loupe',
+			'reader.slideshowAdvanceChapter' => 'At chapter end, go on to the next chapter; stop when there is none',
+			'reader.slideshowLoopInChapter' => 'At chapter end, jump back to the first page and keep playing',
+			'reader.slideshowStopAtChapterEnd' => 'Stop at the last page of the chapter and turn the slideshow off',
+			'reader.inference' => 'Inference',
+			'reader.onDemandTranslateOcr' => 'On-demand inset translation and on-device OCR',
+			'reader.detectByFileHeader' => 'Detected by file header. PNG, WebP and similar pages stay as-is.',
+			'reader.dragReorderStaysOnPage' => 'Drag to change the display order; applying keeps you on the current page',
+			'reader.openChapterListToDrag' => 'Open this chapter\'s page list and drag to reorder (starting from the current order)',
+			'reader.perBookAfterOpening' => 'Set per book after opening an online or local comic',
+			'reader.touchHoldToShow' => 'Touch: press and hold to open the window, release to close it (with lock you can drag it)',
+			'reader.manualOrderDragList' => 'Manual order (drag in the page list)',
+			'reader.manualZoom' => 'Manual zoom',
+			'reader.denoiseDefaultForAll' => 'Enable denoise for all comics by default',
+			'reader.allBooksDefaultCurrentlyOff' => 'Default for all books, currently off; when on, every book without its own setting follows',
+			'reader.allBooksDefaultShared' => 'Default for all books (the same entry as in the settings page)',
+			'reader.hoverFollowsMouse' => 'Hover: follows the mouse only and closes when the pointer leaves the page',
+			'reader.hoverScroll' => 'Hover scroll',
+			'reader.restoreDefaultParams' => 'Restore default parameters',
+			'reader.restoreConservativeDefaults' => 'Restore conservative defaults',
+			'reader.mimageModelMissingPrompt' => 'This device has not downloaded the mImage ONNX upscale model (about 5.4 MB). Download and enable it now?',
+			'reader.noImageInfoAvailable' => 'No image information available to read right now',
+			'reader.noRealPlksrBackendHere' => 'This platform has no RealPLKSR inference backend yet',
+			'reader.pageAnimationOn' => 'Smooth page-turn animation is currently on',
+			'reader.pageAnimationOff' => 'Page-turn animation is currently off',
+			'reader.currentImage' => 'Current image',
+			'reader.translateOnDeviceNow' => 'Using an on-device offline engine right now; translated pages need no network',
+			'reader.translateCloudEndpointNow' => 'Translating through a cloud API endpoint right now; erases the original bubbles and fills in the translation',
+			'reader.force' => 'Force',
+			'reader.engine' => 'Engine',
+			'reader.enableAutoScroll' => 'Enable auto-scroll',
+			'reader.enableBookUpscale' => 'Turn on upscaling for this book',
+			'reader.slideshow' => 'Slideshow',
+			'reader.loupeLockedOn' => 'Locked: the window stays after the pointer leaves and the finger lifts; drag the window itself to move it; double-tap it to unlock',
+			'reader.requeuedToDownload' => 'Added back to the download queue',
+			'reader.alreadyDisabled' => 'Disabled',
+			'reader.manualOrderClearedDone' => 'Cleared this chapter\'s manual order',
+			'reader.slideshowPausedTapResume' => 'Paused; tap to resume the slideshow (settings unchanged)',
+			'reader.autoScrollEnabled' => 'Auto-scroll enabled',
+			'reader.trimOnAutoDetect' => 'On · white and black edges auto-detected',
+			'reader.denoiseOnRealPlksr' => 'On · RealPLKSR 1×',
+			'reader.switchedToOriginalCompare' => 'Switched to the original comparison',
+			'reader.switchedBackToProcessed' => 'Switched back to the processed image',
+			'reader.trimOffFullPage' => 'Off · the full page is shown',
+			'reader.trimOffOriginalKept' => 'Off · original left unchanged',
+			'reader.fitWindowLeft' => 'Fit to window, aligned left',
+			'reader.fitWindowRight' => 'Fit to window, aligned right',
+			'reader.compareOriginal' => 'Compare with the original',
+			'reader.widePagePolicy' => 'Wide page policy',
+			'reader.alignWidth' => 'Align width (two pages share one width)',
+			'reader.safeMargin' => 'Safe margin',
+			'reader.processingStatus' => 'Processing status',
+			'reader.bgToleranceHint' => 'Raising it tolerates paper tint and light noise; use a smaller value when pale detail is common',
+			'reader.onlineUpscaleAtFetchLayer' => 'Online sources: upscaling happens at the fetch/decode layer, so this is the per-book switch (no per-page state)',
+			'reader.sharedUpscaleEnlarge' => 'Shared by online and local comics; enlarges content while reading',
+			'reader.sharedDenoiseThenUpscale' => 'Shared by online and local comics; keeps resolution, denoises then upscales',
+			'reader.trimSafeMarginKeeps' => 'Keeps extra space around detected content to protect text, page numbers and linework',
+			'reader.pageOrderSource' => 'Source order (as the plugin or archive provides it)',
+			'reader.imageProcessing' => 'Image processing',
+			'reader.readback' => 'Read-back',
+			'reader.backend' => 'Backend',
+			'reader.onlyThisBookAskFirst' => 'Affects this book only; the model is not downloaded, so it asks first when you enable it',
+			'reader.onlyThisBookGlobalOthers' => 'Affects this book only; other books follow the global setting',
+			'reader.onlyThisComicUpscaleOwn' => 'Affects this comic only; upscaling has its own switch',
+			'reader.twoPagesIndependent' => 'Two pages independent',
+			'reader.twoPageModeTap' => 'Two-page mode (tap for single page)',
+			'reader.twoPages' => 'Two pages',
+			'reader.originalSize' => 'Original size',
+			'reader.comparingOriginal' => 'Comparing with the original',
+			'reader.singlePageModeTap' => 'Single page mode (tap for two pages)',
+			'reader.singlePage' => 'Single page',
+			'reader.trimSideLimit' => 'Max trim per side',
+			'reader.animatedNotProcessed' => 'Animated pages are not processed. Model strength is fixed; original, denoised and upscaled results are cached separately.',
+			'reader.animated' => 'Animated',
+			'reader.toggleReaderFilter' => 'Toggle the reading filter and eye-comfort overlay',
+			'reader.resolution' => 'Resolution',
+			'reader.blockLabel' => 'Blocks',
+			'reader.disableAutoScroll' => 'Turn off auto-scroll',
+			'reader.disableAutoRotate' => 'Turn off auto-rotate',
+			'reader.disableBookUpscale' => 'Turn off upscaling for this book',
+			'reader.wholeBook' => 'Whole book',
+			'reader.panoramaMode' => 'Panorama mode',
+			'reader.pageOrderReversed' => 'Reversed (the whole chapter page list flipped)',
+			'reader.scaleLabel' => 'Scale',
+			'reader.notWiredBelow' => 'Not yet wired into this repo',
+			'reader.jpegPagesOnly' => 'Processes JPEG pages only',
+			'reader.peekOriginalBriefly' => 'Briefly view the original; the processed result returns when it closes',
+			'reader.peekBackToOriginal' => 'Temporarily switch back to the original; the processed result returns when it closes',
+			'reader.denoiseBlockIndependentHint' => 'Independent of upscaling. Smaller blocks cut inference memory; fixed-input models use their own size',
+			'reader.denoiseOriginalSafeBefore' => 'Originals untouched; denoise runs before upscaling',
+			'reader.denoiseOriginalSafeBookOverride' => 'Originals untouched; the per-book switch can still override it in reader settings',
+			'reader.downloadPreference' => 'Download preference',
+			'reader.downloadAiUpscaleModel' => 'Download AI upscale model',
+			'reader.rotateAlwaysLeft' => 'Always rotate left',
+			'reader.rotateAlwaysRight' => 'Always rotate right',
+			'reader.ocrWeightsReady' => 'OCR weights ready',
+			'reader.neoviewViewportDemo' => 'NeoView viewport-aware interaction sketch',
+			'reader.denoiseModelMissing' => 'JPEG denoise model not installed',
+			'reader.aiSuperResolution' => 'AI super-resolution',
 			'reader.downloadManage' => 'Download Manager',
 			'reader.startDownload' => 'Start Download',
 			'reader.pauseDownload' => 'Pause Download',
@@ -3697,6 +5916,8 @@ extension on TranslationsEnUs {
 			'reader.deleteDownload' => 'Delete Download',
 			'reader.retryFailedParts' => 'Retry Failed Parts',
 			'reader.retryFailedPartsSubtitle' => 'Only redownload incomplete or failed chapters and images',
+			_ => null,
+		} ?? switch (path) {
 			'reader.restartDownloadSmart' => 'Incremental (Recommended)',
 			'reader.restartDownloadSmartDesc' => 'Check local downloaded files and only download missing or failed images',
 			'reader.restartDownloadFull' => 'Full Redownload',
@@ -3707,8 +5928,6 @@ extension on TranslationsEnUs {
 			'reader.saveToDirectory' => 'Export to Folder',
 			'reader.exportZip' => 'Export as ZIP',
 			'reader.downloadSelected' => 'Download Selected',
-			_ => null,
-		} ?? switch (path) {
 			'reader.selectAll' => 'Select All',
 			'reader.deselectAll' => 'Deselect All',
 			'reader.invertSelection' => 'Invert Selection',
@@ -3932,6 +6151,9 @@ extension on TranslationsEnUs {
 			'reader.radialMenuHintSwitch' => 'Release to switch wheel',
 			'reader.singlePageLtr' => 'Left to right',
 			'reader.singlePageRtl' => 'Right to left',
+			'plugin.getInfoJsonBadFormat' => 'getInfoJson returned malformed data',
+			'plugin.getInfoBadFormat' => 'getInfo returned malformed data',
+			'plugin.badResponseFormat' => 'The plugin returned a malformed response',
 			'plugin.advancedCapabilityLoading' => 'Loading advanced capabilities...',
 			'plugin.store' => 'Plugin Store',
 			'plugin.searchHint' => 'Search plugin name or author...',
@@ -4208,6 +6430,8 @@ extension on TranslationsEnUs {
 			'ocr.failedShort' => 'Failed',
 			'ocr.busyToast' => 'This page is still being translated',
 			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.engine' => 'Translation engine',
 			'ocr.engineSubtitle' => 'API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline',
 			'ocr.autoTranslatePage' => 'Auto-translate each new page',
@@ -4218,11 +6442,138 @@ extension on TranslationsEnUs {
 			'ocr.engineAppleUnavailable' => 'No system translation on this machine (macOS 15+ / iOS 18+ only)',
 			'ocr.glossaryIgnoredOnApple' => 'System translation has no glossary API: in this mode the glossary is ignored and proper nouns get generic translations',
 			'ocr.engineHunyuanHint' => 'This engine needs a local server first, e.g. llama-server -m Hy-MT2-1.8B-Q4_K_M.gguf --device MTL0 -ngl 99 --port 8080\nSet base URL to http://127.0.0.1:8080/v1 and use the same model name as --model. The glossary takes effect via its native Terminology mode.\nMeasured: 1.8B is enough (~158 ms/line, ~2.4 s/page) — the glossary fixes ヤモリ/危機契約 line by line and 7B is no better at 4x the size. On macOS --device must be MTL0, otherwise llama.cpp silently uses the CPU (4.8x slower).',
+			'realSr.openedUpscaleCache' => ({required Object dir}) => 'No upscale output yet; opened the upscale cache folder: ${dir}',
+			'realSr.openedRecentLocation' => ({required Object output}) => 'Opened the folder holding the latest output: ${output}',
+			'realSr.openFolderFailed' => ({required Object error}) => 'Opening the folder failed: ${error}',
+			'realSr.openFolderUnsupported' => ({required Object dir}) => 'This platform can\'t open folders: ${dir}',
+			'realSr.coremlModelPhoto' => 'Real-ESRGAN x4plus · photo / CG',
+			'realSr.mimageInferenceFailed' => ({required Object error}) => 'mImage ONNX inference failed: ${error}',
+			'realSr.modelUnavailableHint' => ({required Object engine}) => 'Model unavailable: ${engine}. Download it in the upscale settings first.',
+			'realSr.archiveMissingOnnx' => ({required Object file}) => 'Archive is missing the mImage ONNX model ${file}',
+			'realSr.archiveContentMismatch' => ({required Object missing}) => 'Archive contents don\'t meet this engine\'s requirements: ${missing}',
+			'realSr.modelFileNameMismatch' => ({required Object expected, required Object actual}) => 'File name doesn\'t match the current model: expected ${expected}, got ${actual}',
+			'realSr.missingOnnxDownload' => ({required Object file}) => 'Missing mImage ONNX model ${file}; download it in the settings',
+			'realSr.importJsonInvalid' => ({required Object error}) => 'Invalid JSON: ${error}',
+			'realSr.copyLog' => 'Copy log',
+			'realSr.blockInfoDetail' => ({required Object contentSize, required Object blockSize, required Object shrink}) => 'Tiling: content block ${contentSize}×${contentSize}, model input ${blockSize}×${blockSize} (includes ${shrink} px reflection padding); fixed by the model',
+			'realSr.deleteModelConfirmNamed' => ({required Object name}) => 'Delete ${name}? You can download it again if needed.',
+			'realSr.actionFailedDetail' => ({required Object error}) => 'Operation failed: ${error}',
+			'realSr.importConditionSuccess' => ({required Object count}) => 'Successfully imported ${count} conditions',
+			'realSr.logEmptyText' => 'No upscale log yet. Once upscaling runs, inference and replacement are logged here.',
+			'realSr.upscaleLogCopied' => 'Upscale log copied',
+			'realSr.expandEditor' => 'Expand editor',
+			'realSr.collapseEditor' => 'Collapse editor',
+			'realSr.conditionListSummary' => ({required Object total, required Object enabled}) => 'Conditions (${total}, ${enabled} enabled)',
+			'realSr.conditionNeedsAutoUpscale' => 'Enable [Auto upscaling] above first; only then do conditions apply while reading and preloading.',
+			'realSr.conditionUpscaleSubtitle' => 'Dispatch upscale actions and skip rules by image size, path regex and metadata',
+			'realSr.conditionUpscaleTitle' => 'Condition upscaling (neo)',
+			'realSr.advancedOptionsTitle' => 'Advanced upscale options (pre-upscale / log)',
+			'realSr.ncnnCliDesc' => 'Runs the waifu2x / Real-CUGAN ncnn-vulkan executables; mode, scale, concurrency and tiling are set at the bottom of the “Image upscaling” page.',
+			'realSr.coremlDesc' => 'Swift calls Apple CoreML directly and reuses the loaded model.',
+			'realSr.nativeScaleLabel' => ({required Object x}) => 'Native ${x}×',
+			'realSr.modeCuganQuality' => 'Real-CUGAN · quality first',
+			'realSr.modeWaifuFast' => 'waifu2x · speed first',
+			'realSr.nativeModel' => 'Rossi native model',
+			'realSr.engineSwitchHint' => 'Switching reprocesses the current page; each engine keeps its own model choice.',
+			'realSr.hardwareAcceleration' => 'Hardware acceleration',
+			'realSr.upscaleEngine' => 'Upscale engine',
+			'realSr.preUpscaleHint' => 'One page at a time to avoid memory contention; set both to 0 to disable pre-upscaling.',
+			'realSr.pageCount' => ({required Object n}) => '${n} pages',
+			'realSr.preUpscaleCurrentFirst' => 'Pre-upscale (current page first)',
+			'realSr.enableTta' => 'Enable TTA',
+			'realSr.writeResultCache' => 'Write results to cache',
+			'realSr.enableTile' => 'Enable tiling (Tile)',
+			'realSr.actionUpscaleHit' => 'When matched: run upscaling',
+			'realSr.actionSkipHit' => 'When matched: skip upscaling (no processing)',
+			'realSr.actionSectionTitle' => 'Trigger action (Action)',
+			'realSr.excludePreUpscale' => 'Exclude from the pre-upscale queue',
+			'realSr.matchArchivePath' => 'Match paths inside the archive',
+			'realSr.regexExampleOr' => 'or',
+			'realSr.regexExamplePrefix' => 'e.g. ',
+			'realSr.matchSectionTitle' => 'Size and rule matching (Match)',
+			'realSr.enableThisCondition' => 'Enable this condition',
+			'realSr.conditionEnabledBadge' => 'Enabled',
+			'realSr.importSuccessSkipped' => ({required Object imported, required Object skipped}) => 'Imported ${imported} conditions, skipped ${skipped} incompatible ones',
+			'realSr.importContentEmpty' => 'Import content cannot be empty',
+			'realSr.importJsonSample' => '[\n  {\n    "name": "Example condition",\n    ...\n  }\n]',
+			'realSr.pasteExportedJson' => 'Paste the exported JSON array or backup object text:',
+			'realSr.conditionJsonCopied' => 'Condition JSON copied to clipboard',
+			'realSr.conditionsRestored' => 'Default conditions restored',
+			'realSr.keepAtLeastOneCondition' => 'Keep at least one upscale condition',
+			'realSr.conditionCopy' => ({required Object name}) => '${name} (copy)',
+			'realSr.importLocalHint' => 'For local import, pick the mImage ONNX model matching the file name above. After switching, the current page is re-upscaled.',
+			'realSr.modelNotInstalled' => 'Current model not installed; download or import it before use',
+			'realSr.modelInstalled' => 'Current model installed',
+			'realSr.modelRuntime' => ({required Object runtime}) => 'Runtime: ${runtime}',
+			'realSr.modelDenoiseFixed' => 'Denoise: fixed by the model, no separate strength control',
+			'realSr.modelDenoiseCugan' => 'Denoise: Real-CUGAN conservative repair, strength fixed by the model',
+			'realSr.modelScaleNote' => ({required Object scale}) => 'Scale: native ${scale}× (set by the model)',
+			'realSr.exampleBuiltinHint' => 'No page is being read, so the built-in sample is shown; open a comic and expand again to see the current page.',
+			'realSr.exampleSemantics' => ({required Object title, required Object before, required Object after, required Object description}) => '${title} sample. ${before} compared with ${after}. Tap to view full size. ${description}',
+			'realSr.exampleTitleSuffix' => ({required Object title}) => '${title} (sample)',
+			'realSr.exampleLiveSource' => 'Taken from the page you are reading; released as soon as the preview closes.',
+			'realSr.beforeUnchanged' => ({required Object before}) => '${before} (kept as-is)',
+			'realSr.beforeTrimmedShadow' => ({required Object before}) => '${before} (shaded area is what gets trimmed)',
+			'realSr.loadingTrimResult' => 'Reading the current page\'s trim result…',
+			'realSr.loadingDenoiseResult' => 'Reading the current page\'s denoise result…',
+			'realSr.exampleImageNotReadyRetry' => 'The current page image is not ready yet; turn the page or try again shortly',
+			'realSr.previewFailed' => ({required Object error}) => 'Preview failed: ${error}',
+			'realSr.afterDenoise' => 'Denoised',
+			'realSr.afterTrim' => 'Trimmed',
+			'realSr.exampleDenoiseDesc' => 'The same JPEG crop actually processed by RealPLKSR 1×; resolution stays the same. Results vary with the source image.',
+			'realSr.exampleTrimDesc' => 'Removes the surrounding margins so the comic fills more of the screen. The sample image does not change with the settings.',
+			'realSr.exampleDenoiseTitle' => 'Denoise preview',
+			'realSr.exampleTrimTitle' => 'Auto-trim preview',
+			'realSr.denoiseAttribution' => 'From mImageViewer · CC BY 4.0\nDownloaded on first use; installed once size and SHA-256 check out.',
+			'realSr.retryDownload' => 'Retry download',
+			'realSr.denoiseProgressTooltip' => 'Model download progress',
+			'realSr.denoiseVerifyTooltip' => 'Verify model integrity',
+			'realSr.denoiseSubtitle' => 'RealPLKSR · JPEG denoise · 1×',
+			'realSr.denoiseUpdateFailed' => 'Update failed · the installed model still works',
+			'realSr.denoiseInstalled' => ({required Object size}) => 'Model installed · ${size}',
+			'realSr.denoiseVerifying' => 'Verifying model',
+			'realSr.denoiseMissing' => 'Model not installed',
+			'realSr.denoiseChecking' => 'Checking model',
+			'realSr.modelIncomplete' => 'Model is incomplete',
+			'realSr.modelDownloadDone' => 'Model download finished',
+			'realSr.manualImportUnsupported' => 'This platform does not support manual upscale-model import',
+			'realSr.missingModelDirs' => 'Missing model directories (models-pro / models-se etc.)',
+			'realSr.missingExecutable' => 'Missing waifu2x / Real-CUGAN executable',
+			'realSr.missingModelFile' => ({required Object file}) => 'Missing model file ${file}',
+			'realSr.missingModelDir' => ({required Object dir}) => 'Missing model directory ${dir}',
+			'realSr.missingOnnxModel' => ({required Object file}) => 'Missing mImage ONNX model ${file}',
+			'realSr.previewEnhancedUnreadable' => 'The enhanced result can\'t be read right now, so no comparison is shown',
+			'realSr.previewDenoiseOriginal' => 'Denoise not applied · the page shown is still the original',
+			'realSr.previewDenoiseCompare' => 'Denoise applied · compared against the enhanced page the reader shows',
+			'realSr.previewDenoisePending' => ({required Object phase}) => 'Denoise not applied yet · ${phase}',
+			'realSr.previewDenoiseApplied' => 'JPEG denoise applied · RealPLKSR 1×',
+			'realSr.previewBothApplied' => 'Denoise and upscale applied · compared against the enhanced page on screen',
+			'realSr.previewDenoiseOff' => 'This image is not denoised · denoise is off for this comic',
+			'realSr.previewDenoiseJpegOnly' => 'This image is not denoised · only JPEG pages are processed, this one stays as-is',
+			'realSr.trimInsets' => ({required Object left, required Object top, required Object right, required Object bottom}) => 'left ${left} · top ${top} · right ${right} · bottom ${bottom}',
+			'realSr.previewTrimApplied' => ({required Object summary}) => 'Display trim applied · ${summary}',
+			'realSr.previewTrimNotNeeded' => 'This image is not trimmed · nothing to trim, kept as-is',
+			'realSr.previewTrimPending' => 'Trim detection not finished · waiting for the result',
+			'realSr.previewTrimSplitPage' => 'This image is not trimmed · split double pages stay as-is',
+			'realSr.previewTrimOff' => 'This image is not trimmed · auto-trim is off for this comic',
+			'realSr.tileSizeHint' => 'Lower this if it crashes; “Auto” uses the model\'s recommended block size, and a model that declares a fixed input size takes precedence',
+			'realSr.conditionN' => ({required Object index}) => 'Condition ${index}',
+			'realSr.importItemFailed' => ({required Object index, required Object error}) => 'Failed to parse item ${index}: ${error}',
+			'realSr.importSkipNotObject' => ({required Object index}) => 'Skipped item ${index}: entry is not an object',
+			'realSr.defaultCondition' => 'Default condition',
+			'realSr.engineDesktopNcnn' => 'Desktop NCNN (waifu2x / Real-CUGAN)',
+			'realSr.engineNativeCoreML' => 'Rossi native CoreML',
+			'realSr.modelFast' => 'Fast general (Real-ESR General 4x)',
+			'realSr.modelPhoto' => 'Photo / CG (Real-ESRGAN 4x)',
+			'realSr.modelAnime' => 'Illustration / anime (Real-ESRGAN Anime 6B 4x)',
+			'realSr.modelComic' => 'Comic (Real-CUGAN 4x)',
+			'realSr.modeDenoiseThenUpscale' => 'Denoise then upscale',
+			'realSr.modeUpscaleOnly' => 'Upscale only',
+			'realSr.modeDenoiseOnly' => 'JPEG denoise only',
+			'realSr.modeOriginal' => 'Original',
 			'realSr.deleteCondition' => 'Delete condition',
 			'realSr.lowerPriority' => 'Lower priority',
 			'realSr.raisePriority' => 'Raise priority',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.addCondition' => 'Add condition',
 			'realSr.openImageFolderHint' => 'Reveals the most recent upscaled image; opens the upscale cache folder when there is none yet.',
 			'realSr.openImageFolder' => 'Open image folder',
@@ -4480,6 +6831,10 @@ extension on TranslationsEnUs {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
+			'comicList.chineseLocalized' => 'CN-localised',
+			'comicList.downloadedAtLabel' => 'Downloaded at',
+			'comicList.likedArtists' => 'Favourite artists',
+			'comicList.likedTags' => 'Favourite tags',
 			'comicList.defaultTitle' => 'Comic List',
 			'comicList.missingSource' => 'Missing plugin source, cannot load list',
 			'comicList.reload' => 'Reload',
@@ -4490,6 +6845,7 @@ extension on TranslationsEnUs {
 			'comicList.levelCategory' => ({required Object level}) => 'Level ${level}',
 			'comicList.missingListConfig' => 'Missing list request configuration',
 			'comicList.missingFnPath' => 'List request missing fnPath',
+			'comicEntry.seenAtPage' => ({required Object page}) => 'Read up to page ${page}',
 			'comicEntry.updatedAt' => ({required Object time}) => 'Updated: ${time}',
 			'comicEntry.finished' => 'Finished',
 			'comicEntry.ongoing' => 'Ongoing',
@@ -4588,6 +6944,8 @@ extension on TranslationsEnUs {
 			'login.invalidCredentials' => 'Invalid username or password, please try again',
 			'login.configNotReady' => 'Login config not ready, please retry later',
 			'login.loggingIn' => 'Logging in, please wait...',
+			_ => null,
+		} ?? switch (path) {
 			'login.loginSuccess' => 'Login successful',
 			'login.loginFailed' => 'Login failed',
 			'login.loginButton' => 'Login',
@@ -4735,8 +7093,6 @@ extension on TranslationsEnUs {
 			'shelfMenu.copiedTitle' => ({required Object title}) => 'Copied title “${title}”',
 			'shelfMenu.copiedLink' => ({required Object link}) => 'Copied link “${link}”',
 			'shelfMenu.fileManagerTabOpened' => 'Opened in a new file manager tab',
-			_ => null,
-		} ?? switch (path) {
 			'shelfMenu.fileManagerTabUnavailable' => 'The file manager panel is not ready yet, try again in a moment',
 			'shelfMenu.fileManagerTabNoLocalPath' => 'This comic has no local folder, so it cannot be opened in the file manager',
 			'shelfMenu.favoriteAdded' => ({required Object title}) => 'Added “${title}” to favorites',

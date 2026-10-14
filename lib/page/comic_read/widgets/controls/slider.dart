@@ -183,7 +183,9 @@ class _SliderWidgetState extends State<SliderWidget> {
                             const SizedBox(height: 4),
                             Text(
                               _previewMessage.startsWith('#') ||
-                                      _previewMessage.contains('章')
+                                      _previewMessage.contains(
+                                        t.reader.chapterShort,
+                                      )
                                   ? _previewMessage
                                   : '第 $_previewMessage 页',
                               style: overlayContext.theme.textTheme.labelSmall

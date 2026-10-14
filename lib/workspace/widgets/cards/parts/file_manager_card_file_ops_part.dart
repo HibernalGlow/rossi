@@ -333,7 +333,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       child: Row(
         children: [
           Text(
-            '已选 $count 项',
+            t.workspace.selectedCount(n: count),
             style: theme.textTheme.labelMedium?.copyWith(
               color: scheme.onSecondaryContainer,
               fontWeight: FontWeight.w600,
@@ -372,7 +372,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       ),
       _selectionAction(
         AppGlyphs.cut,
-        '剪切',
+        t.workspace.cut,
         () => unawaited(
           _copyToClipboard(cut: true, paths: _selectedPaths.toList()),
         ),
@@ -382,24 +382,26 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       if (ops?.canPaste ?? false)
         _selectionAction(
           AppGlyphs.paste,
-          '粘贴到当前目录',
+          t.workspace.pasteHere,
           () => unawaited(_pasteInto(null)),
         ),
       if (ops?.canUndo ?? false)
         _selectionAction(
           AppGlyphs.undo,
-          '撤销上一步',
+          t.workspace.undoLastStep,
           () => unawaited(_undoLastOperation()),
         ),
       _selectionAction(
         AppGlyphs.delete,
-        (_ops?.trashRestoreSupported ?? false) ? '移到回收站' : '移到回收站（无法撤销）',
+        (_ops?.trashRestoreSupported ?? false)
+            ? t.workspace.moveToTrash
+            : t.workspace.moveToTrashNoUndo,
         () => unawaited(_trashSelection()),
         color: scheme.error,
       ),
       _selectionAction(
         AppGlyphs.delete,
-        '永久删除',
+        t.workspace.deleteForever,
         () => unawaited(_deleteSelectionPermanently()),
         color: scheme.error,
       ),

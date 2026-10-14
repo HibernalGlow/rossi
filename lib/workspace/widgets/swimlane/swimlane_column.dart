@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_bar_positioner.dart';
 import 'package:zephyr/workspace/widgets/panels/panel_tab_strip.dart';
 import 'package:zephyr/workspace/widgets/swimlane/lane_more_menu.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 单个泳道容器：栏头（折叠 / 独占 / 宽度 / 更多）+ 内容。
 ///
@@ -295,7 +296,7 @@ class SwimlaneColumn extends StatelessWidget {
           // 因此这一颗由 [_fitHeader] 决定画不画。
           Expanded(
             child: Tooltip(
-              message: '双击重置该栏宽度　·　右键打开该泳道的菜单',
+              message: t.workspace.doubleTapResetLaneWidth,
               child: InkWell(
                 onDoubleTap: onResetWidth,
                 child: Row(
@@ -382,7 +383,9 @@ class SwimlaneColumn extends StatelessWidget {
                     ? theme.colorScheme.primary
                     : theme.colorScheme.onSurfaceVariant,
               ),
-              tooltip: isSolo ? '退出独占 (Exit Solo)' : '独占该栏 (Solo 聚焦)',
+              tooltip: isSolo
+                  ? t.workspace.exitSoloEn
+                  : t.workspace.soloThisLaneEn,
               onPressed: onToggleSolo,
               visualDensity: VisualDensity.compact,
             ),
@@ -390,7 +393,7 @@ class SwimlaneColumn extends StatelessWidget {
           if (fit.showCollapse)
             IconButton(
               icon: const GlyphIcon(AppGlyphs.fold, size: 18),
-              tooltip: '折叠为紧凑条 (Collapse)',
+              tooltip: t.workspace.collapseToBarEn,
               onPressed: onToggleCollapse,
               visualDensity: VisualDensity.compact,
             ),
@@ -503,13 +506,13 @@ class SwimlaneColumn extends StatelessWidget {
         .panelTabSortMode;
     if (isSolo || !editing) {
       return Tooltip(
-        message: '${titleOverride ?? config.title}（在泳道菜单中选择“编辑布局”可排序）',
+        message: t.workspace.laneSortHint(title: titleOverride ?? config.title),
         child: icon,
       );
     }
 
     return Tooltip(
-      message: '${titleOverride ?? config.title}　（按住可拖动重排泳道）',
+      message: t.workspace.laneDragHint(title: titleOverride ?? config.title),
       waitDuration: const Duration(milliseconds: 500),
       child: LongPressDraggable<String>(
         data: laneId,
@@ -573,7 +576,7 @@ class SwimlaneColumn extends StatelessWidget {
               size: 18,
               color: theme.colorScheme.primary,
             ),
-            tooltip: '${config.title} (点击展开泳道)',
+            tooltip: t.workspace.laneTapExpandHint(title: config.title),
             onPressed: onToggleCollapse,
             visualDensity: VisualDensity.compact,
           ),
@@ -592,7 +595,7 @@ class SwimlaneColumn extends StatelessWidget {
           const Spacer(),
           IconButton(
             icon: const GlyphIcon(AppGlyphs.unfold, size: 16),
-            tooltip: '展开泳道',
+            tooltip: t.workspace.expandLane,
             onPressed: onToggleCollapse,
             visualDensity: VisualDensity.compact,
           ),

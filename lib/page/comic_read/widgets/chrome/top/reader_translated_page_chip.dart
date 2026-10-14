@@ -96,7 +96,7 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         // 其余诊断文案（[TranslatedPageController.lastError]、超分的状态表）
         // 本来也是原文。要补 i18n 就在 `ocr` 段加两个键，别在这里另起一套。
         TranslatedPageChipState.blockedByOriginalPreview =>
-          '译文已经生成并注入，正被「对比原图」挡着：切回超分就显示译文',
+          t.reader.translationHiddenByCompare,
         _ => t.reader.tabTranslate,
       },
       onPressed: () async {
@@ -128,7 +128,8 @@ class ReaderTranslatedPageChip extends StatelessWidget {
         TranslatedPageChipState.building => t.ocr.building,
         TranslatedPageChipState.failed => t.ocr.failedShort,
         TranslatedPageChipState.showing => onLabel,
-        TranslatedPageChipState.blockedByOriginalPreview => '原图对比中',
+        TranslatedPageChipState.blockedByOriginalPreview =>
+          t.reader.comparingOriginal,
         _ => t.reader.tabTranslate,
       },
       selected: state == TranslatedPageChipState.showing,

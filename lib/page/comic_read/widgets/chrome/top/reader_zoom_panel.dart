@@ -6,6 +6,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/model/reader_presentation.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 缩放模式对应的图标与中文名（逐条照 neoview 的 `FIT_MODE_ICONS` / `FIT_MODES`）。
 ///
@@ -21,14 +22,14 @@ const Map<ReaderFitMode, Glyph> kReaderFitModeIcons = {
   ReaderFitMode.fitRight: AppGlyphs.alignRight,
 };
 
-const Map<ReaderFitMode, String> kReaderFitModeLabels = {
-  ReaderFitMode.fit: '适应窗口',
-  ReaderFitMode.fill: '铺满整个窗口',
-  ReaderFitMode.fitWidth: '适应宽度',
-  ReaderFitMode.fitHeight: '适应高度',
-  ReaderFitMode.original: '原始大小',
-  ReaderFitMode.fitLeft: '居左适应窗口',
-  ReaderFitMode.fitRight: '居右适应窗口',
+Map<ReaderFitMode, String> get kReaderFitModeLabels => {
+  ReaderFitMode.fit: t.reader.fitWindow,
+  ReaderFitMode.fill: t.reader.fillWholeWindow,
+  ReaderFitMode.fitWidth: t.reader.fitWidth,
+  ReaderFitMode.fitHeight: t.reader.fitHeight,
+  ReaderFitMode.original: t.reader.originalSize,
+  ReaderFitMode.fitLeft: t.reader.fitWindowLeft,
+  ReaderFitMode.fitRight: t.reader.fitWindowRight,
 };
 
 /// 顶栏「缩放」面板 —— neoview `ZoomPanel` 的对应物。
@@ -49,10 +50,10 @@ class ReaderZoomPanel extends StatelessWidget {
       children: [
         _ZoomPercentageControl(presentation: presentation),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('手动缩放'),
+        ReaderToolbarLabel(t.reader.manualZoom),
         _ManualZoomControl(presentation: presentation),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('缩放模式'),
+        ReaderToolbarLabel(t.reader.zoomMode),
         ReaderToolbarPill(
           children: [
             for (final mode in ReaderFitMode.values)
@@ -66,14 +67,14 @@ class ReaderZoomPanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('页面布局'),
+        ReaderToolbarLabel(t.reader.pageLayout),
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
               icon: AppGlyphs.rowsTwo,
               tooltip: readSetting.splitLandscapePages
-                  ? '自动分割横向页：开'
-                  : '自动分割横向页：关',
+                  ? t.reader.autoSplitLandscapeOn
+                  : t.reader.autoSplitLandscapeOff,
               selected: readSetting.splitLandscapePages,
               onPressed: () =>
                   context.read<GlobalSettingCubit>().updateReadSetting(
@@ -84,14 +85,14 @@ class ReaderZoomPanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('双页独立'),
+        ReaderToolbarLabel(t.reader.twoPagesIndependent),
         ReaderToolbarPill(
           children: [
             ReaderToolbarIconButton(
               icon: AppGlyphs.skipPrevious,
               tooltip: readSetting.doublePageLeadingBlank
-                  ? '首页独立显示：开'
-                  : '首页独立显示：关',
+                  ? t.reader.firstPageAloneOn
+                  : t.reader.firstPageAloneOff,
               selected: readSetting.doublePageLeadingBlank,
               onPressed: () =>
                   context.read<GlobalSettingCubit>().updateReadSetting(
@@ -103,7 +104,7 @@ class ReaderZoomPanel extends StatelessWidget {
           ],
         ),
         const ReaderToolbarSeparator(),
-        const ReaderToolbarLabel('宽页策略'),
+        ReaderToolbarLabel(t.reader.widePagePolicy),
         ReaderToolbarPill(
           children: [
             for (final mode in ReaderWidePageStretch.values)
@@ -131,9 +132,9 @@ Glyph _widePageStretchIcon(ReaderWidePageStretch mode) => switch (mode) {
 };
 
 String _widePageStretchLabel(ReaderWidePageStretch mode) => switch (mode) {
-  ReaderWidePageStretch.none => '无对齐（保持原始比例）',
-  ReaderWidePageStretch.uniformHeight => '高度对齐（双页高度统一）',
-  ReaderWidePageStretch.uniformWidth => '宽度对齐（双页宽度统一）',
+  ReaderWidePageStretch.none => t.reader.alignNone,
+  ReaderWidePageStretch.uniformHeight => t.reader.alignHeight,
+  ReaderWidePageStretch.uniformWidth => t.reader.alignWidth,
 };
 
 /// 缩放百分比：短按回 100%，按住则就地换成一个数字输入框。
@@ -229,7 +230,7 @@ class _ZoomPercentageControlState extends State<_ZoomPercentageControl> {
     }
 
     return Tooltip(
-      message: '短按重置为 100%；按住可输入百分比',
+      message: t.reader.zoomShortReset,
       child: InkWell(
         borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
         onTap: () => context.read<ReaderPresentationCubit>().resetManualScale(),
@@ -337,7 +338,7 @@ class _ResetViewButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Tooltip(
-      message: '重置缩放、旋转与宽页策略（保留单双页与阅读方向）',
+      message: t.reader.resetViewTransform,
       child: InkWell(
         borderRadius: BorderRadius.circular(ReaderToolbarMetrics.fullRadius),
         onTap: presentation.isDefault

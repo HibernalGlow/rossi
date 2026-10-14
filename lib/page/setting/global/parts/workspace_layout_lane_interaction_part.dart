@@ -95,8 +95,10 @@ class _LaneInteractionFields extends StatelessWidget {
           title: Text(t.settings.laneHoverDelay),
           subtitle: Text(
             inheritsDelay
-                ? '继承全局：${interaction.hoverFocusDelayMs} 毫秒'
-                : '本泳道自定义 · 毫秒',
+                ? t.settings.inheritedGlobalDelay(
+                    ms: interaction.hoverFocusDelayMs,
+                  )
+                : t.settings.laneCustomDelayMs,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

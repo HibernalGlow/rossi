@@ -116,9 +116,9 @@ class _ShelfListEditorState extends State<ShelfListEditor> {
               ),
               validator: (value) {
                 final name = value?.trim() ?? '';
-                if (name.isEmpty) return '请输入名称';
+                if (name.isEmpty) return t.common.pleaseEnterName;
                 if (name.contains('/') || name.contains('\\')) {
-                  return '名称不能包含 / 或 \\';
+                  return t.common.nameNoSlash;
                 }
                 return null;
               },
@@ -138,7 +138,7 @@ class _ShelfListEditorState extends State<ShelfListEditor> {
               ),
               onPressed: widget.onDelete,
               icon: const GlyphIcon(AppGlyphs.delete, size: 20),
-              label: const Text('删除列表'),
+              label: Text(t.common.deleteListLabel),
             ),
           ),
         ElasticButton(

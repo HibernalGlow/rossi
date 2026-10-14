@@ -6,6 +6,7 @@ import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/util/path_util.dart';
 
 import 'package:zephyr/widgets/comic_entry/models/unified_comic_list_item.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 UnifiedComicListItem unifiedComicFromPluginSearchItem(
   UnifiedPluginSearchItem item,
@@ -49,7 +50,7 @@ UnifiedComicListItem unifiedComicFromUnifiedFavorite(
 UnifiedComicListItem unifiedComicFromUnifiedHistory(UnifiedComicHistory comic) {
   final isLocal = isLocalComicSource(comic.source, comic.comicId);
   final subtitle = isLocal && comic.pageIndex > 0
-      ? '看到第 ${comic.pageIndex} 页'
+      ? t.comicEntry.seenAtPage(page: comic.pageIndex)
       : comic.chapterTitle;
 
   return UnifiedComicListItem(

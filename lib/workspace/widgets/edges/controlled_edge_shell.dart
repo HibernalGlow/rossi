@@ -10,6 +10,7 @@ import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_workhole.dart';
 import 'package:zephyr/workspace/widgets/edges/workhole_panel.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_host.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// Workhole 沉浸容器：中央阅读器保持原位，左右资源以浮层形式出现。
 ///
@@ -392,7 +393,7 @@ class _WorkholeHandle extends StatelessWidget {
         ? AppGlyphs.chevronForward
         : AppGlyphs.chevronBack;
     return Tooltip(
-      message: open ? '拖动调整工作孔尺寸' : '打开工作孔',
+      message: open ? t.workspace.dragResizeWorkhole : t.workspace.openWorkhole,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,

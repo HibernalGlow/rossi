@@ -6,6 +6,7 @@ import 'package:zephyr/workspace/widgets/containers/embedded_auxiliary_lane.dart
 import 'package:zephyr/workspace/widgets/containers/embedded_bookshelf_lane.dart';
 import 'package:zephyr/workspace/widgets/containers/embedded_discover_lane.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 一个**面板**的定义 —— 与 neoview 的 `ReaderPanelDefinition` 同构。
 ///
@@ -72,7 +73,7 @@ class WorkspacePanelRegistry {
       // ── 左泳道 ────────────────────────────────────────────────────────
       WorkspacePanelDefinition(
         id: WorkspacePanelId.bookshelf,
-        title: '书架（上游原版）',
+        title: t.workspace.bookshelfUpstream,
         icon: AppGlyphs.book,
         side: WorkspacePanelSide.left,
         defaultOrder: 0,
@@ -84,7 +85,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.favorite,
-        title: '书签',
+        title: t.workspace.bookmarks,
         icon: AppGlyphs.bookmark,
         side: WorkspacePanelSide.left,
         defaultOrder: 1,
@@ -92,7 +93,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.history,
-        title: '阅读历史',
+        title: t.workspace.readingHistory,
         icon: AppGlyphs.history,
         side: WorkspacePanelSide.left,
         defaultOrder: 2,
@@ -100,7 +101,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.download,
-        title: '下载与离线',
+        title: t.workspace.downloadsOffline,
         icon: AppGlyphs.downloadDone,
         side: WorkspacePanelSide.left,
         defaultOrder: 3,
@@ -108,7 +109,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.shelf,
-        title: '书架聚合卡片',
+        title: t.workspace.bookshelfAggregateCard,
         icon: AppGlyphs.gridPlus,
         side: WorkspacePanelSide.left,
         defaultOrder: 4,
@@ -118,7 +119,7 @@ class WorkspacePanelRegistry {
       // 全部来自左泳道那张「阅读历史」—— 洞察与它的原始数据隔一条泳道最难读。
       WorkspacePanelDefinition(
         id: WorkspacePanelId.insights,
-        title: '阅读洞察',
+        title: t.workspace.readingInsights,
         icon: AppGlyphs.trend,
         side: WorkspacePanelSide.left,
         defaultOrder: 5,
@@ -150,7 +151,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.fileManager,
-        title: '文件管理',
+        title: t.workspace.fileManagement,
         icon: AppGlyphs.folderCopy,
         side: WorkspacePanelSide.right,
         defaultOrder: 2,
@@ -158,7 +159,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.pageList,
-        title: '页面导航',
+        title: t.workspace.pageNavigation,
         icon: AppGlyphs.cardMedium,
         side: WorkspacePanelSide.right,
         defaultOrder: 3,
@@ -166,7 +167,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.plugins,
-        title: '图源扩展',
+        title: t.workspace.sourceExtensions,
         icon: AppGlyphs.puzzle,
         side: WorkspacePanelSide.right,
         defaultOrder: 4,
@@ -175,7 +176,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.sources,
-        title: '图源本地聚合',
+        title: t.workspace.sourceLocalAggregate,
         icon: AppGlyphs.sparkle,
         side: WorkspacePanelSide.right,
         defaultOrder: 5,
@@ -183,7 +184,7 @@ class WorkspacePanelRegistry {
       ),
       WorkspacePanelDefinition(
         id: WorkspacePanelId.tools,
-        title: '设置与工具',
+        title: t.workspace.settingsAndTools,
         icon: AppGlyphs.sliders,
         side: WorkspacePanelSide.right,
         defaultOrder: 6,
@@ -198,7 +199,7 @@ class WorkspacePanelRegistry {
       // 一张卡都没有时不上图标轨（见 panelsForSide）。
       WorkspacePanelDefinition(
         id: WorkspacePanelId.control,
-        title: '控制面板',
+        title: t.workspace.controlPanel,
         icon: AppGlyphs.dashboard,
         side: WorkspacePanelSide.right,
         defaultOrder: 7,

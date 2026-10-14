@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/service/diagnostics/app_log.dart';
 import 'package:zephyr/util/get_path.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 超分诊断日志的**门面**：环形、落盘、复制、定位文件这些机制都在 [AppLog]，
 /// 与漫画翻译共用同一份；这里只留超分特有的三件事与产物缓存的收封顶。
@@ -12,11 +13,11 @@ abstract final class SuperResolutionLog {
   /// 「写到哪、标题叫什么、页脚补哪一行」。日志文件的位置**没有变**，
   /// 还在超分缓存目录里，`trimCache` 只收 `.png` 产物、不动它。
   static final AppLog log = AppLog(
-    name: '超分',
-    title: 'Rossi 超分日志（本次运行）',
+    name: t.realSr.logCategory,
+    title: t.realSr.logWindowTitle,
     filePath: () async =>
         p.join((await cacheDirectory()).path, 'super_resolution.log'),
-    header: () => ['最近生成图片：${latestOutputPath ?? "尚未生成"}'],
+    header: () => ['最近生成图片：${latestOutputPath ?? t.realSr.noOutputYet}'],
   );
 
   static ValueNotifier<List<String>> get entries => log.entries;
@@ -128,10 +129,13 @@ abstract final class SuperResolutionLog {
     } else if (Platform.isLinux) {
       result = await Process.run('xdg-open', [directory]);
     } else {
-      throw UnsupportedError('当前平台无法打开文件夹：$directory');
+      throw UnsupportedError(t.realSr.openFolderUnsupported(dir: directory));
     }
-    if (result.exitCode != 0) throw StateError('打开文件夹失败：${result.stderr}');
+    if (result.exitCode != 0)
+      throw StateError(t.realSr.openFolderFailed(error: result.stderr));
     // 不写成「已在文件管理器中定位」：Linux 只能开目录，没有「选中这个文件」这回事。
-    return exists ? '已打开最近产物的所在位置：$output' : '尚无超分产物，已打开超分缓存目录：$directory';
+    return exists
+        ? t.realSr.openedRecentLocation(output: output)
+        : t.realSr.openedUpscaleCache(dir: directory);
   }
 }

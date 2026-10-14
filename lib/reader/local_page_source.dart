@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/reader/page_source.dart';
 import 'package:zephyr/src/rust/api/local.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 本地来源（图片/视频文件、文件夹、CBZ / CBR）在 [PageSource] 上的实现。
 ///
@@ -65,7 +66,7 @@ class LocalPageSource implements PageSource, TranslationScopeBearing {
       final LocalRejection? rejection = result.rejection;
       return PageSourceRejected(
         kind: _rejectionKind(rejection?.kind),
-        message: rejection?.message ?? '打不开：$path',
+        message: rejection?.message ?? t.reader.cannotOpenPath(path: path),
       );
     }
 
@@ -140,7 +141,7 @@ class LocalPageSource implements PageSource, TranslationScopeBearing {
     final LocalDecodeFailure? failure = result.failure;
     return PageLoadFailed(
       kind: _failureKind(failure?.kind),
-      message: failure?.message ?? '第 ${index + 1} 页没能解出来',
+      message: failure?.message ?? t.reader.pageDecodeFailed(n: index + 1),
     );
   }
 

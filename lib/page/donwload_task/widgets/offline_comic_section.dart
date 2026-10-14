@@ -103,12 +103,13 @@ class OfflineComicLibrary extends StatefulWidget {
 }
 
 class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
-  static const _columns = [
+  static List<LibraryColumn> get _columns => [
     LibraryColumn(key: 'author', label: '作者', width: 90),
     LibraryColumn(key: 'source', label: '来源', width: 70),
-    LibraryColumn(key: 'time', label: '下载时间', width: 90),
+    LibraryColumn(key: 'time', label: t.comicList.downloadedAtLabel, width: 90),
   ];
 
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
   final _viewMemory = ShelfViewMemory('download-offline');
   final _searchController = TextEditingController();
   LibraryViewMode _viewMode = LibraryViewMode.coverGrid;
@@ -207,7 +208,7 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
           },
           searchController: _searchController,
           onKeywordChanged: (value) => setState(() => _keyword = value),
-          searchHint: '搜索已离线漫画',
+          searchHint: t.reader.searchOfflineComics,
           historyScope: 'download-offline',
           count: rows.length,
           timelineOn: _timeline,
@@ -219,38 +220,48 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
         const SizedBox(height: 6),
         SizedBox(
           height: height,
-          child: _timeline
-              ? ShelfTimelineView(
-                  entries: rows,
-                  timeOf: (row) =>
-                      (row.source! as UnifiedComicDownload).downloadedAt,
-                  onTap: (row) => _open(context, row),
-                  emptyText: '没有匹配的已离线漫画',
-                  standalone: true,
-                )
-              : LibraryEntryList(
-                  mode: _viewMode,
-                  entries: rows,
-                  onTap: (row) => _open(context, row),
-                  emptyText: '没有匹配的已离线漫画',
-                  standalone: true,
-                  titleColumn: const LibraryColumn(
-                    key: 'title',
-                    label: '标题',
-                    flex: LibraryViewLayout.detailsTitleFlex,
-                  ),
-                  columns: _columns,
-                  sortKey: _sort.field.name,
-                  sortAscending: _sort.ascending,
-                  onSort: (key) {
-                    setState(
-                      () => _sort = _sort.toggled(
-                        ShelfSortField.values.byName(key),
-                      ),
-                    );
-                    _rememberViewState();
-                  },
+          child: LibraryEntryList(
+            editorialKey: _canvasKey,
+            editorialScope: 'download-offline',
+            initialEditorial: false,
+            timeline: _timeline,
+            timelineTimeOf: (row) =>
+                (row.source! as UnifiedComicDownload).downloadedAt,
+            detailBuilder: (context, row, close) {
+              final item = row.source! as UnifiedComicDownload;
+              return LibraryBookDetails(
+                entry: row,
+                comicId: item.comicId,
+                from: item.source,
+                type: isLocalComicSource(item.source, item.comicId)
+                    ? ComicEntryType.history
+                    : ComicEntryType.download,
+                onClose: close,
+              );
+            },
+            tapOpensDetail: false,
+            mode: _viewMode,
+            entries: rows,
+            onTap: (row) => _open(context, row),
+            emptyText: t.reader.noMatchingOfflineComics,
+            standalone: true,
+            titleColumn: const LibraryColumn(
+              key: 'title',
+              label: '标题',
+              flex: LibraryViewLayout.detailsTitleFlex,
+            ),
+            columns: _columns,
+            sortKey: _sort.field.name,
+            sortAscending: _sort.ascending,
+            onSort: (key) {
+              setState(
+                () => _sort = _sort.toggled(
+                  ShelfSortField.values.byName(key),
                 ),
+              );
+              _rememberViewState();
+            },
+          ),
         ),
       ],
     );

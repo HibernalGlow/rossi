@@ -7,6 +7,7 @@ import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
 import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 「常规宽度」输入框的判据锚点。
 ///
@@ -144,20 +145,22 @@ class LaneMenu {
       item(
         value: 'panelEditMode',
         glyph: AppGlyphs.sort,
-        label: state.interaction.panelTabSortMode ? '完成编辑' : '编辑布局',
+        label: state.interaction.panelTabSortMode
+            ? t.workspace.finishEditing
+            : t.workspace.editLayout,
         checked: state.interaction.panelTabSortMode,
-        hint: '编辑时长按页签排序、跨泳道移动，或长按栏头图标重排泳道',
+        hint: t.workspace.editLongPressHints,
       ),
       item(
         value: 'solo',
         glyph: AppGlyphs.target,
-        label: solo ? '退出独占' : '独占该栏',
+        label: solo ? t.workspace.exitSolo : t.workspace.soloThisLane,
         checked: solo,
       ),
       item(
         value: 'collapse',
         glyph: AppGlyphs.fold,
-        label: collapsed ? '展开泳道' : '折叠为紧凑条',
+        label: collapsed ? t.workspace.expandLane : t.workspace.collapseToBar,
         checked: collapsed,
       ),
       const CommonPopupMenuItem.divider(),
@@ -167,7 +170,9 @@ class LaneMenu {
       // （`common_popup.dart` 的 `_buildRow` 里 subItems 优先），
       // 收起之后父行就是唯一的状态出口；子项也不再重复组名。
       CommonPopupMenuItem(
-        label: '泳道宽度：${lane.resolveWidth(viewportWidth).round()}px',
+        label: t.workspace.laneWidthPx(
+          px: lane.resolveWidth(viewportWidth).round(),
+        ),
         glyph: AppGlyphs.resize,
         subItems: [
           // 宽度这一项点下去**不能**收起菜单：里面住着输入框。
@@ -192,9 +197,9 @@ class LaneMenu {
           item(
             value: 'reset',
             glyph: AppGlyphs.reset,
-            label: '恢复默认宽度',
+            label: t.workspace.restoreDefaultWidth,
             enabled: onResetWidth != null,
-            hint: '与双击栏头标题同一条路',
+            hint: t.workspace.samePathAsHeaderDoubleClick,
           ),
         ],
       ),
@@ -202,7 +207,7 @@ class LaneMenu {
         CommonPopupMenuItem(
           label: bar.mode == PanelBarMode.pinned
               ? '面板栏：停靠${_dockLabel(bar.dock)}'
-              : '面板栏：悬浮',
+              : t.workspace.panelBarFloating,
           glyph: bar.mode == PanelBarMode.pinned
               ? _dockGlyph(bar.dock)
               : AppGlyphs.pip,
@@ -210,26 +215,30 @@ class LaneMenu {
             item(
               value: 'barMode',
               glyph: AppGlyphs.pin,
-              label: bar.mode == PanelBarMode.pinned ? '改为悬浮' : '固定到当前位置',
+              label: bar.mode == PanelBarMode.pinned
+                  ? t.workspace.switchToFloating
+                  : t.workspace.pinHere,
             ),
             item(
               value: 'barConstrained',
               glyph: bar.constrained ? AppGlyphs.lockOpen : AppGlyphs.lock,
-              label: bar.constrained ? '允许移出泳道' : '限制在泳道内',
+              label: bar.constrained
+                  ? t.workspace.allowLeaveLane
+                  : t.workspace.confineToLane,
               checked: !bar.constrained,
             ),
             for (final dock in PanelBarDock.values)
               item(
                 value: 'dock:${dock.name}',
                 glyph: _dockGlyph(dock),
-                label: '停靠${_dockLabel(dock)}',
+                label: t.workspace.dockToName(label: _dockLabel(dock)),
                 checked: bar.mode == PanelBarMode.pinned && bar.dock == dock,
               ),
             item(
               value: 'barReset',
               glyph: AppGlyphs.undo,
-              label: '恢复面板栏默认位置',
-              hint: '回到「挂进栏头」这个默认形态',
+              label: t.workspace.restorePanelBarPosition,
+              hint: t.workspace.backToLaneHeaderDefault,
             ),
           ],
         ),
@@ -246,22 +255,24 @@ class LaneMenu {
       item(
         value: 'widthBadge',
         glyph: AppGlyphs.resize,
-        label: widthBadge ? '隐藏泳道宽度徽标' : '显示泳道宽度徽标',
+        label: widthBadge ? t.workspace.hideLaneWidthBadge : '显示泳道宽度徽标',
         checked: widthBadge,
-        hint: '栏头标题右边那颗「400px」',
+        hint: t.workspace.theWidthBadgeNextToHeader,
       ),
       item(
         value: 'topChrome',
         glyph: chrome ? AppGlyphs.eye : AppGlyphs.eyeOff,
-        label: chrome ? '隐藏工作台顶栏' : '显示工作台顶栏',
+        label: chrome
+            ? t.workspace.hideWorkspaceTopBar
+            : t.workspace.showWorkspaceTopBar,
         checked: chrome,
-        hint: '顶栏 = 退出 / 书名 / 切模式 / 重置布局那一行',
+        hint: t.workspace.topBarIsThatRow,
       ),
       item(
         value: 'exit',
         glyph: AppGlyphs.arrowBack,
-        label: '退出工作台',
-        hint: '与 Esc、系统返回键同一条路',
+        label: t.workspace.exitWorkspace,
+        hint: t.workspace.samePathAsBackKey,
       ),
     ];
   }
@@ -369,8 +380,8 @@ class LaneMoreMenu extends StatelessWidget {
       targetBuilder: (open) => Tooltip(
         message:
             context.watch<WorkspaceCubit>().state.interaction.panelTabSortMode
-            ? '正在编辑布局 · 菜单内完成编辑'
-            : '该泳道 (More) · 编辑布局',
+            ? t.workspace.editingLayoutFinishInMenu
+            : t.workspace.laneMoreEditLayout,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: open,
@@ -477,7 +488,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
       children: [
         Row(
           children: [
-            Text('常规宽度', style: theme.textTheme.bodySmall),
+            Text(t.workspace.regularWidth, style: theme.textTheme.bodySmall),
             const Spacer(),
             SizedBox(
               width: 56,
@@ -509,7 +520,7 @@ class _LaneWidthFieldState extends State<_LaneWidthField> {
         ),
         // 夹取范围是这条泳道自己记的 min/max（`setLaneWidth` 按它夹）。
         Text(
-          '允许 ${min.round()}–${max.round()}',
+          t.workspace.allowedRange(min: min.round(), max: max.round()),
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

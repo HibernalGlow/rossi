@@ -310,7 +310,7 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
                         // ONNX 那侧 0 不是「不分块」，照抄旧文案等于在界面上撒谎。
                         subtitle: Text(
                           isMImageOnnx
-                              ? '遇到崩溃可设置较小值；「自动」按模型推荐分块，模型声明固定输入尺寸时以模型为准'
+                              ? t.realSr.tileSizeHint
                               : t.realSr.tileSizeSubtitle,
                         ),
                         trailing: FluentDropdown<int>(

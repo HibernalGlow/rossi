@@ -93,7 +93,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     try {
       await fileManagerClearSearchHistory();
       if (!mounted) return;
-      showInfoToast('已清空搜索历史', context: context);
+      showInfoToast(t.workspace.searchHistoryCleared, context: context);
     } catch (error) {
       if (mounted) _showError(error);
     }
@@ -267,11 +267,11 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       style: Theme.of(context).textTheme.bodySmall,
       decoration: InputDecoration(
         isDense: true,
-        hintText: '名称与路径 · 空格分词 · -排除 · “短语”',
+        hintText: t.workspace.searchSyntaxHint,
         prefixIcon: const GlyphIcon(AppGlyphs.search, size: 18),
         suffixIcon: _searchRunning
             ? IconButton(
-                tooltip: '中止递归搜索（保留已找到的结果）',
+                tooltip: t.workspace.abortRecursiveSearch,
                 icon: const GlyphIcon(AppGlyphs.stopCircle, size: 16),
                 onPressed: _cancelSearch,
               )
@@ -281,7 +281,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : IconButton(
-                tooltip: '清除搜索并收起',
+                tooltip: t.workspace.clearSearchAndCollapse,
                 icon: const GlyphIcon(AppGlyphs.close, size: 16),
                 onPressed: () {
                   _submitSearch('');
@@ -306,15 +306,17 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     final theme = Theme.of(context);
     final scanned = _searchScannedLive;
     final label = scanned > 0
-        ? '正在递归搜索 · 已扫 ${_formatScannedCount(scanned)}'
-        : '正在递归搜索…';
+        ? t.workspace.recursiveSearchScanned(
+            scanned: _formatScannedCount(scanned),
+          )
+        : t.workspace.recursiveSearching;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const LinearProgressIndicator(minHeight: 3),
         const SizedBox(height: 4),
         Text(
-          '$label · 慢盘上要几十秒，结果扫完一次给出',
+          t.workspace.slowScanNote(label: label),
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -327,7 +329,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
 
   /// 大数按中文读法折成「万」：14.6 万比 145827 好认，也不会把这一行撑开。
   String _formatScannedCount(int scanned) => scanned >= 10000
-      ? '${(scanned / 10000).toStringAsFixed(1)} 万条'
+      ? t.workspace.tenThousandRecords(v: (scanned / 10000).toStringAsFixed(1))
       : '$scanned 条';
 
   /// 搜索选项行：递归开关 + 命中统计。窄卡片下横向滚动，与工具栏同一策略。
@@ -347,12 +349,12 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
         ? null
         : snapshot.searchActive
         ? [
-            '命中 ${snapshot.searchMatched}',
-            '已看 ${snapshot.searchScanned}',
-            if (snapshot.searchTruncated) '已达上限',
-            if (snapshot.searchCancelled) '已中止',
+            t.workspace.searchHits(n: snapshot.searchMatched),
+            t.workspace.searchScanned(n: snapshot.searchScanned),
+            if (snapshot.searchTruncated) t.workspace.limitReached,
+            if (snapshot.searchCancelled) t.workspace.aborted,
             if (snapshot.searchDepthLimited)
-              '第 ${snapshot.searchMaxDepth} 层以下未搜',
+              t.workspace.notSearchedBelow(n: snapshot.searchMaxDepth),
           ].join(' · ')
         : null;
     return SingleChildScrollView(
@@ -360,8 +362,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       child: Row(
         children: [
           ChoiceChip(
-            label: const Text('含子目录'),
-            tooltip: '向下递归搜索，层数上限由 Rust 侧夹紧',
+            label: Text(t.workspace.includeSubdirs),
+            tooltip: t.workspace.recursiveSearchHint,
             selected: snapshot.searchIncludeSubfolders,
             visualDensity: VisualDensity.compact,
             onSelected: (enabled) => _applySearchAction(
@@ -373,8 +375,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
           ),
           const SizedBox(width: 6),
           ChoiceChip(
-            label: const Text('匹配路径'),
-            tooltip: '除条目名外，连同它在搜索根之下的相对路径一起匹配',
+            label: Text(t.workspace.matchPath),
+            tooltip: t.workspace.matchRelativePath,
             selected: snapshot.searchInPath,
             visualDensity: VisualDensity.compact,
             onSelected: (enabled) => _applySearchAction(
@@ -383,8 +385,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
           ),
           const SizedBox(width: 6),
           ChoiceChip(
-            label: const Text('任一词元'),
-            tooltip: '多个词元之间取并集（默认全部都要命中）',
+            label: Text(t.workspace.anyToken),
+            tooltip: t.workspace.searchAnyToken,
             selected: snapshot.searchOrMode,
             visualDensity: VisualDensity.compact,
             onSelected: (enabled) => _applySearchAction(
@@ -396,10 +398,13 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
           if (snapshot.searchIncludeSubfolders) ...[
             const SizedBox(width: 6),
             ChoiceChip(
-              label: Text('层数 ≤${snapshot.searchMaxDepth}'),
-              tooltip:
-                  '点按切换递归层数（${_searchDepths.join(' / ')} 层）。'
-                  '层数越大越慢：一次整库遍历在慢盘上要几十秒；太浅会漏掉更深的目录',
+              label: Text(
+                t.workspace.depthLimitLabel(n: snapshot.searchMaxDepth),
+              ),
+              tooltip: t.workspace.searchDepthTooltip(
+                depths: _searchDepths.join(' / '),
+                detail: t.workspace.searchDepthCostHint,
+              ),
               // 停在默认档位时不着色：这一行只该在「你把它改离了默认」时跳出来。
               selected: snapshot.searchMaxDepth != _searchDefaultDepth,
               visualDensity: VisualDensity.compact,
@@ -412,8 +417,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
               snapshot.entries.isEmpty) ...[
             const SizedBox(width: 6),
             ChoiceChip(
-              label: const Text('在子目录里搜'),
-              tooltip: '当前这一层没有命中；开着「含子目录」再搜一次（整库遍历在慢盘上要几十秒）',
+              label: Text(t.workspace.searchSubdirs),
+              tooltip: t.workspace.noHitThisLevel,
               selected: false,
               visualDensity: VisualDensity.compact,
               onSelected: (_) => _applySearchAction(
@@ -438,8 +443,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
           if (snapshot.searchActive) ...[
             const SizedBox(width: 6),
             ChoiceChip(
-              label: const Text('回到目录'),
-              tooltip: '退出搜索结果，回到这个页签自己的目录',
+              label: Text(t.workspace.backToFolder),
+              tooltip: t.workspace.exitSearchToFolder,
               selected: false,
               visualDensity: VisualDensity.compact,
               onSelected: (_) =>
@@ -449,8 +454,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
           if (snapshot.canSaveSearchTab) ...[
             const SizedBox(width: 6),
             ChoiceChip(
-              label: const Text('存为页签'),
-              tooltip: '把这次搜索结果另存一个页签',
+              label: Text(t.workspace.saveAsTab),
+              tooltip: t.workspace.saveSearchAsTab,
               selected: false,
               visualDensity: VisualDensity.compact,
               onSelected: (_) => _applySearchAction(

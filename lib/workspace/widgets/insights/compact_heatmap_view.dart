@@ -5,6 +5,7 @@ import 'package:zephyr/workspace/model/heatmap_buckets.dart';
 import 'package:zephyr/workspace/widgets/card_header_actions.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_header_controls.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 有界卡片保留完整矩阵，按宽度汇总时段；逐小时查询留在展开视图。
 class CompactHeatmapView extends StatelessWidget {
@@ -46,16 +47,21 @@ class CompactHeatmapView extends StatelessWidget {
         child: tiny
             ? InsightDetailButton(
                 label: '',
-                title: '阅读热力',
-                description: '${chosen.label} · 展开阅读热力',
+                title: t.workspace.readingHeat,
+                description: t.workspace.compactHeatmapExpand(
+                  day: chosen.label,
+                ),
                 detailBuilder: detailBuilder,
                 iconOnly: true,
               )
             : LayoutBuilder(
                 builder: (context, headerBounds) => InsightDetailButton(
-                  label: '$hours 小时/格',
-                  title: '阅读热力',
-                  description: '${chosen.label} · 每格 $hours 小时 · 展开阅读热力',
+                  label: t.workspace.hoursPerCell(hours: hours),
+                  title: t.workspace.readingHeat,
+                  description: t.workspace.compactHeatmapExpandHours(
+                    day: chosen.label,
+                    hours: hours,
+                  ),
                   detailBuilder: detailBuilder,
                   compact: true,
                   iconOnly: headerBounds.maxWidth < 100,
@@ -71,8 +77,11 @@ class CompactHeatmapView extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               top == null
-                  ? '暂无热力记录'
-                  : '高峰 ${top.weekdayLabel} ${top.hourLabel}',
+                  ? t.workspace.noHeatRecords
+                  : t.workspace.heatPeakShort(
+                      weekday: top.weekdayLabel,
+                      hour: top.hourLabel,
+                    ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -99,7 +108,7 @@ class CompactHeatmapView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       hours == 6
-                          ? const ['夜', '晨', '午', '晚'][column]
+                          ? ['夜', '晨', t.workspace.noon, '晚'][column]
                           : column * hours % 6 == 0
                           ? '${column * hours}'
                           : '',

@@ -359,7 +359,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
     }
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.localFolder,
-      title: '文件浏览',
+      title: t.workspace.fileBrowsing,
       icon: AppGlyphs.folderCopy,
       isExpanded: widget.isExpanded,
       onToggle: widget.onToggle,
@@ -475,16 +475,21 @@ class _FileManagerCardState extends State<FileManagerCard> {
     LibraryViewMode.mosaicGrid,
   };
 
-  static const _detailsTitleColumn = LibraryColumn(
+  static LibraryColumn get _detailsTitleColumn => LibraryColumn(
     key: 'name',
-    label: '名称',
+    label: t.workspace.nameLabel,
     flex: LibraryViewLayout.detailsTitleFlex,
   );
 
-  static const _detailsColumns = [
+  static List<LibraryColumn> get _detailsColumns => [
     LibraryColumn(key: 'type', label: '类型', width: 70),
-    LibraryColumn(key: 'size', label: '大小', width: 75, alignRight: true),
-    LibraryColumn(key: 'date', label: '修改时间', width: 110),
+    LibraryColumn(
+      key: 'size',
+      label: t.workspace.sizeLabel,
+      width: 75,
+      alignRight: true,
+    ),
+    LibraryColumn(key: 'date', label: t.workspace.modifiedTime, width: 110),
   ];
 
   Widget _buildEntries(
@@ -524,14 +529,14 @@ class _FileManagerCardState extends State<FileManagerCard> {
         for (final entry in displayed) _libraryEntry(context, entry, mode),
       ],
       emptyText: _searchSlow
-          ? '正在递归搜索，结果扫完一次给出…'
+          ? t.workspace.recursiveSearchPending
           : snapshot.searchActive && query.isNotEmpty
-          ? '子目录里没有匹配「$query」的条目'
+          ? t.workspace.noMatchInSubdirs(query: query)
           : query.isNotEmpty && !snapshot.searchIncludeSubfolders
-          ? '当前这一层没有匹配「$query」的条目，可用上面的「在子目录里搜」往下找'
+          ? t.workspace.noMatchThisLevelSuggest(query: query)
           : searching
-          ? '没有符合搜索或类型筛选的条目'
-          : '当前目录没有可浏览的漫画或媒体文件',
+          ? t.workspace.noEntriesAfterFilter
+          : t.workspace.folderNoMedia,
       enabled: !_busy,
       busy: _busy,
       standalone: standalone ?? widget.isStandalone,
@@ -581,10 +586,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
       section: entry.isDir
           ? '文件夹'
           : entry.isArchive
-          ? '漫画归档'
+          ? t.workspace.comicArchive
           : entry.isImage
-          ? '图片'
-          : '其他媒体',
+          ? t.workspace.imagesLabel
+          : t.workspace.otherMedia,
       timestamp: DateTime.fromMillisecondsSinceEpoch(
         entry.modifiedSecs.toInt() * 1000,
       ),
@@ -622,7 +627,7 @@ class _FileManagerCardState extends State<FileManagerCard> {
       ],
       overlayText: entry.childNames.isEmpty
           ? null
-          : '${entry.childNames.length} 项',
+          : t.workspace.childCount(n: entry.childNames.length),
       trailing: _trailing(context, entry, mode),
     );
   }

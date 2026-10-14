@@ -294,7 +294,7 @@ class ComicInlinePreview extends StatelessWidget {
           return ComicInlinePreviewGallery(
             count: state.items.length,
             loading: busy,
-            error: failure ? '预览加载失败' : null,
+            error: failure ? t.comicInfo.previewLoadFailed : null,
             onRetry: () =>
                 bloc.add(LoadComicPreview(loadMore: state.items.isNotEmpty)),
             onMore: !busy && !state.hasReachedMax && !failure

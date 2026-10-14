@@ -14,7 +14,7 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
   void _addCondition() {
     final newCondition = SuperResolutionCondition(
       id: 'condition-${DateTime.now().millisecondsSinceEpoch}',
-      name: '条件 ${_conditions.length + 1}',
+      name: t.realSr.conditionN(index: _conditions.length + 1),
       enabled: true,
       priority: _conditions.length,
       match: const ConditionMatch(dimensionMode: 'and'),
@@ -40,7 +40,7 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
     final current = _currentCondition;
     final copy = current.copyWith(
       id: '${current.id}-copy-${DateTime.now().millisecondsSinceEpoch}',
-      name: '${current.name} 副本',
+      name: t.realSr.conditionCopy(name: current.name),
       priority: _conditions.length,
     );
     final nextList = [..._conditions, copy];
@@ -54,7 +54,7 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
 
   void _removeCondition() {
     if (_conditions.length <= 1) {
-      showErrorToast('至少保留一条超分条件');
+      showErrorToast(t.realSr.keepAtLeastOneCondition);
       return;
     }
     final nextList = List<SuperResolutionCondition>.from(_conditions)
@@ -86,12 +86,12 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
       context: context,
       presentation: PopupPresentation.modal,
       builder: (ctx) => PopupPanel(
-        title: const Text('重置条件超分'),
-        content: const Text('确定将所有条件恢复为出厂默认设置吗？现有规则将被清除。'),
+        title: Text(t.realSr.resetConditions),
+        content: Text(t.realSr.resetConditionsContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(t.common.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -99,9 +99,9 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
               _saveConditions([SuperResolutionCondition.createDefault()]);
               // ignore: invalid_use_of_protected_member
               setState(() => _selectedIndex = 0);
-              showSuccessToast('已恢复默认条件');
+              showSuccessToast(t.realSr.conditionsRestored);
             },
-            child: const Text('重置'),
+            child: Text(t.common.reset),
           ),
         ],
       ),
@@ -119,7 +119,7 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
       presentation: PopupPresentation.relative,
       context: context,
       builder: (ctx) => PopupPanel(
-        title: const Text('导出条件超分配置 (JSON)'),
+        title: Text(t.realSr.exportConditions),
         content: SizedBox(
           width: 500,
           child: SingleChildScrollView(
@@ -132,15 +132,15 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('关闭'),
+            child: Text(t.common.close),
           ),
           FilledButton.icon(
             icon: const GlyphIcon(AppGlyphs.copy, size: 16),
-            label: const Text('复制到剪贴板'),
+            label: Text(t.realSr.copyToClipboard),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: jsonStr));
               Navigator.pop(ctx);
-              showSuccessToast('已复制条件 JSON 到剪贴板');
+              showSuccessToast(t.realSr.conditionJsonCopied);
             },
           ),
         ],
@@ -154,24 +154,21 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
       presentation: PopupPresentation.relative,
       context: context,
       builder: (ctx) => PopupPanel(
-        title: const Text('导入条件超分配置'),
+        title: Text(t.realSr.importConditions),
         content: SizedBox(
           width: 500,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '请粘贴导出的 JSON 数组或备份对象文本：',
-                style: TextStyle(fontSize: 12),
-              ),
+              Text(t.realSr.pasteExportedJson, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
               TextField(
                 controller: controller,
                 maxLines: 8,
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
                 decoration: InputDecoration(
-                  hintText: '[\n  {\n    "name": "示例条件",\n    ...\n  }\n]',
+                  hintText: t.realSr.importJsonSample,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -183,13 +180,13 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(t.common.cancel),
           ),
           FilledButton(
             onPressed: () {
               final text = controller.text.trim();
               if (text.isEmpty) {
-                showErrorToast('导入内容不能为空');
+                showErrorToast(t.realSr.importContentEmpty);
                 return;
               }
               try {
@@ -203,16 +200,23 @@ extension _UpscaleConditionsCardCrudPart on _UpscaleConditionsCardState {
                 });
                 if (result.warnings.isNotEmpty) {
                   showSuccessToast(
-                    '导入成功（${result.conditions.length} 条），跳过 ${result.warnings.length} 条不兼容项',
+                    t.realSr.importSuccessSkipped(
+                      imported: result.conditions.length,
+                      skipped: result.warnings.length,
+                    ),
                   );
                 } else {
-                  showSuccessToast('成功导入 ${result.conditions.length} 条条件');
+                  showSuccessToast(
+                    t.realSr.importConditionSuccess(
+                      count: result.conditions.length,
+                    ),
+                  );
                 }
               } catch (e) {
                 showErrorToast('导入失败: $e');
               }
             },
-            child: const Text('应用导入'),
+            child: Text(t.realSr.applyImport),
           ),
         ],
       ),

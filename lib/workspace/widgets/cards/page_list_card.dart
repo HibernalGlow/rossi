@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
@@ -211,9 +212,10 @@ class _PageListCardState extends State<PageListCard> {
 
         return CollapsibleCard(
           cardId: WorkspaceCardRegistry.pageList,
-          title: '页面导航',
+          title: t.workspace.pageNavigation,
           icon: AppGlyphs.cardMedium,
           expressive: true,
+          headerless: true,
           scrollContent: false,
           margin: EdgeInsets.zero,
           contentPadding: const EdgeInsets.all(6),
@@ -224,14 +226,13 @@ class _PageListCardState extends State<PageListCard> {
           onHide: widget.onHide,
           trailing: hasSession
               ? InfoCardCounter('${currentSlot + 1} / $totalPages')
-              : const InfoCardCounter('空闲'),
-          child: hasSession
-              ? _buildViewportList(
-                  coordinator: coordinator,
-                  currentSlot: currentSlot,
-                  totalSlots: totalPages,
-                )
-              : _buildEmptyContent(),
+              : InfoCardCounter(t.workspace.idleState),
+          child: _buildViewportList(
+            coordinator: coordinator,
+            currentSlot: currentSlot,
+            totalSlots: totalPages,
+            hasSession: hasSession,
+          ),
         );
       },
     );
@@ -249,7 +250,7 @@ class _PageListCardState extends State<PageListCard> {
         ),
         const SizedBox(height: 10),
         Text(
-          '打开书本后显示页面导航',
+          t.workspace.showPageNavWhenOpen,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -455,7 +456,7 @@ class _PageListCardState extends State<PageListCard> {
     required bool isActive,
   }) {
     final theme = Theme.of(context);
-    final name = doc?.originalName ?? '页面 ${pageIndex + 1}';
+    final name = doc?.originalName ?? t.workspace.pageN(n: pageIndex + 1);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 2),
@@ -533,7 +534,7 @@ class _PageListCardState extends State<PageListCard> {
     required bool isActive,
   }) {
     final theme = Theme.of(context);
-    final name = doc?.originalName ?? '页面 ${pageIndex + 1}';
+    final name = doc?.originalName ?? t.workspace.pageN(n: pageIndex + 1);
 
     return Material(
       color: Colors.transparent,

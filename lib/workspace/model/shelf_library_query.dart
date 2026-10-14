@@ -12,6 +12,8 @@
 /// 是同一个判据，否则行上写着「本地」、点下去却进了详情页。
 library;
 
+import 'package:zephyr/i18n/strings.g.dart';
+
 import 'dart:convert';
 
 import 'package:zephyr/util/path_util.dart';
@@ -23,11 +25,11 @@ extension ShelfSortFieldX on ShelfSortField {
   String get label {
     switch (this) {
       case ShelfSortField.title:
-        return '标题';
+        return t.workspace.titleLabel;
       case ShelfSortField.author:
         return '作者';
       case ShelfSortField.source:
-        return '来源';
+        return t.workspace.sourceLabel;
       case ShelfSortField.time:
         return '时间';
     }
@@ -108,7 +110,7 @@ String shelfCreatorName(String raw) {
 
 /// 本地漫画在行上的来源标记。库里存的 `source` 是 `local` 或整条路径，照插件
 /// 那一套大写会显示成「LOCAL」甚至一长串 `/storage/emulated/0/…`。
-const String kShelfLocalSourceLabel = '本地';
+String get kShelfLocalSourceLabel => t.workspace.localLabel;
 
 /// 归档后缀。本地漫画的章节名常常就是它自己的文件名，判「有没有重复书名」时
 /// 要先剥掉再比（`cp.zip` 与标题 `cp` 是同一个东西）。

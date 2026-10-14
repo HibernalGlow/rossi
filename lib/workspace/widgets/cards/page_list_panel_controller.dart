@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 enum PageListViewMode { thumbnails, details, list }
 
@@ -98,9 +99,9 @@ class PageListPanelController extends ChangeNotifier {
   String get viewModeLabel {
     switch (_viewMode) {
       case PageListViewMode.thumbnails:
-        return '缩略图';
+        return t.workspace.thumbnailsLabel;
       case PageListViewMode.details:
-        return '详细';
+        return t.workspace.detailedLabel;
       case PageListViewMode.list:
         return '列表';
     }

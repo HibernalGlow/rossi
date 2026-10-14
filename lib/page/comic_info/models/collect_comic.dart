@@ -328,10 +328,10 @@ Future<FavoriteWorkflowExecutionResult> _runFavoriteWorkflow({
           throw StateError('收藏工作流等待交互时缺少 continuationToken 或 input');
         }
         if (!context.mounted) {
-          throw const FavoriteWorkflowIncompleteException(
+          throw FavoriteWorkflowIncompleteException(
             FavoriteWorkflowExecutionResult(
               status: FavoriteWorkflowStatus.cancelled,
-              message: '页面已关闭，收藏操作已取消',
+              message: t.comicInfo.pageClosedFavoriteCancelled,
             ),
           );
         }

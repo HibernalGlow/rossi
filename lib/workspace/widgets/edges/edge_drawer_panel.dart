@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 边缘滑出抽屉容器面板。
 ///
@@ -88,7 +89,7 @@ class EdgeDrawerPanel extends StatelessWidget {
                 ],
                 IconButton(
                   icon: const GlyphIcon(AppGlyphs.close, size: 20),
-                  tooltip: '关闭边栏 (Close)',
+                  tooltip: t.workspace.closeSidebarEn,
                   onPressed: onClose,
                   visualDensity: VisualDensity.compact,
                 ),

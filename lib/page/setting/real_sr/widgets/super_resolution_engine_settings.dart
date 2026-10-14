@@ -83,8 +83,11 @@ class _SuperResolutionEngineSettingsState
     final blockSize = _variant.config['blockSize'] as int? ?? 0;
     final shrinkSize = _variant.config['shrinkSize'] as int? ?? 0;
     final contentSize = CoreMLModelConfig.contentBlockSize(_variant);
-    return '分块：内容块 $contentSize×$contentSize，模型输入 $blockSize×$blockSize'
-        '（含 ${shrinkSize}px 反射边距），由模型固定';
+    return t.realSr.blockInfoDetail(
+      contentSize: contentSize,
+      blockSize: blockSize,
+      shrink: shrinkSize,
+    );
   }
 
   Future<void> _download() async {
@@ -200,7 +203,7 @@ class _SuperResolutionEngineSettingsState
             ),
             const SizedBox(width: 6),
             Text(
-              '预超分（当前页优先）',
+              t.realSr.preUpscaleCurrentFirst,
               style: Theme.of(
                 context,
               ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -240,7 +243,10 @@ class _SuperResolutionEngineSettingsState
                       isDense: true,
                       items: [
                         for (var n = 0; n <= 5; n++)
-                          DropdownMenuItem(value: n, child: Text('$n 页')),
+                          DropdownMenuItem(
+                            value: n,
+                            child: Text(t.realSr.pageCount(n: n)),
+                          ),
                       ],
                       onChanged: (n) {
                         if (n != null) {
@@ -285,7 +291,10 @@ class _SuperResolutionEngineSettingsState
                       isDense: true,
                       items: [
                         for (var n = 0; n <= 5; n++)
-                          DropdownMenuItem(value: n, child: Text('$n 页')),
+                          DropdownMenuItem(
+                            value: n,
+                            child: Text(t.realSr.pageCount(n: n)),
+                          ),
                       ],
                       onChanged: (n) {
                         if (n != null) {
@@ -306,7 +315,7 @@ class _SuperResolutionEngineSettingsState
         ),
         const SizedBox(height: 6),
         Text(
-          '一次处理一页，避免争抢内存；都设为 0 可关闭预超分。',
+          t.realSr.preUpscaleHint,
           style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
@@ -332,7 +341,7 @@ class _SuperResolutionEngineSettingsState
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '超分引擎',
+                  t.realSr.upscaleEngine,
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -342,7 +351,7 @@ class _SuperResolutionEngineSettingsState
                 ExpressiveStatusPill(
                   text: _engine == SuperResolutionEngine.breezeCoreML
                       ? 'Apple Neural Engine'
-                      : '硬件加速',
+                      : t.realSr.hardwareAcceleration,
                   icon: AppGlyphs.bolt,
                   dot: false,
                   compact: true,
@@ -357,7 +366,7 @@ class _SuperResolutionEngineSettingsState
             engineCard,
             const SizedBox(height: 6),
             Text(
-              '切换后当前页自动重新处理，两套模型选择分别保留。',
+              t.realSr.engineSwitchHint,
               style: TextStyle(
                 fontSize: 11.5,
                 color: colorScheme.onSurfaceVariant,
@@ -378,7 +387,7 @@ class _SuperResolutionEngineSettingsState
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Rossi 原生模型',
+                    t.realSr.nativeModel,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -427,8 +436,8 @@ class _SuperResolutionEngineSettingsState
                               Flexible(
                                 child: Text(
                                   switch (family.id) {
-                                    'waifu2x' => 'waifu2x · 速度优先',
-                                    'realcugan' => 'Real-CUGAN · 质量优先',
+                                    'waifu2x' => t.realSr.modeWaifuFast,
+                                    'realcugan' => t.realSr.modeCuganQuality,
                                     _ => family.label,
                                   },
                                   overflow: TextOverflow.ellipsis,
@@ -460,7 +469,9 @@ class _SuperResolutionEngineSettingsState
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   ExpressiveStatusPill(
-                    text: '原生 ${_variant.config['scale']}×',
+                    text: t.realSr.nativeScaleLabel(
+                      x: _variant.config['scale'],
+                    ),
                     icon: AppGlyphs.zoomIn,
                     dot: false,
                     compact: true,
@@ -529,7 +540,7 @@ class _SuperResolutionEngineSettingsState
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            'Swift 直接调用 Apple CoreML，复用已加载模型。',
+                            t.realSr.coremlDesc,
                             style: TextStyle(
                               fontSize: 11.5,
                               color: colorScheme.onSurfaceVariant,
@@ -559,8 +570,7 @@ class _SuperResolutionEngineSettingsState
               ],
             ] else if (_engine == SuperResolutionEngine.desktopNcnn)
               Text(
-                '调用 waifu2x / Real-CUGAN 的 ncnn-vulkan 可执行文件；'
-                '模式、倍率、并发与分块在「图片超分」设置页下方调整。',
+                t.realSr.ncnnCliDesc,
                 style: TextStyle(
                   fontSize: 12,
                   color: colorScheme.onSurfaceVariant,
@@ -588,7 +598,7 @@ class _SuperResolutionEngineSettingsState
                   tone: ExpressiveTone.tertiary,
                 ),
                 title: Text(
-                  '高级超分选项 (预超分 / 日志)',
+                  t.realSr.advancedOptionsTitle,
                   style: TextStyle(
                     fontSize: 13,
                     color: colorScheme.primary,

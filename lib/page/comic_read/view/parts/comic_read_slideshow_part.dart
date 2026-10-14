@@ -168,6 +168,6 @@ extension _ComicReadSlideshowPart on _ComicReadPageState {
       running: false,
       paused: false,
     );
-    showInfoToast('放映已到本章末尾并停止');
+    showInfoToast(t.reader.slideshowStoppedAtEnd);
   }
 }

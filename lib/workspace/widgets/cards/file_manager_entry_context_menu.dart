@@ -5,6 +5,7 @@ import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 文件管理器**一个条目**的右键菜单宿主。
 ///
@@ -185,7 +186,7 @@ String fileManagerEntryActionLabel(
     case FileManagerEntryAction.open:
       return '打开';
     case FileManagerEntryAction.openInNewTab:
-      return '在新页签打开';
+      return t.workspace.openInNewTab;
     case FileManagerEntryAction.revealInFileManager:
       // 词跟着平台变（访达 / 资源管理器 / 打开所在目录）—— Linux 那边做不到
       // 「选中这一项」，就不能写成和前两家一样。措辞的单一出处在
@@ -194,13 +195,13 @@ String fileManagerEntryActionLabel(
     case FileManagerEntryAction.copy:
       return '复制';
     case FileManagerEntryAction.cut:
-      return '剪切';
+      return t.workspace.cut;
     case FileManagerEntryAction.paste:
       // 落在文件上没有定义，菜单里它会是灰的；文案也跟着说「粘贴」而不是
       // 「粘贴到这一项」—— 灰掉的那一项本来就该读起来不像一个完整动作。
-      return input.isDirectory ? '粘贴到这一项' : '粘贴';
+      return input.isDirectory ? t.workspace.pasteIntoItem : '粘贴';
     case FileManagerEntryAction.copyPath:
-      return '复制路径';
+      return t.workspace.copyPath;
     case FileManagerEntryAction.rename:
       return '重命名';
     case FileManagerEntryAction.createFolder:
@@ -208,9 +209,11 @@ String fileManagerEntryActionLabel(
     case FileManagerEntryAction.trash:
       // 「可撤销」与「删了就没了」必须在**菜单上**就分辨得出：macOS 上没有程序化
       // 恢复接口，删了只进系统废纸篓，用户得先知道这件事再点。
-      return input.trashRestoreSupported ? '移到回收站' : '移到回收站（无法撤销）';
+      return input.trashRestoreSupported
+          ? t.workspace.moveToTrash
+          : t.workspace.moveToTrashNoUndo;
     case FileManagerEntryAction.deletePermanently:
-      return '永久删除';
+      return t.workspace.deleteForever;
   }
 }
 

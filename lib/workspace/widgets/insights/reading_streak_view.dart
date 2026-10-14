@@ -4,6 +4,7 @@ import 'package:zephyr/workspace/model/history_insights.dart';
 import 'package:zephyr/workspace/widgets/cards/history_insights_window.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_components.dart';
 import 'package:zephyr/workspace/widgets/insights/insight_sections.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class ReadingStreakView extends StatelessWidget {
   const ReadingStreakView({super.key, required this.summary});
@@ -15,15 +16,15 @@ class ReadingStreakView extends StatelessWidget {
       final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
       final columns = (bounds.maxWidth / (125 * scale)).floor().clamp(1, 2);
       return InsightSectionPager(
-        labels: const ['摘要', '趋势'],
+        labels: [t.workspace.summaryLabel, t.workspace.trendLabel],
         sections: [
           _StreakSummary(summary: summary),
           _StreakTimeline(summary: summary),
         ],
         full: _FullStreakView(summary: summary),
         fullHeight: (columns == 1 ? 430 : 330) * scale,
-        detailTitle: '连续阅读',
-        tinySummary: '当前 ${summary.currentStreak} 天',
+        detailTitle: t.workspace.streakReading,
+        tinySummary: t.workspace.streakNowDays(n: summary.currentStreak),
         dataRevision: summary,
       );
     },
@@ -46,7 +47,7 @@ class _StreakSummary extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Semantics(
-          label: '$label：$value 天',
+          label: t.workspace.streakDaysLine(label: label, value: value),
           child: ExcludeSemantics(
             child: Row(
               children: [
@@ -79,9 +80,9 @@ class _StreakSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        metric('当前连续', summary.currentStreak, true),
+        metric(t.workspace.currentStreak, summary.currentStreak, true),
         const SizedBox(height: 6),
-        metric('样本最长', summary.longestStreak, false),
+        metric(t.workspace.longestSample, summary.longestStreak, false),
       ],
     );
   }
@@ -108,9 +109,15 @@ class _StreakTimeline extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 1),
                       child: Tooltip(
-                        message: '${point.date}：连续 ${point.value} 天',
+                        message: t.workspace.streakPointLine(
+                          date: point.date,
+                          value: point.value,
+                        ),
                         child: Semantics(
-                          label: '${point.date}：连续 ${point.value} 天',
+                          label: t.workspace.streakPointLine(
+                            date: point.date,
+                            value: point.value,
+                          ),
                           child: InsightBar(
                             ratio: point.value / summary.maxValue,
                             highlighted:
@@ -148,7 +155,7 @@ class _StreakTimeline extends StatelessWidget {
           ],
           if (bounds.maxHeight >=
               160 * MediaQuery.textScalerOf(context).scale(14) / 14)
-            const InsightFootnote(text: '样本内连续日期 · 不代表完整阅读日志'),
+            InsightFootnote(text: t.workspace.footnoteSampleStreak),
         ],
       ),
     );
@@ -170,11 +177,14 @@ class _FullStreakView extends StatelessWidget {
           children: [
             InsightMetric(
               value: '${summary.currentStreak}',
-              label: '当前连续 · 天',
+              label: t.workspace.currentStreakDays,
               highlight: true,
               glyph: AppGlyphs.fire,
             ),
-            InsightMetric(value: '${summary.longestStreak}', label: '样本最长 · 天'),
+            InsightMetric(
+              value: '${summary.longestStreak}',
+              label: t.workspace.longestSampleDays,
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -191,9 +201,15 @@ class _FullStreakView extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 1),
                       child: Semantics(
-                        label: '${point.date}：连续 ${point.value} 天',
+                        label: t.workspace.streakPointLine(
+                          date: point.date,
+                          value: point.value,
+                        ),
                         child: Tooltip(
-                          message: '${point.date}：连续 ${point.value} 天',
+                          message: t.workspace.streakPointLine(
+                            date: point.date,
+                            value: point.value,
+                          ),
                           child: InsightBar(
                             ratio: point.value / summary.maxValue,
                             highlighted:
@@ -215,7 +231,7 @@ class _FullStreakView extends StatelessWidget {
             children: [Text(points.first.label), Text(points.last.label)],
           ),
         ],
-        const InsightFootnote(text: '样本内有记录的连续日期 · 不代表完整阅读日志'),
+        InsightFootnote(text: t.workspace.footnoteSampleStreakDays),
       ],
     );
   }

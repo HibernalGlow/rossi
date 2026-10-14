@@ -4,6 +4,8 @@
 /// 不查库、不接全局设置。
 library;
 
+import 'package:zephyr/i18n/strings.g.dart';
+
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
@@ -92,12 +94,12 @@ final RegExp _kPageNumberPattern = RegExp(
       return ((pageNum / total).clamp(0.08, 1.0), 'P.$pageNum/$total');
     }
     final fallbackRatio = (0.22 + (pageNum % 9) * 0.07).clamp(0.22, 0.82);
-    return (fallbackRatio, '看到 P.$pageNum');
+    return (fallbackRatio, t.workspace.seenAtPage(pageNum: pageNum));
   }
   if (entry.reading == true) {
-    return (0.35, '阅读中');
+    return (0.35, t.workspace.readingLabel);
   }
-  return (0.2, '待续');
+  return (0.2, t.workspace.toContinue);
 }
 
 /// 1. 「封面拼贴」：不对称圆角 + 胶囊/超椭圆错落画格 + 右下角统计胶囊。
@@ -191,7 +193,7 @@ class GapCollageBody extends StatelessWidget {
                 right: 4,
                 bottom: 4,
                 child: GapPillBadge(
-                  text: '${pool.length} 部画册',
+                  text: t.workspace.artbookCount(n: pool.length),
                   backgroundColor: scheme.primaryContainer.withValues(
                     alpha: .92,
                   ),
@@ -434,7 +436,7 @@ class GapRandomPickBody extends StatelessWidget {
         final thumbSide = math.min(h * 0.88, w * 0.36).clamp(32.0, 74.0);
         final meta = target.subtitle?.trim().isNotEmpty == true
             ? target.subtitle!
-            : (target.section ?? '手气不错');
+            : (target.section ?? t.workspace.imFeelingLucky);
 
         return Row(
           children: [
@@ -591,7 +593,7 @@ class GapReadingQueueBody extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '部在队列',
+                            t.workspace.booksQueued,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -636,9 +638,9 @@ class GapRediscoverBody extends StatelessWidget {
   final LibraryEntry? entry;
 
   String _ageLabel(DateTime? at) {
-    if (at == null) return '早期收藏';
+    if (at == null) return t.workspace.earlyFavourites;
     final days = DateTime.now().difference(at).inDays.abs();
-    if (days >= 30) return '${days ~/ 30} 个月前';
+    if (days >= 30) return t.workspace.monthsAgo(months: days ~/ 30);
     if (days >= 1) return '$days 天前';
     return '${at.month}/${at.day}';
   }

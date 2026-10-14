@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/action_group.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 挂在宿主已有标题或工具栏上；展墙正文不再占用设置行。
 ///
@@ -18,7 +19,7 @@ class LibraryPresentationButton extends StatelessWidget {
   final bool enabled;
 
   /// 提示语把两种手势都写出来：桌面端悬停即见，触摸端没有右键可试。
-  static const tooltip = '展墙设置 · 长按开关展墙';
+  static String get tooltip => t.workspace.displayWallSettings;
 
   @override
   Widget build(BuildContext context) => ActionIconButton(

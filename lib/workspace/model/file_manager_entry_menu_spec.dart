@@ -1,3 +1,5 @@
+import 'package:zephyr/i18n/strings.g.dart';
+
 // 文件管理器**条目右键菜单**的动作规格 —— 纯 Dart，不 import Flutter。
 //
 // 判据：`dart run test/workspace/file_manager_entry_menu_check.dart`
@@ -317,7 +319,9 @@ class FileManagerDeletePrompt {
 /// 抽成函数而不是直接用输入字段，是为了让「不可撤销」这件事只有一个判断入口：
 /// 菜单的文案、确认条的文案、撤销提示条的显隐都读它。
 String trashOutcomeHint({required bool restoreSupported}) =>
-    restoreSupported ? '可以撤销' : '无法撤销';
+    restoreSupported ? t.workspace.undoable : t.workspace.cannotUndo;
 
 /// 菜单项解析出的**批量文案主语**。多选时说「这 3 项」，单选时说「这一项」。
-String selectionSubject(int count) => count > 1 ? '这 $count 项' : '这一项';
+String selectionSubject(int count) => count > 1
+    ? t.workspace.theseCountItems(count: count)
+    : t.workspace.thisItem;

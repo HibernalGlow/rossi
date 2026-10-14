@@ -104,13 +104,13 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '条件超分 (neo)',
+                      t.realSr.conditionUpscaleTitle,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
-                      '按图片尺寸、路径正则及元数据规则分派超分动作与跳过判定',
+                      t.realSr.conditionUpscaleSubtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -148,7 +148,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      '需先在上方启用【自动超分】，条件超分才能在阅读与预加载时生效。',
+                      t.realSr.conditionNeedsAutoUpscale,
                       style: TextStyle(
                         fontSize: 11,
                         color: colorScheme.onErrorContainer,
@@ -169,7 +169,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
             children: [
               Expanded(
                 child: Text(
-                  '条件列表（共 ${_conditions.length} 条，启用 $enabledCount 条）',
+                  t.realSr.conditionListSummary(
+                    total: _conditions.length,
+                    enabled: enabledCount,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -188,7 +191,7 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
                   size: 18,
                 ),
                 label: Text(
-                  _expanded ? '收起编辑器' : '展开编辑器',
+                  _expanded ? t.realSr.collapseEditor : t.realSr.expandEditor,
                   style: const TextStyle(fontSize: 12),
                 ),
                 onPressed: () => setState(() => _expanded = !_expanded),
@@ -258,7 +261,10 @@ class _UpscaleConditionsCardState extends State<UpscaleConditionsCard> {
             children: [
               OutlinedButton.icon(
                 icon: const GlyphIcon(AppGlyphs.add, size: 14),
-                label: Text(t.realSr.addCondition, style: TextStyle(fontSize: 11)),
+                label: Text(
+                  t.realSr.addCondition,
+                  style: TextStyle(fontSize: 11),
+                ),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),

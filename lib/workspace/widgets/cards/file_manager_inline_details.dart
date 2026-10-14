@@ -4,6 +4,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/src/rust/api/file_manager/types.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_tile.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 树行是核心快照，展开箭头与正文打开分开；不保存第二份目录展开状态。
 class FileManagerInlineDetails extends StatefulWidget {
@@ -63,7 +64,7 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                   child: Text(entry.name, style: theme.textTheme.titleLarge),
                 ),
                 IconButton(
-                  tooltip: '收起信息',
+                  tooltip: t.workspace.collapseInformation,
                   onPressed: widget.onClose,
                   icon: const GlyphIcon(AppGlyphs.close),
                 ),
@@ -88,11 +89,11 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                   icon: GlyphIcon(
                     entry.isDir ? AppGlyphs.folder : AppGlyphs.openExternal,
                   ),
-                  label: Text(entry.isDir ? '进入文件夹' : '打开'),
+                  label: Text(entry.isDir ? t.workspace.enterFolder : '打开'),
                 ),
                 if (entry.isDir) ...[
                   FilterChip(
-                    label: const Text('内部缩略图'),
+                    label: Text(t.workspace.internalThumbnails),
                     selected: _thumbnails,
                     onSelected: (v) => setState(() => _thumbnails = v),
                   ),
@@ -104,7 +105,11 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                         glyph: AppGlyphs.chevronDown,
                         turns: 0.5,
                       ),
-                      label: Text(parent.expanded ? '收起子项' : '展开子项'),
+                      label: Text(
+                        parent.expanded
+                            ? t.workspace.collapseChildren
+                            : t.workspace.expandChildren,
+                      ),
                     ),
                 ],
               ],
@@ -119,9 +124,9 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                   child: Center(child: CircularProgressIndicator()),
                 ),
               if (tree != null && parent == null && !tree.hasPending)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(12),
-                  child: Text('当前搜索或目录快照未包含此文件夹。可进入文件夹查看内部内容。'),
+                  child: Text(t.workspace.folderNotInSnapshot),
                 ),
               if (parent?.error case final error?)
                 Text(error, style: TextStyle(color: theme.colorScheme.error)),
@@ -130,9 +135,9 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                   !parent.loading &&
                   children.isEmpty &&
                   parent.error == null)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(12),
-                  child: Text('当前文件夹没有可显示的子项'),
+                  child: Text(t.workspace.folderNoChildren),
                 ),
               if (children.isNotEmpty)
                 SizedBox(
@@ -184,8 +189,8 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                                         : row.mayHaveChildren
                                         ? IconButton(
                                             tooltip: row.expanded
-                                                ? '收起子文件夹'
-                                                : '展开子文件夹',
+                                                ? t.workspace.collapseSubfolders
+                                                : t.workspace.expandSubfolders,
                                             onPressed: () =>
                                                 widget.onToggle(row.path),
                                             // 展开 = 同一颗 chevronForward 转 90°

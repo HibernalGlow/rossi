@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/navigation/navigation_shape.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 列表名横向滚动，管理入口固定在尾端；窄卡片仍然可以新增和编辑列表。
 class ShelfListRail extends StatelessWidget {
@@ -37,7 +38,7 @@ class ShelfListRail extends StatelessWidget {
           const SizedBox(width: 4),
           ExpressiveIconButton(
             glyph: AppGlyphs.listAdd,
-            tooltip: '新建书签列表',
+            tooltip: t.workspace.newBookmarkList,
             shape: ExpressiveButtonShape.puffy,
             onPressed: onCreate,
           ),
@@ -45,7 +46,7 @@ class ShelfListRail extends StatelessWidget {
             const SizedBox(width: 4),
             ExpressiveIconButton(
               glyph: AppGlyphs.edit,
-              tooltip: '重命名 / 删除当前列表',
+              tooltip: t.workspace.renameDeleteList,
               shape: ExpressiveButtonShape.slanted,
               onPressed: onEdit,
             ),

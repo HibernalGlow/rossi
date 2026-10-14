@@ -64,7 +64,7 @@ class _SwimlanePanelSettingPageState extends State<SwimlanePanelSettingPage> {
               children: [
                 settingSectionTitle(
                   context,
-                  '泳道面板看板配置',
+                  t.settings.swimlanePanelKanbanConfigTitle,
                   icon: AppGlyphs.dashboard,
                 ),
                 WorkspaceSwimlanePanelKanbanCard(

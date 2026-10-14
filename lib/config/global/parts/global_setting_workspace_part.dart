@@ -3,12 +3,17 @@ part of '../global_setting.dart';
 // 工作台/发现页/操作绑定/卡片外观（rossi）
 
 enum FileManagerTabStartupPolicy {
-  defaults('使用预设默认值'),
-  recent('继承最近使用的页签'),
-  triggering('继承触发页签');
+  defaults,
+  recent,
+  triggering;
 
-  const FileManagerTabStartupPolicy(this.label);
-  final String label;
+  const FileManagerTabStartupPolicy();
+
+  String get label => switch (this) {
+    FileManagerTabStartupPolicy.defaults => t.settings.tabPolicyDefaults,
+    FileManagerTabStartupPolicy.recent => t.settings.tabPolicyRecent,
+    FileManagerTabStartupPolicy.triggering => t.settings.tabPolicyTriggering,
+  };
 }
 
 /// 文件管理器卡片（工作台里的本地文件浏览）的跨重启偏好。
@@ -80,18 +85,22 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
 /// 用户存的值不该跟着变成一串读不出来的整数）。
 enum DiscoverTabBarSide {
   /// 横向：标签条就是发现页顶栏那一行。
-  top('横向（顶栏）'),
+  top,
 
   /// 竖向：标签轨在内容左边。
-  left('竖向（左侧）'),
+  left,
 
   /// 竖向：标签轨在内容右边。
-  right('竖向（右侧）');
+  right;
 
-  const DiscoverTabBarSide(this.label);
+  const DiscoverTabBarSide();
 
-  /// 设置项上的中文名（这个枚举只有三个值，不值得走 i18n 词条）。
-  final String label;
+  /// 设置项上的显示名。
+  String get label => switch (this) {
+    DiscoverTabBarSide.top => t.settings.tabSideTop,
+    DiscoverTabBarSide.left => t.settings.tabSideLeft,
+    DiscoverTabBarSide.right => t.settings.tabSideRight,
+  };
 }
 
 /// 发现页**标签条**的显示口径。

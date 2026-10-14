@@ -9,6 +9,7 @@ import 'package:zephyr/workspace/widgets/panels/panel_bar_positioner.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/panels/workspace_panel_tabs.dart';
 import 'package:zephyr/widgets/navigation/panel_switcher_tabs.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// **面板操作栏** —— 泳道里的那一条面板页签。
 ///
@@ -368,7 +369,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         onLongPressStart: (details) =>
             _openSettingsMenuAt(context, details.globalPosition, cubit),
         child: Tooltip(
-          message: '面板栏（拖动换边或转悬浮，右键或长按设置）',
+          message: t.workspace.panelBarHint,
           waitDuration: const Duration(milliseconds: 500),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
@@ -480,7 +481,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
       position: globalPosition,
       items: [
         CommonPopupMenuItem(
-          label: pinned ? '改为悬浮' : '固定到当前位置',
+          label: pinned ? t.workspace.switchToFloating : t.workspace.pinHere,
           glyph: AppGlyphs.pin,
           checked: pinned,
           onPressed: () => setBar(
@@ -490,7 +491,9 @@ class _PanelTabStripState extends State<PanelTabStrip> {
           ),
         ),
         CommonPopupMenuItem(
-          label: bar.constrained ? '允许移出泳道' : '限制在本泳道',
+          label: bar.constrained
+              ? t.workspace.allowLeaveLane
+              : t.workspace.confineToThisLane,
           glyph: bar.constrained ? AppGlyphs.lock : AppGlyphs.lockOpen,
           onPressed: () => setBar(bar.copyWith(constrained: !bar.constrained)),
         ),
@@ -498,12 +501,14 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         CommonPopupMenuItem(
           // 父行只留短名，解释下移到第二行 —— 菜单宽只由 `label` 定，
           // 整段塞进单行会被截断。
-          label: '排序模式',
+          label: t.workspace.sortMode,
           glyph: AppGlyphs.sort,
           checked: sortMode,
           content: CommonPopupMenuTitle(
-            label: '排序模式',
-            hint: sortMode ? '退出后恢复横移切面板' : '长按拖动排序 / 换泳道',
+            label: t.workspace.sortMode,
+            hint: sortMode
+                ? t.workspace.restoreSwipeAfterExit
+                : t.workspace.longPressDragReorder,
           ),
           onPressed: () {
             // 排序模式是**工作台交互**设置（不是本条 bar 的摆放），所以走
@@ -520,7 +525,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         const CommonPopupMenuItem.divider(),
         for (final dock in PanelBarDock.values)
           CommonPopupMenuItem(
-            label: '停靠到${_dockLabel(dock)}',
+            label: t.workspace.dockToLabel(label: _dockLabel(dock)),
             glyph: _dockIcon(dock),
             checked: pinned && bar.dock == dock,
             onPressed: () =>

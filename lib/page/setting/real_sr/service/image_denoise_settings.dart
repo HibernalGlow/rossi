@@ -2,19 +2,26 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 class _DenoiseChanges extends ChangeNotifier {
   void changed() => notifyListeners();
 }
 
 enum ImageEnhancementMode {
-  original('原图'),
-  denoise('仅 JPEG 降噪'),
-  upscale('仅超分'),
-  denoiseThenUpscale('先降噪再超分');
+  original,
+  denoise,
+  upscale,
+  denoiseThenUpscale;
 
-  const ImageEnhancementMode(this.label);
-  final String label;
+  const ImageEnhancementMode();
+
+  String get label => switch (this) {
+    ImageEnhancementMode.original => t.realSr.modeOriginal,
+    ImageEnhancementMode.denoise => t.realSr.modeDenoiseOnly,
+    ImageEnhancementMode.upscale => t.realSr.modeUpscaleOnly,
+    ImageEnhancementMode.denoiseThenUpscale => t.realSr.modeDenoiseThenUpscale,
+  };
 
   bool get usesDenoise => this == denoise || this == denoiseThenUpscale;
   bool get usesUpscale => this == upscale || this == denoiseThenUpscale;

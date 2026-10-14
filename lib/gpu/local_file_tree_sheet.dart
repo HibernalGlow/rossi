@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:zephyr/src/rust/api/local.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 记录最近一次访问的目录路径（应用生命周期内保持），方便连续调试与选漫画。
 String? _lastVisitedDirectory;
@@ -162,8 +163,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                       size: 22,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      '本地文件树浏览 (mImageViewer 核心)',
+                    Text(
+                      t.settings.localTreeTitle,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -183,7 +184,7 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                         visualDensity: VisualDensity.compact,
                       ),
                       icon: const GlyphIcon(AppGlyphs.checkCircle, size: 16),
-                      label: const Text('打开当前文件夹'),
+                      label: Text(t.settings.localTreeOpenFolder),
                       onPressed: () => widget.onSelect(_currentPath),
                     ),
                     const SizedBox(width: 6),
@@ -354,7 +355,9 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '读取失败: $_errorMessage',
+                          t.settings.localTreeReadFailed(
+                            error: _errorMessage ?? '',
+                          ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white70,
@@ -372,9 +375,9 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                   ),
                 )
               : _nodes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    '当前目录下没有发现子文件夹或漫画文件',
+                    t.settings.localTreeEmpty,
                     style: TextStyle(color: Colors.white38, fontSize: 13),
                   ),
                 )
@@ -406,7 +409,7 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                             IconButton(
                               icon: const GlyphIcon(AppGlyphs.check, size: 16),
                               color: const Color(0xFF38BDF8),
-                              tooltip: '直接打开此文件夹',
+                              tooltip: t.settings.localTreeOpenThisFolder,
                               onPressed: () => widget.onSelect(item.path),
                             ),
                             const GlyphIcon(
@@ -445,7 +448,9 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                           ),
                         ),
                         subtitle: Text(
-                          '漫画归档 · ${_formatSize(item.size)}',
+                          t.settings.localTreeArchiveSize(
+                            size: _formatSize(item.size),
+                          ),
                           style: const TextStyle(
                             color: Colors.white38,
                             fontSize: 11,

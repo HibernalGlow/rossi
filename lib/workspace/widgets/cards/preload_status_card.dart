@@ -7,6 +7,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 预加载状态卡（对齐 Neo 的 `preload-status`）：
 /// 呈现器就绪状态、已呈现页数、最近一次交页耗时、当前页超分阶段。
@@ -46,7 +47,7 @@ class PreloadStatusCard extends StatelessWidget {
         final hasSession = coordinator.hasActiveSession;
         return CollapsibleCard(
           cardId: 'preload_status',
-          title: '预加载状态',
+          title: t.workspace.preloadStatus,
           icon: AppGlyphs.bolt,
           expressive: true,
           isExpanded: isExpanded,
@@ -56,20 +57,22 @@ class PreloadStatusCard extends StatelessWidget {
           onHide: onHide,
           trailing: presenter != null && hasSession
               ? InfoCardCounter(
-                  presenter.canPresent ? 'GPU 就绪' : 'GPU 建链中',
+                  presenter.canPresent
+                      ? t.workspace.gpuReady
+                      : t.workspace.gpuLinking,
                   emphasize: presenter.canPresent,
                 )
               : null,
           child: !hasSession
-              ? const InfoEmpty(
+              ? InfoEmpty(
                   icon: AppGlyphs.bolt,
-                  text: '打开书本后显示呈现与预取状态',
-                  hint: '每一项都来自记账字段，不来自「我调过所以应该好了」',
+                  text: t.workspace.showPresentPrefetchWhenOpen,
+                  hint: t.workspace.everyFieldIsMeasured,
                   fields: [
-                    ('呈现器', AppGlyphs.devices),
-                    ('已呈现页数', AppGlyphs.photos),
-                    ('当前页耗时', AppGlyphs.speed),
-                    ('超分阶段', AppGlyphs.sparkle),
+                    (t.workspace.presenter, AppGlyphs.devices),
+                    (t.workspace.pagesPresented, AppGlyphs.photos),
+                    (t.workspace.currentPageCost, AppGlyphs.speed),
+                    (t.workspace.upscaleStage, AppGlyphs.sparkle),
                   ],
                 )
               : _buildRows(coordinator, presenter),
@@ -95,14 +98,14 @@ class PreloadStatusCard extends StatelessWidget {
             children: [
               ExpressiveStatTile(
                 value: 'CPU',
-                label: '预加载路径',
+                label: t.workspace.preloadPath,
                 icon: AppGlyphs.cpu,
                 highlight: true,
-                caption: '解码缓冲 + 图片缓存',
+                caption: t.workspace.decodeBufferPlusCache,
               ),
               ExpressiveStatTile(
                 value: '${slot + 1} / ${coordinator.totalSlots}',
-                label: '页表',
+                label: t.workspace.pageList,
                 icon: AppGlyphs.layers,
               ),
             ],
@@ -111,17 +114,21 @@ class PreloadStatusCard extends StatelessWidget {
           InfoFacts(
             children: [
               InfoRow(
-                label: '路径',
-                value: 'CPU 解码 / 图片缓存预加载',
+                label: t.workspace.pathLabel,
+                value: t.workspace.cpuDecodePreload,
                 emphasis: true,
                 icon: AppGlyphs.cpu,
               ),
               InfoRow(
-                label: '页表',
+                label: t.workspace.pageList,
                 value: '${slot + 1} / ${coordinator.totalSlots}',
                 icon: AppGlyphs.layers,
               ),
-              const InfoRow(label: '纹理', value: '—', icon: AppGlyphs.devices),
+              InfoRow(
+                label: t.workspace.texture,
+                value: '—',
+                icon: AppGlyphs.devices,
+              ),
             ],
           ),
         ],
@@ -141,21 +148,21 @@ class PreloadStatusCard extends StatelessWidget {
           children: [
             ExpressiveStatTile(
               value: '${presenter.presentCount}',
-              label: '已呈现页数',
+              label: t.workspace.pagesPresented,
               icon: AppGlyphs.photos,
               highlight: ready,
-              caption: ready ? '纹理就绪' : '建链中',
+              caption: ready ? t.workspace.textureReady : t.workspace.linking,
             ),
             ExpressiveStatTile(
               value: lastIsCurrent && presenter.lastPresentMs != null
                   ? '${presenter.lastPresentMs}'
                   : '—',
-              label: '当前页交页耗时 (ms)',
+              label: t.workspace.currentPageHandoffMs,
               icon: AppGlyphs.speed,
             ),
             ExpressiveStatTile(
               value: imageEnhancementPhaseLabel(status),
-              label: '图像处理阶段',
+              label: t.workspace.imageProcessingStage,
               icon: AppGlyphs.sparkle,
               caption: status.pageNumber == null
                   ? null
@@ -167,13 +174,16 @@ class PreloadStatusCard extends StatelessWidget {
         InfoFacts(
           children: [
             InfoRow(
-              label: '呈现器',
+              label: t.workspace.presenter,
               valueWidget: ExpressiveStatusPill(
                 text: switch (presenter.state) {
-                  GpuPresentState.ready => '就绪',
-                  GpuPresentState.loading => '创建中',
-                  GpuPresentState.failed => '失败 · ${presenter.error}',
-                  GpuPresentState.unsupported => '本平台不支持',
+                  GpuPresentState.ready => t.workspace.readyState,
+                  GpuPresentState.loading => t.workspace.creating,
+                  GpuPresentState.failed => t.workspace.failedWith(
+                    error: presenter.error,
+                  ),
+                  GpuPresentState.unsupported =>
+                    t.workspace.platformUnsupported,
                 },
                 compact: true,
                 tone: switch (presenter.state) {
@@ -186,42 +196,44 @@ class PreloadStatusCard extends StatelessWidget {
             ),
             if (presenter.textureId != null)
               InfoRow(
-                label: '纹理',
+                label: t.workspace.texture,
                 value: '#${presenter.textureId}',
                 icon: AppGlyphs.layers,
               ),
             InfoRow(
-              label: '已呈现页数',
+              label: t.workspace.pagesPresented,
               value: '${presenter.presentCount}',
               icon: AppGlyphs.photos,
             ),
             InfoRow(
-              label: '当前页耗时',
+              label: t.workspace.currentPageCost,
               value: lastIsCurrent && presenter.lastPresentMs != null
                   ? '${presenter.lastPresentMs} ms'
                   : '—',
               icon: AppGlyphs.speed,
             ),
             InfoRow(
-              label: '就绪等待',
+              label: t.workspace.readyWaiting,
               value: presenter.readyAfterMs != null
                   ? '${presenter.readyAfterMs} ms'
                   : '—',
               icon: AppGlyphs.hourglass,
             ),
             InfoRow(
-              label: '图像处理阶段',
+              label: t.workspace.imageProcessingStage,
               value: status.pageNumber == null
                   ? imageEnhancementPhaseLabel(status)
-                  : '第 ${status.pageNumber} 页 · '
+                  : '${t.reader.pageNumberN(page: status.pageNumber!)} · '
                         '${imageEnhancementPhaseLabel(status)}',
               icon: AppGlyphs.sparkle,
             ),
             InfoRow(
-              label: '超分开关',
+              label: t.workspace.upscaleSwitch,
               value: presenter.isUpscaleEnabled
-                  ? (presenter.isOriginalPreview ? '开着（原图对比中）' : '开着')
-                  : '关着',
+                  ? (presenter.isOriginalPreview
+                        ? t.workspace.onComparingOriginal
+                        : t.workspace.switchedOn)
+                  : t.workspace.turnedOff,
               emphasis: presenter.isUpscaleEnabled,
               icon: AppGlyphs.power,
             ),

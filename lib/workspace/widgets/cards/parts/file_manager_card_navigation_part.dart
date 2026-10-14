@@ -52,21 +52,21 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                 enabled: !_busy,
                 textInputAction: TextInputAction.go,
                 style: Theme.of(context).textTheme.bodySmall,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isDense: true,
-                  labelText: '目录路径',
+                  labelText: t.workspace.folderPath,
                   border: OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => _submitPath(),
               ),
             ),
             IconButton(
-              tooltip: '转到目录',
+              tooltip: t.workspace.goToFolder,
               onPressed: _busy ? null : _submitPath,
               icon: const GlyphIcon(AppGlyphs.check, size: 18),
             ),
             IconButton(
-              tooltip: '取消路径编辑',
+              tooltip: t.workspace.cancelPathEdit,
               onPressed: _busy
                   ? null
                   // ignore: invalid_use_of_protected_member
@@ -127,7 +127,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
     // `CommonPopupRoute`），项集在 build 时构造好。
     return CommonPopupBox(
       targetBuilder: (open) => IconButton(
-        tooltip: '路径操作',
+        tooltip: t.workspace.pathActions,
         style: ElasticPress.buttonStyle,
         onPressed: !_busy ? open : null,
         icon: const GlyphIcon(AppGlyphs.chevronDown, size: 20),
@@ -136,13 +136,13 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
         items: [
           if (withTabActions) ...[
             CommonPopupMenuItem(
-              label: '新建页签',
+              label: t.workspace.newTab,
               glyph: AppGlyphs.add,
               onPressed: () => _apply((id) => fileManagerNewTab(id: id)),
             ),
             for (final tab in snapshot.recentlyClosed.reversed)
               CommonPopupMenuItem(
-                label: '恢复页签：${tab.title}',
+                label: t.workspace.restoreTabTitle(title: tab.title),
                 glyph: AppGlyphs.history,
                 onPressed: () => _apply(
                   (id) => fileManagerReopenClosedTab(id: id, tabId: tab.id),
@@ -151,7 +151,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             const CommonPopupMenuItem.divider(),
           ],
           CommonPopupMenuItem(
-            label: '编辑路径',
+            label: t.workspace.editPath,
             glyph: AppGlyphs.edit,
             onPressed: () => _editPath(snapshot),
           ),
@@ -267,7 +267,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             ),
           ),
           FluentPopupMenuButton<BigInt>(
-            tooltip: '恢复已关闭页签',
+            tooltip: t.workspace.restoreClosedTabs,
             visualDensity: VisualDensity.compact,
             enabled:
                 !_busy &&
@@ -290,7 +290,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             ],
           ),
           IconButton(
-            tooltip: '新建页签',
+            tooltip: t.workspace.newTab,
             visualDensity: VisualDensity.compact,
             iconSize: 18,
             onPressed: _busy || !snapshot.canCreateTab
@@ -344,13 +344,13 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
           position: position,
           items: [
             CommonPopupMenuItem(
-              label: tab.pinned ? '取消固定' : '固定页签',
+              label: tab.pinned ? t.workspace.unpin : t.workspace.pinTab,
               onPressed: () => run(
                 (id) => fileManagerToggleTabPinned(id: id, tabId: tab.id),
               ),
             ),
             CommonPopupMenuItem(
-              label: '从此页签新建',
+              label: t.workspace.newFromThisTab,
               onPressed: snapshot.canCreateTab
                   ? () => run(
                       (id) => fileManagerNewTab(
@@ -362,7 +362,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                   : null,
             ),
             CommonPopupMenuItem(
-              label: '复制页签',
+              label: t.workspace.duplicateTab,
               onPressed: snapshot.canCreateTab
                   ? () => run(
                       (id) => fileManagerDuplicateTab(id: id, tabId: tab.id),
@@ -371,14 +371,14 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
             ),
             const CommonPopupMenuItem.divider(),
             CommonPopupMenuItem(
-              label: '关闭页签',
+              label: t.workspace.closeTab,
               onPressed: tab.canClose
                   ? () =>
                         run((id) => fileManagerCloseTab(id: id, tabId: tab.id))
                   : null,
             ),
             CommonPopupMenuItem(
-              label: '关闭其他页签',
+              label: t.workspace.closeOtherTabs,
               onPressed: tab.canCloseOthers
                   ? () => run(
                       (id) => fileManagerCloseOtherTabs(id: id, tabId: tab.id),
@@ -386,7 +386,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                   : null,
             ),
             CommonPopupMenuItem(
-              label: '关闭左侧页签',
+              label: t.workspace.closeTabsLeft,
               onPressed: tab.canCloseLeft
                   ? () => run(
                       (id) => fileManagerCloseTabsLeft(id: id, tabId: tab.id),
@@ -394,7 +394,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                   : null,
             ),
             CommonPopupMenuItem(
-              label: '关闭右侧页签',
+              label: t.workspace.closeTabsRight,
               onPressed: tab.canCloseRight
                   ? () => run(
                       (id) => fileManagerCloseTabsRight(id: id, tabId: tab.id),

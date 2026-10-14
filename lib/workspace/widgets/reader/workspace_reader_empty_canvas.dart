@@ -10,6 +10,7 @@ import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 阅读器泳道**空态**：还没打开任何一本时的画板。
 ///
@@ -126,7 +127,7 @@ class _WorkspaceReaderEmptyCanvasState
           ),
           const SizedBox(height: 20),
           Text(
-            '阅读器泳道空闲中',
+            t.workspace.readerLaneIdle,
             style: theme.textTheme.titleMedium?.copyWith(
               color: scheme.onSurface,
               fontWeight: FontWeight.w600,
@@ -137,8 +138,7 @@ class _WorkspaceReaderEmptyCanvasState
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Text(
-              '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；'
-              '点栏顶的独占按钮可让它瞬间撑满视口。',
+              t.workspace.readerLaneSoloHint,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
                 height: 1.6,

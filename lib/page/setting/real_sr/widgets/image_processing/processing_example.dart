@@ -11,19 +11,19 @@ import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_disclosu
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/reader/auto_trim_settings.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 enum ProcessingExampleKind { autoTrim, denoise }
 
 extension on ProcessingExampleKind {
   String get title => switch (this) {
-    ProcessingExampleKind.autoTrim => '裁边预览',
-    ProcessingExampleKind.denoise => '降噪预览',
+    ProcessingExampleKind.autoTrim => t.realSr.exampleTrimTitle,
+    ProcessingExampleKind.denoise => t.realSr.exampleDenoiseTitle,
   };
 
   String get staticDescription => switch (this) {
-    ProcessingExampleKind.autoTrim => '去掉四周余白，让漫画内容更大。示意图不随参数变化。',
-    ProcessingExampleKind.denoise =>
-      '同一 JPEG 局部经 RealPLKSR 1× 实际处理，分辨率保持不变。效果随原图而变化。',
+    ProcessingExampleKind.autoTrim => t.realSr.exampleTrimDesc,
+    ProcessingExampleKind.denoise => t.realSr.exampleDenoiseDesc,
   };
 
   String get prefix => switch (this) {
@@ -31,11 +31,11 @@ extension on ProcessingExampleKind {
     ProcessingExampleKind.denoise => 'denoise',
   };
 
-  String get beforeLabel => '原图';
+  String get beforeLabel => t.realSr.modeOriginal;
 
   String get afterLabel => switch (this) {
-    ProcessingExampleKind.autoTrim => '裁剪后',
-    ProcessingExampleKind.denoise => '降噪后',
+    ProcessingExampleKind.autoTrim => t.realSr.afterTrim,
+    ProcessingExampleKind.denoise => t.realSr.afterDenoise,
   };
 }
 
@@ -164,14 +164,16 @@ class _ProcessingExampleState extends State<ProcessingExample> {
       };
     } catch (e, s) {
       logger.w('图片处理预览失败', error: e, stackTrace: s);
-      result = ProcessingPreview(status: '预览失败：$e');
+      result = ProcessingPreview(status: t.realSr.previewFailed(error: e));
     }
     if (!mounted || !_expanded || generation != _generation) {
       result?.dispose();
       return;
     }
     setState(() {
-      _preview = result ?? ProcessingPreview(status: '当前页的图片还没有准备好，翻页或稍后再试');
+      _preview =
+          result ??
+          ProcessingPreview(status: t.realSr.exampleImageNotReadyRetry);
       _loading = false;
     });
   }
@@ -206,7 +208,9 @@ class _ProcessingExampleState extends State<ProcessingExample> {
                   widget.kind.title,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                subtitle: _expanded ? null : const Text('默认收起，展开后才会加载图片'),
+                subtitle: _expanded
+                    ? null
+                    : Text(t.realSr.exampleCollapsedHint),
                 trailing: AnimatedRotation(
                   turns: _expanded ? .5 : 0,
                   duration: ExpressiveMotion.duration(
@@ -257,8 +261,8 @@ class _ProcessingExampleState extends State<ProcessingExample> {
             Expanded(
               child: Text(
                 widget.kind == ProcessingExampleKind.denoise
-                    ? '正在读取当前页的降噪结果…'
-                    : '正在读取当前页的裁边结果…',
+                    ? t.realSr.loadingDenoiseResult
+                    : t.realSr.loadingTrimResult,
               ),
             ),
           ],
@@ -268,7 +272,7 @@ class _ProcessingExampleState extends State<ProcessingExample> {
     if (preview == null) {
       return ProcessingPreviewLoader.currentPage == null
           ? _StaticExample(kind: widget.kind)
-          : const Text('当前页的图片还没有准备好');
+          : Text(t.realSr.exampleImageNotReady);
     }
     return _LivePreview(
       kind: widget.kind,
@@ -308,10 +312,10 @@ class _LivePreview extends StatelessWidget {
       final markTrim = kind == ProcessingExampleKind.autoTrim && trim != null;
       beforePanel = _PreviewPanel(
         label: markTrim
-            ? '${kind.beforeLabel}（阴影为裁剪部分）'
+            ? t.realSr.beforeTrimmedShadow(before: kind.beforeLabel)
             : hasAfter
             ? kind.beforeLabel
-            : '${kind.beforeLabel}（保持原样）',
+            : t.realSr.beforeUnchanged(before: kind.beforeLabel),
         aspectRatio: before.width / before.height,
         child: Stack(
           fit: StackFit.expand,
@@ -387,7 +391,7 @@ class _LivePreview extends StatelessWidget {
         ],
         const SizedBox(height: 8),
         Text(
-          '来自当前正在阅读的页面，关闭预览后立即释放。',
+          t.realSr.exampleLiveSource,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colors.onSurfaceVariant,
           ),
@@ -612,7 +616,7 @@ class _StaticExampleState extends State<_StaticExample> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${kind.title}（示例）',
+                        t.realSr.exampleTitleSuffix(title: kind.title),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
@@ -621,7 +625,7 @@ class _StaticExampleState extends State<_StaticExample> {
                         minWidth: 48,
                         minHeight: 48,
                       ),
-                      tooltip: '关闭示例',
+                      tooltip: t.realSr.closeExample,
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
                     ),
@@ -645,8 +649,12 @@ class _StaticExampleState extends State<_StaticExample> {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label:
-        '${kind.title}示例。${kind.beforeLabel}与${kind.afterLabel}对比。点击查看大图。${kind.staticDescription}',
+    label: t.realSr.exampleSemantics(
+      title: kind.title,
+      before: kind.beforeLabel,
+      after: kind.afterLabel,
+      description: kind.staticDescription,
+    ),
     excludeSemantics: true,
     child: InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -655,7 +663,7 @@ class _StaticExampleState extends State<_StaticExample> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '没有正在阅读的页面，以下为内置示例；打开漫画后再展开可看到当前页的实际效果。',
+            t.realSr.exampleBuiltinHint,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

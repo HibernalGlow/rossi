@@ -6,6 +6,7 @@ import 'package:zephyr/workspace/widgets/library_view/library_entry_surface.dart
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_inline_expansion.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 时间线：按本地日历日分段的书签 / 历史列表。
 ///
@@ -21,12 +22,12 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_inline_e
 /// `FileManagerViewMode` 一一对应，为书架专属的东西去动三家共用的枚举与
 /// 映射不划算。
 class ShelfTimelineView extends StatefulWidget {
-  const ShelfTimelineView({
+  ShelfTimelineView({
     super.key,
     required this.entries,
     required this.timeOf,
     required this.onTap,
-    this.emptyText = '没有条目',
+    String? emptyText,
     this.wrapRow,
     this.enabled = true,
     this.busy = false,
@@ -34,12 +35,15 @@ class ShelfTimelineView extends StatefulWidget {
     this.detailBuilder,
     this.expandedKeys = const {},
     this.onCloseDetail,
-  });
-
+    this.inlineDetails,
+  }) : emptyText = emptyText ?? t.workspace.noEntries;
   final List<LibraryEntry> entries;
   final LibraryDetailBuilder? detailBuilder;
   final Set<String> expandedKeys;
   final ValueChanged<String>? onCloseDetail;
+
+  /// 由 `LibraryEditorialCanvas` 统一托管的原位详情映射（键为 `entry.key`）。
+  final Map<String, Widget>? inlineDetails;
 
   /// 取一个条目的时间：书签是收藏时间，历史是最后阅读。
   ///

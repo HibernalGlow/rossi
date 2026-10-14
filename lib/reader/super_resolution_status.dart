@@ -21,6 +21,8 @@
 /// 就会回到那条老路上：日志说成功、画面还是原图。所以界面上也分开说。
 library;
 
+import 'package:zephyr/i18n/strings.g.dart';
+
 import 'dart:ui' show Size;
 
 /// 当前页超分流水线所处的阶段。
@@ -91,8 +93,11 @@ class SuperResolutionPageStatus {
   final bool denoiseEnabled;
   final bool upscaleStageEnabled;
 
-  String get processName =>
-      denoiseEnabled ? (upscaleStageEnabled ? '降噪+超分' : 'JPEG 降噪') : '超分';
+  String get processName => denoiseEnabled
+      ? (upscaleStageEnabled
+            ? t.reader.denoisePlusUpscale
+            : t.reader.jpegDenoise)
+      : t.reader.upscaleShort;
 
   /// 显示给用户的页码（1 起）。下标未知时返回 `null`。
   int? get pageNumber => index < 0 ? null : index + 1;
@@ -151,13 +156,20 @@ String imageEnhancementPhaseLabel(SuperResolutionPageStatus status) {
   if (!status.denoiseEnabled) return superResolutionPhaseLabel(status.phase);
   return switch (status.phase) {
     SuperResolutionPagePhase.running =>
-      status.upscaleStageEnabled ? '增强中' : '降噪中',
+      status.upscaleStageEnabled ? t.reader.enhancing : t.reader.denoising,
     SuperResolutionPagePhase.applied =>
-      status.upscaleStageEnabled ? '已增强' : '已降噪',
-    SuperResolutionPagePhase.idle => status.upscaleStageEnabled ? '待增强' : '待降噪',
+      status.upscaleStageEnabled
+          ? t.reader.enhancedDone
+          : t.reader.denoisedDone,
+    SuperResolutionPagePhase.idle =>
+      status.upscaleStageEnabled
+          ? t.reader.pendingEnhance
+          : t.reader.pendingDenoise,
     SuperResolutionPagePhase.failed =>
-      status.upscaleStageEnabled ? '增强失败' : '降噪失败',
-    SuperResolutionPagePhase.skipped => '无需处理',
+      status.upscaleStageEnabled
+          ? t.reader.enhanceFailed
+          : t.reader.denoiseFailed,
+    SuperResolutionPagePhase.skipped => t.reader.noProcessingNeeded,
     _ => superResolutionPhaseLabel(status.phase),
   };
 }
@@ -165,16 +177,16 @@ String imageEnhancementPhaseLabel(SuperResolutionPageStatus status) {
 /// 阶段短标签（顶栏芯片上那一两个字）。
 String superResolutionPhaseLabel(SuperResolutionPagePhase phase) =>
     switch (phase) {
-      SuperResolutionPagePhase.unsupported => '不支持',
-      SuperResolutionPagePhase.disabled => '超分关',
-      SuperResolutionPagePhase.originalPreview => '原图对比',
-      SuperResolutionPagePhase.queued => '排队中',
-      SuperResolutionPagePhase.running => '超分中',
-      SuperResolutionPagePhase.ready => '已生成',
-      SuperResolutionPagePhase.applied => '已超分',
-      SuperResolutionPagePhase.skipped => '无需超分',
-      SuperResolutionPagePhase.failed => '超分失败',
-      SuperResolutionPagePhase.idle => '待超分',
+      SuperResolutionPagePhase.unsupported => t.reader.notSupported,
+      SuperResolutionPagePhase.disabled => t.reader.upscaleOff,
+      SuperResolutionPagePhase.originalPreview => t.reader.originalCompareChip,
+      SuperResolutionPagePhase.queued => t.reader.queuedState,
+      SuperResolutionPagePhase.running => t.reader.upscalingState,
+      SuperResolutionPagePhase.ready => t.reader.generatedState,
+      SuperResolutionPagePhase.applied => t.reader.upscaledState,
+      SuperResolutionPagePhase.skipped => t.reader.noUpscaleNeeded,
+      SuperResolutionPagePhase.failed => t.reader.upscaleFailedState,
+      SuperResolutionPagePhase.idle => t.reader.pendingUpscale,
     };
 
 /// 阶段是不是「正在进行中」—— 界面上用它决定要不要转小圈。
@@ -246,30 +258,57 @@ String? superResolutionSizeText(
 /// 芯片的悬停说明。它是**唯一**在窄屏上也带着分辨率的入口。
 String superResolutionTooltip(SuperResolutionPageStatus status) {
   final String page = status.pageNumber == null
-      ? '当前页'
-      : '第 ${status.pageNumber} 页';
+      ? t.reader.thisPage
+      : t.reader.pageNumberN(page: status.pageNumber!);
   final String? source = formatImageSize(status.sourceSize);
   final String? enhanced = formatImageSize(status.enhancedSize);
   final String sizeHint = switch ((source, enhanced)) {
-    (final String s, final String e) => '（原图 $s → 处理后 $e）',
-    (null, final String e) => '（处理后 $e）',
-    (final String s, null) => '（原图 $s）',
+    (final String s, final String e) => t.reader.sizeHintBoth(
+      source: s,
+      enhanced: e,
+    ),
+    (null, final String e) => t.reader.sizeHintEnhanced(enhanced: e),
+    (final String s, null) => t.reader.sizeHintSource(source: s),
     _ => '',
   };
   return switch (status.phase) {
-    SuperResolutionPagePhase.unsupported => '当前平台不支持 GPU 纹理处理',
-    SuperResolutionPagePhase.disabled => '图像处理已关闭，可在阅读设置中打开开关',
-    SuperResolutionPagePhase.originalPreview => '正在对比原图，点这里切回处理后画面$sizeHint',
-    SuperResolutionPagePhase.queued =>
-      '$page 已排队，等待${status.processName}$sizeHint',
-    SuperResolutionPagePhase.running =>
-      '$page ${status.processName}中…$sizeHint',
-    SuperResolutionPagePhase.ready => '$page 处理后图片已生成，等待上屏$sizeHint',
-    SuperResolutionPagePhase.applied =>
-      '$page 已使用${status.processName}图片$sizeHint，点这里对比原图',
-    SuperResolutionPagePhase.skipped => '$page 无需处理$sizeHint',
-    SuperResolutionPagePhase.failed =>
-      '$page ${status.processName}失败，继续显示原图$sizeHint',
-    SuperResolutionPagePhase.idle => '$page 还没开始${status.processName}$sizeHint',
+    SuperResolutionPagePhase.unsupported => t.reader.gpuTextureUnsupported,
+    SuperResolutionPagePhase.disabled => t.reader.imageProcessingOffReaderHint,
+    SuperResolutionPagePhase.originalPreview => t.reader.tooltipComparing(
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.queued => t.reader.tooltipQueued(
+      page: page,
+      process: status.processName,
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.running => t.reader.tooltipRunning(
+      page: page,
+      process: status.processName,
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.ready => t.reader.tooltipReady(
+      page: page,
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.applied => t.reader.tooltipApplied(
+      page: page,
+      process: status.processName,
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.skipped => t.reader.tooltipSkipped(
+      page: page,
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.failed => t.reader.tooltipFailed(
+      page: page,
+      process: status.processName,
+      hint: sizeHint,
+    ),
+    SuperResolutionPagePhase.idle => t.reader.tooltipIdle(
+      page: page,
+      process: status.processName,
+      hint: sizeHint,
+    ),
   };
 }

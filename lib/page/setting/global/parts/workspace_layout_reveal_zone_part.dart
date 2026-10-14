@@ -228,8 +228,7 @@ class _RevealZoneEditorState extends State<_RevealZoneEditor> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              '本机没有悬停指针：这几块唤出区要鼠标贴住边缘才会生效。'
-              '触屏上请在 Reader 独占时点左右两侧的窄轨来切换泳道。',
+              t.settings.revealZonePointerHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

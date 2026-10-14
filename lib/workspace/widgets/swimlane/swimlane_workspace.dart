@@ -27,6 +27,7 @@ import 'package:zephyr/workspace/widgets/swimlane/swimlane_column.dart';
 import 'package:zephyr/icons/icons.dart';
 
 import 'package:zephyr/workspace/widgets/swimlane/workspace_lane_scroll_controller.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 part 'swimlane_workspace_interaction.dart';
 
@@ -430,14 +431,16 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace>
           isSwimlane ? AppGlyphs.columnsTwo : AppGlyphs.columnsThree,
           size: 18,
         ),
-        tooltip: isSwimlane ? '切换为沉浸工作孔 (Workhole)' : '切换为多列泳道 (Swimlane)',
+        tooltip: isSwimlane
+            ? t.workspace.switchToWorkholeEn
+            : t.workspace.switchToSwimlaneEn,
         visualDensity: VisualDensity.compact,
         onPressed: () => cubit.toggleMode(),
       ),
       if (state.readerTarget != null)
         IconButton(
           icon: const GlyphIcon(AppGlyphs.close, size: 18),
-          tooltip: '关闭当前漫画 (回到空态)',
+          tooltip: t.workspace.closeCurrentComicPlain,
           visualDensity: VisualDensity.compact,
           onPressed: () => cubit.closeReader(),
         ),

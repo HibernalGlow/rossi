@@ -8,6 +8,7 @@ import 'package:zephyr/page/comic_read/model/reader_page_order.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
 import 'package:zephyr/page/comic_read/widgets/picker/reader_page_order_sheet.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 排序档位对应的图标与说明。
 ///
@@ -20,11 +21,11 @@ const Map<ReaderPageOrderMode, Glyph> kReaderPageOrderIcons = {
   ReaderPageOrderMode.custom: AppGlyphs.dragHandle,
 };
 
-const Map<ReaderPageOrderMode, String> kReaderPageOrderLabels = {
-  ReaderPageOrderMode.source: '图源顺序（插件/归档给的顺序）',
-  ReaderPageOrderMode.reverse: '倒序（本章页表整个反过来）',
-  ReaderPageOrderMode.natural: '文件名自然序（page2 排在 page10 前）',
-  ReaderPageOrderMode.custom: '手动顺序（在页面列表里拖）',
+Map<ReaderPageOrderMode, String> get kReaderPageOrderLabels => {
+  ReaderPageOrderMode.source: t.reader.pageOrderSource,
+  ReaderPageOrderMode.reverse: t.reader.pageOrderReversed,
+  ReaderPageOrderMode.natural: t.reader.pageOrderNatural,
+  ReaderPageOrderMode.custom: t.reader.manualOrderDragList,
 };
 
 /// 顶栏「页面排序」面板。
@@ -50,7 +51,7 @@ class ReaderPageOrderPanel extends StatelessWidget {
 
     return ReaderToolbarPanelRow(
       children: [
-        const ReaderToolbarLabel('页序'),
+        ReaderToolbarLabel(t.reader.pageOrder),
         ReaderToolbarPill(
           children: [
             for (final option in ReaderPageOrderMode.values)
@@ -66,8 +67,8 @@ class ReaderPageOrderPanel extends StatelessWidget {
         ReaderToolbarIconButton(
           icon: AppGlyphs.edit,
           tooltip: hasCustomForChapter
-              ? '编辑本章的手动顺序'
-              : '打开本章页面列表并拖出顺序（以当前顺序为起点）',
+              ? t.reader.editManualOrder
+              : t.reader.openChapterListToDrag,
           selected: hasCustomForChapter,
           onPressed: () => _editCustomOrder(context),
         ),
@@ -77,8 +78,8 @@ class ReaderPageOrderPanel extends StatelessWidget {
           ReaderToolbarIconButton(
             icon: AppGlyphs.clearAll,
             tooltip: epInfo == null || !hasCustomForChapter
-                ? '本章没有手动顺序可清除'
-                : '清除本章的手动顺序',
+                ? t.reader.noManualOrderHere
+                : t.reader.clearManualOrder,
             enabled: epInfo != null && hasCustomForChapter,
             onPressed: () {
               final chapter = epInfo;
@@ -94,7 +95,7 @@ class ReaderPageOrderPanel extends StatelessWidget {
                   mode: ReaderPageOrderMode.source,
                 );
               } else {
-                showInfoToast('已清除本章的手动顺序');
+                showInfoToast(t.reader.manualOrderClearedDone);
               }
             },
           ),

@@ -8,6 +8,7 @@ import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/model/super_resolution_condition.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 bool get _isDesktop =>
     Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -49,13 +50,18 @@ String get mImageRuntimeLabel {
 }
 
 enum SuperResolutionEngine {
-  breezeCoreML('breeze_coreml', 'Rossi 原生 CoreML'),
-  mimageOnnx('mimage_onnx', 'mImage ONNX'),
-  desktopNcnn('desktop_ncnn', '桌面 NCNN（waifu2x / Real-CUGAN）');
+  breezeCoreML('breeze_coreml'),
+  mimageOnnx('mimage_onnx'),
+  desktopNcnn('desktop_ncnn');
 
-  const SuperResolutionEngine(this.id, this.label);
+  const SuperResolutionEngine(this.id);
   final String id;
-  final String label;
+
+  String get label => switch (this) {
+    SuperResolutionEngine.breezeCoreML => t.realSr.engineNativeCoreML,
+    SuperResolutionEngine.mimageOnnx => 'mImage ONNX',
+    SuperResolutionEngine.desktopNcnn => t.realSr.engineDesktopNcnn,
+  };
 }
 
 /// 本平台可选的引擎，顺序即下拉顺序。
