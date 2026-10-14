@@ -12,6 +12,20 @@ extension GpcEnhancePart on GpuPresentController {
     } catch (_) {}
   }
 
+  Future<void> _initDenoiseSetting() async {
+    try {
+      final enabled = await ImageDenoiseSettings.enabledFor(
+        RealSrBookScope.activeLocalBook,
+      );
+      if (!_disposed) await setDenoiseEnabled(enabled);
+    } catch (_) {}
+  }
+
+  void _onDenoiseChanged() {
+    _onModelChanged();
+    unawaited(_initDenoiseSetting());
+  }
+
   /// 书级覆盖或全局总闸变了 → 这本书没有自己的覆盖就当场跟随。
   ///
   /// 有覆盖的书重算后值不变，`setUpscaleEnabled` 自己会短路，不会白跑一次
@@ -19,6 +33,7 @@ extension GpcEnhancePart on GpuPresentController {
   void _onUpscaleScopeChanged() {
     if (_disposed) return;
     unawaited(_syncUpscaleScope());
+    unawaited(_initDenoiseSetting());
   }
 
   Future<void> _syncUpscaleScope() async {
@@ -61,7 +76,7 @@ extension GpcEnhancePart on GpuPresentController {
       epoch == _enhancementEpoch &&
       !_modelRefreshPending &&
       !_openingSource &&
-      _isUpscaleEnabled &&
+      _enhancementEnabled &&
       !_originalPreview;
   Future<void> _awaitReady() async {
     if (_watchdogRunning) {
@@ -151,13 +166,12 @@ extension GpcEnhancePart on GpuPresentController {
     _pageStatusRevision++;
   }
 
-  Future<void> _setUpscaleEnabled(bool enabled) async {
+  Future<void> _setUpscaleEnabled() async {
     // 必须等待旁路切换及当前页重绘完成，再启动超分注入。否则 native
     // 仍处于 bypass_enhanced=true 时，超分图虽已注入也会被原图帧覆盖。
-    await _enqueueOriginalPreview(!enabled, ensureEnhanced: false);
+    await _enqueueOriginalPreview(!_enhancementEnabled, ensureEnhanced: false);
 
-    if (enabled &&
-        _isUpscaleEnabled &&
+    if (_enhancementEnabled &&
         _pushedPath != null &&
         _pushedIndex != null &&
         _lastPushedSource != null) {
@@ -225,7 +239,11 @@ extension GpcEnhancePart on GpuPresentController {
       );
       _enhancementTargets = targets.toSet();
       // 已落盘的当前页不排在正在执行的预超分后面：直接恢复增强轨。
-      final cacheKey = await RealSrSettings.loadCacheKey();
+      final cacheKey = await ImageDenoiseSettings.cacheKey(
+        denoise: _isDenoiseEnabled,
+        upscale: _isUpscaleEnabled,
+        upscaleKey: await RealSrSettings.loadCacheKey(),
+      );
       if (!isCurrent()) return;
       final cache = await _srCacheDir();
       if (!isCurrent()) return;

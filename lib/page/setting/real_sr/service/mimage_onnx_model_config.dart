@@ -36,6 +36,8 @@ enum MImageOnnxModel {
 abstract final class MImageOnnxModelConfig {
   static const baseUrl =
       'https://github.com/MikageSawatari/mimageviewer/raw/HEAD/models';
+  static const denoiseModelId = 'denoise_realplksr';
+  static const denoiseFileName = 'dejpg_realplksr_otf.onnx';
   static MImageOnnxModel get defaultModel => MImageOnnxModel.realCugan4x;
   static MImageOnnxModel? byId(String? id) {
     for (final model in MImageOnnxModel.values) {
@@ -45,9 +47,16 @@ abstract final class MImageOnnxModelConfig {
   }
 
   static Future<String> path(Directory root, MImageOnnxModel model) async {
-    final file = File(p.join(root.path, model.fileName));
+    return pathForFile(root, model.fileName);
+  }
+
+  static Future<String> denoisePath(Directory root) =>
+      pathForFile(root, denoiseFileName);
+
+  static Future<String> pathForFile(Directory root, String fileName) async {
+    final file = File(p.join(root.path, fileName));
     if (!file.existsSync() || await file.length() < 1024) {
-      throw StateError('缺少 mImage ONNX 模型 ${model.fileName}，请在设置中下载');
+      throw StateError('缺少 mImage ONNX 模型 $fileName，请在设置中下载');
     }
     return file.path;
   }

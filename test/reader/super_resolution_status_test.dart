@@ -81,6 +81,23 @@ void main() {
   });
 
   group('阶段文案', () {
+    test('仅降噪时不把 1x 产物说成已超分', () {
+      final status = resolveSuperResolutionStatus(
+        index: 0,
+        platformSupported: true,
+        upscaleEnabled: true,
+        originalPreview: false,
+        recorded: applied,
+        denoiseEnabled: true,
+        upscaleStageEnabled: false,
+        sourceSize: const Size(1200, 1800),
+        enhancedSize: const Size(1200, 1800),
+      );
+      expect(imageEnhancementPhaseLabel(status), '已降噪');
+      expect(superResolutionTooltip(status), contains('JPEG 降噪'));
+      expect(superResolutionTooltip(status), isNot(contains('已使用超分图')));
+    });
+
     test('每个阶段都有话说（枚举穷尽，新阶段加进来会编译不过）', () {
       for (final phase in SuperResolutionPagePhase.values) {
         expect(superResolutionPhaseLabel(phase), isNotEmpty);

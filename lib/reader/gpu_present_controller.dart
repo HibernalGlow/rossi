@@ -11,6 +11,7 @@ import 'package:zephyr/main.dart' show logger;
 import 'package:zephyr/reader/ambient_palette.dart';
 import 'package:zephyr/reader/reader_ambient_background.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
+import 'package:zephyr/page/setting/real_sr/service/image_denoise_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
@@ -55,7 +56,9 @@ class GpuPresentController extends ChangeNotifier {
     RealSrSettings.prefetchChanges.addListener(_onPrefetchChanged);
     // 书级开关（含全局那条）变了要当场跟随：没有覆盖的书不该等到重开才生效。
     RealSrBookScope.changes.addListener(_onUpscaleScopeChanged);
+    ImageDenoiseSettings.changes.addListener(_onDenoiseChanged);
     unawaited(_initUpscaleSetting());
+    unawaited(_initDenoiseSetting());
   }
 
   final GpuPresentBridge _bridge;
@@ -466,7 +469,7 @@ class GpuPresentController extends ChangeNotifier {
       if (translatedPath != null) {
         unawaited(_reassertTranslatedPage(index, translatedPath));
       }
-      if (_isUpscaleEnabled) {
+      if (_enhancementEnabled) {
         unawaited(_scheduleEnhancements(source, index, width, height));
       }
       return _textureId != null;
@@ -654,7 +657,7 @@ class GpuPresentController extends ChangeNotifier {
       if (wasOriginal &&
           !active &&
           ensureEnhanced &&
-          _isUpscaleEnabled &&
+          _enhancementEnabled &&
           _lastPushedSource != null &&
           index != null) {
         unawaited(
@@ -676,6 +679,17 @@ class GpuPresentController extends ChangeNotifier {
   /// 当前是否已启用超分增强。
   bool get isUpscaleEnabled => _isUpscaleEnabled;
   bool _isUpscaleEnabled = false;
+  bool get isDenoiseEnabled => _isDenoiseEnabled;
+  bool _isDenoiseEnabled = false;
+  bool get _enhancementEnabled => _isUpscaleEnabled || _isDenoiseEnabled;
+
+  Future<void> setDenoiseEnabled(bool enabled) async {
+    if (_isDenoiseEnabled == enabled) return;
+    _mutate(() => _isDenoiseEnabled = enabled);
+    _onModelChanged();
+    await _upscaleToggleQueue;
+    await _setUpscaleEnabled();
+  }
 
   /// 正在跑超分流水线的页（防同一页并发跑两遍）。
   final Set<(int, int)> _upscaleInProgress = <(int, int)>{};
@@ -739,11 +753,13 @@ class GpuPresentController extends ChangeNotifier {
         // 用**平台能力**而不是 `canPresent`：后者在后台建呈现器的 ~150 ms 里是假，
         // 那段时间报「不支持」是胡话。
         platformSupported: GpuPresentBridge.isPlatformSupported,
-        upscaleEnabled: _isUpscaleEnabled,
+        upscaleEnabled: _enhancementEnabled,
         originalPreview: _originalPreview,
         recorded: _pagePhases[index],
         sourceSize: _pageSourceSizes[index],
         enhancedSize: _pageEnhancedSizes[index],
+        denoiseEnabled: _isDenoiseEnabled,
+        upscaleStageEnabled: _isUpscaleEnabled,
       );
 
   /// 设置是否开启超分。
@@ -754,8 +770,9 @@ class GpuPresentController extends ChangeNotifier {
     _mutate(() {
       _isUpscaleEnabled = enabled;
     });
+    if (_isDenoiseEnabled) _onModelChanged();
     final Future<void> operation = _upscaleToggleQueue.then(
-      (_) => _setUpscaleEnabled(enabled),
+      (_) => _setUpscaleEnabled(),
     );
     _upscaleToggleQueue = operation.catchError((_) {});
     return operation;
@@ -853,7 +870,7 @@ class GpuPresentController extends ChangeNotifier {
     final reason =
         '任务有效=$taskValid；平台支持=${GpuPresentBridge.isPlatformSupported}；'
         '已推页=${_pushedIndex ?? "无"}；模型刷新中=$_modelRefreshPending；'
-        '原图对比=$_originalPreview；开关=$_isUpscaleEnabled';
+        '原图对比=$_originalPreview；超分=$_isUpscaleEnabled；降噪=$_isDenoiseEnabled';
     if (reason == _lastEnhancementBailReason) return;
     _lastEnhancementBailReason = reason;
     SuperResolutionLog.add('第 ${index + 1} 页：超分前置条件不满足，跳过。$reason');
@@ -888,6 +905,7 @@ class GpuPresentController extends ChangeNotifier {
     final job = (epoch, index);
     if (!_upscaleInProgress.add(job)) return;
     File? tempFile;
+    File? tempDenoised;
     File? pendingOutput;
     try {
       if (_pushedIndex == index) {
@@ -908,8 +926,12 @@ class GpuPresentController extends ChangeNotifier {
       final engineProfile = hasSuperResolutionEngineChoice
           ? await RealSrSettings.loadProfile()
           : null;
-      final cacheKey =
-          engineProfile?.cacheKey ?? await RealSrSettings.loadCacheKey();
+      final cacheKey = await ImageDenoiseSettings.cacheKey(
+        denoise: _isDenoiseEnabled,
+        upscale: _isUpscaleEnabled,
+        upscaleKey:
+            engineProfile?.cacheKey ?? await RealSrSettings.loadCacheKey(),
+      );
       if (!acceptsWork()) return;
       final srCacheDir = await _srCacheDir();
       if (!acceptsWork()) return;
@@ -975,7 +997,13 @@ class GpuPresentController extends ChangeNotifier {
           await RealSrSuperResolution.imageSizeOf(inputPath);
       if (!acceptsWork()) return;
       _markSourceSize(index, inputSize);
-      final isConditional = await RealSrSettings.loadConditionalEnabled();
+      // 用户显式选择两段链时，两段都必须执行；否则缓存键声称包含超分，
+      // 实际却因自动阈值只存了 1x 降噪图。
+      final isConditional =
+          _isUpscaleEnabled &&
+          !_isDenoiseEnabled &&
+          await RealSrSettings.loadConditionalEnabled();
+      var shouldUpscaleNow = _isUpscaleEnabled;
       // 条件超分命中时按那条条件的分块走；没开条件才用全局那份。
       // 这条链路以前**两个都不传**，`upscale` 就用签名默认 0 跑了，
       // 于是设置页改分块大小对阅读器实时超分从来没有作用过。
@@ -994,25 +1022,31 @@ class GpuPresentController extends ChangeNotifier {
           autoUpscaleEnabled: await RealSrBookScope.enabledForActiveLocalBook(),
         );
         if (!decision.shouldRun) {
-          _upscaleAttempts[index] = _maxUpscaleAttempts;
-          _markPhase(index, SuperResolutionPagePhase.skipped);
+          shouldUpscaleNow = false;
           final desc = decision.conditionName != null
               ? '命中条件 [${decision.conditionName}]（${decision.reason}）'
               : '原因：${decision.reason}';
           SuperResolutionLog.add('第 ${index + 1} 页：条件超分判定跳过；$desc');
-          return;
+          if (!_isDenoiseEnabled) {
+            _upscaleAttempts[index] = _maxUpscaleAttempts;
+            _markPhase(index, SuperResolutionPagePhase.skipped);
+            return;
+          }
         }
         // `tileSize == null` 是策略侧「这条条件不分块」的表示，落到引擎就是 0。
         conditionTileSize = decision.tileSize;
-      } else {
+      } else if (_isUpscaleEnabled && !_isDenoiseEnabled) {
         if (!await RealSrSuperResolution.shouldUpscale(
           inputPath,
           knownSize: inputSize,
         )) {
-          _upscaleAttempts[index] = _maxUpscaleAttempts;
-          _markPhase(index, SuperResolutionPagePhase.skipped);
+          shouldUpscaleNow = false;
           SuperResolutionLog.add('第 ${index + 1} 页：达到设置的分辨率阈值或无法解析尺寸，跳过超分。');
-          return;
+          if (!_isDenoiseEnabled) {
+            _upscaleAttempts[index] = _maxUpscaleAttempts;
+            _markPhase(index, SuperResolutionPagePhase.skipped);
+            return;
+          }
         }
       }
       final tileSize = isConditional
@@ -1030,14 +1064,34 @@ class GpuPresentController extends ChangeNotifier {
       _upscaleAttempts[index] = attempts + 1;
       // 真开始推理了才说「超分中」—— `upscale` 之前还有好几道早退。
       _markPhase(index, SuperResolutionPagePhase.running);
-      final produced = await RealSrSuperResolution.upscale(
-        inputPath: inputPath,
-        outputPath: pendingOutput.path,
-        engineProfile: engineProfile,
-        tileSize: tileSize,
-        knownInputSize: inputSize,
-        shouldRun: acceptsWork,
-      );
+      var inferenceInput = inputPath;
+      if (_isDenoiseEnabled) {
+        tempDenoised = File(
+          p.join(srCacheDir.path, 'denoised_${const Uuid().v4()}.png'),
+        );
+        final denoised = await RealSrSuperResolution.denoise(
+          inputPath: inputPath,
+          outputPath: shouldUpscaleNow ? tempDenoised.path : pendingOutput.path,
+          tileSize: tileSize,
+          shouldRun: acceptsWork,
+        );
+        if (!denoised) {
+          _markPhase(index, SuperResolutionPagePhase.failed);
+          SuperResolutionLog.add('第 ${index + 1} 页：降噪模型未就绪或未产出有效图片。');
+          return;
+        }
+        inferenceInput = tempDenoised.path;
+      }
+      final produced = shouldUpscaleNow
+          ? await RealSrSuperResolution.upscale(
+              inputPath: inferenceInput,
+              outputPath: pendingOutput.path,
+              engineProfile: engineProfile,
+              tileSize: tileSize,
+              knownInputSize: inputSize,
+              shouldRun: acceptsWork,
+            )
+          : _isDenoiseEnabled;
       if (!_acceptsEnhancement(epoch)) {
         SuperResolutionLog.add('第 ${index + 1} 页：任务已过期或处于原图对比，忽略本次结果。');
         return;
@@ -1070,7 +1124,7 @@ class GpuPresentController extends ChangeNotifier {
       logger.w('[Rossi AI] 第 $index 页超分执行异常', error: e, stackTrace: s);
     } finally {
       _upscaleInProgress.remove(job);
-      for (final file in [tempFile, pendingOutput]) {
+      for (final file in [tempFile, tempDenoised, pendingOutput]) {
         if (file != null) {
           try {
             if (await file.exists()) await file.delete();
@@ -1117,6 +1171,7 @@ class GpuPresentController extends ChangeNotifier {
     _mismatchMessage,
     _originalPreview,
     _isUpscaleEnabled,
+    _isDenoiseEnabled,
     _presentCount,
     _presentedFrame,
     _syncing,
@@ -1141,6 +1196,7 @@ class GpuPresentController extends ChangeNotifier {
     RealSrSettings.modelChanges.removeListener(_onModelChanged);
     RealSrSettings.prefetchChanges.removeListener(_onPrefetchChanged);
     RealSrBookScope.changes.removeListener(_onUpscaleScopeChanged);
+    ImageDenoiseSettings.changes.removeListener(_onDenoiseChanged);
     _enhancementQueue.dispose();
     // 离开阅读器：背景层不该继续挂着一份属于这本书的颜色。
     ReaderAmbientStore.instance.clear();

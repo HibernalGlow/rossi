@@ -48,6 +48,7 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
   Widget _buildChip(BuildContext context, GpuPresentController presenter) {
     final status = presenter.currentPageUpscaleStatus;
     final enabled = presenter.isUpscaleEnabled;
+    final processing = enabled || presenter.isDenoiseEnabled;
     final sizeText = superResolutionSizeText(status, availableWidth);
     // 主体继续负责原图对比；独立电源按钮负责本书启停，两个目标都保持 48dp。
     return ReaderToolbarGroup(
@@ -59,20 +60,20 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
             SuperResolutionPagePhase.unsupported => AppGlyphs.block,
             _ => AppGlyphs.sparkle,
           },
-          label: '超分',
+          label: status.processName,
           shape: ExpressiveButtonShape.cookie4Sided,
           detail:
               sizeText ??
               (availableWidth >= 880
-                  ? superResolutionPhaseLabel(status.phase)
+                  ? imageEnhancementPhaseLabel(status)
                   : null),
           tooltip: '${superResolutionTooltip(status)}\n点击对比原图；右侧电源只影响本书',
-          selected: enabled && !presenter.isOriginalPreview,
+          selected: processing && !presenter.isOriginalPreview,
           showSelection: false,
           busy: superResolutionPhaseIsBusy(status.phase),
           failed: status.phase == SuperResolutionPagePhase.failed,
           showLabel: true,
-          onPressed: () => _onBodyTap(context, presenter, status, enabled),
+          onPressed: () => _onBodyTap(context, presenter, status, processing),
         ),
         ReaderToolbarFeatureButton(
           icon: AppGlyphs.power,
@@ -92,16 +93,16 @@ class ReaderUpscaleStatusChip extends StatelessWidget {
     BuildContext context,
     GpuPresentController presenter,
     SuperResolutionPageStatus status,
-    bool enabled,
+    bool processing,
   ) async {
-    if (!enabled) {
+    if (!processing) {
       await _enable(context, presenter);
       return;
     }
     final bool willBeOriginal =
         status.phase != SuperResolutionPagePhase.originalPreview;
     await presenter.setOriginalPreview(willBeOriginal);
-    showInfoToast(willBeOriginal ? '已切换为原图对比' : '已切回 AI 超分');
+    showInfoToast(willBeOriginal ? '已切换为原图对比' : '已切回处理后画面');
   }
 
   /// 打开超分。**模型没下载时不偷偷失败** —— 先问一句再下。
