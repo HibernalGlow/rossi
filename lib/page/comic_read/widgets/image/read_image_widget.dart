@@ -18,6 +18,7 @@ import 'package:zephyr/reader/ambient_image_sampler.dart';
 import 'package:zephyr/reader/online_translated_page_track.dart';
 import 'package:zephyr/reader/animated_local_page.dart';
 import 'package:zephyr/reader/image_surface.dart';
+import 'package:zephyr/page/comic_read/model/current_page_image_info.dart';
 import 'package:zephyr/reader/neighbor_page_prefetch.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/video/service/video_progress_store.dart';
@@ -150,6 +151,12 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
   }
 
   @override
+  void dispose() {
+    CurrentPageImageInfo.instance.clear(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final readSetting = context.watchEffectiveReadSetting();
     final brightness = Theme.of(context).brightness;
@@ -171,6 +178,21 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       final session = LocalReadSession.instance;
       final source = session.currentSource;
       final presenter = session.getOrCreatePresenter();
+      if (source != null) {
+        CurrentPageImageInfo.instance.reportLocalAfterFrame(
+          this,
+          source,
+          localIndex,
+          () =>
+              mounted &&
+              identical(LocalReadSession.instance.currentSource, source) &&
+              (widget.pictureInfo.extern['localIndex'] as int? ??
+                      widget.index) ==
+                  localIndex &&
+              (widget.slotIsCurrent ??
+                  localIndex == context.read<ReaderCubit>().state.currentSlot),
+        );
+      }
 
       // ── 独占 Owner 机制（对齐 mimageviewer NavigationSequence）──
       // GPU 外部纹理同一时刻只能对应一张画面。PageView 翻页滑动时，
@@ -345,6 +367,17 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     );
   }
 
+  void _reportImageInfoForPath(String path) {
+    CurrentPageImageInfo.instance.reportFileAfterFrame(
+      this,
+      path,
+      () =>
+          mounted &&
+          (widget.slotIsCurrent ??
+              widget.index == context.read<ReaderCubit>().state.currentSlot),
+    );
+  }
+
   /// 已经解析到磁盘路径的那一页要画**哪张**图。
   ///
   /// # 为什么译文轨要挂在显示端，而不是自己去找图
@@ -367,6 +400,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
   }) {
     final scope = onlineTranslatedPageScope(widget.pictureInfo);
     if (scope == null) {
+      _reportImageInfoForPath(resolvedPath);
       return _paintPage(context, resolvedPath, backgroundColor);
     }
     final track = OnlineTranslatedPageTrack.instance;
@@ -375,15 +409,15 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       // 那个证据的来源：[OnlineTranslatedPageTrack.displayPathFor] 会记下
       // 这一帧实际拿去画的路径，控制器注入完就是回这里核对。
       listenable: track,
-      builder: (context, _) => _paintPage(
-        context,
-        track.displayPathFor(
+      builder: (context, _) {
+        final path = track.displayPathFor(
           scope: scope,
           index: widget.index,
           sourcePath: resolvedPath,
-        ),
-        backgroundColor,
-      ),
+        );
+        _reportImageInfoForPath(path);
+        return _paintPage(context, path, backgroundColor);
+      },
     );
   }
 

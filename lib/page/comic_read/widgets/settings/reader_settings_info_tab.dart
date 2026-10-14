@@ -9,6 +9,8 @@ class _ReaderSettingsInfoTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          CurrentPageImageInfoSection(),
+          SizedBox(height: 18),
           _PageInfoVisibilitySection(),
           SizedBox(height: 18),
           _PageInfoPlacementSection(),
