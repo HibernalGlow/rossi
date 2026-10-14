@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -137,11 +138,10 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.photos),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.photos),
       title: Text(t.settings.exportIncludeCover),
       subtitle: Text(t.settings.exportIncludeCoverSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.exportIncludeCover,
       onChanged: (bool value) {
         cubit.updateState(
@@ -163,32 +163,32 @@ class _StorageSettingPageState extends State<StorageSettingPage> {
     return SettingPageShell(
       title: t.settings.storage,
       child: ListView(
+        padding: kSettingPagePadding,
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.storage,
-            icon: AppGlyphs.storage,
+          SettingSectionCard(
+            children: [
+              ListTile(
+                leading: const GlyphIcon(AppGlyphs.broom),
+                title: Text(t.settings.cache),
+                subtitle: Text(sizeText.isEmpty ? t.settings.cache : sizeText),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                onTap: () async {
+                  await context.pushRoute(const CacheSettingRoute());
+                  if (mounted) await _loadCacheSize();
+                },
+              ),
+              ListTile(
+                leading: const GlyphIcon(AppGlyphs.arrowUp),
+                title: Text(t.settings.dataBackup),
+                subtitle: Text(t.settings.dataBackupSubtitle),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                onTap: () => context.pushRoute(const DataBackupRoute()),
+              ),
+              if (!Platform.isIOS) _customExportPath(state, cubit),
+              // 不跟着上一条一起被 iOS 挡掉：iOS 导出的就是 zip，这一样照样生效。
+              _exportIncludeCover(state, cubit),
+            ],
           ),
-          ListTile(
-            leading: const GlyphIcon(AppGlyphs.broom),
-            title: Text(t.settings.cache),
-            subtitle: Text(sizeText.isEmpty ? t.settings.cache : sizeText),
-            trailing: const GlyphIcon(AppGlyphs.chevronForward),
-            onTap: () async {
-              await context.pushRoute(const CacheSettingRoute());
-              if (mounted) await _loadCacheSize();
-            },
-          ),
-          ListTile(
-            leading: const GlyphIcon(AppGlyphs.arrowUp),
-            title: Text(t.settings.dataBackup),
-            subtitle: Text(t.settings.dataBackupSubtitle),
-            trailing: const GlyphIcon(AppGlyphs.chevronForward),
-            onTap: () => context.pushRoute(const DataBackupRoute()),
-          ),
-          if (!Platform.isIOS) _customExportPath(state, cubit),
-          // 不跟着上一条一起被 iOS 挡掉：iOS 导出的就是 zip，这一样照样生效。
-          _exportIncludeCover(state, cubit),
           const SizedBox(height: 32),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
@@ -55,81 +56,86 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     return SettingPageShell(
       title: t.settings.debug,
       child: ListView(
+        padding: kSettingPagePadding,
         children: [
-          settingSectionTitle(context, t.settings.debug, icon: AppGlyphs.bug),
-          _logAddress(state, cubit),
-          _enableMemoryDebug(state, cubit),
-          _blockRustHttpRequests(state, cubit),
-          _showLayoutOverflowStripes(state, cubit),
-          if (defaultTargetPlatform == TargetPlatform.android)
-            _forceEnableImpeller(state, cubit),
-          if (kDebugMode) ...[
-            ListTile(
-              leading: const GlyphIcon(AppGlyphs.eyedropper),
-              title: Text(t.settings.colorPreview),
-              subtitle: Text(t.settings.colorPreviewSubtitle),
-              trailing: const GlyphIcon(AppGlyphs.chevronForward),
-              onTap: () => context.pushRoute(const ShowColorRoute()),
-            ),
-            ListTile(
-              leading: const GlyphIcon(AppGlyphs.code),
-              title: Text(t.settings.qjsRuntimeDebug),
-              subtitle: Text(t.settings.qjsRuntimeDebugSubtitle),
-              trailing: const GlyphIcon(AppGlyphs.chevronForward),
-              onTap: () => context.pushRoute(const QjsRuntimeDebugRoute()),
-            ),
-            ListTile(
-              leading: const GlyphIcon(AppGlyphs.storage),
-              title: Text(t.settings.coremlDebug),
-              subtitle: Text(t.settings.coremlDebugSubtitle),
-              trailing: const GlyphIcon(AppGlyphs.chevronForward),
-              onTap: () => context.pushRoute(const CoreMLUpscaleDebugRoute()),
-            ),
-          ],
-          // 本地来源读取（v0.1 判据 A 的观察窗口）**刻意不放在 kDebugMode 里**：
-          // 判据 B/C/D 只在 Release 下成立，需要被观察的窗口却只在 debug 可见，
-          // 就等于「量不到」。它是诊断工具而不是功能特性，所以无 i18n 词条，
-          // 并走统一弹出路由直连而不是 @RoutePage（不触发全量 codegen）。
-          ListTile(
-            leading: const GlyphIcon(AppGlyphs.bookmark),
-            title: const Text('本地来源读取（判据 A）'),
-            subtitle: const Text('散图文件夹 / CBZ / CBR 直读，含逐页耗时与拒绝类别'),
-            trailing: const GlyphIcon(AppGlyphs.chevronForward),
-            onTap: () => Navigator.of(context).push(
-              settingPageRoute<void>(
-                context: context,
-                builder: (_) => const LocalSourceDebugPage(),
+          SettingSectionCard(
+            children: [
+              _logAddress(state, cubit),
+              _enableMemoryDebug(state, cubit),
+              _blockRustHttpRequests(state, cubit),
+              _showLayoutOverflowStripes(state, cubit),
+              if (defaultTargetPlatform == TargetPlatform.android)
+                _forceEnableImpeller(state, cubit),
+              if (kDebugMode) ...[
+                ListTile(
+                  leading: const GlyphIcon(AppGlyphs.eyedropper),
+                  title: Text(t.settings.colorPreview),
+                  subtitle: Text(t.settings.colorPreviewSubtitle),
+                  trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                  onTap: () => context.pushRoute(const ShowColorRoute()),
+                ),
+                ListTile(
+                  leading: const GlyphIcon(AppGlyphs.code),
+                  title: Text(t.settings.qjsRuntimeDebug),
+                  subtitle: Text(t.settings.qjsRuntimeDebugSubtitle),
+                  trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                  onTap: () => context.pushRoute(const QjsRuntimeDebugRoute()),
+                ),
+                ListTile(
+                  leading: const GlyphIcon(AppGlyphs.storage),
+                  title: Text(t.settings.coremlDebug),
+                  subtitle: Text(t.settings.coremlDebugSubtitle),
+                  trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                  onTap: () =>
+                      context.pushRoute(const CoreMLUpscaleDebugRoute()),
+                ),
+              ],
+              // 本地来源读取（v0.1 判据 A 的观察窗口）**刻意不放在 kDebugMode 里**：
+              // 判据 B/C/D 只在 Release 下成立，需要被观察的窗口却只在 debug 可见，
+              // 就等于「量不到」。它是诊断工具而不是功能特性，所以无 i18n 词条，
+              // 并走统一弹出路由直连而不是 @RoutePage（不触发全量 codegen）。
+              ListTile(
+                leading: const GlyphIcon(AppGlyphs.bookmark),
+                title: Text(t.settings.debugLocalSource),
+                subtitle: Text(t.settings.debugLocalSourceSubtitle),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                onTap: () => Navigator.of(context).push(
+                  settingPageRoute<void>(
+                    context: context,
+                    builder: (_) => const LocalSourceDebugPage(),
+                  ),
+                ),
               ),
-            ),
-          ),
-          // GPU 上屏（D3D12 共享纹理）。与上一条同理**刻意不放进 kDebugMode**：
-          // 这条链路通不通由「引擎有没有来打开共享句柄」判定，而那要拖窗口、
-          // 要看合成，只有在 Release 下跑出来的数才作数。
-          // OCR 成品页冒烟：整条链路六道关，任何一道错了在阅读器的表现都只是「按了没反应」。
-          // 同样刻意不放进 kDebugMode —— 要判的是发出去的构建对不对，只有 Release 的数作数。
-          ListTile(
-            leading: const GlyphIcon(AppGlyphs.translate),
-            title: const Text('OCR 成品页冒烟'),
-            subtitle: const Text('选一张页 → 检测/识别/擦字/翻译/回填，逐段看耗时与产物'),
-            trailing: const GlyphIcon(AppGlyphs.chevronForward),
-            onTap: () => Navigator.of(context).push(
-              settingPageRoute<void>(
-                context: context,
-                builder: (_) => const OcrSmokeDebugPage(),
+              // GPU 上屏（D3D12 共享纹理）。与上一条同理**刻意不放进 kDebugMode**：
+              // 这条链路通不通由「引擎有没有来打开共享句柄」判定，而那要拖窗口、
+              // 要看合成，只有在 Release 下跑出来的数才作数。
+              // OCR 成品页冒烟：整条链路六道关，任何一道错了在阅读器的表现都只是「按了没反应」。
+              // 同样刻意不放进 kDebugMode —— 要判的是发出去的构建对不对，只有 Release 的数作数。
+              ListTile(
+                leading: const GlyphIcon(AppGlyphs.translate),
+                title: Text(t.settings.debugOcrSmoke),
+                subtitle: Text(t.settings.debugOcrSmokeSubtitle),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                onTap: () => Navigator.of(context).push(
+                  settingPageRoute<void>(
+                    context: context,
+                    builder: (_) => const OcrSmokeDebugPage(),
+                  ),
+                ),
               ),
-            ),
-          ),
-          ListTile(
-            leading: const GlyphIcon(AppGlyphs.storage),
-            title: const Text('GPU 上屏（D3D12 共享纹理）'),
-            subtitle: const Text('Rust 解码 → wgpu → GPU 拷贝 → 共享纹理，像素不过桥'),
-            trailing: const GlyphIcon(AppGlyphs.chevronForward),
-            onTap: () => Navigator.of(context).push(
-              settingPageRoute<void>(
-                context: context,
-                builder: (_) => const GpuPresentPage(),
+              ListTile(
+                leading: const GlyphIcon(AppGlyphs.storage),
+                title: Text(t.settings.debugGpuPresent),
+                subtitle: Text(t.settings.debugGpuPresentSubtitle),
+                trailing: const GlyphIcon(AppGlyphs.chevronForward),
+                onTap: () => Navigator.of(context).push(
+                  settingPageRoute<void>(
+                    context: context,
+                    builder: (_) => const GpuPresentPage(),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           const SizedBox(height: 32),
         ],
@@ -141,11 +147,10 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.storage),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.storage),
       title: Text(t.settings.memoryDebug),
       subtitle: Text(t.settings.memoryDebugSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.enableMemoryDebug,
       onChanged: (bool value) {
         cubit.updateState(
@@ -207,11 +212,10 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.wifiOff),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.wifiOff),
       title: Text(t.settings.blockRustHttpRequests),
       subtitle: Text(t.settings.blockRustHttpRequestsSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.blockRustHttpRequests,
       onChanged: (bool value) {
         setHttpRequestsBlocked(blocked: value);
@@ -234,11 +238,10 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.error),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.error),
       title: Text(t.settings.showLayoutOverflowStripes),
       subtitle: Text(t.settings.showLayoutOverflowStripesSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.showLayoutOverflowStripes,
       onChanged: (bool value) {
         // 落盘 + 写全局标志都在 cubit 里（`_persistAndEmit`），
@@ -254,11 +257,10 @@ class _DebugSettingPageState extends State<DebugSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.sparkle),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.sparkle),
       title: Text(t.settings.forceEnableImpeller),
       subtitle: Text(t.settings.forceEnableImpellerSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.forceEnableImpeller,
       onChanged: (bool value) async {
         cubit.updateState(

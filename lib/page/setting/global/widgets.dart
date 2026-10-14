@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,7 +6,6 @@ import 'package:flutter_socks_proxy/socks_proxy.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/src/rust/api/qjs.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
@@ -33,11 +33,10 @@ Widget proxyToggle(
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      SwitchListTile(
-        secondary: const GlyphIcon(AppGlyphs.router),
+      SettingGroup.switchTile(
+        leading: const GlyphIcon(AppGlyphs.router),
         title: Text(t.settings.proxy),
         subtitle: Text(t.settings.proxyEnabledSubtitle),
-        thumbIcon: kSettingSwitchThumbIcon,
         value: enabled,
         onChanged: (value) async {
           final globalSettingCubit = context.read<GlobalSettingCubit>();

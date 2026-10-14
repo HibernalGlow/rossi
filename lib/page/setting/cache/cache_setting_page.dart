@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -144,22 +145,15 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
     final cubit = context.watch<GlobalSettingCubit>();
     final state = cubit.state;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          t.cache.title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        centerTitle: false,
-        scrolledUnderElevation: 0,
-      ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 768),
-          child: ListView(
+    return SettingPageShell(
+      title: t.cache.title,
+      child: ListView(
+        padding: kSettingPagePadding,
+        children: [
+          SettingSectionCard(
+            title: t.cache.currentCache,
+            icon: AppGlyphs.storage,
             children: [
-              _buildSectionTitle(context, t.cache.currentCache),
               ListTile(
                 leading: const GlyphIcon(AppGlyphs.storage),
                 title: Text(t.cache.cacheSize),
@@ -180,7 +174,6 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
                         onPressed: _calculateCacheSize,
                       ),
               ),
-              const Divider(height: 1, thickness: 0.3),
               ListTile(
                 leading: const GlyphIcon(AppGlyphs.broom),
                 title: Text(t.cache.manualClear),
@@ -191,10 +184,12 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
                   label: Text(t.cache.clear),
                 ),
               ),
-
-              const SizedBox(height: 8),
-              const Divider(height: 1, thickness: 0.3),
-              _buildSectionTitle(context, t.cache.cacheLimit),
+            ],
+          ),
+          SettingSectionCard(
+            title: t.cache.cacheLimit,
+            icon: AppGlyphs.dataUsage,
+            children: [
               ListTile(
                 leading: const GlyphIcon(AppGlyphs.dataUsage),
                 title: Text(t.cache.sizeLimit),
@@ -220,15 +215,16 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
                   },
                 ),
               ),
-
-              const SizedBox(height: 8),
-              const Divider(height: 1, thickness: 0.3),
-              _buildSectionTitle(context, t.cache.autoClean),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.broom),
+            ],
+          ),
+          SettingSectionCard(
+            title: t.cache.autoClean,
+            icon: AppGlyphs.broom,
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.broom),
                 title: Text(t.cache.autoClean),
                 subtitle: Text(t.cache.autoCleanSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: state.cacheSetting.autoCleanCache,
                 onChanged: (bool value) {
                   cubit.updateCacheSetting(
@@ -236,26 +232,10 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
                   );
                 },
               ),
-
-              const SizedBox(height: 32),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.primary,
-          letterSpacing: 0.5,
-        ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }

@@ -6,7 +6,9 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/sync/sync_service.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/page/setting/data_backup/data_backup_page.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
 import 'package:zephyr/util/event/event.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
@@ -33,35 +35,56 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
 
     return SettingPageShell(
       title: t.settings.sync,
+      description: t.settings.syncServiceSubtitle,
       child: ListView(
+        padding: kSettingPagePadding,
         children: [
-          settingSectionTitle(context, t.settings.sync, icon: AppGlyphs.sync),
-          _syncServiceType(state, cubit),
-          webdavSync(context, state.syncSetting.syncServiceType),
-          if (configuredSync) _autoSync(state, cubit),
-          if (configuredSync) _syncSettings(state, cubit),
-          if (configuredSync) _syncPlugins(state, cubit),
-          if (configuredSync) ...[
-            const SizedBox(height: 8),
-            const Divider(height: 1, thickness: 0.3),
-            settingSectionTitle(context, t.settings.manualSyncSection),
-            _buildManualSyncTile(
-              icon: AppGlyphs.arrowUp,
-              title: t.settings.uploadToCloud,
-              subtitle: t.settings.uploadToCloudSubtitle,
-              actionLabel: t.settings.manualUpload,
-              busy: _uploading,
-              onPressed: _manualUpload,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
+            child: Text(
+              t.dataBackup.title,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            _buildManualSyncTile(
-              icon: AppGlyphs.download,
-              title: t.settings.downloadFromCloud,
-              subtitle: t.settings.downloadFromCloudSubtitle,
-              actionLabel: t.settings.manualDownload,
-              busy: _downloading,
-              onPressed: _manualDownload,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(t.settings.dataBackupSubtitle),
+          ),
+          const DataBackupControls(),
+          SettingSectionCard(
+            title: t.settings.syncConfig,
+            icon: AppGlyphs.cloud,
+            children: [
+              _syncServiceType(state, cubit),
+              webdavSync(context, state.syncSetting.syncServiceType),
+              if (configuredSync) _autoSync(state, cubit),
+              if (configuredSync) _syncSettings(state, cubit),
+              if (configuredSync) _syncPlugins(state, cubit),
+            ],
+          ),
+          if (configuredSync)
+            SettingSectionCard(
+              title: t.settings.manualSyncSection,
+              icon: AppGlyphs.refresh,
+              children: [
+                _buildManualSyncTile(
+                  icon: AppGlyphs.arrowUp,
+                  title: t.settings.uploadToCloud,
+                  subtitle: t.settings.uploadToCloudSubtitle,
+                  actionLabel: t.settings.manualUpload,
+                  busy: _uploading,
+                  onPressed: _manualUpload,
+                ),
+                _buildManualSyncTile(
+                  icon: AppGlyphs.download,
+                  title: t.settings.downloadFromCloud,
+                  subtitle: t.settings.downloadFromCloudSubtitle,
+                  actionLabel: t.settings.manualDownload,
+                  busy: _downloading,
+                  onPressed: _manualDownload,
+                ),
+              ],
             ),
-          ],
           const SizedBox(height: 32),
         ],
       ),
@@ -161,11 +184,10 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
   }
 
   Widget _autoSync(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.cloudSync),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.cloudSync),
       title: Text(t.settings.autoSync),
       subtitle: Text(t.settings.autoSyncSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.syncSetting.autoSync,
       onChanged: (bool value) {
         cubit.updateSyncSetting((current) => current.copyWith(autoSync: value));
@@ -177,11 +199,10 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
   }
 
   Widget _syncSettings(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.sliders),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.sliders),
       title: Text(t.settings.syncSettings),
       subtitle: Text(t.settings.syncSettingsSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.syncSetting.syncSettings,
       onChanged: (bool value) {
         cubit.updateSyncSetting(
@@ -192,11 +213,10 @@ class _SyncSettingPageState extends State<SyncSettingPage> {
   }
 
   Widget _syncPlugins(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.puzzle),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.puzzle),
       title: Text(t.settings.syncPlugins),
       subtitle: Text(t.settings.syncPluginsSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.syncSetting.syncPlugins,
       onChanged: (bool value) {
         cubit.updateSyncSetting(

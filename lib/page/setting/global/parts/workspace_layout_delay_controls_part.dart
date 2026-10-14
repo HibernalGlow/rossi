@@ -45,9 +45,9 @@ class _DelayTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (onSwitchChanged != null)
-            Switch(
+            M3ESwitch(
+              selectedIcon: const Icon(Icons.check, size: 16),
               value: switchValue ?? false,
-              thumbIcon: kSettingSwitchThumbIcon,
               onChanged: onSwitchChanged,
             ),
           _NumberBox(

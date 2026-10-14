@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,123 +32,112 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
 
     return SettingPageShell(
       title: t.settings.bookshelf,
+      description: t.settings.bookshelfSubtitle,
       child: ListView(
+        padding: kSettingPagePadding,
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.bookshelf,
-            icon: AppGlyphs.bookmark,
+          SettingSectionCard(
+            sectionId: 'bookshelf.general',
+            children: [
+              _homePageTile(state, cubit),
+              _switchTile(
+                icon: AppGlyphs.heart,
+                title: t.settings.bookshelfRememberFavoriteSort,
+                subtitle: t.settings.bookshelfRememberFavoriteSortSubtitle,
+                value: state.rememberFavoriteSort,
+                onChanged: (value) => cubit.updateBookshelfSetting(
+                  (current) => current.copyWith(rememberFavoriteSort: value),
+                ),
+              ),
+              _switchTile(
+                icon: AppGlyphs.history,
+                title: t.settings.bookshelfRememberHistorySort,
+                subtitle: t.settings.bookshelfRememberHistorySortSubtitle,
+                value: state.rememberHistorySort,
+                onChanged: (value) => cubit.updateBookshelfSetting(
+                  (current) => current.copyWith(rememberHistorySort: value),
+                ),
+              ),
+              _switchTile(
+                icon: AppGlyphs.download,
+                title: t.settings.bookshelfRememberDownloadSort,
+                subtitle: t.settings.bookshelfRememberDownloadSortSubtitle,
+                value: state.rememberDownloadSort,
+                onChanged: (value) => cubit.updateBookshelfSetting(
+                  (current) => current.copyWith(rememberDownloadSort: value),
+                ),
+              ),
+            ],
           ),
-          _homePageTile(state, cubit),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.heart,
-            title: t.settings.bookshelfRememberFavoriteSort,
-            subtitle: t.settings.bookshelfRememberFavoriteSortSubtitle,
-            value: state.rememberFavoriteSort,
-            onChanged: (value) => cubit.updateBookshelfSetting(
-              (current) => current.copyWith(rememberFavoriteSort: value),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.history,
-            title: t.settings.bookshelfRememberHistorySort,
-            subtitle: t.settings.bookshelfRememberHistorySortSubtitle,
-            value: state.rememberHistorySort,
-            onChanged: (value) => cubit.updateBookshelfSetting(
-              (current) => current.copyWith(rememberHistorySort: value),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.download,
-            title: t.settings.bookshelfRememberDownloadSort,
-            subtitle: t.settings.bookshelfRememberDownloadSortSubtitle,
-            value: state.rememberDownloadSort,
-            onChanged: (value) => cubit.updateBookshelfSetting(
-              (current) => current.copyWith(rememberDownloadSort: value),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-          const Divider(height: 1, thickness: 0.3),
-          settingSectionTitle(
-            context,
-            t.settings.cardBadges,
+          SettingSectionCard(
+            title: t.settings.cardBadges,
             icon: AppGlyphs.palette,
+            children: [
+              _switchTile(
+                icon: AppGlyphs.cloudDownload,
+                title: t.settings.cardDownloadBadge,
+                subtitle: t.settings.cardDownloadBadgeSubtitle,
+                value: cardSetting.downloadBadgeEnabled,
+                onChanged: (value) => cubit.updateComicCardSetting(
+                  (current) => current.copyWith(downloadBadgeEnabled: value),
+                ),
+              ),
+              _switchTile(
+                icon: AppGlyphs.translate,
+                title: t.settings.cardTranslationBadge,
+                subtitle: t.settings.cardTranslationBadgeSubtitle,
+                value: cardSetting.translationBadgeEnabled,
+                onChanged: (value) => cubit.updateComicCardSetting(
+                  (current) => current.copyWith(translationBadgeEnabled: value),
+                ),
+              ),
+              _switchTile(
+                icon: AppGlyphs.playCircle,
+                title: t.settings.cardReadButton,
+                subtitle: t.settings.cardReadButtonSubtitle,
+                value: cardSetting.readButtonEnabled,
+                onChanged: (value) => cubit.updateComicCardSetting(
+                  (current) => current.copyWith(readButtonEnabled: value),
+                ),
+              ),
+              _switchTile(
+                icon: AppGlyphs.sell,
+                title: t.settings.cardFavoriteTagBadge,
+                subtitle: t.settings.cardFavoriteTagBadgeSubtitle,
+                value: cardSetting.favoriteTagBadgeEnabled,
+                onChanged: (value) => cubit.updateComicCardSetting(
+                  (current) => current.copyWith(favoriteTagBadgeEnabled: value),
+                ),
+              ),
+              _switchTile(
+                icon: AppGlyphs.ring,
+                title: t.settings.cardUnreadIndicator,
+                subtitle: t.settings.cardUnreadIndicatorSubtitle,
+                value: cardSetting.unreadIndicatorEnabled,
+                onChanged: (value) => cubit.updateComicCardSetting(
+                  (current) => current.copyWith(unreadIndicatorEnabled: value),
+                ),
+              ),
+              // 关掉总开关就没有标识可挑样式，这一行整个不画：
+              // 留一行点不动的下拉，用户会以为它管的是别的东西。
+              if (cardSetting.unreadIndicatorEnabled)
+                _unreadIndicatorStyleTile(cardSetting, cubit),
+            ],
           ),
-          _switchTile(
-            icon: AppGlyphs.cloudDownload,
-            title: t.settings.cardDownloadBadge,
-            subtitle: t.settings.cardDownloadBadgeSubtitle,
-            value: cardSetting.downloadBadgeEnabled,
-            onChanged: (value) => cubit.updateComicCardSetting(
-              (current) => current.copyWith(downloadBadgeEnabled: value),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.translate,
-            title: t.settings.cardTranslationBadge,
-            subtitle: t.settings.cardTranslationBadgeSubtitle,
-            value: cardSetting.translationBadgeEnabled,
-            onChanged: (value) => cubit.updateComicCardSetting(
-              (current) => current.copyWith(translationBadgeEnabled: value),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.playCircle,
-            title: t.settings.cardReadButton,
-            subtitle: t.settings.cardReadButtonSubtitle,
-            value: cardSetting.readButtonEnabled,
-            onChanged: (value) => cubit.updateComicCardSetting(
-              (current) => current.copyWith(readButtonEnabled: value),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.sell,
-            title: t.settings.cardFavoriteTagBadge,
-            subtitle: t.settings.cardFavoriteTagBadgeSubtitle,
-            value: cardSetting.favoriteTagBadgeEnabled,
-            onChanged: (value) => cubit.updateComicCardSetting(
-              (current) => current.copyWith(favoriteTagBadgeEnabled: value),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
-          _switchTile(
-            icon: AppGlyphs.ring,
-            title: t.settings.cardUnreadIndicator,
-            subtitle: t.settings.cardUnreadIndicatorSubtitle,
-            value: cardSetting.unreadIndicatorEnabled,
-            onChanged: (value) => cubit.updateComicCardSetting(
-              (current) => current.copyWith(unreadIndicatorEnabled: value),
-            ),
-          ),
-          // 关掉总开关就没有标识可挑样式，这一行整个不画：
-          // 留一行点不动的下拉，用户会以为它管的是别的东西。
-          if (cardSetting.unreadIndicatorEnabled) ...[
-            const Divider(height: 1, thickness: 0.3),
-            _unreadIndicatorStyleTile(cardSetting, cubit),
-          ],
-
-          const SizedBox(height: 8),
-          const Divider(height: 1, thickness: 0.3),
-          settingSectionTitle(
-            context,
-            t.settings.cardInteraction,
+          SettingSectionCard(
+            title: t.settings.cardInteraction,
             icon: AppGlyphs.touch,
-          ),
-          _switchTile(
-            icon: AppGlyphs.unfold,
-            title: t.settings.shelfCardContextMenu,
-            subtitle: t.settings.shelfCardContextMenuSubtitle,
-            value: state.shelfCardContextMenu,
-            onChanged: (value) => cubit.updateBookshelfSetting(
-              (current) => current.copyWith(shelfCardContextMenu: value),
-            ),
+            children: [
+              _switchTile(
+                icon: AppGlyphs.unfold,
+                title: t.settings.shelfCardContextMenu,
+                subtitle: t.settings.shelfCardContextMenuSubtitle,
+                value: state.shelfCardContextMenu,
+                onChanged: (value) => cubit.updateBookshelfSetting(
+                  (current) => current.copyWith(shelfCardContextMenu: value),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 32),
         ],
@@ -225,11 +215,10 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return SwitchListTile(
-      secondary: GlyphIcon(icon),
+    return SettingGroup.switchTile(
+      leading: GlyphIcon(icon),
       title: Text(title),
       subtitle: Text(subtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: value,
       onChanged: (bool newValue) {
         onChanged(newValue);

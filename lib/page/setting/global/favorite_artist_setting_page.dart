@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
@@ -226,37 +227,41 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
     return SettingPageShell(
       title: t.settings.favoriteArtistManagement,
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: kSettingPagePadding,
         children: [
-          SwitchListTile(
-            secondary: const GlyphIcon(
-              AppGlyphs.star,
-              color: Color(0xFFF59E0B),
-            ),
-            title: Text(t.settings.favoriteArtistHighlight),
-            subtitle: Text(t.settings.favoriteArtistHighlightSubtitle),
-            thumbIcon: kSettingSwitchThumbIcon,
-            value: setting.highlightEnabled,
-            onChanged: (value) {
-              cubit.toggleHighlightFavoriteArtists(value);
-            },
+          SettingSectionCard(
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(
+                  AppGlyphs.star,
+                  color: Color(0xFFF59E0B),
+                ),
+                title: Text(t.settings.favoriteArtistHighlight),
+                subtitle: Text(t.settings.favoriteArtistHighlightSubtitle),
+                value: setting.highlightEnabled,
+                onChanged: (value) {
+                  cubit.toggleHighlightFavoriteArtists(value);
+                },
+              ),
+              ListTile(
+                leading: const GlyphIcon(
+                  AppGlyphs.touch,
+                  color: Color(0xFFF59E0B),
+                ),
+                title: Text(t.settings.favoriteArtistCircleMode),
+                subtitle: Text(t.settings.favoriteArtistCircleModeSubtitle),
+                trailing: FluentDropdown<FavoriteArtistCircleMode>(
+                  value: setting.circleMode,
+                  displayValue: _circleModeLabels[setting.circleMode]!,
+                  items: _circleModeLabels,
+                  onChanged: (value) {
+                    if (value == setting.circleMode) return;
+                    cubit.setFavoriteArtistCircleMode(value);
+                  },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          ListTile(
-            leading: const GlyphIcon(AppGlyphs.touch, color: Color(0xFFF59E0B)),
-            title: Text(t.settings.favoriteArtistCircleMode),
-            subtitle: Text(t.settings.favoriteArtistCircleModeSubtitle),
-            trailing: FluentDropdown<FavoriteArtistCircleMode>(
-              value: setting.circleMode,
-              displayValue: _circleModeLabels[setting.circleMode]!,
-              items: _circleModeLabels,
-              onChanged: (value) {
-                if (value == setting.circleMode) return;
-                cubit.setFavoriteArtistCircleMode(value);
-              },
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.3),
           const SizedBox(height: 16),
 
           // 输入新画师
@@ -320,7 +325,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                   ),
                 ),
                 icon: const GlyphIcon(AppGlyphs.arrowUp, size: 18),
-                label: const Text('导入文件 (TXT/JSON)'),
+                label: Text(t.settings.importFileTxtJson),
                 onPressed: () => _importFromFile(context),
               ),
               if (artists.isNotEmpty)
@@ -357,7 +362,7 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                     history: SearchHistoryStore.local('favorite-artists'),
                     controller: _filterController,
                     decoration: InputDecoration(
-                      hintText: '搜索画师...',
+                      hintText: t.settings.searchArtistHint,
                       prefixIcon: const GlyphIcon(AppGlyphs.search, size: 18),
                       suffixIcon: _filterKeyword.isNotEmpty
                           ? IconButton(

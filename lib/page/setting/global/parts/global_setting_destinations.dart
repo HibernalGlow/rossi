@@ -135,12 +135,20 @@ extension _GlobalSettingDestinations on _GlobalSettingPageState {
             route: const SyncSettingRoute(),
             detail: const SyncSettingPage(),
           ),
+          destination(
+            id: 'backup',
+            title: t.settings.dataBackup,
+            subtitle: t.settings.dataBackupSubtitle,
+            icon: AppGlyphs.archive,
+            route: const DataBackupRoute(),
+            detail: const DataBackupPage(),
+          ),
         ],
       ),
       SettingDestinationGroup(
         title: t.settings.applicationGroup,
         entries: [
-          if (workspaceAvailableOnDevice(context))
+          if (workspaceAvailableOnDevice(context)) ...[
             destination(
               id: 'workspace',
               title: t.settings.workspaceLayout,
@@ -149,6 +157,15 @@ extension _GlobalSettingDestinations on _GlobalSettingPageState {
               route: const WorkspaceLayoutSettingRoute(),
               detail: const WorkspaceLayoutSettingPage(),
             ),
+            destination(
+              id: 'swimlane_panel',
+              title: t.settings.swimlanePanelKanban,
+              subtitle: t.settings.swimlanePanelKanbanSubtitle,
+              icon: AppGlyphs.dashboard,
+              route: const SwimlanePanelSettingRoute(),
+              detail: const SwimlanePanelSettingPage(),
+            ),
+          ],
           // 该页有未保存编辑的 PopScope，仍走原路由以执行保存 / 放弃确认。
           destination(
             id: 'bindings',
@@ -180,6 +197,14 @@ extension _GlobalSettingDestinations on _GlobalSettingPageState {
             icon: AppGlyphs.bug,
             route: const DebugSettingRoute(),
             detail: const DebugSettingPage(),
+          ),
+          destination(
+            id: 'about',
+            title: t.about.title,
+            subtitle: t.settings.aboutAppSubtitle,
+            icon: AppGlyphs.info,
+            route: const AboutRoute(),
+            detail: const AboutPage(),
           ),
         ],
       ),

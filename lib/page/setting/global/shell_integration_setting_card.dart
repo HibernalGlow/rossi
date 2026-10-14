@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -93,11 +94,10 @@ class _ShellIntegrationSettingCardState
       title: t.settings.shellIntegration,
       icon: AppGlyphs.devices,
       children: [
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.mouse),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.mouse),
           title: Text(t.settings.shellIntegrationContextMenu),
           subtitle: Text(t.settings.shellIntegrationContextMenuSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: status.isOn,
           onChanged: _toggle,
         ),

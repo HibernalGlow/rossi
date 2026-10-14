@@ -147,11 +147,10 @@ class AppearanceSettingPage extends StatelessWidget {
   }
 
   Widget _dynamicColor(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.palette),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.palette),
       title: Text(t.settings.dynamicColor),
       subtitle: Text(t.settings.dynamicColorSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.dynamicColor,
       onChanged: (bool value) {
         cubit.updateState((current) => current.copyWith(dynamicColor: value));
@@ -177,11 +176,10 @@ class AppearanceSettingPage extends StatelessWidget {
   }
 
   Widget _isAMOLED(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.contrast),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.contrast),
       title: Text(t.settings.amoled),
       subtitle: Text(t.settings.amoledSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.isAMOLED,
       onChanged: (bool value) {
         cubit.updateState((current) => current.copyWith(isAMOLED: value));
@@ -194,11 +192,10 @@ class AppearanceSettingPage extends StatelessWidget {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.openExternal),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.openExternal),
       title: Text(t.settings.transparentDesktopTitleBar),
       subtitle: Text(t.settings.transparentDesktopTitleBarSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.transparentDesktopTitleBar,
       onChanged: (bool value) {
         cubit.updateState(
@@ -248,11 +245,10 @@ class AppearanceSettingPage extends StatelessWidget {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.devices),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.devices),
       title: Text(t.settings.notchAdaptation),
       subtitle: Text(t.settings.notchAdaptationSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.readSetting.comicReadTopContainer,
       onChanged: (bool value) {
         cubit.updateReadSetting(

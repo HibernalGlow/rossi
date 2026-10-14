@@ -18,6 +18,7 @@ import 'package:zephyr/page/setting/global/appearance_setting_page.dart';
 import 'package:zephyr/page/setting/global/toast_setting_page.dart';
 import 'package:zephyr/page/setting/global/notify_setting_page.dart';
 import 'package:zephyr/page/setting/global/file_manager_setting_page.dart';
+import 'package:zephyr/page/setting/global/swimlane_panel_setting_page.dart';
 import 'package:zephyr/page/setting/global/workspace_layout_setting_page.dart';
 import 'package:zephyr/page/setting/global/content_network_setting_page.dart';
 import 'package:zephyr/page/setting/global/app_behavior_setting_page.dart';
@@ -25,6 +26,8 @@ import 'package:zephyr/page/setting/global/eink_setting_page.dart';
 import 'package:zephyr/page/setting/global/storage_setting_page.dart';
 import 'package:zephyr/page/setting/global/debug_setting_page.dart';
 import 'package:zephyr/page/setting/global/sync_setting_page.dart';
+import 'package:zephyr/page/about/about.dart';
+import 'package:zephyr/page/setting/data_backup/data_backup_page.dart';
 import 'package:zephyr/page/setting/bookshelf/bookshelf_setting_page.dart';
 import 'package:zephyr/page/setting/ocr/ocr_setting_page.dart';
 import 'package:zephyr/page/setting/real_sr/real_sr_setting_page.dart';
@@ -96,6 +99,8 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
 
     return SettingPageShell(
       title: t.settings.globalTitle,
+      // 一级页：下面就是双栏总览，不再挂一个大标题。
+      collapsingTitle: false,
       maxWidth: 1440,
       child: FutureBuilder<bool>(
         future: _realSrAvailable,
