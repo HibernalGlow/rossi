@@ -17,6 +17,7 @@ import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/image_denoise_settings.dart';
+import 'package:zephyr/page/setting/real_sr/service/image_denoise_pipeline.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/super_resolution_policy_service.dart';
@@ -185,78 +186,28 @@ class RealSrSuperResolution {
     return file.existsSync() && await file.length() >= 1024;
   }
 
-  static Future<bool> isDenoiseModelAvailable() async {
-    final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-    final file = File(p.join(root.path, MImageOnnxModelConfig.denoiseFileName));
-    return file.existsSync() && await file.length() >= 1024;
-  }
+  static Future<bool> isDenoiseModelAvailable() =>
+      ImageDenoisePipeline.isAvailable();
 
-  /// RealPLKSR 1x JPEG 降噪模型单独管理，不进入 4x 超分模型选择。
   static Future<void> downloadDenoiseModel({
     void Function(int received, int total)? onProgress,
     bool force = false,
-  }) async {
-    final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-    await root.create(recursive: true);
-    final destination = File(
-      p.join(root.path, MImageOnnxModelConfig.denoiseFileName),
-    );
-    if (!force && await isDenoiseModelAvailable()) return;
-    final pending = File('${destination.path}.download_${const Uuid().v4()}');
-    try {
-      await WindHttp().download(
-        '${MImageOnnxModelConfig.baseUrl}/${MImageOnnxModelConfig.denoiseFileName}',
-        pending.path,
-        onReceiveProgress: (received, total) {
-          if (total > 0) onProgress?.call(received, total);
-        },
-      );
-      if (await pending.length() < 1024) {
-        throw StateError('下载的 JPEG 降噪模型无效（可能是 Git-LFS 指针）');
-      }
-      await pending.rename(destination.path);
-      await ImageDenoiseSettings.modelChanged();
-    } finally {
-      if (await pending.exists()) await pending.delete();
-    }
-  }
+  }) => ImageDenoisePipeline.download(onProgress: onProgress, force: force);
 
-  /// 对原图执行 1x JPEG 降噪，成功时输出与输入同尺寸的独立 PNG。
   static Future<bool> denoise({
     required String inputPath,
     required String outputPath,
-    int tileSize = 0,
+    int? tileSize,
+    ImageDenoiseOptions? options,
     bool Function()? shouldRun,
-  }) async {
-    if (!supportsMImageOnnx || !await isDenoiseModelAvailable()) return false;
-    final input = File(inputPath);
-    if (!await input.exists() ||
-        !_supportedFormats.contains(
-          (await detectImageExtension(input)).toLowerCase(),
-        ) ||
-        await animatedFileHead(input)) {
-      return false;
-    }
-    return _pool.withResource(() async {
-      if (shouldRun != null && !shouldRun()) return false;
-      final inputSize = await imageSizeOf(inputPath);
-      if (inputSize == null) return false;
-      final root = Directory(p.join(await _modelDirectory, 'mimage_onnx'));
-      final modelPath = await MImageOnnxModelConfig.denoisePath(root);
-      SrSessionGuard.markOnnxHeld();
-      await mimageOnnxUpscale(
-        inputPath: inputPath,
-        outputPath: outputPath,
-        modelPath: modelPath,
-        modelId: MImageOnnxModelConfig.denoiseModelId,
-        tileSize: tileSize,
-      );
-      final output = File(outputPath);
-      if (!await output.exists() || await output.length() == 0) return false;
-      final outputSize = await imageSizeOf(outputPath);
-      return outputSize == inputSize;
-    });
-  }
+  }) => ImageDenoisePipeline.process(
+    inputPath: inputPath,
+    outputPath: outputPath,
+    tileSize: tileSize,
+    options: options,
+    shouldRun: shouldRun,
+    withResource: (work) => _pool.withResource(work),
+  );
 
   static Future<bool> isProfileAvailable(SuperResolutionProfile profile) =>
       switch (profile.engine) {

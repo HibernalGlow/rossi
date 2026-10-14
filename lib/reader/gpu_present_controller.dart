@@ -926,8 +926,10 @@ class GpuPresentController extends ChangeNotifier {
       final engineProfile = hasSuperResolutionEngineChoice
           ? await RealSrSettings.loadProfile()
           : null;
+      final denoiseOptions = await ImageDenoiseSettings.loadOptions();
       final cacheKey = await ImageDenoiseSettings.cacheKey(
         denoise: _isDenoiseEnabled,
+        options: denoiseOptions,
         upscale: _isUpscaleEnabled,
         upscaleKey:
             engineProfile?.cacheKey ?? await RealSrSettings.loadCacheKey(),
@@ -1072,7 +1074,7 @@ class GpuPresentController extends ChangeNotifier {
         final denoised = await RealSrSuperResolution.denoise(
           inputPath: inputPath,
           outputPath: shouldUpscaleNow ? tempDenoised.path : pendingOutput.path,
-          tileSize: tileSize,
+          options: denoiseOptions,
           shouldRun: acceptsWork,
         );
         if (!denoised) {

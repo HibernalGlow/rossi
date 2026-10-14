@@ -30,6 +30,23 @@ enum ImageEnhancementMode {
   };
 }
 
+/// 降噪独立的推理参数；不复用超分分块设置。
+@immutable
+class ImageDenoiseOptions {
+  const ImageDenoiseOptions({this.tileSize = 0, this.jpegOnly = false});
+  static const tileSizes = [0, 128, 256, 384, 512];
+  final int tileSize;
+  final bool jpegOnly;
+  String get cacheKey => 'tile$tileSize-jpeg${jpegOnly ? 1 : 0}';
+  ImageDenoiseOptions copyWith({int? tileSize, bool? jpegOnly}) {
+    final tile = tileSize ?? this.tileSize;
+    return ImageDenoiseOptions(
+      tileSize: tileSizes.contains(tile) ? tile : 0,
+      jpegOnly: jpegOnly ?? this.jpegOnly,
+    );
+  }
+}
+
 /// JPEG 降噪单独占一档；超分仍由 RealSrBookScope 决定。
 class ImageDenoiseSettings {
   ImageDenoiseSettings._();
@@ -91,15 +108,33 @@ class ImageDenoiseSettings {
     _notifier.changed();
   }
 
+  static Future<ImageDenoiseOptions> loadOptions() async {
+    final prefs = await SharedPreferences.getInstance();
+    return const ImageDenoiseOptions().copyWith(
+      tileSize: prefs.getInt('image_denoise_tile_size'),
+      jpegOnly: prefs.getBool('image_denoise_jpeg_only'),
+    );
+  }
+
+  static Future<void> saveOptions(ImageDenoiseOptions options) async {
+    final prefs = await SharedPreferences.getInstance();
+    final safe = options.copyWith();
+    await prefs.setInt('image_denoise_tile_size', safe.tileSize);
+    await prefs.setBool('image_denoise_jpeg_only', safe.jpegOnly);
+    _notifier.changed();
+  }
+
   static Future<String> cacheKey({
     required bool denoise,
     required bool upscale,
     required String upscaleKey,
+    ImageDenoiseOptions? options,
   }) async {
     if (!denoise) return upscaleKey;
     final prefs = await SharedPreferences.getInstance();
     final revision = prefs.getInt(_revisionKey) ?? 0;
-    final denoiseKey = 'realplksr_1x_$revision';
+    options ??= await loadOptions();
+    final denoiseKey = 'realplksr_1x_${revision}_${options.cacheKey}';
     return upscale ? '${denoiseKey}_then_$upscaleKey' : denoiseKey;
   }
 
