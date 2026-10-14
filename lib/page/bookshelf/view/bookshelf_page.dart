@@ -1,3 +1,5 @@
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -76,6 +78,10 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
   ];
 
   late int _currentIndex;
+  final _canvasKeys = List.generate(
+    3,
+    (_) => GlobalKey<LibraryEditorialCanvasState>(),
+  );
   final List<int> _refreshSignals = [0, 0, 0];
   final FocusNode _searchFocusNode = FocusNode();
   // 关键词防抖：短时间内连续输入只保留最后一次，停顿后才真正写入过滤；
@@ -112,7 +118,14 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
         _triggerRefreshAll();
       },
       child: Scaffold(
+        // 键盘升起时不整页让位：搜索栏在顶部本来不会被挡住，而
+        // viewInsets 每帧变化都要把下面三张书架网格重排一遍，
+        // 键盘进出动画就掉成一段一段。与 navigation_bar.dart 同口径。
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
+          actions: [
+            LibraryPresentationButton(canvasKey: _canvasKeys[_currentIndex]),
+          ],
           titleSpacing: isDesktop ? 16 : 8,
           title: isDesktop ? _buildDesktopHeader() : _buildMobileHeader(),
         ),
@@ -130,16 +143,19 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
                 onSelected: _onTabChanged,
                 children: [
                   FolderShelfPage(
+                    editorialKey: _canvasKeys[0],
                     mode: ShelfPageMode.favorite,
                     refreshSignal: _refreshSignals[0],
                     isActive: _currentIndex == 0,
                   ),
                   FolderShelfPage(
+                    editorialKey: _canvasKeys[1],
                     mode: ShelfPageMode.history,
                     refreshSignal: _refreshSignals[1],
                     isActive: _currentIndex == 1,
                   ),
                   FolderShelfPage(
+                    editorialKey: _canvasKeys[2],
                     mode: ShelfPageMode.download,
                     refreshSignal: _refreshSignals[2],
                     isActive: _currentIndex == 2,
