@@ -19,19 +19,23 @@ Map<String, dynamic> _binding(
   String device = 'touch',
   String? area,
   String gesture = 'tap',
+  String mouseAction = 'click',
+  int button = 0,
+  String context = 'reader',
+  bool enabled = true,
 }) => {
   'id': id,
   'action': action,
-  'context': 'reader',
-  'enabled': true,
+  'context': context,
+  'enabled': enabled,
   'input': {
     'device': device,
     if (device == 'touch') ...{
       'gesture': gesture,
       'fingers': 1,
     } else ...{
-      'action': 'click',
-      'button': 0,
+      'action': mouseAction,
+      'button': button,
     },
     'area': ?area,
   },
@@ -126,20 +130,21 @@ class _ReaderState extends State<_Reader> {
 
 Future<_ReaderState> _mount(
   WidgetTester tester,
-  List<Map<String, dynamic>> bindings,
-) async {
+  List<Map<String, dynamic>> bindings, {
+  ReadSettingState readSetting = const ReadSettingState(
+    readMode: 1,
+    hoverRevealEnabled: false,
+    hoverRevealTop: false,
+    hoverRevealBottom: false,
+  ),
+}) async {
   tester.view.physicalSize = const Size(800, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   final settings = GlobalSettingCubit()
     ..emit(
       GlobalSettingState(
-        readSetting: const ReadSettingState(
-          readMode: 1,
-          hoverRevealEnabled: false,
-          hoverRevealTop: false,
-          hoverRevealBottom: false,
-        ),
+        readSetting: readSetting,
         operationBindingSetting: OperationBindingSettingState(
           bindingsJson: encodeBindingsDoc(bindings),
         ),
@@ -167,16 +172,171 @@ Future<void> _tap(
   WidgetTester tester,
   Offset point, {
   PointerDeviceKind kind = PointerDeviceKind.touch,
+  bool waitForDoubleTap = true,
 }) async {
   final pointer = await tester.startGesture(point, kind: kind);
   await tester.pump(const Duration(milliseconds: 40));
   await pointer.up();
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 350));
+  if (waitForDoubleTap) {
+    await tester.pump(const Duration(milliseconds: 350));
+  }
 }
 
 void main() {
   setUpAll(() async => RustLib.init());
+
+  for (final zoom in [true, false]) {
+    testWidgets('旧全屏双击${zoom ? '缩放' : '操作栏'}保持互斥，关闭后立即翻页', (tester) async {
+      final reader = await _mount(
+        tester,
+        [_binding('tap', BindingAction.nextPage)],
+        readSetting: ReadSettingState(
+          readMode: 1,
+          doubleTapZoom: zoom,
+          doubleTapOpenMenu: !zoom,
+        ),
+      );
+      await _tap(tester, const Offset(700, 400), waitForDoubleTap: false);
+      expect(reader.events, isEmpty);
+      await _tap(tester, const Offset(700, 400), waitForDoubleTap: false);
+      expect(reader.events, zoom ? isEmpty : ['menu']);
+      expect(
+        reader.transform.value.getMaxScaleOnAxis(),
+        zoom ? greaterThan(1) : 1,
+      );
+      await tester.pump(const Duration(milliseconds: 350));
+      final settings = reader.context.read<GlobalSettingCubit>();
+      settings.emit(
+        settings.state.copyWith(
+          readSetting: const ReadSettingState(readMode: 1),
+        ),
+      );
+      await tester.pump();
+      await _tap(tester, const Offset(700, 400), waitForDoubleTap: false);
+      expect(reader.events, zoom ? ['next'] : ['menu', 'next']);
+    });
+  }
+
+  for (final kind in [PointerDeviceKind.touch, PointerDeviceKind.mouse]) {
+    final device = kind == PointerDeviceKind.touch ? 'touch' : 'mouse';
+    final otherDevice = device == 'touch' ? 'mouse' : 'touch';
+    final doubles = {
+      '中央双击': _binding(
+        'double-center',
+        BindingAction.nextPage,
+        device: device,
+        area: 'middle-center',
+        gesture: 'double-tap',
+        mouseAction: 'double-click',
+      ),
+      '另一种设备的双击': _binding(
+        'other-device',
+        BindingAction.nextPage,
+        device: otherDevice,
+        gesture: 'double-tap',
+        mouseAction: 'double-click',
+      ),
+      '不活跃上下文的双击': _binding(
+        'modal-double',
+        BindingAction.nextPage,
+        context: 'modal',
+        device: device,
+        gesture: 'double-tap',
+        mouseAction: 'double-click',
+      ),
+      '禁用的双击': _binding(
+        'disabled-double',
+        BindingAction.nextPage,
+        enabled: false,
+        device: device,
+        gesture: 'double-tap',
+        mouseAction: 'double-click',
+      ),
+      '鼠标中键双击': _binding(
+        'middle-button-double',
+        BindingAction.nextPage,
+        device: 'mouse',
+        button: 1,
+        mouseAction: 'double-click',
+      ),
+    };
+    for (final entry in doubles.entries) {
+      testWidgets('$device：${entry.key}不延迟两侧翻页，快速连点每次翻一页', (tester) async {
+        final reader = await _mount(tester, [
+          _binding(
+            'left',
+            BindingAction.previousPage,
+            device: device,
+            area: 'middle-left',
+          ),
+          _binding(
+            'right',
+            BindingAction.nextPage,
+            device: device,
+            area: 'middle-right',
+          ),
+          entry.value,
+        ]);
+        await _tap(
+          tester,
+          const Offset(100, 400),
+          kind: kind,
+          waitForDoubleTap: false,
+        );
+        expect(reader.events, ['previous'], reason: '松开后即执行，不等 300ms');
+        for (var i = 0; i < 3; i++) {
+          await _tap(
+            tester,
+            const Offset(700, 400),
+            kind: kind,
+            waitForDoubleTap: false,
+          );
+          expect(reader.events, ['previous', ...List.filled(i + 1, 'next')]);
+        }
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(reader.events, ['previous', 'next', 'next', 'next']);
+      });
+    }
+
+    testWidgets('$device：同一区域确实绑定双击时，单击与双击仍互斥', (tester) async {
+      final reader = await _mount(tester, [
+        _binding('tap', BindingAction.previousPage, device: device),
+        _binding(
+          'double',
+          BindingAction.nextPage,
+          device: device,
+          area: 'middle-right',
+          gesture: 'double-tap',
+          mouseAction: 'double-click',
+        ),
+      ]);
+      await _tap(
+        tester,
+        const Offset(700, 400),
+        kind: kind,
+        waitForDoubleTap: false,
+      );
+      expect(reader.events, isEmpty);
+      await _tap(
+        tester,
+        const Offset(700, 400),
+        kind: kind,
+        waitForDoubleTap: false,
+      );
+      expect(reader.events, ['next']);
+      await tester.pump(const Duration(milliseconds: 350));
+      await _tap(
+        tester,
+        const Offset(700, 400),
+        kind: kind,
+        waitForDoubleTap: false,
+      );
+      expect(reader.events, ['next']);
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(reader.events, ['next', 'previous']);
+    });
+  }
 
   testWidgets('真实核心：触屏区域优先于通用单击，鼠标与触屏中央绑定独立', (tester) async {
     final reader = await _mount(tester, [

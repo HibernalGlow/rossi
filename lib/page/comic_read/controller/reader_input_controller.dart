@@ -23,6 +23,7 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/util/input/binding_input_capture.dart';
 import 'package:zephyr/util/input/binding_pointer_tracker.dart';
 import 'package:zephyr/util/input/binding_pointer_signal_guard.dart';
+import 'package:zephyr/util/input/binding_tap_region.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 
@@ -256,23 +257,6 @@ class ReaderInputController {
   /// 构建阅读核心交互层：键盘、手势、缩放、多指锁滚动。
   Widget buildInteractiveViewer() {
     final readSetting = context.watchEffectiveReadSetting();
-    // 绑定表住在同一份全局设置里；上一句已经订阅了同一个 cubit，这里只取值不再建第二个监听。
-    final globalSettingState = context.read<GlobalSettingCubit>().state;
-    final isDoubleTapActionEnabled =
-        readSetting.doubleTapZoom ||
-        readSetting.doubleTapOpenMenu ||
-        (parseBindings(
-              globalSettingState.operationBindingSetting.bindingsJson,
-            )?.any(
-              (row) =>
-                  row['enabled'] == true &&
-                      (row['input'] as Map)['device'] == InputDevice.mouse &&
-                      (row['input'] as Map)['action'] == 'double-click' ||
-                  row['enabled'] == true &&
-                      (row['input'] as Map)['device'] == InputDevice.touch &&
-                      (row['input'] as Map)['gesture'] == 'double-tap',
-            ) ??
-            false);
 
     return Focus(
       focusNode: focusNode,
@@ -308,7 +292,8 @@ class ReaderInputController {
             builder: (context, constraints) {
               final surface = constraints.biggest;
               _inputSize = surface;
-              return GestureDetector(
+              return BindingTapRegion(
+                acceptsDoubleTap: _acceptsDoubleTap,
                 onTap: _onTap,
                 onTapDown: (details) {
                   _tapKind = details.kind;
@@ -317,13 +302,11 @@ class ReaderInputController {
                     viewportSize: surface,
                   );
                 },
-                onDoubleTapDown: isDoubleTapActionEnabled
-                    ? (details) {
-                        _doubleTapDownDetails = details;
-                        _doubleTapKind = details.kind;
-                      }
-                    : null,
-                onDoubleTap: isDoubleTapActionEnabled ? _onDoubleTap : null,
+                onDoubleTapDown: (details) {
+                  _doubleTapDownDetails = details;
+                  _doubleTapKind = details.kind;
+                },
+                onDoubleTap: _onDoubleTap,
                 child: InteractiveViewer(
                   transformationController: transformationController,
                   boundaryMargin: EdgeInsets.zero,
@@ -353,6 +336,28 @@ class ReaderInputController {
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) =>
       handleKeyEvent(event);
 
+  bool _acceptsDoubleTap(PointerDownEvent event) {
+    final readSetting = context.readEffectiveReadSetting();
+    // 旧设置是全阅读区双击，保留其作用范围。自定义绑定则交给同一个核心按
+    // 本次设备、按键、区域和活跃上下文判定，不用遍历整张表猜是否需要等待。
+    if (readSetting.doubleTapZoom || readSetting.doubleTapOpenMenu) return true;
+    final bindings = _runtimeBindings;
+    return bindings != null &&
+        _actionDispatcher.resolveInput({
+              if (isBindingTouchPointer(event.kind)) ...{
+                'device': InputDevice.touch,
+                'gesture': 'double-tap',
+                'fingers': 1,
+              } else ...{
+                'device': InputDevice.mouse,
+                'action': 'double-click',
+                'button': bindingMouseButton(event.buttons) ?? 0,
+              },
+              'area': ?_areaAt(event.localPosition),
+            }, bindings) !=
+            null;
+  }
+
   /// 阅读器的按键处理入口。
   ///
   /// 它有两个入口，逻辑**只有这一处**：① 挂在本子树的 `Focus` 上
@@ -372,7 +377,7 @@ class ReaderInputController {
     final kind = _tapKind;
     _tap = null;
     // 子 GestureDetector 可能先于父 Listener 收到 up，等采集器记录本次点击。
-    await Future.delayed(Duration.zero);
+    await Future<void>.value();
     final input = _pointerBindings.deferredAreaClick;
     final claimed = _pointerBindings.claimed;
     if (tap == null || !context.mounted) return;
