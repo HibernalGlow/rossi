@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""生成原创漫画示例；降噪输出必须来自已审计的 RealPLKSR 权重。
+
+仅开发时使用：python -m pip install pillow numpy onnxruntime
+python script/generate_image_processing_examples.py
+应用展示生成的静态资源，无需运行本脚本或下载模型。
+"""
+
+from hashlib import sha256
+from pathlib import Path
+import io
+import json
+
+import numpy as np
+import onnxruntime as ort
+from PIL import Image, ImageDraw
+
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT = ROOT / "asset/image/processing_examples"
+MODEL = ROOT / "vendor/mimageviewer/models/dejpg_realplksr_otf.onnx"
+MODEL_SHA256 = "70832d4536202d7e83603debb7b3e47a798553f0b534e708a498a23939c905b2"
+
+
+def comic_detail(size=256):
+    """原创黑白漫画线稿，包含细线、渐变与网点以便观察 JPEG 压缩噪声。"""
+    scale = 3
+    image = Image.new("RGB", (size * scale, size * scale), "white")
+    draw = ImageDraw.Draw(image)
+
+    def line(points, width=2, fill="#252525"):
+        draw.line([(round(x * scale), round(y * scale)) for x, y in points],
+                  fill=fill, width=round(width * scale), joint="curve")
+
+    def ellipse(box, fill=None, outline="#252525", width=2):
+        draw.ellipse([round(v * scale) for v in box], fill=fill, outline=outline,
+                     width=round(width * scale))
+
+    # 右侧背景与斜向细线。
+    for y in range(size):
+        gray = round(246 - 46 * y / size)
+        draw.line((175 * scale, y * scale, size * scale, y * scale),
+                  fill=(gray, gray, gray), width=scale)
+    for y in range(12, 252, 12):
+        line([(188, y), (255, y - 28)], .6, "#787878")
+    # 人物头发、面部和衣领。
+    draw.polygon([(x * scale, y * scale) for x, y in [
+        (20, 151), (25, 60), (48, 26), (110, 13), (163, 35), (183, 80),
+        (175, 166), (150, 153), (63, 166)]], fill="#242424")
+    ellipse((42, 37, 173, 199), fill="#fcfcfc")
+    draw.polygon([(x * scale, y * scale) for x, y in [
+        (35, 85), (48, 34), (103, 23), (166, 44), (181, 103), (156, 89),
+        (139, 53), (126, 89), (111, 55), (82, 101), (74, 62), (52, 115)]],
+        fill="#242424")
+    line([(54, 114), (65, 108), (88, 110)], 2)
+    line([(120, 109), (141, 106), (155, 114)], 2)
+    ellipse((68, 111, 86, 129), fill="#292929")
+    ellipse((126, 109, 144, 127), fill="#292929")
+    ellipse((72, 113, 77, 118), fill="white", outline="white", width=0)
+    ellipse((130, 111, 135, 116), fill="white", outline="white", width=0)
+    line([(107, 120), (103, 143), (109, 146)], 1)
+    line([(88, 165), (103, 168), (119, 164)], 1.4)
+    line([(75, 193), (74, 211), (108, 226), (140, 208), (139, 188)], 2)
+    line([(18, 255), (30, 225), (74, 211), (88, 255)], 2.5)
+    line([(140, 208), (193, 225), (211, 255)], 2.5)
+    line([(74, 211), (103, 243), (140, 208)], 2)
+    line([(109, 227), (112, 256)], 1.2)
+    # 衣服网点，间距大于 JPEG 噪点，保留可辨认的漫画纹理。
+    for y in range(228, 256, 7):
+        for x in range(148, 188, 7):
+            ellipse((x, y, x + 1, y + 1), fill="#888888", outline=None)
+    for x in range(56, 83, 6):
+        line([(x, 142), (x + 3, 149)], .6, "#888888")
+    return image.resize((size, size), Image.Resampling.LANCZOS)
+
+
+def main():
+    if sha256(MODEL.read_bytes()).hexdigest() != MODEL_SHA256:
+        raise RuntimeError("降噪示例权重与已审计模型不一致")
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    detail = comic_detail()
+    page = Image.new("RGB", (480, 600), "white")
+    content = Image.new("RGB", (352, 440), "white")
+    content.paste(detail.resize((348, 348)), (2, 2))
+    draw = ImageDraw.Draw(content)
+    draw.rectangle((1, 1, 350, 350), outline="#222222", width=2)
+    draw.rectangle((1, 361, 350, 438), outline="#222222", width=2)
+    for x in range(8, 347, 14):
+        draw.line((x, 435, x + 30, 365), fill="#8a8a8a", width=1)
+    draw.ellipse((92, 373, 258, 424), fill="white", outline="#222222", width=2)
+    for y in [390, 398, 406]:
+        draw.line((126, y, 223, y), fill="#555555", width=1)
+    # 默认安全留边 0.6%，示例保留约 3px，裁切每侧均未超过 20%。
+    page.paste(content, (64, 80))
+    crop = (61, 76, 419, 524)
+    page.save(OUTPUT / "trim_before.png", optimize=True)
+    page.crop(crop).save(OUTPUT / "trim_after.png", optimize=True)
+
+    # 同一个压缩输入与模型输出，不能用未压缩原稿冒充 AI 输出。
+    encoded = io.BytesIO()
+    detail.save(encoded, format="JPEG", quality=12, subsampling=0)
+    compressed = Image.open(io.BytesIO(encoded.getvalue())).convert("RGB")
+    # 展示面部局部，减少在窄屏上缩小后掩盖噪声的情况。
+    region = (42, 64, 170, 192)
+    compressed.crop(region).save(OUTPUT / "denoise_before.png", optimize=True)
+    tensor = np.asarray(compressed, dtype=np.float32).transpose(2, 0, 1)[None] / 255
+    session = ort.InferenceSession(str(MODEL), providers=["CPUExecutionProvider"])
+    result = session.run(None, {session.get_inputs()[0].name: tensor})[0]
+    if result.shape != tensor.shape:
+        raise RuntimeError(f"降噪输出分辨率发生变化: {result.shape}")
+    pixels = np.rint(np.clip(result[0].transpose(1, 2, 0), 0, 1) * 255).astype(np.uint8)
+    Image.fromarray(pixels).crop(region).save(OUTPUT / "denoise_after.png", optimize=True)
+    metadata = {
+        "artwork": "Original procedural comic artwork generated by this script",
+        "trim": {"source_size": [480, 600], "illustrative_crop_ltrb": list(crop)},
+        "denoise": {
+            "model": MODEL.name, "model_sha256": MODEL_SHA256,
+            "jpeg_quality": 12, "source_size": [256, 256],
+            "detail_region_ltrb": list(region), "backend": "ONNX Runtime CPU",
+            "output": "Actual 1x model inference; neither retouched nor replaced with clean original",
+        },
+    }
+    (OUTPUT / "provenance.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    print(f"Generated 4 examples in {OUTPUT}")
+
+
+if __name__ == "__main__":
+    main()

@@ -174,6 +174,10 @@ flutter:
     - asset/image/bika_image/cat_leaderboard.jpg
     - asset/image/bika_image/cat_random.jpg
     - asset/image/assets/default_cover.png
+    - asset/image/processing_examples/trim_before.png
+    - asset/image/processing_examples/trim_after.png
+    - asset/image/processing_examples/denoise_before.png
+    - asset/image/processing_examples/denoise_after.png
     - asset/tag_translation/etht.json.gz
     # OCR 译文回填用的中文字体（ADR-0018 §决定 5）：霞鹜文楷轻便版，OFL-1.1，随包。
     # 为什么是「轻便版」而不是完整版：完整版单字重 24 MB，轻便版 13.2 MiB。

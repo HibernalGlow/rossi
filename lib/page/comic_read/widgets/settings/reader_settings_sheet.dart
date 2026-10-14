@@ -21,6 +21,7 @@ import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/image_tuning_section.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/current_page_image_info_section.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/super_resolution_section.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/sections/image_denoise_section.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/sections/translate_section.dart';
 import 'package:zephyr/service/ocr/ocr_settings.dart';
 
