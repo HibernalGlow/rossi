@@ -2,18 +2,21 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
-import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/image_denoise_settings.dart';
+import 'package:zephyr/page/setting/real_sr/service/online_image_processing.dart';
+import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/type/enum.dart';
-import 'package:zephyr/icons/icons.dart';
-import 'package:zephyr/page/setting/real_sr/service/online_image_processing.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 /// 「AI 超分辨率」这一节 —— 阅读设置面板与工作台控制面板卡片**共用的一份实现**。
 ///
@@ -22,7 +25,10 @@ import 'package:zephyr/page/setting/real_sr/service/online_image_processing.dart
 ///   别的书仍按全局走；重开这本书仍是你上次的选择。
 /// - 「全局」：与设置页「自动超分」同一条（`realsr_auto_upscale`），所有书的默认。
 class SuperResolutionSection extends StatefulWidget {
-  const SuperResolutionSection({super.key});
+  const SuperResolutionSection({super.key, this.showTitle = true});
+
+  /// `false` = 不画本节标题行（控制面板那张卡自己的标题已经是这句话）。
+  final bool showTitle;
 
   @override
   State<SuperResolutionSection> createState() => SuperResolutionSectionState();
@@ -156,6 +162,9 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
     final hasBook = _hasBook;
 
     Widget section() {
+      final effectiveBookUpscale = presenterReady
+          ? presenter.isUpscaleEnabled
+          : _bookEnabled;
       final cardItems = <Widget>[
         if (!_loading && hasBook && supportsMImageOnnx)
           SettingsDropdownTile<ImageEnhancementMode>(
@@ -163,13 +172,14 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
             subtitle: _denoiseEnabled && !_denoiseModelReady
                 ? 'JPEG 降噪模型未安装'
                 : '不修改原图；降噪在超分之前运行',
+            icon: AppGlyphs.wand,
+            badgeShape: ExpressiveButtonShape.flower,
+            badgeTone: ExpressiveTone.tertiary,
             value: ImageEnhancementMode.fromStages(
               denoise: presenterReady
                   ? presenter.isDenoiseEnabled
                   : _denoiseEnabled,
-              upscale: presenterReady
-                  ? presenter.isUpscaleEnabled
-                  : _bookEnabled,
+              upscale: effectiveBookUpscale,
             ),
             values: ImageEnhancementMode.values,
             labelOf: (mode) => mode.label,
@@ -183,7 +193,10 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
                 : _modelReady
                 ? '只影响这本书，其它书仍按全局设置'
                 : '只影响这本书；模型未下载，开启时会先问一句',
-            value: presenterReady ? presenter.isUpscaleEnabled : _bookEnabled,
+            icon: AppGlyphs.sparkle,
+            badgeShape: ExpressiveButtonShape.sunny,
+            badgeTone: ExpressiveTone.primary,
+            value: effectiveBookUpscale,
             disabled: !hasBook,
             onChanged: _setBookUpscale,
           ),
@@ -193,6 +206,9 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
             builder: (_, _, _) => SettingsSwitchTile(
               title: '对比原图',
               subtitle: '临时切回原图，关闭后恢复处理结果',
+              icon: AppGlyphs.split,
+              badgeShape: ExpressiveButtonShape.gem,
+              badgeTone: ExpressiveTone.secondary,
               value: OnlineImageProcessing.previewsOriginal(_bookKey),
               onChanged: (v) =>
                   OnlineImageProcessing.setOriginalPreview(_bookKey, v),
@@ -205,6 +221,9 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
             child: SettingsSwitchTile(
               title: '对比原图',
               subtitle: '临时查看原图，关闭后恢复处理结果',
+              icon: AppGlyphs.split,
+              badgeShape: ExpressiveButtonShape.gem,
+              badgeTone: ExpressiveTone.secondary,
               value: presenter.isOriginalPreview,
               onChanged: presenter.setOriginalPreview,
             ),
@@ -216,6 +235,9 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
             subtitle: _globalEnabled
                 ? '所有书的默认（与设置页那条同一条）'
                 : '所有书的默认，现在关着；打开后没有单独设置的书都会跟着开',
+            icon: AppGlyphs.rocket,
+            badgeShape: ExpressiveButtonShape.clover8Leaf,
+            badgeTone: ExpressiveTone.primary,
             value: _globalEnabled,
             onChanged: _setGlobalUpscale,
           ),
@@ -223,6 +245,9 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
           SettingsDropdownTile<RealSrResolutionThreshold>(
             title: t.realSr.resolutionThreshold,
             subtitle: t.realSr.resolutionThresholdSubtitle,
+            icon: AppGlyphs.aspectRatio,
+            badgeShape: ExpressiveButtonShape.pentagon,
+            badgeTone: ExpressiveTone.secondary,
             value: RealSrSettings.effectiveThreshold(_threshold),
             values: RealSrSettings.availableThresholds,
             labelOf: (threshold) => threshold.label,
@@ -232,37 +257,26 @@ class SuperResolutionSectionState extends State<SuperResolutionSection> {
 
       if (cardItems.isEmpty && !hasEngineChoice) return const SizedBox.shrink();
 
-      final colorScheme = Theme.of(context).colorScheme;
-
       return SettingsSection(
         title: 'AI 超分辨率',
         icon: AppGlyphs.sparkle,
+        showTitle: widget.showTitle,
         children: [
-          SettingsCardGroup(children: cardItems),
+          SettingsCardGroup(
+            seed: expressiveBlobSeed('sr_core_controls'),
+            children: cardItems,
+          ),
           if (hasEngineChoice) ...[
-            // 底色走 Material，理由与 [SettingsCardGroup] 一样：
-            // 这段里嵌的 `ExpansionTile` 把水波画在**最近的 Material 祖先**上，
-            // 被一层带色 DecoratedBox 挡住就永远看不见（Flutter 会直接抛断言）。
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Material(
-                color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.35,
-                ),
-                type: MaterialType.canvas,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: const SuperResolutionEngineSettings(
-                    isReaderCompact: true,
-                  ),
-                ),
-              ),
+            // 底色走 ExpressivePatchBackdrop（根为 Material），
+            // 内部 ExpansionTile 的水波直接画在该 Material 上，并带撞色几何贴片。
+            ExpressivePatchBackdrop(
+              seed: expressiveBlobSeed('sr_engine_backdrop'),
+              tone: ExpressiveTone.sunken,
+              active: _globalEnabled || effectiveBookUpscale,
+              intensity: 0.95,
+              borderRadius: expressiveCornerMd,
+              padding: const EdgeInsets.all(14),
+              child: const SuperResolutionEngineSettings(isReaderCompact: true),
             ),
           ],
           const UpscaleConditionsCard(isReaderCompact: true),

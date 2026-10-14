@@ -54,9 +54,27 @@ class MarginFitCache {
     return _bboxFor(key, source, rgba, width, height, tolerance).then(options.protect);
   }
 
+  /// 文件页按路径和文件版本缓存；同一路径被翻译或超分结果覆盖后会重新检测。
+  Future<Rect?> bboxForFile({
+    required String path,
+    required int revision,
+    required int byteLength,
+    required DateTime modified,
+    required Uint8List rgba,
+    required int width,
+    required int height,
+  }) async {
+    await AutoTrimSettings.load();
+    final options = AutoTrimSettings.options.value;
+    final key =
+        'file|$path|$revision|$byteLength|'
+        '${modified.microsecondsSinceEpoch}|$width x $height|${options.cacheKey}';
+    return _bboxFor(key, path, rgba, width, height, options.tolerance).then(options.protect);
+  }
+
   Future<Rect?> _bboxFor(
     String key,
-    PageSource source,
+    Object source,
     Uint8List rgba,
     int width,
     int height,
@@ -86,7 +104,7 @@ class MarginFitCache {
 
   Future<Rect?> _detect(
     String key,
-    PageSource source,
+    Object source,
     Uint8List rgba,
     int width,
     int height,
@@ -136,7 +154,7 @@ class MarginFitCache {
 
 class _Entry {
   /// 强引用来源，保住它的身份哈希不被复用（见类注释）。
-  final PageSource source;
+  final Object source;
 
   /// `null` = 这一页检测过了，答案是「不裁」。
   final Rect? rect;
