@@ -109,6 +109,10 @@ dependencies:
   # 触摸拖拽在 acceptsDrops:false 的组里纯抢手势，上游无此开关，故走本地副本。
   plat:
     path: vendor/plat
+  # Vendored（MIT，溯源与说明见 vendor/scroll_spy/VENDORED.md）：
+  # 焦点区域与稳定主项检测（设置页 Scroll Spy 与页内目录同步）。
+  scroll_spy:
+    path: vendor/scroll_spy
   flutter_sticky_header: ^0.8.0 # UI: 分组吸顶组头
   multi_split_view: ^3.6.2
   material_3_expressive: ^1.1.6
