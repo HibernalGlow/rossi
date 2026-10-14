@@ -1,21 +1,33 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/reader_thumbnail_service.dart';
+import 'package:zephyr/widgets/library_image_geometry.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
-import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
+import 'package:zephyr/workspace/widgets/cards/page_list_jump_card.dart';
+import 'package:zephyr/workspace/widgets/cards/page_list_panel_controller.dart';
 import 'package:zephyr/workspace/widgets/cards/page_list_row_anchor.dart';
-import 'package:zephyr/icons/icons.dart';
-import 'package:zephyr/widgets/search/search_history_field.dart';
-import 'package:zephyr/widgets/search/search_history_store.dart';
+import 'package:zephyr/workspace/widgets/cards/page_list_search_card.dart';
+import 'package:zephyr/workspace/widgets/collapsible_card.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
+import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 
-enum PageListViewMode { thumbnails, details, list }
+export 'package:zephyr/workspace/widgets/cards/page_list_jump_card.dart';
+export 'package:zephyr/workspace/widgets/cards/page_list_panel_controller.dart';
+export 'package:zephyr/workspace/widgets/cards/page_list_search_card.dart';
 
-/// 工作区页面列表卡片（Page List Card / 页面导航）。
+part 'parts/page_list_card_content_part.dart';
+
+/// 工作区页面导航展示栏小组件（Page List Display Card）。
 ///
-/// 参考 NeoView `PageNavigationCard` 设计，支持 3 种展示模式、搜索过滤、
-/// 跟随阅读进度自动滚动、缩略图预览及精准跳转。
+/// 在工作区面板网格中（`isStandalone: false`），作为无常驻标题栏的 MD3 Expressive 小组件，
+/// 专注渲染中间的缩略图/详细/紧凑列表或原图展墙，并与 [PageListSearchCard]、[PageListJumpCard]
+/// 共享 [PageListPanelController]，默认全宽且自动撑满面板剩余可视高度。
+///
+/// 当 `isStandalone: true` 时（供独立挂载与单测环境使用），内联组合搜索栏、展示区与跳转栏。
 class PageListCard extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
@@ -23,6 +35,7 @@ class PageListCard extends StatefulWidget {
   final VoidCallback? onMoveDown;
   final VoidCallback? onHide;
   final bool isStandalone;
+  final PageListPanelController? controller;
 
   const PageListCard({
     super.key,
@@ -32,6 +45,7 @@ class PageListCard extends StatefulWidget {
     this.onMoveDown,
     this.onHide,
     this.isStandalone = false,
+    this.controller,
   });
 
   @override
@@ -39,36 +53,32 @@ class PageListCard extends StatefulWidget {
 }
 
 class _PageListCardState extends State<PageListCard> {
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _jumpPageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  PageListViewMode _viewMode = PageListViewMode.thumbnails;
-  bool _followProgress = true;
-  String _searchQuery = '';
+  PageListPanelController? _localController;
+  PageListPanelController get _ctrl =>
+      widget.controller ?? _localController ?? PageListPanelController.instance;
+
   int _lastFollowedSlot = -1;
   int _pendingFollowSlot = -1;
   bool _followScheduled = false;
+  int _lastFollowSignal = 0;
 
   /// 缩略图模式一行几列。网格的 `crossAxisCount` 与滚动定位必须共用这一个数，
   /// 否则「第几行」两边各算各的，居中就会落到隔壁行上。
   static const int _gridCrossAxisCount = 3;
 
   int get _itemsPerRow =>
-      _viewMode == PageListViewMode.thumbnails ? _gridCrossAxisCount : 1;
+      _ctrl.viewMode == PageListViewMode.thumbnails ? _gridCrossAxisCount : 1;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      final query = _searchController.text.trim().toLowerCase();
-      if (_searchQuery != query) {
-        setState(() {
-          _searchQuery = query;
-        });
-      }
-    });
-
+    if (widget.isStandalone && widget.controller == null) {
+      _localController = PageListPanelController();
+    }
+    _lastFollowSignal = _ctrl.followSignal;
+    _ctrl.addListener(_onPanelControllerChanged);
     ReaderSessionCoordinator.instance.addListener(_onCoordinatorUpdate);
     // 打开面板时当前页往往已经在几百页开外，而那一下进度通知早在卡片建出来之前就
     // 发完了 —— 补一次居中，不然「跟着进度」只剩「从下一页开始才跟」。
@@ -80,8 +90,23 @@ class _PageListCardState extends State<PageListCard> {
   @override
   void didUpdateWidget(PageListCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 折叠状态下 AnimatedCrossFade 把内容按零高布局，那一次居中量不到有意义的
-    // 可视区；展开这一下按真实的可见高度重新居中。
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.isStandalone != widget.isStandalone) {
+      final oldCtrl =
+          oldWidget.controller ??
+          _localController ??
+          PageListPanelController.instance;
+      oldCtrl.removeListener(_onPanelControllerChanged);
+      if (widget.isStandalone && widget.controller == null) {
+        _localController ??= PageListPanelController();
+      } else {
+        _localController?.dispose();
+        _localController = null;
+      }
+      _lastFollowSignal = _ctrl.followSignal;
+      _ctrl.addListener(_onPanelControllerChanged);
+    }
+    // 折叠状态下内容不展开，展开这一下按真实的可见高度重新居中。
     if (!oldWidget.isExpanded && widget.isExpanded) {
       _followCurrent(force: true);
     }
@@ -89,15 +114,24 @@ class _PageListCardState extends State<PageListCard> {
 
   @override
   void dispose() {
+    _ctrl.removeListener(_onPanelControllerChanged);
+    _localController?.dispose();
     ReaderSessionCoordinator.instance.removeListener(_onCoordinatorUpdate);
-    _searchController.dispose();
-    _jumpPageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
+  void _onPanelControllerChanged() {
+    if (!mounted) return;
+    if (_ctrl.followSignal != _lastFollowSignal) {
+      _lastFollowSignal = _ctrl.followSignal;
+      _followCurrent(force: _ctrl.forceFollow);
+    }
+    setState(() {});
+  }
+
   void _onCoordinatorUpdate() {
-    if (!_followProgress) return;
+    if (!_ctrl.followProgress) return;
     _followCurrent();
   }
 
@@ -108,7 +142,7 @@ class _PageListCardState extends State<PageListCard> {
   /// 行的排布变了，不重算就会停在一个对不上号的位置。
   void _followCurrent({bool force = false}) {
     final coordinator = ReaderSessionCoordinator.instance;
-    if (!coordinator.hasActiveSession || _searchQuery.isNotEmpty) return;
+    if (!coordinator.hasActiveSession || _ctrl.searchQuery.isNotEmpty) return;
     _scheduleFollow(coordinator.currentSlot, force: force);
   }
 
@@ -130,7 +164,13 @@ class _PageListCardState extends State<PageListCard> {
   ///
   /// 量不出几何（还没布局好）时不动记账，下一次进度通知会再试一次。
   void _followTo(int slot) {
-    if (!mounted || slot < 0 || !_scrollController.hasClients) return;
+    if (!mounted || slot < 0) return;
+    if (_ctrl.pageEditorial) {
+      _ctrl.canvasKey.currentState?.revealEntry('page:$slot');
+      _lastFollowedSlot = slot;
+      return;
+    }
+    if (!_scrollController.hasClients) return;
     final anchor = PageListRowAnchor.measure(
       _scrollController.position,
       itemIndex: slot,
@@ -143,18 +183,6 @@ class _PageListCardState extends State<PageListCard> {
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
-  }
-
-  void _jumpToPageInput() {
-    final text = _jumpPageController.text.trim();
-    final pageNumber = int.tryParse(text);
-    final coordinator = ReaderSessionCoordinator.instance;
-    if (pageNumber != null &&
-        pageNumber >= 1 &&
-        pageNumber <= coordinator.totalSlots) {
-      coordinator.jumpTo(pageNumber - 1);
-      FocusScope.of(context).unfocus();
-    }
   }
 
   @override
@@ -172,7 +200,7 @@ class _PageListCardState extends State<PageListCard> {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: hasSession
-                ? _buildActiveContent(
+                ? _buildStandaloneActiveContent(
                     coordinator: coordinator,
                     currentSlot: currentSlot,
                     totalSlots: totalPages,
@@ -183,8 +211,12 @@ class _PageListCardState extends State<PageListCard> {
 
         return CollapsibleCard(
           cardId: WorkspaceCardRegistry.pageList,
-          title: '页面导航 (${hasSession ? "$totalPages P" : "空闲"})',
+          title: '页面导航',
           icon: AppGlyphs.cardMedium,
+          expressive: true,
+          scrollContent: false,
+          margin: EdgeInsets.zero,
+          contentPadding: const EdgeInsets.all(6),
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -192,9 +224,9 @@ class _PageListCardState extends State<PageListCard> {
           onHide: widget.onHide,
           trailing: hasSession
               ? InfoCardCounter('${currentSlot + 1} / $totalPages')
-              : null,
+              : const InfoCardCounter('空闲'),
           child: hasSession
-              ? _buildActiveContent(
+              ? _buildViewportList(
                   coordinator: coordinator,
                   currentSlot: currentSlot,
                   totalSlots: totalPages,
@@ -224,234 +256,7 @@ class _PageListCardState extends State<PageListCard> {
         ),
       ],
     );
-    if (widget.isStandalone) {
-      return Center(child: emptyWidget);
-    }
-    return Container(
-      height: 180,
-      alignment: Alignment.center,
-      child: emptyWidget,
-    );
-  }
-
-  Widget _buildActiveContent({
-    required ReaderSessionCoordinator coordinator,
-    required int currentSlot,
-    required int totalSlots,
-  }) {
-    final theme = Theme.of(context);
-    final docs = coordinator.docs;
-
-    // 过滤页面列表
-    final List<int> filteredIndices = [];
-    for (int i = 0; i < totalSlots; i++) {
-      if (_searchQuery.isEmpty) {
-        filteredIndices.add(i);
-      } else {
-        final pageNumStr = '${i + 1}';
-        final name = i < docs.length ? docs[i].originalName.toLowerCase() : '';
-        if (pageNumStr.contains(_searchQuery) || name.contains(_searchQuery)) {
-          filteredIndices.add(i);
-        }
-      }
-    }
-
-    final listWidget = Material(
-      color: theme.colorScheme.surfaceContainerLowest,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-        ),
-      ),
-      child: filteredIndices.isEmpty
-          ? Center(
-              child: Text(
-                '没有匹配的页面',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            )
-          : _buildContentByMode(
-              coordinator: coordinator,
-              filteredIndices: filteredIndices,
-              currentSlot: currentSlot,
-              docs: docs,
-            ),
-    );
-
-    return Material(
-      type: MaterialType.transparency,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 顶部工具栏：搜索框、跟随阅读进度、模式切换
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 32,
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(fontSize: 12),
-                    decoration: InputDecoration(
-                      hintText: '搜索页码或文件名...',
-                      hintStyle: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      prefixIcon: const GlyphIcon(AppGlyphs.search, size: 16),
-                      contentPadding: EdgeInsets.zero,
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.4),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // 跟随进度按钮
-              IconButton(
-                iconSize: 18,
-                visualDensity: VisualDensity.compact,
-                tooltip: _followProgress ? '正在跟随阅读进度' : '已暂停跟随阅读进度',
-                style: IconButton.styleFrom(
-                  // MD3 的「按下/选中」图标钮：secondaryContainer 底 + onSecondaryContainer 图。
-                  backgroundColor: _followProgress
-                      ? theme.colorScheme.secondaryContainer
-                      : null,
-                  foregroundColor: _followProgress
-                      ? theme.colorScheme.onSecondaryContainer
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _followProgress = !_followProgress;
-                  });
-                },
-                icon: const GlyphIcon(AppGlyphs.target),
-              ),
-              // 模式切换
-              IconButton(
-                iconSize: 18,
-                visualDensity: VisualDensity.compact,
-                tooltip: '视图模式',
-                onPressed: _cycleViewMode,
-                icon: GlyphIcon(_getViewModeIcon()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // 页面主体列表/网格（独占模式下撑满高度，聚合模式下最大 440）
-          widget.isStandalone
-              ? Expanded(child: listWidget)
-              : ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxHeight: 440,
-                    minHeight: 180,
-                  ),
-                  child: listWidget,
-                ),
-
-          const SizedBox(height: 8),
-          // 底部快捷跳转栏
-          Row(
-            children: [
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 6,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 10,
-                    ),
-                  ),
-                  child: Slider(
-                    value: currentSlot.toDouble().clamp(
-                      0.0,
-                      (totalSlots - 1).clamp(0, 999999).toDouble(),
-                    ),
-                    min: 0,
-                    max: (totalSlots - 1).clamp(0, 999999).toDouble(),
-                    onChanged: (value) {
-                      coordinator.jumpTo(value.round());
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              SizedBox(
-                width: 52,
-                height: 28,
-                child: TextField(
-                  controller: _jumpPageController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11),
-                  decoration: InputDecoration(
-                    hintText: '页码',
-                    hintStyle: const TextStyle(fontSize: 10),
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  onSubmitted: (_) => _jumpToPageInput(),
-                ),
-              ),
-              const SizedBox(width: 4),
-              FilledButton.tonal(
-                onPressed: _jumpToPageInput,
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-                child: const Text('跳转', style: TextStyle(fontSize: 11)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _cycleViewMode() {
-    setState(() {
-      switch (_viewMode) {
-        case PageListViewMode.thumbnails:
-          _viewMode = PageListViewMode.details;
-          break;
-        case PageListViewMode.details:
-          _viewMode = PageListViewMode.list;
-          break;
-        case PageListViewMode.list:
-          _viewMode = PageListViewMode.thumbnails;
-          break;
-      }
-    });
-    // 换模式等于换了一套行高与每行项数，旧偏移在新列表里没有意义。
-    _followCurrent(force: true);
-  }
-
-  Glyph _getViewModeIcon() {
-    switch (_viewMode) {
-      case PageListViewMode.thumbnails:
-        return AppGlyphs.dashboard;
-      case PageListViewMode.details:
-        return AppGlyphs.viewAgenda;
-      case PageListViewMode.list:
-        return AppGlyphs.layoutList;
-    }
+    return Center(child: emptyWidget);
   }
 
   Widget _buildContentByMode({
@@ -460,7 +265,7 @@ class _PageListCardState extends State<PageListCard> {
     required int currentSlot,
     required List<Doc> docs,
   }) {
-    switch (_viewMode) {
+    switch (_ctrl.viewMode) {
       case PageListViewMode.thumbnails:
         return GridView.builder(
           controller: _scrollController,
@@ -563,13 +368,28 @@ class _PageListCardState extends State<PageListCard> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                ReaderThumbnailWidget(
-                  index: pageIndex,
-                  doc: doc,
-                  localSource: coordinator.localSource,
-                  comicId: coordinator.comicId ?? '',
-                  from: coordinator.from ?? '',
-                  fit: BoxFit.cover,
+                Builder(
+                  builder: (context) {
+                    final scale =
+                        LibraryImageGeometryScope.maybeOf(
+                          context,
+                        )?.imageScale ??
+                        1;
+                    return Center(
+                      child: FractionallySizedBox(
+                        widthFactor: scale,
+                        heightFactor: scale,
+                        child: ReaderThumbnailWidget(
+                          index: pageIndex,
+                          doc: doc,
+                          localSource: coordinator.localSource,
+                          comicId: coordinator.comicId ?? '',
+                          from: coordinator.from ?? '',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 Positioned(
                   bottom: 0,
@@ -650,55 +470,57 @@ class _PageListCardState extends State<PageListCard> {
               )
             : null,
       ),
-      // ListTile 把底色与水波纹画在**最近的 Material 祖先**上；外面这层
-      // Container 带 active 底色时，框架断言会报「ListTile background color or
-      // ink splashes may be invisible」（10-03 的滚动跟随判据让当前行真正
-      // active 后踩出来的）。套一层透明 Material：水波纹有地方画，视觉不变。
       child: Material(
         type: MaterialType.transparency,
         child: ListTile(
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        leading: SizedBox(
-          width: 42,
-          height: 56,
-          child: ReaderThumbnailWidget(
-            index: pageIndex,
-            doc: doc,
-            localSource: coordinator.localSource,
-            comicId: coordinator.comicId ?? '',
-            from: coordinator.from ?? '',
-            fit: BoxFit.cover,
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 6,
+            vertical: 2,
           ),
-        ),
-        title: Text(
-          '#${pageIndex + 1}  $name',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? theme.colorScheme.primary : null,
+          leading: SizedBox(
+            width: 42,
+            height: 56,
+            child: ReaderThumbnailWidget(
+              index: pageIndex,
+              doc: doc,
+              localSource: coordinator.localSource,
+              comicId: coordinator.comicId ?? '',
+              from: coordinator.from ?? '',
+              fit: BoxFit.contain,
+            ),
           ),
-        ),
-        trailing: isActive
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '当前',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimary,
+          title: Text(
+            '#${pageIndex + 1}  $name',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive ? theme.colorScheme.primary : null,
+            ),
+          ),
+          trailing: isActive
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
                   ),
-                ),
-              )
-            : null,
-        onTap: () => coordinator.jumpTo(pageIndex),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '当前',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                )
+              : null,
+          onTap: () => coordinator.jumpTo(pageIndex),
         ),
       ),
     );
