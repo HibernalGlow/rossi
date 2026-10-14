@@ -16,10 +16,10 @@ import 'package:zephyr/widgets/plat/rossi_plat_theme.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
 import 'package:zephyr/widgets/action_group.dart';
-import 'package:zephyr/widgets/fluent_dropdown.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
-import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 
 /// 发现页的标签宿主：一个 plat 的 `PlatTabGroup`。
 ///
@@ -471,8 +471,10 @@ class _BarActions extends StatelessWidget {
             Builder(
               builder: (anchor) => ActionIconButton(
                 glyph: AppGlyphs.palette,
-                tooltip: '展墙设置',
+                // 与工具条上那颗展墙键共用一句提示：单击进面板、长按快速开关。
+                tooltip: LibraryPresentationButton.tooltip,
                 onPressed: () => toolbar.presentation?.call(anchor),
+                onLongPress: toolbar.togglePresentation,
               ),
             ),
             gap(),
@@ -504,14 +506,12 @@ class _BarActions extends StatelessWidget {
 /// 为什么不搬去设置页：这几颗改的是**眼前这一条**标签条的长相与手感，就地调、
 /// 就地看到。值本身仍写进全局设置（见 `DiscoverSettingState`），所以跨重启留着。
 ///
-/// 用 [FluentPopupMenuButton] 而不是 M2 的 `PopupMenuButton`：后者的展开只有
-/// 纯淡入，Fluent 这一份至少是「淡入 + 从锚点缩放」
-/// （`lib/widgets/fluent_dropdown.dart`）。与旁边两颗动作键一样，触发键也套
-/// [ElasticButton]，于是按压手感三颗同源。
+/// 弹出走 `common_popup.dart` 那套 FlClash 托盘动画（托盘从锚点长出来、内容由糊变
+/// 清）—— 与工作台那排「更多」、书架 / 页签的右键同一套。这里原来是
+/// `FluentPopupMenuButton`（淡入 + 从锚点缩放），是全仓最后一颗没收敛的左键菜单。
 ///
-/// 注意：这一颗仍是**旧动画**。本仓的弹出菜单正在向 `common_popup.dart` 的
-/// FlClash 托盘动画（托盘从锚点长出来、内容由糊变清）统一 —— 工作台那排「更多」、
-/// 书架 / 页签的右键都已换过去；这颗左键菜单待收敛。
+/// 触发键**不套** `ElasticButton`：托盘自己就从这颗键长出来，两套形变叠在一起会读成
+/// 脏（与 `ActionIconButton` 里把 ripple 关掉是同一个理由）。
 ///
 /// 顺带修掉一处地雷：旧版给 `PopupMenuButton` 传了 `constraints: 32×32`，
 /// 而那个参数是**菜单**的尺寸约束（SDK 原文 "Optional size constraints for the
@@ -527,78 +527,69 @@ class _DisplayOptionsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<GlobalSettingCubit>();
     final setting = context.watch<GlobalSettingCubit>().state.discoverSetting;
-    return ElasticButton(
-      // 触发键与同一排另外两颗共用一份度量（`ActionIconButton.style`）：
+    void applySide(DiscoverTabBarSide side) {
+      cubit.updateDiscoverSetting((current) => current.copyWith(tabSide: side));
+      // 朝向是**树**上的状态（plat 把它记在标签组节点里），只改设置
+      // 不会让眼前这一条转过去；两处一起动，才不会出现「下次才是这样」。
+      tabs.setSide(side);
+    }
+
+    return CommonPopupBox<void>(
+      // 与同一排另外两颗共用一份度量（`ActionIconButton.style`）：
       // 少传这一档它会退回 48 的缺省档，把整行顶高（而这一排横向只有 48）。
-      child: FluentPopupMenuButton<Object>(
+      targetBuilder: (open) => IconButton(
         tooltip: t.discover.tabDisplay,
-        icon: const GlyphIcon(AppGlyphs.sliders),
+        onPressed: open,
         style: ActionIconButton.style(context),
-        onSelected: (value) {
-          if (value == _TabDisplayOption.icon) {
-            cubit.updateDiscoverSetting(
+        icon: const GlyphIcon(AppGlyphs.sliders),
+      ),
+      popupBuilder: (_) => CommonPopupMenu(
+        items: [
+          CommonPopupMenuItem(
+            label: t.discover.tabShowIcon,
+            glyph: AppGlyphs.iconTile,
+            checked: setting.tabIconEnabled,
+            onPressed: () => cubit.updateDiscoverSetting(
               (current) =>
                   current.copyWith(tabIconEnabled: !current.tabIconEnabled),
-            );
-            return;
-          }
-          if (value == _TabDisplayOption.pluginShort) {
-            cubit.updateDiscoverSetting(
+            ),
+          ),
+          CommonPopupMenuItem(
+            label: t.discover.tabShowPluginShort,
+            glyph: AppGlyphs.puzzle,
+            checked: setting.tabPluginShortEnabled,
+            onPressed: () => cubit.updateDiscoverSetting(
               (current) => current.copyWith(
                 tabPluginShortEnabled: !current.tabPluginShortEnabled,
               ),
-            );
-            return;
-          }
-          if (value == _TabDisplayOption.doubleClickClose) {
-            cubit.updateDiscoverSetting(
+            ),
+          ),
+          CommonPopupMenuItem(
+            label: t.discover.tabDoubleClickClose,
+            glyph: AppGlyphs.close,
+            checked: setting.tabDoubleClickClose,
+            onPressed: () => cubit.updateDiscoverSetting(
               (current) => current.copyWith(
                 tabDoubleClickClose: !current.tabDoubleClickClose,
               ),
-            );
-            return;
-          }
-          if (value is DiscoverTabBarSide) {
-            cubit.updateDiscoverSetting(
-              (current) => current.copyWith(tabSide: value),
-            );
-            // 朝向是**树**上的状态（plat 把它记在标签组节点里），只改设置
-            // 不会让眼前这一条转过去；两处一起动，才不会出现「下次才是这样」。
-            tabs.setSide(value);
-          }
-        },
-        // 不打 `leading`：勾会占住开头那一格（`FluentPopupMenuItem.selected`
-        // 的画法与 M2 的 `CheckedPopupMenuItem` 一致，于是这一段的观感没变）。
-        itemBuilder: (context) => [
-          FluentPopupMenuItem<Object>(
-            value: _TabDisplayOption.icon,
-            title: Text(t.discover.tabShowIcon),
-            selected: setting.tabIconEnabled,
+            ),
           ),
-          FluentPopupMenuItem<Object>(
-            value: _TabDisplayOption.pluginShort,
-            title: Text(t.discover.tabShowPluginShort),
-            selected: setting.tabPluginShortEnabled,
-          ),
-          FluentPopupMenuItem<Object>(
-            value: _TabDisplayOption.doubleClickClose,
-            title: Text(t.discover.tabDoubleClickClose),
-            selected: setting.tabDoubleClickClose,
-          ),
-          const FluentPopupMenuItem<Object>.divider(),
+          const CommonPopupMenuItem.divider(),
           for (final side in DiscoverTabBarSide.values)
-            FluentPopupMenuItem<Object>(
-              value: side,
-              title: Text(side.label),
-              selected: setting.tabSide == side,
+            CommonPopupMenuItem(
+              label: side.label,
+              // 与泳道面板栏停靠那四条同一套读法：横向 rowsTwo、竖向 columnsTwo。
+              glyph: side == DiscoverTabBarSide.top
+                  ? AppGlyphs.rowsTwo
+                  : AppGlyphs.columnsTwo,
+              checked: setting.tabSide == side,
+              onPressed: () => applySide(side),
             ),
         ],
       ),
     );
   }
 }
-
-enum _TabDisplayOption { icon, pluginShort, doubleClickClose }
 
 /// 每个叶子内容拿到的那份把手（见 [DiscoverTabScope]）。
 class _LeafActions implements DiscoverTabActions {
