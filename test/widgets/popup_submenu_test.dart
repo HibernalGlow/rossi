@@ -148,9 +148,7 @@ void main() {
     // 走的是同一个 `maybePop`，在二级里也只能退一层，不能把整个菜单关掉。
     // （刻意不用 `tester.pageBack()`：那是点 Scaffold 那枚 'Back' 提示的助手，
     //  模态弹层上没有那枚按钮，它会直接 fail，量的不是这条路。）
-    await tester
-        .state<NavigatorState>(find.byType(Navigator))
-        .maybePop();
+    await tester.state<NavigatorState>(find.byType(Navigator)).maybePop();
     await tester.pumpAndSettle();
 
     expect(find.text('乙一'), findsNothing);
@@ -179,11 +177,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(opened, ['甲二']);
-    expect(
-      find.byTooltip('更多'),
-      findsOneWidget,
-      reason: '菜单该收起，回到那颗触发键',
-    );
+    expect(find.byTooltip('更多'), findsOneWidget, reason: '菜单该收起，回到那颗触发键');
     expect(find.text('甲二'), findsNothing);
   });
 }
