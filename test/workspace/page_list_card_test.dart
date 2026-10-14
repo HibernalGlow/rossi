@@ -1,19 +1,28 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
+import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
+import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
+import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/widgets/cards/page_list_card.dart';
 import 'package:zephyr/workspace/widgets/cards/page_list_row_anchor.dart';
+import 'package:zephyr/workspace/widgets/grid/card_resize_handle.dart';
+import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
 
 void main() {
   setUp(() {
     ReaderSessionCoordinator.instance.detachSession('test-comic');
+    PageListPanelController.instance.reset();
   });
 
   tearDown(() {
     ReaderSessionCoordinator.instance.detachSession('test-comic');
+    PageListPanelController.instance.reset();
   });
 
   testWidgets('PageListCard 在空会话下正常渲染且无断言失败', (tester) async {
@@ -129,6 +138,93 @@ void main() {
     });
   });
 
+  // ── 无标题栏 MD3 小组件三件套：搜索栏 / 展示栏 / 跳转栏 ──────────────────
+  group('页面导航无标题栏 MD3 小组件三件套', () {
+    testWidgets('默认全宽排布：日常态不显示常驻标题栏，展示区自动撑满剩余可视高度', (tester) async {
+      _attachSession(currentSlot: 20, totalSlots: 33);
+      final cubit = WorkspaceCubit();
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(_buildPageListPanelTestHost(cubit));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PageListSearchCard), findsOneWidget);
+      expect(find.byType(PageListCard), findsOneWidget);
+      expect(find.byType(PageListJumpCard), findsOneWidget);
+
+      // 日常态无常驻折叠按钮与编辑手柄
+      expect(find.byTooltip('折叠搜索栏'), findsNothing);
+      expect(find.byTooltip('折叠页面导航'), findsNothing);
+      expect(find.byTooltip('折叠跳转栏'), findsNothing);
+      expect(find.byType(CardResizeHandle), findsNothing);
+
+      // 验证中间展示栏自动撑满 600px 视口除搜索栏、跳转栏与间距外的剩余高度
+      final searchRect = tester.getRect(find.byType(PageListSearchCard));
+      final displayRect = tester.getRect(find.byType(PageListCard));
+      final jumpRect = tester.getRect(find.byType(PageListJumpCard));
+      expect(searchRect.width, closeTo(344.0, 1.0));
+      expect(displayRect.width, closeTo(344.0, 1.0));
+      expect(jumpRect.width, closeTo(344.0, 1.0));
+      expect(displayRect.height, greaterThan(450.0));
+      expect(jumpRect.bottom, closeTo(592.0, 2.0));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('右键组件弹出菜单：可触发折叠恢复胶囊与进入自定义布局编辑态', (tester) async {
+      _attachSession(currentSlot: 20, totalSlots: 33);
+      final cubit = WorkspaceCubit();
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(_buildPageListPanelTestHost(cubit));
+      await tester.pumpAndSettle();
+
+      // 1. 右键搜索栏 -> 选择「折叠搜索栏」
+      await tester.tap(
+        find.byType(PageListSearchCard),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('折叠搜索栏'), findsOneWidget);
+      expect(find.text('自定义布局'), findsOneWidget);
+
+      await tester.tap(find.text('折叠搜索栏'));
+      await tester.pumpAndSettle();
+      expect(
+        cubit.state.board
+            .cardLayout(WorkspaceCardRegistry.pageListSearch)
+            ?.expanded,
+        isFalse,
+      );
+      // 折叠后保留胶囊恢复条，点击即可恢复展开
+      expect(find.text('搜索页码或文件名…'), findsOneWidget);
+      await tester.tap(find.text('搜索页码或文件名…'));
+      await tester.pumpAndSettle();
+      expect(
+        cubit.state.board
+            .cardLayout(WorkspaceCardRegistry.pageListSearch)
+            ?.expanded,
+        isTrue,
+      );
+
+      // 2. 右键展示栏 -> 选择「自定义布局」进入编辑模式
+      await tester.tap(
+        find.byType(PageListCard),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('自定义布局'));
+      await tester.pumpAndSettle();
+
+      // 编辑模式下三个组件均浮现临时标题、布局按钮、折叠按钮与右下角尺寸手柄
+      expect(find.text('搜索栏'), findsOneWidget);
+      expect(find.text('页面导航'), findsOneWidget);
+      expect(find.text('跳转栏'), findsOneWidget);
+      expect(find.byTooltip('卡片布局'), findsNWidgets(3));
+      expect(find.byType(CardResizeHandle), findsNWidgets(3));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   // ── 量行这一层：PageListRowAnchor 的几何口径 ──────────────────────────
   //
   // 这里的列表是按卡片三种模式的真实参数搭的副本（同一个 crossAxisCount /
@@ -226,6 +322,40 @@ void main() {
   });
 }
 
+Widget _buildPageListPanelTestHost(WorkspaceCubit cubit) {
+  final editing = ValueNotifier<bool>(false);
+  return MaterialApp(
+    home: BlocProvider<WorkspaceCubit>.value(
+      value: cubit,
+      child: Scaffold(
+        body: SizedBox(
+          width: 360,
+          height: 600,
+          child: ValueListenableBuilder<bool>(
+            valueListenable: editing,
+            builder: (context, isEditing, _) {
+              final board = context.watch<WorkspaceCubit>().state.board;
+              return PanelCardList(
+                panelId: WorkspacePanelId.pageList,
+                board: board,
+                isEditing: isEditing,
+                onToggleEditing: () => editing.value = !editing.value,
+                onSetExpanded: cubit.setCardExpanded,
+                onMoveCard: (cardId, dir) => cubit.moveCardInPanel(
+                  WorkspacePanelId.pageList,
+                  cardId,
+                  dir,
+                ),
+                onHideCard: (cardId) => cubit.setCardVisible(cardId, false),
+              );
+            },
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 enum _Probe { grid, details, compact }
 
 void _noop() {}
@@ -301,11 +431,7 @@ Rect _rowRect(WidgetTester tester, _Probe probe) {
     of: badge,
     matching: find.byType(probe == _Probe.details ? ListTile : InkWell),
   );
-  expect(
-    row,
-    findsOneWidget,
-    reason: '$probe 模式下没找到当前页那一行：它已经滚出可视区了',
-  );
+  expect(row, findsOneWidget, reason: '$probe 模式下没找到当前页那一行：它已经滚出可视区了');
   return tester.getRect(row.first);
 }
 
