@@ -1001,6 +1001,97 @@ class ComicFollow {
   }
 }
 
+/// 章节阅读标记：用户**人为**标的已读/未读，一行一章。
+///
+/// 与 [UnifiedComicHistory] 是两套独立事实，互不覆盖：
+/// - `UnifiedComicHistory.chapterOrder/pageIndex` = 实际读到哪里（阅读器唯一写入方）
+/// - 本表 = 用户手动判决（标记已读/未读），不产生阅读进度，也不动书签
+///
+/// 没有行 = 没标过 = 沿用「读到过」的推断；所以 `markedRead=false` 有意义
+/// （它能把推断成已读的章显式拉回未读），不要用删行来表达未读。
+/// `deleted` 是给同步用的墓碑，不参与本地判断。
+@Entity()
+@JsonSerializable()
+class ComicChapterReadMark {
+  @Id()
+  int id;
+
+  /// `'$source:$comicId:$chapterId'`，与历史表同一套拼法；只做唯一约束与
+  /// 同步合并键，任何地方都不要反向切分它。
+  @Unique()
+  String uniqueKey;
+
+  String source;
+  String comicId;
+  String chapterId;
+
+  /// 标记时的章节序号（1 基）。追更统计要在不加载章节列表的情况下算修正量，
+  /// 所以把序号一起存下来；章节换 id 时以 [chapterId] 为准，这个值只作统计近似。
+  int chapterOrder;
+
+  /// true=人为标已读，false=人为标未读。
+  bool markedRead;
+
+  /// 标记与撤销都推进它；不再另存一个「打标时间」—— 一行只在改判决时写入，
+  /// 两个时间戳恒等，留着的代价是这张表要整表进同步快照（按章计数，
+  /// 是全库第一张章节级的表）。
+  @Property(type: PropertyType.date)
+  DateTime updatedAt;
+
+  bool deleted;
+
+  int schemaVersion;
+
+  ComicChapterReadMark({
+    this.id = 0,
+    required this.uniqueKey,
+    required this.source,
+    required this.comicId,
+    required this.chapterId,
+    required this.chapterOrder,
+    required this.markedRead,
+    required this.updatedAt,
+    required this.deleted,
+    this.schemaVersion = 1,
+  });
+
+  ComicChapterReadMark copyWith({
+    int? id,
+    String? uniqueKey,
+    String? source,
+    String? comicId,
+    String? chapterId,
+    int? chapterOrder,
+    bool? markedRead,
+    DateTime? updatedAt,
+    bool? deleted,
+    int? schemaVersion,
+  }) {
+    return ComicChapterReadMark(
+      id: id ?? this.id,
+      uniqueKey: uniqueKey ?? this.uniqueKey,
+      source: source ?? this.source,
+      comicId: comicId ?? this.comicId,
+      chapterId: chapterId ?? this.chapterId,
+      chapterOrder: chapterOrder ?? this.chapterOrder,
+      markedRead: markedRead ?? this.markedRead,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+    );
+  }
+
+  Map<String, dynamic> toJson() => _$ComicChapterReadMarkToJson(this);
+
+  factory ComicChapterReadMark.fromJson(Map<String, dynamic> json) =>
+      _$ComicChapterReadMarkFromJson(json);
+
+  @override
+  String toString() {
+    return jsonEncode(toJson());
+  }
+}
+
 /// 漫画文件夹/链接类型：收藏、历史、下载
 enum ComicFolderType { favorite, history, download }
 

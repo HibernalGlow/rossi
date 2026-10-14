@@ -351,3 +351,50 @@ GlobalSettingState applySyncableBlockDataForTest(
   };
   return _applySyncableBlocksToState(localState, blocks);
 }
+
+/// 将全局设置编码成可在设备之间迁移的 JSON。
+///
+/// 本地备份与 WebDAV / S3 使用同一套设置边界：本机路径、代理、窗口几何、
+/// 应用锁、同步凭据和调试状态不会被写入备份包。这样备份在移动端与桌面端
+/// 之间传递时，不会把另一台设备的本机事实带过去。
+Map<String, dynamic> exportPortableGlobalSetting(GlobalSettingState state) {
+  final blocks = _extractSyncableSettingsBlocks(state);
+  final result = <String, dynamic>{};
+  for (final entry in blocks.entries) {
+    if (entry.key == _readerBlockName) {
+      result['readSetting'] = entry.value;
+    } else {
+      result.addAll(entry.value);
+    }
+  }
+  return result;
+}
+
+/// 将可迁移设置应用到当前状态，复用同步下载侧的字段白名单与本机事实保护。
+GlobalSettingState importPortableGlobalSetting(
+  GlobalSettingState current,
+  Map<String, dynamic> portableJson,
+) {
+  // 先筛原始 JSON：旧备份里的本机字段即使损坏也不该参与反序列化，
+  // 缺失的偏好也不应被新版本的默认值覆盖。
+  final blocks = <String, Map<String, dynamic>>{
+    for (final entry in _settingsBlockKeys.entries)
+      entry.key: {
+        for (final key in entry.value)
+          if (portableJson.containsKey(key))
+            key: _stripNestedExclusions(key, portableJson[key]),
+      },
+    if (portableJson['readSetting'] is Map)
+      _readerBlockName: Map<String, dynamic>.from(
+        portableJson['readSetting'] as Map,
+      ),
+  };
+  return _applySyncableBlocksToState(current, {
+    for (final entry in blocks.entries)
+      entry.key: _SettingsBlockPayload(
+        name: entry.key,
+        updatedAt: 0,
+        data: entry.value,
+      ),
+  });
+}

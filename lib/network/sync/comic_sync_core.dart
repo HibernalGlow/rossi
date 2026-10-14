@@ -135,6 +135,9 @@ class ComicSyncCore {
     final readPreferences = objectbox.comicReadPreferenceBox.getAll();
     readPreferences.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
+    final chapterReadMarks = objectbox.comicChapterReadMarkBox.getAll();
+    chapterReadMarks.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
     final folders = objectbox.comicFolderBox
         .getAll()
         .where(
@@ -160,6 +163,9 @@ class ComicSyncCore {
       'folders': folders.map((e) => _stripLocalId(e.toJson())).toList(),
       'links': links.map((e) => _stripLocalId(e.toJson())).toList(),
       'readPreferences': readPreferences
+          .map((e) => _stripLocalId(e.toJson()))
+          .toList(),
+      'chapterReadMarks': chapterReadMarks
           .map((e) => _stripLocalId(e.toJson()))
           .toList(),
     };
@@ -202,6 +208,7 @@ class ComicSyncCore {
     final folderBox = store.box<ComicFolder>();
     final linkBox = store.box<ComicLink>();
     final readPreferenceBox = store.box<ComicReadPreference>();
+    final readMarkBox = store.box<ComicChapterReadMark>();
 
     final localFavorites = favoriteBox.getAll();
     final localHistories = historyBox.getAll();
@@ -209,6 +216,7 @@ class ComicSyncCore {
     var localFolders = folderBox.getAll();
     var localLinks = linkBox.getAll();
     final localReadPreferences = readPreferenceBox.getAll();
+    final localReadMarks = readMarkBox.getAll();
 
     final cloudFavorites = _parseJsonList(
       data['favorites'],
@@ -228,6 +236,10 @@ class ComicSyncCore {
     final cloudReadPreferences = _parseJsonList(
       data['readPreferences'],
     ).map(ComicReadPreference.fromJson).toList();
+    // 旧客户端上传的载荷里没有这一项，取到空列表：合并结果就等于保留本地。
+    final cloudReadMarks = _parseJsonList(
+      data['chapterReadMarks'],
+    ).map(ComicChapterReadMark.fromJson).toList();
 
     // 旧数据可能没有 syncId，先兜底补一遍，确保后续按 syncId 合并能正常进行。
     for (final folder in [...localFolders, ...cloudFolders]) {
@@ -258,6 +270,13 @@ class ComicSyncCore {
     final mergedReadPreferences = _mergeByUniqueKey(
       localReadPreferences,
       cloudReadPreferences,
+      keyOf: (item) => item.uniqueKey,
+      updatedAtOf: (item) => item.updatedAt,
+    );
+    // 章节标记：一章一行，uniqueKey 相同就比 updatedAt，大的保留（相等保本地）。
+    final mergedReadMarks = _mergeByUniqueKey(
+      localReadMarks,
+      cloudReadMarks,
       keyOf: (item) => item.uniqueKey,
       updatedAtOf: (item) => item.updatedAt,
     );
@@ -342,6 +361,9 @@ class ComicSyncCore {
     for (final item in mergedReadPreferences) {
       item.id = 0;
     }
+    for (final item in mergedReadMarks) {
+      item.id = 0;
+    }
     for (final item in mergedFolders) {
       item.id = 0;
     }
@@ -355,6 +377,7 @@ class ComicSyncCore {
     folderBox.removeAll();
     linkBox.removeAll();
     readPreferenceBox.removeAll();
+    readMarkBox.removeAll();
 
     if (mergedFavorites.isNotEmpty) {
       favoriteBox.putMany(mergedFavorites);
@@ -368,6 +391,9 @@ class ComicSyncCore {
     if (mergedReadPreferences.isNotEmpty) {
       readPreferenceBox.putMany(mergedReadPreferences);
     }
+    if (mergedReadMarks.isNotEmpty) {
+      readMarkBox.putMany(mergedReadMarks);
+    }
     if (mergedFolders.isNotEmpty) {
       folderBox.putMany(mergedFolders);
     }
@@ -380,7 +406,8 @@ class ComicSyncCore {
         mergedFollows.length +
         mergedFolders.length +
         mergedLinks.length +
-        mergedReadPreferences.length;
+        mergedReadPreferences.length +
+        mergedReadMarks.length;
   }
 
   static String extractFileName(String remotePath) {

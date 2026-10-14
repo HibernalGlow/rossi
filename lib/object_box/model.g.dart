@@ -668,6 +668,36 @@ Map<String, dynamic> _$ComicFollowToJson(ComicFollow instance) =>
       'schemaVersion': instance.schemaVersion,
     };
 
+ComicChapterReadMark _$ComicChapterReadMarkFromJson(
+  Map<String, dynamic> json,
+) => ComicChapterReadMark(
+  id: (json['id'] as num?)?.toInt() ?? 0,
+  uniqueKey: json['uniqueKey'] as String,
+  source: json['source'] as String,
+  comicId: json['comicId'] as String,
+  chapterId: json['chapterId'] as String,
+  chapterOrder: (json['chapterOrder'] as num).toInt(),
+  markedRead: json['markedRead'] as bool,
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
+  deleted: json['deleted'] as bool,
+  schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
+);
+
+Map<String, dynamic> _$ComicChapterReadMarkToJson(
+  ComicChapterReadMark instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'uniqueKey': instance.uniqueKey,
+  'source': instance.source,
+  'comicId': instance.comicId,
+  'chapterId': instance.chapterId,
+  'chapterOrder': instance.chapterOrder,
+  'markedRead': instance.markedRead,
+  'updatedAt': instance.updatedAt.toIso8601String(),
+  'deleted': instance.deleted,
+  'schemaVersion': instance.schemaVersion,
+};
+
 ComicFolder _$ComicFolderFromJson(Map<String, dynamic> json) => ComicFolder(
   id: (json['id'] as num?)?.toInt() ?? 0,
   syncId: json['syncId'] as String? ?? '',

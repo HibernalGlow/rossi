@@ -107,15 +107,18 @@ void main() {
         expect(library['bookshelfSetting'], isNotNull);
         expect((library['bookshelfSetting'] as Map)['homePageIndex'], 1);
         // 喜欢画师名单与收藏 tag 一起走 library 块（两者都是跨端偏好）
-        expect(
-          (library['favoriteArtistSetting'] as Map)['artists'],
-          ['ArtistA', 'ArtistB'],
-        );
+        expect((library['favoriteArtistSetting'] as Map)['artists'], [
+          'ArtistA',
+          'ArtistB',
+        ]);
         expect(
           (library['favoriteArtistSetting'] as Map)['highlightEnabled'],
           isTrue,
         );
-        expect((library['favoriteTagSetting'] as Map)['highlightEnabled'], isTrue);
+        expect(
+          (library['favoriteTagSetting'] as Map)['highlightEnabled'],
+          isTrue,
+        );
 
         final reader = blocks['reader']!;
         expect(reader['readWhileDownloading'], isFalse);
@@ -438,6 +441,37 @@ void main() {
       );
 
       _expectNoLocalOnlyKeys(extractSyncableSettingsBlocksForTest(state));
+    });
+
+    test('本地备份沿用同步边界并保留目标设备本机事实', () {
+      const source = GlobalSettingState(
+        localeFollowsSystem: false,
+        customExportPath: '/desktop/export',
+        socks5Proxy: '127.0.0.1:7890',
+        socks5ProxyEnabled: true,
+        windowWidth: 1920,
+        windowHeight: 1080,
+        appLockSetting: AppLockSettingState(enabled: true),
+        downloadConcurrency: 7,
+      );
+
+      final portable = exportPortableGlobalSetting(source);
+      expect(portable['downloadConcurrency'], 7);
+      expect(portable.containsKey('customExportPath'), isFalse);
+      expect(portable.containsKey('socks5Proxy'), isFalse);
+      expect(portable.containsKey('windowWidth'), isFalse);
+      expect(portable.containsKey('appLockSetting'), isFalse);
+
+      const target = GlobalSettingState(
+        customExportPath: '/mobile/export',
+        socks5Proxy: '10.0.0.2:1080',
+        windowWidth: 412,
+      );
+      final merged = importPortableGlobalSetting(target, portable);
+      expect(merged.downloadConcurrency, 7);
+      expect(merged.customExportPath, '/mobile/export');
+      expect(merged.socks5Proxy, '10.0.0.2:1080');
+      expect(merged.windowWidth, 412);
     });
   });
 
