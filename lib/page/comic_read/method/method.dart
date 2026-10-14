@@ -5,3 +5,4 @@ export 'package:zephyr/page/comic_read/method/image_size_cache_store.dart';
 export 'package:zephyr/page/comic_read/method/jump_chapter.dart';
 export 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 export 'package:zephyr/page/comic_read/method/reader_gesture_logic.dart';
+export 'package:zephyr/page/comic_read/method/reader_page_order_apply.dart';

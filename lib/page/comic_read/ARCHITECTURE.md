@@ -94,6 +94,9 @@ comic_read/
 | 系统栏 / 全屏 | `ReaderSystemUiController` + system_ui part | 菜单显隐联动 |
 | 生命周期、首帧 bootstrap 标记 | `ReaderLifecycleController` | `hasBootstrappedReadState` 等 |
 | 章节跳转（换路由/换章入口） | `JumpChapter`（method） | 与 seamless 边界加载不是同一条路径 |
+| 幻灯片放映计时与暂停 | `ReaderSlideshowController` + slideshow part | 与自动滚屏**两套独立计时器**；结束策略的判据在 `model/reader_slideshow.dart`（纯函数，可单测） |
+| 当前章的显示顺序（页面排序） | 档位 = `ReadSettingState.readerPageOrderMode`；手动排列 = `ReaderPageOrderCubit`（会话级） | 生效点在 `ReaderSeamlessCubit` 的条目构建（注入的 `pageOrderResolver`）；`ReaderSessionCoordinator` 那份只是给「按下标取一页来显示」的下游用 |
+| 放大镜的取样窗口（当前页落位 + 位图） | `ReaderMagnifierSource`（阅读页一份） | 几何判据在 `model/reader_magnifier.dart`（纯函数，逐条对齐 mImageViewer 的 loupe） |
 | `PageController` / `ScrollController` / `TransformationController` | `_ComicReadPageState` | 仍由 State 持有，Cubit 不直接拥有 |
 
 ### 3.1 数据流（简化）
@@ -133,6 +136,9 @@ comic_read/
 | 自动阅读 | `controller/reader_auto_read_controller.dart`、`view/parts/comic_read_auto_read_part.dart` |
 | 历史记录恢复 | `controller/reader_history_controller.dart`、`method/history_isolate_messages.dart` |
 | 跳转其他章节（非 seamless 边界） | `method/jump_chapter.dart` |
+| 页面排序档位 / 手动排列 / 排序面板 | `model/reader_page_order.dart`（纯判据）、`cubit/reader_page_order_cubit.dart`、`widgets/chrome/top/reader_page_order_panel.dart`、`widgets/picker/reader_page_order_sheet.dart`、生效点 `cubit/reader_seamless_cubit.dart` 的 `_pageOrderOf` |
+| 幻灯片计时 / 间隔 / 结束策略 | `controller/reader_slideshow_controller.dart`、`model/reader_slideshow.dart`、`view/parts/comic_read_slideshow_part.dart`、`widgets/chrome/top/reader_slideshow_panel.dart` |
+| 放大镜取样几何 / 覆盖层 / 面板 | `model/reader_magnifier.dart`、`widgets/magnifier/`、`widgets/chrome/top/reader_magnifier_panel.dart` |
 | 图片显示 / 占位高度 | `widgets/image/*`、`cubit/image_size_cubit.dart` |
 | 阅读设置 UI | `widgets/settings/*` |
 | 底栏 / AppBar | `widgets/chrome/*` |
@@ -304,6 +310,12 @@ service/       # jump、history isolate 协作
 7. 自动阅读启停与参数变更
 8. 历史进入恢复进度、阅读中历史写入
 9. 阅读设置各项切换后布局正确
+10. 页面排序四档：切档后画面停在**同一张图**；缩略图条 / 滑动条预览 / 页名提示
+    与画面对得上；手动排列应用后仍然停在当前页
+11. 幻灯片：播放 / 暂停 / 改间隔即时生效；条漫与横翻都推进整页；
+    到章末按「停止 / 循环本章 / 续下一章」三种策略各走一遍
+12. 放大镜：桌面悬停跟随、触屏拖动跟随、锁止后拖窗口；页面边缘不改变倍率；
+    旋转页与横长页拆半两种情况都要看一眼（前者不出窗口是**刻意的**）
 
 静态检查：
 

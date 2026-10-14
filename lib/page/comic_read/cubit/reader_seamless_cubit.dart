@@ -7,6 +7,7 @@ import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_info/method/chapter_group.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_seamless_state.dart';
+import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/method/get_local_info.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/method/get_plugin_read_snapshot.dart';
@@ -50,6 +51,7 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
     required this._type,
     required this._comicInfo,
     required this._initialOrder,
+    this.pageOrderResolver,
   }) : super(const ReaderSeamlessState()) {
     _initChapterCatalog();
   }
@@ -59,6 +61,28 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
   final ComicEntryType _type;
   final dynamic _comicInfo;
   final int _initialOrder;
+
+  /// 章节内页面显示顺序的解析器：给「显示位置 → 源下标」的排列。
+  ///
+  /// 由宿主注入，因为这个 cubit 只管章节队列与槽位，不该认识读设置里的档位、
+  /// 也不该认识存手动排列的那个 cubit。`null` 一律按图源顺序 = 改造前的行为。
+  ///
+  /// 返回值长度必须等于传入页表的长度；对不上时按原样顺序铺，
+  /// 宁可「这一章暂时没排序」也不要越界取页。
+  final List<int> Function(String chapterId, List<Doc> docs)? pageOrderResolver;
+
+  /// 这一章按显示顺序排好的源下标；页数少一个都会退回原样。
+  List<int> _pageOrderOf(String chapterId, List<Doc> docs) {
+    final resolver = pageOrderResolver;
+    if (resolver == null || docs.isEmpty) {
+      return List<int>.generate(docs.length, (index) => index);
+    }
+    final order = resolver(chapterId, docs);
+    if (order.length != docs.length) {
+      return List<int>.generate(docs.length, (index) => index);
+    }
+    return order;
+  }
 
   static const int _nextPrefetchThreshold = 2;
   static const int _nextAutoResolveThreshold = 1;
@@ -187,6 +211,84 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
     return result;
   }
 
+  /// 槽位上正在显示的那几张图（双页=两张，横长页拆半=同一页的两半）。
+  ///
+  /// 与预取那条共用 [_forEachDisplaySlot]，所以「哪一格画的是哪一页」只有一处判据：
+  /// 页面排序换档要把画面钉回同一张图、幻灯片要在下一页真的解出来才推进，
+  /// 两边问的都是这一个问题。
+  List<ReadModeEntry> imageEntriesAtGlobalSlot({
+    required int globalSlot,
+    required ReadSettingState readSetting,
+  }) {
+    final entries = isColumnReadMode(readSetting.readMode)
+        ? buildColumnEntries(readSetting)
+        : buildRowEntries(readSetting);
+    if (entries.isEmpty) return const <ReadModeEntry>[];
+
+    final result = <ReadModeEntry>[];
+    _forEachDisplaySlot(
+      entryCount: entries.length,
+      enableDoublePage: readSetting.doublePageMode,
+      insertLeadingBlank: _insertLeadingBlank(readSetting),
+      isTransitionAt: (entryIndex) =>
+          entries[entryIndex].type == ReadModeEntryType.transition,
+      isSplitAt: isColumnReadMode(readSetting.readMode) ? null : _splitAtOrNull,
+      onSlot: (slotIndex, primaryEntryIndex, secondaryEntryIndex) {
+        if (slotIndex != globalSlot) return;
+        void addImageEntry(int entryIndex) {
+          final entry = entries[entryIndex];
+          if (entry.type == ReadModeEntryType.image) result.add(entry);
+        }
+
+        addImageEntry(primaryEntryIndex);
+        if (secondaryEntryIndex != null) {
+          addImageEntry(secondaryEntryIndex);
+        }
+      },
+    );
+    return result;
+  }
+
+  /// 某一页（章序 + 章节内源下标）在当前排列里占哪个槽位；找不到返回 `null`。
+  ///
+  /// 换排序档位时靠它把画面钉回**同一张图**：不钉的话，切「倒序」会整章跳到
+  /// 对侧那一页上 —— 用户点的是「换个顺序看」，不是「换个页」。
+  int? globalSlotForImagePage({
+    required int chapterOrder,
+    required int chapterPageIndex,
+    required ReadSettingState readSetting,
+  }) {
+    final entries = isColumnReadMode(readSetting.readMode)
+        ? buildColumnEntries(readSetting)
+        : buildRowEntries(readSetting);
+    if (entries.isEmpty) return null;
+
+    int? found;
+    _forEachDisplaySlot(
+      entryCount: entries.length,
+      enableDoublePage: readSetting.doublePageMode,
+      insertLeadingBlank: _insertLeadingBlank(readSetting),
+      isTransitionAt: (entryIndex) =>
+          entries[entryIndex].type == ReadModeEntryType.transition,
+      isSplitAt: isColumnReadMode(readSetting.readMode) ? null : _splitAtOrNull,
+      onSlot: (slotIndex, primaryEntryIndex, secondaryEntryIndex) {
+        if (found != null) return;
+        bool matches(int entryIndex) {
+          final entry = entries[entryIndex];
+          return entry.type == ReadModeEntryType.image &&
+              entry.chapterOrder == chapterOrder &&
+              entry.chapterPageIndex == chapterPageIndex;
+        }
+
+        if (matches(primaryEntryIndex) ||
+            (secondaryEntryIndex != null && matches(secondaryEntryIndex))) {
+          found = slotIndex;
+        }
+      },
+    );
+    return found;
+  }
+
   UnifiedComicChapterRef? chapterRefByOrder(int order) {
     final chapters = _catalogChapters();
     final index = _catalogIndexByOrder(order);
@@ -234,14 +336,16 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
       final epInfo = state.loadedChapters.isNotEmpty
           ? state.loadedChapters.first.epInfo
           : NormalComicEpInfo();
-      return List<ReadModeEntry>.generate(epInfo.docs.length, (index) {
-        final doc = epInfo.docs[index];
+      final order = _pageOrderOf(epInfo.epId, epInfo.docs);
+      return List<ReadModeEntry>.generate(epInfo.docs.length, (position) {
+        final pageIndex = order[position];
+        final doc = epInfo.docs[pageIndex];
         return ReadModeEntry.image(
           doc: doc,
           chapterId: epInfo.epId,
           chapterOrder: _initialOrder,
           chapterTitle: epInfo.epName,
-          chapterPageIndex: index,
+          chapterPageIndex: pageIndex,
         );
       }, growable: false);
     }
@@ -269,15 +373,11 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
         }
       }
 
-      for (
-        var pageIndex = 0;
-        pageIndex < chapter.epInfo.docs.length;
-        pageIndex++
-      ) {
-        final doc = chapter.epInfo.docs[pageIndex];
+      final chapterDocs = chapter.epInfo.docs;
+      for (final pageIndex in _pageOrderOf(chapter.epInfo.epId, chapterDocs)) {
         entries.add(
           ReadModeEntry.image(
-            doc: doc,
+            doc: chapterDocs[pageIndex],
             chapterId: chapter.epInfo.epId,
             chapterOrder: chapter.order,
             chapterTitle: chapter.epInfo.epName,
@@ -388,14 +488,16 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
       final epInfo = state.loadedChapters.isNotEmpty
           ? state.loadedChapters.first.epInfo
           : NormalComicEpInfo();
-      return List<ReadModeEntry>.generate(epInfo.docs.length, (index) {
-        final doc = epInfo.docs[index];
+      final order = _pageOrderOf(epInfo.epId, epInfo.docs);
+      return List<ReadModeEntry>.generate(epInfo.docs.length, (position) {
+        final pageIndex = order[position];
+        final doc = epInfo.docs[pageIndex];
         return ReadModeEntry.image(
           doc: doc,
           chapterId: epInfo.epId,
           chapterOrder: _initialOrder,
           chapterTitle: epInfo.epName,
-          chapterPageIndex: index,
+          chapterPageIndex: pageIndex,
         );
       }, growable: false);
     }
@@ -421,15 +523,11 @@ class ReaderSeamlessCubit extends Cubit<ReaderSeamlessState> {
           );
         }
       }
-      for (
-        var pageIndex = 0;
-        pageIndex < chapter.epInfo.docs.length;
-        pageIndex++
-      ) {
-        final doc = chapter.epInfo.docs[pageIndex];
+      final chapterDocs = chapter.epInfo.docs;
+      for (final pageIndex in _pageOrderOf(chapter.epInfo.epId, chapterDocs)) {
         entries.add(
           ReadModeEntry.image(
-            doc: doc,
+            doc: chapterDocs[pageIndex],
             chapterId: chapter.epInfo.epId,
             chapterOrder: chapter.order,
             chapterTitle: chapter.epInfo.epName,

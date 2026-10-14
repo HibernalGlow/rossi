@@ -48,6 +48,7 @@ extension _ComicReadViewPart on _ComicReadPageState {
       onLandscapeChanged: _setReaderLandscape,
       onToggleAutoRead: _toggleAutoReadPaused,
       isAutoReadPaused: () => _autoReadController.isPaused,
+      onToggleSlideshowPaused: _toggleSlideshowPaused,
     );
   }
 
