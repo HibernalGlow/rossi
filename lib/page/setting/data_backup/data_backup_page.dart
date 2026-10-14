@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -27,68 +28,70 @@ class DataBackupPage extends StatefulWidget {
 }
 
 class _DataBackupPageState extends State<DataBackupPage> {
+  @override
+  Widget build(BuildContext context) => SettingPageShell(
+    title: t.dataBackup.title,
+    description: t.settings.dataBackupSubtitle,
+    child: ListView(
+      padding: kSettingPagePadding,
+      children: const [DataBackupControls(), SizedBox(height: 32)],
+    ),
+  );
+}
+
+/// 存储页与同步页共用本地备份操作，不依赖云同步服务或开关。
+class DataBackupControls extends StatefulWidget {
+  const DataBackupControls({super.key});
+
+  @override
+  State<DataBackupControls> createState() => _DataBackupControlsState();
+}
+
+class _DataBackupControlsState extends State<DataBackupControls> {
   bool _includeDownloads = true;
   bool _busy = false;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          t.dataBackup.title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SettingSectionCard(
+          title: t.dataBackup.exportSection,
+          icon: AppGlyphs.arrowUp,
+          children: [
+            SettingGroup.switchTile(
+              leading: const GlyphIcon(AppGlyphs.folder),
+              title: Text(t.dataBackup.includeDownloads),
+              subtitle: Text(t.dataBackup.includeDownloadsSubtitle),
+              value: _includeDownloads,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _includeDownloads = value),
+            ),
+            ListTile(
+              leading: const GlyphIcon(AppGlyphs.archive),
+              title: Text(t.dataBackup.exportData),
+              subtitle: Text(t.dataBackup.exportDataSubtitle),
+              trailing: const GlyphIcon(AppGlyphs.chevronForward),
+              onTap: _busy ? null : _exportData,
+            ),
+          ],
         ),
-        centerTitle: false,
-        scrolledUnderElevation: 0,
-      ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 768),
-          child: ListView(
-            children: [
-              _buildSectionTitle(
-                context,
-                t.dataBackup.exportSection,
-                AppGlyphs.arrowUp,
-              ),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.folder),
-                title: Text(t.dataBackup.includeDownloads),
-                subtitle: Text(t.dataBackup.includeDownloadsSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
-                value: _includeDownloads,
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() => _includeDownloads = value),
-              ),
-              const Divider(height: 1, thickness: 0.3),
-              ListTile(
-                leading: const GlyphIcon(AppGlyphs.archive),
-                title: Text(t.dataBackup.exportData),
-                subtitle: Text(t.dataBackup.exportDataSubtitle),
-                trailing: const GlyphIcon(AppGlyphs.chevronForward),
-                onTap: _busy ? null : _exportData,
-              ),
-              const SizedBox(height: 8),
-              const Divider(height: 1, thickness: 0.3),
-              _buildSectionTitle(
-                context,
-                t.dataBackup.importSection,
-                AppGlyphs.download,
-              ),
-              ListTile(
-                leading: const GlyphIcon(AppGlyphs.archive),
-                title: Text(t.dataBackup.importData),
-                subtitle: Text(t.dataBackup.importDataSubtitle),
-                trailing: const GlyphIcon(AppGlyphs.chevronForward),
-                onTap: _busy ? null : _importData,
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+        SettingSectionCard(
+          title: t.dataBackup.importSection,
+          icon: AppGlyphs.download,
+          children: [
+            ListTile(
+              leading: const GlyphIcon(AppGlyphs.archive),
+              title: Text(t.dataBackup.importData),
+              subtitle: Text(t.dataBackup.importDataSubtitle),
+              trailing: const GlyphIcon(AppGlyphs.chevronForward),
+              onTap: _busy ? null : _importData,
+            ),
+          ],
         ),
-      ),
+      ],
     );
   }
 
@@ -233,31 +236,6 @@ class _DataBackupPageState extends State<DataBackupPage> {
 
   void _setBusy(bool value) {
     if (mounted) setState(() => _busy = value);
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title, Glyph icon) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-      child: Row(
-        children: [
-          GlyphIcon(
-            icon,
-            size: 18,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   /// 选择要导入的 zip 备份文件。
