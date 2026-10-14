@@ -339,7 +339,10 @@ void main() {
     // 3. 未选中也得有自己的容器底色：全局 chipTheme 把 backgroundColor 覆成了
     //    surface，在 useMaterial3 下它会盖过 M3 默认的 surfaceContainerLow，
     //    于是那颗 chip 只剩一圈描边、读起来不像可点的档。
-    expect(unselectedChip.backgroundColor, scheme.surfaceContainer);
+    //    取 `surfaceContainerHigh`（比那条轨的下沉槽高一档）：chip 的**轮廓**
+    //    现在承载状态（不规则形状 → 悬停收一半 → 选中收成胶囊），与槽同色时
+    //    形状根本看不见，三态就退化成「只有文字」。
+    expect(unselectedChip.backgroundColor, scheme.surfaceContainerHigh);
     expect(unselectedChip.labelStyle!.color, scheme.onSurfaceVariant);
     expect(unselectedChip.side, BorderSide.none);
   });
