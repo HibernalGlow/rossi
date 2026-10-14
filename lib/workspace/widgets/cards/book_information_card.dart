@@ -47,6 +47,7 @@ class BookInformationCard extends StatelessWidget {
           cardId: 'book_information',
           title: '书籍信息',
           icon: AppGlyphs.book,
+          expressive: true,
           isExpanded: isExpanded,
           onToggle: onToggle,
           onMoveUp: onMoveUp,
@@ -57,7 +58,19 @@ class BookInformationCard extends StatelessWidget {
               : null,
           child: hasSession
               ? _buildRows(coordinator, target)
-              : const InfoEmpty(icon: AppGlyphs.openBook, text: '打开一本书后显示书籍信息'),
+              : const InfoEmpty(
+                  icon: AppGlyphs.openBook,
+                  text: '打开一本书后显示书籍信息',
+                  hint: '开书后这几格会当场填上，量不到的留 —',
+                  fields: [
+                    ('书名', AppGlyphs.book),
+                    ('作者', AppGlyphs.profiles),
+                    ('类型', AppGlyphs.category),
+                    ('章节', AppGlyphs.article),
+                    ('页码', AppGlyphs.linearScale),
+                    ('进度', AppGlyphs.speed),
+                  ],
+                ),
         );
       },
     );
@@ -66,9 +79,11 @@ class BookInformationCard extends StatelessWidget {
   Widget _buildRows(ReaderSessionCoordinator coordinator, dynamic comicInfo) {
     final total = coordinator.totalSlots;
     final current = coordinator.currentSlot;
-    final progress = total <= 0 ? '—' : '${(current / total * 100).round()}%';
+    final ratio = total <= 0 ? null : (current + 1) / total;
+    final progress = ratio == null ? '—' : '${(ratio * 100).round()}%';
     final epInfo = coordinator.epInfo;
     final from = coordinator.from ?? '';
+    final isLocal = coordinator.localSource != null;
 
     // comicInfo 是上游路由带过来的动态值（Map / 实体对象都可能出现），
     // 只认 Map 里那几个公共键；认不出来就不显示，不编。
@@ -78,25 +93,85 @@ class BookInformationCard extends StatelessWidget {
       return (v == null || v.isEmpty) ? null : v;
     }
 
-    return InfoFacts(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        InfoRow(label: '书名', value: coordinator.displayTitle, emphasis: true),
-        if (infoField('author') != null)
-          InfoRow(label: '作者', value: infoField('author')),
-        if (infoField('status') != null)
-          InfoRow(label: '状态', value: infoField('status')),
-        InfoRow(
-          label: '类型',
-          value: coordinator.localSource != null ? '本地漫画' : '在线图源 · $from',
+        // 三个「读的时候真会瞄一眼」的数做成 Expressive 大数字格，
+        // 进度那一格自带一条弹簧驱动的进度条。
+        ExpressiveTileGrid(
+          minTileWidth: 132,
+          children: [
+            ExpressiveStatTile(
+              value: '${current + 1}',
+              label: '当前页 · 共 $total 页',
+              icon: AppGlyphs.layers,
+              highlight: true,
+              gauge: ratio,
+            ),
+            ExpressiveStatTile(
+              value: progress,
+              label: '阅读进度',
+              icon: AppGlyphs.trend,
+              caption: total <= 0 ? '页表未就绪' : '还剩 ${total - current - 1} 页',
+            ),
+            ExpressiveStatTile(
+              value: isLocal ? '本地' : (from.isEmpty ? '在线' : from),
+              label: '来源',
+              icon: isLocal ? AppGlyphs.folder : AppGlyphs.globe,
+              maxValueLines: 1,
+            ),
+          ],
         ),
-        InfoRow(label: '漫画 ID', value: coordinator.comicId),
-        if (epInfo != null) InfoRow(label: '章节', value: epInfo.epName),
-        if (epInfo != null && epInfo.epId.isNotEmpty)
-          InfoRow(label: '章节 ID', value: epInfo.epId),
-        InfoRow(label: '页码', value: '${current + 1} / $total'),
-        InfoRow(label: '进度', value: progress),
-        if (from.isNotEmpty && coordinator.localSource != null)
-          InfoRow(label: '来源键', value: from),
+        const SizedBox(height: 12),
+        InfoFacts(
+          children: [
+            InfoRow(
+              label: '书名',
+              value: coordinator.displayTitle,
+              emphasis: true,
+              icon: AppGlyphs.book,
+            ),
+            if (infoField('author') != null)
+              InfoRow(
+                label: '作者',
+                value: infoField('author'),
+                icon: AppGlyphs.profiles,
+              ),
+            if (infoField('status') != null)
+              InfoRow(
+                label: '状态',
+                value: infoField('status'),
+                icon: AppGlyphs.info,
+              ),
+            InfoRow(
+              label: '类型',
+              value: isLocal ? '本地漫画' : '在线图源 · $from',
+              icon: AppGlyphs.category,
+            ),
+            InfoRow(
+              label: '漫画 ID',
+              value: coordinator.comicId,
+              icon: AppGlyphs.key,
+            ),
+            if (epInfo != null)
+              InfoRow(
+                label: '章节',
+                value: epInfo.epName,
+                icon: AppGlyphs.article,
+              ),
+            if (epInfo != null && epInfo.epId.isNotEmpty)
+              InfoRow(label: '章节 ID', value: epInfo.epId, icon: AppGlyphs.tree),
+            InfoRow(
+              label: '页码',
+              value: '${current + 1} / $total',
+              icon: AppGlyphs.linearScale,
+            ),
+            InfoRow(label: '进度', value: progress, icon: AppGlyphs.speed),
+            if (from.isNotEmpty && isLocal)
+              InfoRow(label: '来源键', value: from, icon: AppGlyphs.link),
+          ],
+        ),
       ],
     );
   }

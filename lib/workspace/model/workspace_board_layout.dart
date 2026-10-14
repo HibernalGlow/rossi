@@ -27,6 +27,8 @@ enum WorkspacePanelSide {
     }
     return null;
   }
+
+  static WorkspacePanelSide? fromLaneId(String laneId) => tryParse(laneId);
 }
 
 /// 单个面板的布局覆盖项（未记录的项回落到面板定义里的默认值）。
@@ -203,6 +205,77 @@ class WorkspaceBoardLayout {
     );
   }
 
+  /// 在看板里把 [panelId] 放到 [side] 侧 [siblingIds] 的 [insertIndex] 位，
+  /// 并把该侧所有面板按新顺序重新编号，同时**保留**每个面板原有的可见性。
+  ///
+  /// [fallbackFor] 提供「某个面板尚无布局记录时的默认布局」——
+  /// 看板同时列出可见与已隐藏的面板（例如默认隐藏的「图源扩展」），
+  /// 重排或跨泳道搬移其它面板时，不会把原本隐藏的兄弟面板强制改成可见。
+  WorkspaceBoardLayout arrangePanel({
+    required String panelId,
+    required WorkspacePanelSide side,
+    required List<String> siblingIds,
+    required int insertIndex,
+    required PanelLayout Function(String panelId) fallbackFor,
+    bool? visible,
+  }) {
+    final ordered = List<String>.from(siblingIds);
+    final index = insertIndex.clamp(0, ordered.length);
+    ordered.insert(index, panelId);
+
+    final updated = Map<String, PanelLayout>.from(panels);
+    for (var i = 0; i < ordered.length; i++) {
+      final id = ordered[i];
+      final existing = updated[id] ?? fallbackFor(id);
+      updated[id] = existing.copyWith(
+        order: i,
+        side: side,
+        visible: id == panelId && visible != null ? visible : existing.visible,
+      );
+    }
+    return WorkspaceBoardLayout(panels: updated, cards: cards);
+  }
+
+  /// 在同一泳道侧内把 [panelId] 上移（-1）或下移（+1）一格，保留各面板的可见性。
+  ///
+  /// [orderedPanelIds] 是该泳道当前在看板里的面板顺序（含可见与隐藏面板）。
+  /// 越界时返回 `null`。
+  WorkspaceBoardLayout? movePanel(
+    String panelId,
+    int direction,
+    List<String> orderedPanelIds, {
+    required PanelLayout Function(String panelId) fallbackFor,
+  }) {
+    final currentIndex = orderedPanelIds.indexOf(panelId);
+    if (currentIndex < 0) return null;
+    final destinationIndex = currentIndex + direction;
+    if (destinationIndex < 0 || destinationIndex >= orderedPanelIds.length) {
+      return null;
+    }
+
+    final next = List<String>.from(orderedPanelIds);
+    final moved = next[currentIndex];
+    next[currentIndex] = next[destinationIndex];
+    next[destinationIndex] = moved;
+
+    final updated = Map<String, PanelLayout>.from(panels);
+    for (var i = 0; i < next.length; i++) {
+      final id = next[i];
+      final existing = updated[id] ?? fallbackFor(id);
+      updated[id] = existing.copyWith(order: i);
+    }
+    return WorkspaceBoardLayout(panels: updated, cards: cards);
+  }
+
+  /// 清空所有面板的布局覆盖项（回到注册表默认侧、默认次序与默认可见性），保留卡片记账。
+  WorkspaceBoardLayout resetPanels() {
+    if (panels.isEmpty) return this;
+    return WorkspaceBoardLayout(
+      panels: const <String, PanelLayout>{},
+      cards: cards,
+    );
+  }
+
   // ── 卡片 ────────────────────────────────────────────────────────────────
 
   /// 在**同一面板内**把 [cardId] 上移（-1）或下移（+1）一格。
@@ -309,6 +382,29 @@ class WorkspaceBoardLayout {
       (cards[cardId] ??
               CardLayout(panelId: panelId, visible: true, order: order))
           .copyWith(widthSpan: widthSpan, heightSpan: heightSpan),
+    );
+  }
+
+  /// 将卡片恢复为默认全宽且清除手动高度跨度覆盖（用于自适应撑满高度或紧凑高度组件）。
+  WorkspaceBoardLayout resetCardAutoHeight({
+    required String cardId,
+    required String panelId,
+    required int order,
+    int defaultWidthSpan = 4,
+  }) {
+    final current =
+        cards[cardId] ??
+        CardLayout(panelId: panelId, visible: true, order: order);
+    return withCard(
+      cardId,
+      CardLayout(
+        panelId: current.panelId,
+        visible: current.visible,
+        order: current.order,
+        expanded: current.expanded,
+        widthSpan: defaultWidthSpan,
+        heightSpan: null,
+      ),
     );
   }
 

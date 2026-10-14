@@ -10,6 +10,10 @@ import 'package:zephyr/workspace/widgets/containers/embedded_upstream_page.dart'
 import 'package:zephyr/workspace/widgets/panels/panel_card_list.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/widgets/panels/retained_panel_switcher.dart';
+import 'package:zephyr/config/global/global_setting.dart'
+    show eInkInstantRoutes;
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 /// **一条面板泳道的内容宿主**：只画「当前面板是什么」。
 ///
@@ -162,6 +166,11 @@ class _LanePanelHostState extends State<LanePanelHost> {
                     panelId: panel.id,
                     board: currentBoard,
                     isEditing: isEditing,
+                    onToggleEditing: () {
+                      setState(() {
+                        editing.value = !editing.value;
+                      });
+                    },
                     onSetExpanded: (cardId, expanded) =>
                         cubit.setCardExpanded(cardId, expanded),
                     onMoveCard: (cardId, direction) =>
@@ -183,7 +192,7 @@ class _LanePanelHostState extends State<LanePanelHost> {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
-          '这条泳道里的面板都被收起了 ——\n用顶栏页签条右侧的入口恢复一个。',
+          '这条泳道里的面板都已隐藏 ——\n可在「全局设置 → 泳道面板看板」中开启需要显示的面板。',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
@@ -243,7 +252,9 @@ class PanelHeaderBar extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: showHiddenCount ? 8 : 0),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(14),
+              // Expressive 的「一颗带计数的胶囊」：与卡内那批状态胶囊同形，
+              // 不再是随手一个 14 圆角方块。
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Stack(
               alignment: Alignment.center,
@@ -308,9 +319,7 @@ class PanelHeaderBar extends StatelessWidget {
                     foregroundColor: isEditing
                         ? scheme.onPrimaryContainer
                         : scheme.onSecondaryContainer,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(isEditing ? 16 : 14),
-                    ),
+                    shape: const StadiumBorder(),
                   ),
                 ),
               )
@@ -344,15 +353,20 @@ class PanelHeaderBar extends StatelessWidget {
                   foregroundColor: isEditing
                       ? scheme.onPrimaryContainer
                       : scheme.onSecondaryContainer,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(isEditing ? 16 : 14),
-                  ),
+                  shape: const StadiumBorder(),
                 ),
               );
 
+        final chromeDuration = eInkInstantRoutes
+            ? Duration.zero
+            : ExpressiveMotion.duration(
+                context,
+                ExpressiveMotion.spatialDuration,
+              );
+
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
+          duration: chromeDuration,
+          curve: ExpressiveMotion.spatialCurve,
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
@@ -369,19 +383,19 @@ class PanelHeaderBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutBack,
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
+              // 面板图标座与卡片图标座同一套语言（cookie 形），
+              // 编辑态换边数与配色，形状之间用淡入淡出而不是硬切。
+              AnimatedSwitcher(
+                duration: chromeDuration,
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeIn,
+                child: ExpressiveIconBadge(
+                  key: ValueKey<bool>(isEditing),
+                  icon: panel.icon,
+                  size: 32,
+                  glyphSize: 18,
                   color: isEditing ? scheme.primary : scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(isEditing ? 14 : 11),
-                ),
-                child: GlyphIcon(
-                  panel.icon,
-                  size: 18,
-                  color: isEditing
+                  foreground: isEditing
                       ? scheme.onPrimary
                       : scheme.onPrimaryContainer,
                 ),

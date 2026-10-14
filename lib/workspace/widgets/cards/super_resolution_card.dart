@@ -38,7 +38,8 @@ class SuperResolutionCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SuperResolutionSection(),
+        // 卡片标题行已经写了「AI 超分辨率」，节内不再重复一遍。
+        SuperResolutionSection(showTitle: false),
         ImageDenoiseSection(),
         RealSrModelManagementSection(grouped: true),
       ],
@@ -55,6 +56,7 @@ class SuperResolutionCard extends StatelessWidget {
 
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.superResolution,
+      expressive: true,
       title: 'AI 超分辨率',
       icon: AppGlyphs.sparkle,
       isExpanded: isExpanded,

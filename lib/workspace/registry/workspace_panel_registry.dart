@@ -135,9 +135,10 @@ class WorkspacePanelRegistry {
         side: WorkspacePanelSide.right,
         defaultOrder: 0,
       ),
+      // 发现页独占面板；插件小组件暂时隐藏。
       WorkspacePanelDefinition(
         id: WorkspacePanelId.discover,
-        title: '发现（上游原版）',
+        title: '发现',
         icon: AppGlyphs.compass,
         side: WorkspacePanelSide.right,
         defaultOrder: 1,
@@ -169,6 +170,7 @@ class WorkspacePanelRegistry {
         icon: AppGlyphs.puzzle,
         side: WorkspacePanelSide.right,
         defaultOrder: 4,
+        defaultVisible: false,
         exclusive: true,
       ),
       WorkspacePanelDefinition(
@@ -211,6 +213,21 @@ class WorkspacePanelRegistry {
     return null;
   }
 
+  /// 判断某个面板是否为有实际内容的可用面板（排除无卡片归属的空聚合壳如 `shelf` / `sources`）。
+  bool _hasPanelContent(
+    WorkspacePanelDefinition panel,
+    WorkspaceBoardLayout board,
+    WorkspaceCardRegistry registry,
+  ) {
+    if (!panel.acceptsCards) return true;
+    for (final card in registry.cards) {
+      final layout = board.cardLayout(card.id);
+      final effectivePanel = layout?.panelId ?? card.defaultPanelId;
+      if (effectivePanel == panel.id) return true;
+    }
+    return false;
+  }
+
   /// 某条泳道**当前应当显示的**面板（已排序、已滤掉隐藏项）；
   /// 与 neoview 一样，一个**一张卡都没有**的卡片面板不出现在图标轨上。
   List<WorkspacePanelDefinition> panelsForSide(
@@ -239,6 +256,30 @@ class WorkspacePanelRegistry {
     ];
   }
 
+  /// 某条泳道在**布局看板**中应当列出的全部面板（含已显示与已隐藏项，已按次序排列）。
+  List<WorkspacePanelDefinition> allPanelsForSide(
+    WorkspacePanelSide side,
+    WorkspaceBoardLayout board, {
+    WorkspaceCardRegistry? cards,
+  }) {
+    final registry = cards ?? WorkspaceCardRegistry.I;
+    final matched = <String>[];
+    for (final panel in panels) {
+      final effective = effectivePanelLayout(panel, board);
+      if (effective.side != side) continue;
+      if (!_hasPanelContent(panel, board, registry)) continue;
+      matched.add(panel.id);
+    }
+    final ordered = sortByOrder(matched, (id) {
+      final panel = find(id);
+      return panel == null ? 0 : effectivePanelLayout(panel, board).order;
+    });
+    return [
+      for (final id in ordered)
+        if (find(id) != null) find(id)!,
+    ];
+  }
+
   /// 一个面板**当前**的生效布局（没有覆盖项时用定义里的默认值）。
   PanelLayout effectivePanelLayout(
     WorkspacePanelDefinition panel,
@@ -252,11 +293,13 @@ class WorkspacePanelRegistry {
         );
   }
 
-  /// 图标轨上被用户**隐藏掉**的面板（恢复入口用）。
+  /// 图标轨上被隐藏掉的面板（仅统计有实际内容的面板，排除空聚合壳）。
   List<WorkspacePanelDefinition> hiddenPanels(WorkspaceBoardLayout board) {
     return [
       for (final panel in panels)
-        if (panel.canHide && !effectivePanelLayout(panel, board).visible) panel,
+        if (!effectivePanelLayout(panel, board).visible &&
+            _hasPanelContent(panel, board, WorkspaceCardRegistry.I))
+          panel,
     ];
   }
 }

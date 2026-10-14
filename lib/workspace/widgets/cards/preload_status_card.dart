@@ -48,6 +48,7 @@ class PreloadStatusCard extends StatelessWidget {
           cardId: 'preload_status',
           title: '预加载状态',
           icon: AppGlyphs.bolt,
+          expressive: true,
           isExpanded: isExpanded,
           onToggle: onToggle,
           onMoveUp: onMoveUp,
@@ -60,7 +61,17 @@ class PreloadStatusCard extends StatelessWidget {
                 )
               : null,
           child: !hasSession
-              ? const InfoEmpty(icon: AppGlyphs.bolt, text: '打开书本后显示呈现与预取状态')
+              ? const InfoEmpty(
+                  icon: AppGlyphs.bolt,
+                  text: '打开书本后显示呈现与预取状态',
+                  hint: '每一项都来自记账字段，不来自「我调过所以应该好了」',
+                  fields: [
+                    ('呈现器', AppGlyphs.devices),
+                    ('已呈现页数', AppGlyphs.photos),
+                    ('当前页耗时', AppGlyphs.speed),
+                    ('超分阶段', AppGlyphs.sparkle),
+                  ],
+                )
               : _buildRows(coordinator, presenter),
         );
       },
@@ -75,59 +86,146 @@ class PreloadStatusCard extends StatelessWidget {
 
     if (presenter == null) {
       // 网络 / CPU 路径没有呈现器：页表与槽位是真的，其余显示 —。
-      return InfoFacts(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          InfoRow(label: '路径', value: 'CPU 解码 / 图片缓存预加载'),
-          InfoRow(
-            label: '页表',
-            value: '${slot + 1} / ${coordinator.totalSlots}',
+          ExpressiveTileGrid(
+            minTileWidth: 140,
+            children: [
+              ExpressiveStatTile(
+                value: 'CPU',
+                label: '预加载路径',
+                icon: AppGlyphs.cpu,
+                highlight: true,
+                caption: '解码缓冲 + 图片缓存',
+              ),
+              ExpressiveStatTile(
+                value: '${slot + 1} / ${coordinator.totalSlots}',
+                label: '页表',
+                icon: AppGlyphs.layers,
+              ),
+            ],
           ),
-          const InfoRow(label: '纹理', value: '—'),
+          const SizedBox(height: 12),
+          InfoFacts(
+            children: [
+              InfoRow(
+                label: '路径',
+                value: 'CPU 解码 / 图片缓存预加载',
+                emphasis: true,
+                icon: AppGlyphs.cpu,
+              ),
+              InfoRow(
+                label: '页表',
+                value: '${slot + 1} / ${coordinator.totalSlots}',
+                icon: AppGlyphs.layers,
+              ),
+              const InfoRow(label: '纹理', value: '—', icon: AppGlyphs.devices),
+            ],
+          ),
         ],
       );
     }
 
     final lastIsCurrent = presenter.lastPresentIndex == slot;
     final status = presenter.currentPageUpscaleStatus;
+    final ready = presenter.canPresent;
 
-    return InfoFacts(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        InfoRow(
-          label: '呈现器',
-          value: switch (presenter.state) {
-            GpuPresentState.ready => '就绪',
-            GpuPresentState.loading => '创建中',
-            GpuPresentState.failed => '失败 · ${presenter.error}',
-            GpuPresentState.unsupported => '本平台不支持',
-          },
+        ExpressiveTileGrid(
+          minTileWidth: 104,
+          children: [
+            ExpressiveStatTile(
+              value: '${presenter.presentCount}',
+              label: '已呈现页数',
+              icon: AppGlyphs.photos,
+              highlight: ready,
+              caption: ready ? '纹理就绪' : '建链中',
+            ),
+            ExpressiveStatTile(
+              value: lastIsCurrent && presenter.lastPresentMs != null
+                  ? '${presenter.lastPresentMs}'
+                  : '—',
+              label: '当前页交页耗时 (ms)',
+              icon: AppGlyphs.speed,
+            ),
+            ExpressiveStatTile(
+              value: imageEnhancementPhaseLabel(status),
+              label: '图像处理阶段',
+              icon: AppGlyphs.sparkle,
+              caption: status.pageNumber == null
+                  ? null
+                  : '第 ${status.pageNumber} 页',
+            ),
+          ],
         ),
-        if (presenter.textureId != null)
-          InfoRow(label: '纹理', value: '#${presenter.textureId}'),
-        InfoRow(label: '已呈现页数', value: '${presenter.presentCount}'),
-        InfoRow(
-          label: '当前页耗时',
-          value: lastIsCurrent && presenter.lastPresentMs != null
-              ? '${presenter.lastPresentMs} ms'
-              : '—',
-        ),
-        InfoRow(
-          label: '就绪等待',
-          value: presenter.readyAfterMs != null
-              ? '${presenter.readyAfterMs} ms'
-              : '—',
-        ),
-        InfoRow(
-          label: '超分阶段',
-          value: status.pageNumber == null
-              ? superResolutionPhaseLabel(status.phase)
-              : '第 ${status.pageNumber} 页 · '
-                    '${superResolutionPhaseLabel(status.phase)}',
-        ),
-        InfoRow(
-          label: '超分开关',
-          value: presenter.isUpscaleEnabled
-              ? (presenter.isOriginalPreview ? '开着（原图对比中）' : '开着')
-              : '关着',
+        const SizedBox(height: 12),
+        InfoFacts(
+          children: [
+            InfoRow(
+              label: '呈现器',
+              valueWidget: ExpressiveStatusPill(
+                text: switch (presenter.state) {
+                  GpuPresentState.ready => '就绪',
+                  GpuPresentState.loading => '创建中',
+                  GpuPresentState.failed => '失败 · ${presenter.error}',
+                  GpuPresentState.unsupported => '本平台不支持',
+                },
+                compact: true,
+                tone: switch (presenter.state) {
+                  GpuPresentState.ready => ExpressiveTone.primary,
+                  GpuPresentState.failed => ExpressiveTone.warning,
+                  _ => ExpressiveTone.neutral,
+                },
+              ),
+              icon: AppGlyphs.devices,
+            ),
+            if (presenter.textureId != null)
+              InfoRow(
+                label: '纹理',
+                value: '#${presenter.textureId}',
+                icon: AppGlyphs.layers,
+              ),
+            InfoRow(
+              label: '已呈现页数',
+              value: '${presenter.presentCount}',
+              icon: AppGlyphs.photos,
+            ),
+            InfoRow(
+              label: '当前页耗时',
+              value: lastIsCurrent && presenter.lastPresentMs != null
+                  ? '${presenter.lastPresentMs} ms'
+                  : '—',
+              icon: AppGlyphs.speed,
+            ),
+            InfoRow(
+              label: '就绪等待',
+              value: presenter.readyAfterMs != null
+                  ? '${presenter.readyAfterMs} ms'
+                  : '—',
+              icon: AppGlyphs.hourglass,
+            ),
+            InfoRow(
+              label: '图像处理阶段',
+              value: status.pageNumber == null
+                  ? imageEnhancementPhaseLabel(status)
+                  : '第 ${status.pageNumber} 页 · '
+                        '${imageEnhancementPhaseLabel(status)}',
+              icon: AppGlyphs.sparkle,
+            ),
+            InfoRow(
+              label: '超分开关',
+              value: presenter.isUpscaleEnabled
+                  ? (presenter.isOriginalPreview ? '开着（原图对比中）' : '开着')
+                  : '关着',
+              emphasis: presenter.isUpscaleEnabled,
+              icon: AppGlyphs.power,
+            ),
+          ],
         ),
       ],
     );

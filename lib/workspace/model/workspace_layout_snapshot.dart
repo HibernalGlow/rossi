@@ -88,6 +88,25 @@ class WorkspaceLayoutSnapshot {
     );
   }
 
+  /// 按需替换模式、泳道配置、面板/卡片看板、激活面板或交互设置。
+  WorkspaceLayoutSnapshot copyWith({
+    WorkspaceMode? mode,
+    WorkspaceLayoutConfig? layout,
+    WorkspaceBoardLayout? board,
+    Map<String, String>? activePanel,
+    String? Function()? activeLaneId,
+    WorkspaceInteractionSettings? interaction,
+  }) {
+    return WorkspaceLayoutSnapshot(
+      mode: mode ?? this.mode,
+      layout: layout ?? this.layout,
+      board: board ?? this.board,
+      activePanel: activePanel ?? this.activePanel,
+      activeLaneId: activeLaneId != null ? activeLaneId() : this.activeLaneId,
+      interaction: interaction ?? this.interaction,
+    );
+  }
+
   Map<String, Object?> toJson() => <String, Object?>{
     'version': currentVersion,
     'mode': mode.name,

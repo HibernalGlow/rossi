@@ -8,14 +8,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/service/notify/notify_gateway.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
+import 'package:zephyr/service/notify/notify_gateway.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/switch_toast_service.dart';
-import 'package:zephyr/workspace/widgets/cards/switch_toast_card.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/widgets/toast/toast_overlay.dart';
+import 'package:zephyr/workspace/widgets/cards/switch_toast_card.dart';
 
 /// 不落盘的设置更新（objectbox 在判据里不存在）。
 class _InMemoryGlobalSettingCubit extends GlobalSettingCubit {
@@ -239,6 +239,22 @@ void main() {
       await tester.tap(find.text('切换页面时显示提示'));
       await tester.pumpAndSettle();
       expect(cubit.state.switchToastSetting.enablePage, isTrue);
+    });
+
+    testWidgets('点击模板变量胶囊直接插入到当前激活模板并写回 cubit', (tester) async {
+      await tester.pumpWidget(
+        host(const SwitchToastCard(isExpanded: true, onToggle: _noop)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('{{book.progressPercent}}'));
+      await tester.tap(find.text('{{book.progressPercent}}'));
+      await tester.pumpAndSettle();
+
+      expect(
+        cubit.state.switchToastSetting.bookTitleTemplate,
+        endsWith('{{book.progressPercent}}'),
+      );
     });
 
     testWidgets('测试按钮真的把提示弹到屏上（防「静默失效」）', (tester) async {

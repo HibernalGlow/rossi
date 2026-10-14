@@ -239,6 +239,33 @@ class WorkspaceLayoutConfig {
     );
   }
 
+  /// 将 [draggedLaneId] 挪到 [targetLaneId] 原来的位置上。
+  WorkspaceLayoutConfig reorderLane(String draggedLaneId, String targetLaneId) {
+    if (draggedLaneId == targetLaneId) return this;
+    final order = List<String>.from(laneOrder);
+    final from = order.indexOf(draggedLaneId);
+    final to = order.indexOf(targetLaneId);
+    if (from < 0 || to < 0) return this;
+    order.removeAt(from);
+    order.insert(to, draggedLaneId);
+    return copyWith(laneOrder: order);
+  }
+
+  /// 将 [laneId] 在泳道序列里左移（-1）或右移（+1）一格；到头返回 `null`。
+  WorkspaceLayoutConfig? moveLane(String laneId, int direction) {
+    final currentIndex = laneOrder.indexOf(laneId);
+    if (currentIndex < 0) return null;
+    final destinationIndex = currentIndex + direction;
+    if (destinationIndex < 0 || destinationIndex >= laneOrder.length) {
+      return null;
+    }
+    final next = List<String>.from(laneOrder);
+    final moved = next[currentIndex];
+    next[currentIndex] = next[destinationIndex];
+    next[destinationIndex] = moved;
+    return copyWith(laneOrder: next);
+  }
+
   Map<String, Object?> toJson() => <String, Object?>{
     'laneOrder': laneOrder,
     'lanes': <String, Object?>{

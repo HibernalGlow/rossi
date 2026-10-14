@@ -134,38 +134,89 @@ class _TimeInformationCardState extends State<TimeInformationCard> {
           cardId: 'time_information',
           title: '时间信息',
           icon: AppGlyphs.clock,
+          expressive: true,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
           onMoveDown: widget.onMoveDown,
           onHide: widget.onHide,
           child: !hasSession
-              ? const InfoEmpty(icon: AppGlyphs.history, text: '打开书本后显示文件时间')
+              ? const InfoEmpty(
+                  icon: AppGlyphs.history,
+                  text: '打开书本后显示文件时间',
+                  hint: 'dart:io 没有创建时间，只报量得到的这几项',
+                  fields: [
+                    ('来源', AppGlyphs.folder),
+                    ('修改', AppGlyphs.edit),
+                    ('访问', AppGlyphs.history),
+                  ],
+                )
               : facts?.rootPath == null
-              ? const InfoEmpty(icon: AppGlyphs.cloud, text: '在线图源没有本地文件时间')
-              : InfoFacts(
+              ? const InfoEmpty(
+                  icon: AppGlyphs.cloud,
+                  text: '在线图源没有本地文件时间',
+                  hint: '这一项要落到本地归档才有量具',
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    InfoRow(label: '来源', value: facts!.rootPath),
-                    InfoRow(
-                      label: '修改',
-                      value: formatInfoDateTime(facts.rootModified),
+                    ExpressiveTileGrid(
+                      minTileWidth: 150,
+                      children: [
+                        ExpressiveStatTile(
+                          value: formatInfoTimeOfDay(facts!.rootModified),
+                          label: '来源修改于',
+                          icon: AppGlyphs.clock,
+                          highlight: true,
+                          caption: formatInfoDateTime(facts.rootModified),
+                        ),
+                        ExpressiveStatTile(
+                          value: formatInfoTimeOfDay(facts.pageModified),
+                          label: '当前页修改于',
+                          icon: AppGlyphs.photos,
+                          caption: formatInfoDateTime(facts.pageModified),
+                        ),
+                      ],
                     ),
-                    InfoRow(
-                      label: '访问',
-                      value: formatInfoDateTime(facts.rootAccessed),
+                    const SizedBox(height: 12),
+                    InfoFacts(
+                      children: [
+                        InfoRow(
+                          label: '来源',
+                          value: facts.rootPath,
+                          icon: AppGlyphs.folder,
+                        ),
+                        InfoRow(
+                          label: '修改',
+                          value: formatInfoDateTime(facts.rootModified),
+                          icon: AppGlyphs.edit,
+                        ),
+                        InfoRow(
+                          label: '访问',
+                          value: formatInfoDateTime(facts.rootAccessed),
+                          icon: AppGlyphs.history,
+                        ),
+                        InfoRow(
+                          label: '变更',
+                          value: formatInfoDateTime(facts.rootChanged),
+                          icon: AppGlyphs.info,
+                        ),
+                        if (facts.pagePath != null) ...[
+                          const SizedBox(height: 4),
+                          InfoRow(
+                            label: '当前页文件',
+                            value: facts.pagePath,
+                            icon: AppGlyphs.cardMedium,
+                          ),
+                          InfoRow(
+                            label: '页修改',
+                            value: formatInfoDateTime(facts.pageModified),
+                            icon: AppGlyphs.photos,
+                          ),
+                        ],
+                      ],
                     ),
-                    InfoRow(
-                      label: '变更',
-                      value: formatInfoDateTime(facts.rootChanged),
-                    ),
-                    if (facts.pagePath != null) ...[
-                      const SizedBox(height: 4),
-                      InfoRow(label: '当前页文件', value: facts.pagePath),
-                      InfoRow(
-                        label: '页修改',
-                        value: formatInfoDateTime(facts.pageModified),
-                      ),
-                    ],
                   ],
                 ),
         );

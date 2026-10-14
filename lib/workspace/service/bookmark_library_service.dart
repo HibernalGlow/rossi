@@ -193,6 +193,33 @@ class BookmarkLibraryService {
     ComicFolderType.favorite,
   );
 
+  /// [lists] 那一集的变更流：新建 / 重命名 / 删除（无论从哪儿发起）都会推一次事件。
+  ///
+  /// # 为什么面板需要它
+  ///
+  /// 书签面板是**常驻**的（切面板走 `RetainedPanelSwitcher`，State 不重建），
+  /// 而书架页的「收藏」模式（`folder_shelf_bloc.dart` 里 `ShelfPageMode.favorite`
+  /// 那一支）同样会 `ComicFolderService.createFolder`。只在 `initState` 读一次的
+  /// 写法，让别处新建的列表永远进不了这条分类轨 —— 用户看到的就是「tab 少了」。
+  ///
+  /// # 为什么用查询条件而不是 `Box.watcherStream`
+  ///
+  /// objectbox 5.3 的 `Box` 上**没有**变更流，只有 `QueryAsBuilder.watch()`；
+  /// 这条流的过滤条件与 [lists]（= `listChildFolders(root, favorite)`）逐条对齐：
+  /// 根下（`parentSyncId` 为空）、未删除、`typeData == favorite`。事件只当触发器
+  /// 用，内容仍由 [lists] 重读 —— 排序口径留在服务侧那一份，不在这里再排一次。
+  static Stream<void> watchListsChanged() {
+    final events = objectbox.comicFolderBox
+        .query(
+          ComicFolder_.typeData
+              .equals(ComicFolderType.favorite.name)
+              .and(ComicFolder_.deletedAt.isNull())
+              .and(ComicFolder_.parentSyncId.isNull()),
+        )
+        .watch(triggerImmediately: false);
+    return events.map((query) {});
+  }
+
   static void createList(String name) => ComicFolderService.createFolder(
     kComicFolderRootPath,
     name,

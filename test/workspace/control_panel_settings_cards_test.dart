@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -230,8 +231,8 @@ void main() {
       expect(find.text('画面调节'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      // 行本体是 ListTile + 末尾 Switch.adaptive，不是 SwitchListTile。
-      await tester.tap(find.byType(Switch).first);
+      // 行本体是 ListTile + 末尾 M3ESwitch，不是 SwitchListTile。
+      await tester.tap(find.byType(M3ESwitch).first);
       await tester.pumpAndSettle();
       final afterFirst = cubit.state.readSetting;
       expect(
@@ -364,7 +365,9 @@ void main() {
       expect(find.textContaining('现在没有打开的书'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
+      final switches = tester
+          .widgetList<M3ESwitch>(find.byType(M3ESwitch))
+          .toList();
       expect(switches.length, greaterThanOrEqualTo(2));
       expect(switches[0].onChanged, isNull);
       // 阳性对照：同一张卡里的「全局」那颗必须点得动，否则「灰显」这条判据
@@ -385,7 +388,7 @@ void main() {
         return;
       }
       expect(find.byType(TranslateSettingsSection), findsOneWidget);
-      expect(find.byType(Switch), findsWidgets);
+      expect(find.byType(M3ESwitch), findsWidgets);
     });
   });
 }

@@ -38,6 +38,43 @@ class ReaderSessionCoordinator extends ChangeNotifier {
   /// 当前章节所含有的所有页面列表条目
   List<Doc> get docs => _epInfo?.docs ?? const <Doc>[];
 
+  /// 当前章节的**显示顺序**（`显示位置 → 源下标`）；`null` = 按图源顺序。
+  ///
+  /// 由阅读器在档位或页表变化时写一次。长度与页表不符（换章、图源刷新过页表）
+  /// 时 [orderedDocs] 直接退回原样，而不是拿旧排列去索引新页表。
+  List<int>? _displayOrder;
+
+  /// 按下显顺序排好的那份页表 —— 缩略图条、滑动条预览、页名提示这三处
+  /// 「按下标取一页来显示」的下游一律读它。
+  ///
+  /// 主渲染路不经过这里：那条走的是章节条目序列，排序在条目构建那一步就已经
+  /// 生效了（见 `ReaderSeamlessCubit.buildColumnEntries`）。
+  List<Doc> get orderedDocs {
+    final source = docs;
+    final order = _displayOrder;
+    if (order == null || order.length != source.length) return source;
+    return List<Doc>.unmodifiable(
+      order.map((sourceIndex) => source[sourceIndex]),
+    );
+  }
+
+  /// 登记显示顺序（同值不通知，翻页期间会被问到很多次）。
+  void updateDisplayOrder(List<int>? order) {
+    if (_sameOrder(_displayOrder, order)) return;
+    _displayOrder = order == null ? null : List<int>.unmodifiable(order);
+    _notifySafely();
+  }
+
+  static bool _sameOrder(List<int>? a, List<int>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   bool _notifyScheduled = false;
 
   /// 发一次「会话变了」的通知，但**绝不在 build 阶段发**。
@@ -119,6 +156,7 @@ class ReaderSessionCoordinator extends ChangeNotifier {
       _currentSlot = 0;
       _totalSlots = 0;
       _jumpToSlot = null;
+      _displayOrder = null;
       _notifySafely();
     }
   }
