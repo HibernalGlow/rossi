@@ -28,6 +28,13 @@ zip = { version = "8.2.0", default-features = false, features = [
 # 该 crate 在 vendor 检出里被其 workspace `exclude`，本身就是独立可用的包。
 # 补丁内容：UCM_CHANGEVOLUMEW 回调不再按固定 2048 长度切片读变长分卷名。
 unrar = { path = "../../vendor/mimageviewer/crates/unrar-patched" }
+# 局部调整层与智能锐化的正本（ADR-0024 阶段 B）。
+# 上游把它拆成了独立 crate：两个文件、依赖只有 base64 / flate2 / rayon / serde，
+# **零 egui、零 image**（`egui` 一词全库只在两处散文注释里出现，实测）。
+# 它的 `RgbaImageBuf { width, height, pixels: Vec<u8> }` 就是未预乘 RGBA8 步长 4，
+# 与本仓 `PagePixels.rgba` 同一份内存布局，所以接它是搬运不是转换。
+# 按 ADR-0023 走上游那份，不再自己写第二套图层合成核心。
+local-adjust-core = { path = "../../vendor/mimageviewer/crates/local-adjust-core" }
 # ---- 缩略图目录数据库与编解码（mImageViewer 源码级复用，ADR-0001 / ADR-0005）----
 rusqlite = { version = "0.31", features = ["bundled"] }
 sha2 = "0.10"

@@ -26,7 +26,8 @@
       ],
       "parity_gaps": [
         "上游在 egui 纹理路径上取输入，本仓在解码 RGBA（宽度随降采样档位变化）；每边裁切上限 20%、安全余量 0.6% 等阈值按上游原值未重标",
-        "条漫（纵向滚动）与双页的裁边规则是本仓侧策略（lib/page/comic_read/model/page_trim.dart），不属于上游 margin_fit"
+        "条漫（纵向滚动）与双页的裁边规则是本仓侧策略（lib/page/comic_read/model/page_trim.dart），不属于上游 margin_fit",
+        "Flutter 高级设置在 lib/reader/auto_trim_settings.dart：检测容差传入上游入口；安全留边与裁切上限只扩大检测内容区，条漫布局与共享显示变换见 docs/upstream-sync.md（2026-10-14）"
       ],
       "parity": "登记范围内源码对比通过",
       "action": "继续同步 PORTS；上游若改阈值或新增边类型，按 PORTS 偏离清单逐项复核"

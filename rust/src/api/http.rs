@@ -270,10 +270,13 @@ impl HttpClient {
                 Err(e) => {
                     let _ = tokio::fs::remove_file(&tmp_path).await;
                     // reqwest 把「连接被掐」「body 被截断」统一包成 error decoding response body，
-                    // 不把 source 带出来的话，用户分不清该去查网络、查代理还是查源站。
+                    // 真实原因在 source 链的更深处（hyper / h2 / io），只取一层经常还是同一句话。
+                    // 带上已收字节数，才分得清是一开始就断，还是传到一半被掐。
                     return Err(anyhow!(
-                        "read download stream failed: {e}{}",
-                        e.source().map(|s| format!("（{s}）")).unwrap_or_default()
+                        "read download stream failed: {}（已收 {} 字节{}）",
+                        error_chain(&e),
+                        received,
+                        total.map(|t| format!(" / 共 {t}")).unwrap_or_default(),
                     ));
                 }
             }
@@ -312,6 +315,20 @@ impl HttpClient {
         }
         builder
     }
+}
+
+/// 把整条 `source()` 链拼成一句：`a: b: c`，相邻重复的文案只留一份。
+fn error_chain(error: &(dyn Error + 'static)) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    let mut current: Option<&(dyn Error + 'static)> = Some(error);
+    while let Some(e) = current {
+        let text = e.to_string();
+        if parts.last() != Some(&text) {
+            parts.push(text);
+        }
+        current = e.source();
+    }
+    parts.join(": ")
 }
 
 /// 快捷入口：每次新建客户端后 `fetch`。

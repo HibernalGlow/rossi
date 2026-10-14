@@ -195,8 +195,7 @@ pub async fn mimage_onnx_upscale(
                 "model id/path mismatch: {model_id} != {model_path}"
             ));
         }
-        let input =
-            image::open(&input_path).with_context(|| format!("decode input: {input_path}"))?;
+        let input = decode_input(&input_path)?;
         let rgb = input.to_rgb8();
         let (iw, ih) = rgb.dimensions();
         let decode_ms = started.elapsed().as_millis();
@@ -425,11 +424,56 @@ pub async fn mimage_onnx_release_sessions() -> Result<u64> {
     .map_err(|e| anyhow!(e.to_string()))?
 }
 
+/// 按**文件内容**猜格式再解码。
+///
+/// `image::open` 只看扩展名：在线漫画的下载文件是 `f_数字` 这种无扩展名路径，
+/// 即使内容是合法 JPEG 也会报「The image format could not be determined」。
+fn decode_input(input_path: &str) -> Result<image::DynamicImage> {
+    let context = || format!("decode input: {input_path}");
+    image::ImageReader::open(input_path)
+        .with_context(context)?
+        .with_guessed_format()
+        .with_context(context)?
+        .decode()
+        .with_context(context)
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
-    use super::{model_kind_file, model_output_scale};
+    use super::{decode_input, model_kind_file, model_output_scale};
+
+    #[test]
+    fn decodes_by_content_when_the_path_has_no_extension() {
+        let dir = std::env::temp_dir().join(format!(
+            "rossi_decode_input_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("f_10648151397049399612908539236423182778");
+        image::RgbImage::from_pixel(8, 6, image::Rgb([200, 30, 30]))
+            .save_with_format(&path, image::ImageFormat::Jpeg)
+            .unwrap();
+        let decoded = decode_input(path.to_str().unwrap()).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (8, 6));
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn rejects_non_image_content_with_the_path_in_the_error() {
+        let dir = std::env::temp_dir().join(format!("rossi_decode_bad_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("not_an_image");
+        std::fs::write(&path, b"hello").unwrap();
+        let err = decode_input(path.to_str().unwrap()).unwrap_err();
+        assert!(format!("{err:#}").contains("decode input:"));
+        std::fs::remove_dir_all(&dir).ok();
+    }
 
     #[test]
     fn denoise_uses_its_fixed_one_x_model() {
