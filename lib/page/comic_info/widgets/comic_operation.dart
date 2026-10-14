@@ -13,6 +13,7 @@ import 'package:zephyr/page/comic_info/models/comic_magnet.dart';
 import 'package:zephyr/page/comic_info/models/comic_source_page_url.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
+import 'package:zephyr/page/download/widgets/comic_download_options_sheet.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
@@ -411,8 +412,9 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
 
   /// 单击「下载」。
   ///
-  /// 默认直接下载整本；只有这本漫画已有下载记录/任务时才进章节选择页
-  /// （此时点击语义是「管理已有下载」）。想主动挑章节请长按。
+  /// 已有下载记录/任务时点击语义是「管理已有下载」，直接进章节选择页；
+  /// 全新漫画也不再闷头把整本塞进队列 —— 弹一次三选（整本 / 最近 N 章 / 手动挑），
+  /// 因为 100+ 章的本误点一下就是 100 个任务，长按找入口的成本不该由用户付。
   Future<void> _openDownload() async {
     if (!normalInfo.allowDownload) return;
 
@@ -432,12 +434,15 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     }
 
     if (!mounted) return;
-    await startComicDownloadAll(
-      context: context,
+    final info = resolveUnifiedDownloadInfo(comicInfo, widget.from);
+    await promptAndRunComicDownload(
+      context,
       from: _downloadSource,
       comicId: _downloadComicId,
       comicName: comicInfoView.title,
       comicInfo: comicInfo,
+      chapterCount: info.chapters.length,
+      onOpenChapterPicker: () => _pushChapterPicker(info),
     );
   }
 

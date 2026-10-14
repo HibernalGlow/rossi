@@ -9,8 +9,12 @@ import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
 import 'package:zephyr/page/download/models/unified_comic_download.dart';
 import 'package:zephyr/page/comic_info/cubit/episode_download_status_cubit.dart';
+import 'package:zephyr/page/comic_info/cubit/episode_read_mark_cubit.dart';
 import 'package:zephyr/page/comic_info/cubit/episode_selection_cubit.dart';
+import 'package:zephyr/page/comic_info/models/chapter_read_state.dart';
 import 'package:zephyr/page/comic_info/widgets/episode_download_controller.dart';
+import 'package:zephyr/page/comic_info/widgets/episode_read_mark_controller.dart';
+import 'package:zephyr/page/comic_info/widgets/episode_read_marker.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/type/enum.dart';
@@ -44,6 +48,9 @@ class EpButtonWidget extends StatelessWidget {
   final Ep doc;
   final DownloadChapter chapter;
   final EpisodeDownloadController controller;
+
+  /// 章节阅读标记控制器（与下载控制器平级的那一半，共用同一份选中态）。
+  final EpisodeReadMarkController readController;
   final dynamic allInfo;
   final int epsLength;
 
@@ -63,11 +70,15 @@ class EpButtonWidget extends StatelessWidget {
   final VoidCallback? onToggleSelect;
   final VoidCallback? onEnterSelect;
 
+  /// 「标记至此为已读」的范围由外层算（外层才有完整显示列表与倒序方向）。
+  final VoidCallback? onMarkThroughRead;
+
   const EpButtonWidget({
     super.key,
     required this.doc,
     required this.chapter,
     required this.controller,
+    required this.readController,
     required this.allInfo,
     required this.epsLength,
     this.displayTotal,
@@ -81,6 +92,7 @@ class EpButtonWidget extends StatelessWidget {
     this.onAction,
     this.onToggleSelect,
     this.onEnterSelect,
+    this.onMarkThroughRead,
   });
 
   @override
@@ -130,17 +142,31 @@ class EpButtonWidget extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  if (selectionMode)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: GlyphIcon(
-                        selected ? AppGlyphs.checkCircle : AppGlyphs.ring,
-                        color: selected
-                            ? colorScheme.primary
-                            : context.textColor.withValues(alpha: 0.5),
-                        size: 20,
-                      ),
-                    ),
+                  // 前导槽位：多选时是选中勾，平时是阅读标记。两者占同一个
+                  // 32+12 的槽，进/出多选不会让标题左右跳。
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: selectionMode
+                        ? SizedBox.square(
+                            dimension: 32,
+                            child: Center(
+                              child: GlyphIcon(
+                                selected
+                                    ? AppGlyphs.checkCircle
+                                    : AppGlyphs.ring,
+                                color: selected
+                                    ? colorScheme.primary
+                                    : context.textColor.withValues(alpha: 0.5),
+                                size: 20,
+                              ),
+                            ),
+                          )
+                        : EpisodeReadMarker(
+                            controller: readController,
+                            chapter: chapter,
+                            onMarkThroughRead: onMarkThroughRead,
+                          ),
+                  ),
                   Text(
                     episodeLabel,
                     style: context.theme.textTheme.bodyMedium?.copyWith(
@@ -150,15 +176,10 @@ class EpButtonWidget extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: context.textColor,
-                      ),
+                    child: _EpisodeTitle(
+                      readController: readController,
+                      chapter: chapter,
+                      title: title,
                     ),
                   ),
                   _EpisodeTrailing(
@@ -237,6 +258,64 @@ class EpButtonWidget extends StatelessWidget {
     ChapterExtern chapterExtern,
   ) {
     return chapterExtern;
+  }
+}
+
+/// 章节标题：颜色按阅读状态走，与左侧标记共用同一份解析结果。
+///
+/// 只订阅自己这一章，别章标记变化不重建标题。
+class _EpisodeTitle extends StatelessWidget {
+  const _EpisodeTitle({
+    required this.readController,
+    required this.chapter,
+    required this.title,
+  });
+
+  final EpisodeReadMarkController readController;
+  final DownloadChapter chapter;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<
+      EpisodeReadMarkCubit,
+      EpisodeReadMarkState,
+      ChapterReadState
+    >(
+      bloc: readController.cubit,
+      selector: (state) =>
+          state.model.stateOf(chapterId: chapter.id, order: chapter.order),
+      builder: (context, readState) {
+        return Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: context.theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: episodeTitleColor(context, readState),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 标题取色（纯函数，四档互不相同）。
+///
+/// 读到过与已标已读都淡色，但淡一档不同：人为判决比推断更「确定」，
+/// 压得更暗；已标未读反而用主色 —— 那是用户显式说「我还没读」，要跳出来。
+Color episodeTitleColor(BuildContext context, ChapterReadState state) {
+  final textColor = context.textColor;
+  switch (state) {
+    case ChapterReadState.unread:
+      return textColor;
+    case ChapterReadState.inferredRead:
+      return textColor.withValues(alpha: 0.55);
+    case ChapterReadState.manualRead:
+      return textColor.withValues(alpha: 0.40);
+    case ChapterReadState.manualUnread:
+      return context.theme.colorScheme.primary;
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:zephyr/object_box/model.dart';
+import 'package:zephyr/page/comic_info/models/chapter_read_state.dart';
 
 part 'comic_follow_state.freezed.dart';
 
@@ -21,6 +22,8 @@ abstract class ComicFollowState with _$ComicFollowState {
     @Default(0) int revision,
     @Default(<String, UnifiedComicHistory>{})
     Map<String, UnifiedComicHistory> histories,
+    @Default(<String, Map<String, ChapterMark>>{})
+    Map<String, Map<String, ChapterMark>> chapterMarks,
     @Default(ComicFollowFilter.all) ComicFollowFilter filter,
     @Default(ComicFollowSort.lastRead) ComicFollowSort sort,
   }) = _ComicFollowState;
@@ -40,32 +43,24 @@ abstract class ComicFollowState with _$ComicFollowState {
   UnifiedComicHistory? historyFor(ComicFollow follow) =>
       histories[follow.uniqueKey];
 
-  bool hasUnreadUpdate(ComicFollow follow) {
-    if (!follow.hasUpdate ||
-        follow.detectedChapterCount <= follow.lastChapterCount) {
-      return false;
-    }
+  /// 这部漫画的人为标记（`chapterId -> ChapterMark`）。
+  Map<String, ChapterMark> marksFor(ComicFollow follow) =>
+      chapterMarks[follow.uniqueKey] ?? const {};
 
-    final history = historyFor(follow);
-    if (history == null || history.chapterOrder <= 0) {
-      return true;
-    }
-    return history.chapterOrder < follow.detectedChapterCount;
-  }
-
+  /// 未读章数：闸门与修正量都在 `followUnreadChapterCount`（纯层）里，
+  /// 那里有遍历参数空间的恒等门禁；这里只负责按 uniqueKey 取数。
   int unreadChapterCount(ComicFollow follow) {
-    if (!hasUnreadUpdate(follow)) return 0;
-
     final history = historyFor(follow);
-    final readChapterOrder = history?.chapterOrder ?? 0;
-    final readBaseline = readChapterOrder > follow.lastChapterCount
-        ? readChapterOrder
-        : follow.lastChapterCount;
-    return (follow.detectedChapterCount - readBaseline).clamp(
-      0,
-      follow.detectedChapterCount,
+    return followUnreadChapterCount(
+      hasUpdate: follow.hasUpdate,
+      detectedChapterCount: follow.detectedChapterCount,
+      lastChapterCount: follow.lastChapterCount,
+      bookmarkOrder: history?.chapterOrder ?? 0,
+      marks: marksFor(follow),
     );
   }
+
+  bool hasUnreadUpdate(ComicFollow follow) => unreadChapterCount(follow) > 0;
 
   int _compareItems(ComicFollow left, ComicFollow right) {
     if (filter == ComicFollowFilter.unread) {

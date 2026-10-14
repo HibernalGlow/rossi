@@ -16,6 +16,7 @@ import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/error_view.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 
@@ -309,37 +310,55 @@ class _FilterRow extends StatelessWidget {
             onSelectionChanged: (selected) => cubit.setFilter(selected.first),
           ),
           const Spacer(),
-          PopupMenuButton<ComicFollowSort>(
-            tooltip: t.comicFollow.sort,
-            initialValue: state.sort,
-            onSelected: cubit.setSort,
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: ComicFollowSort.lastRead,
-                child: Text(t.comicFollow.lastRead),
-              ),
-              PopupMenuItem(
-                value: ComicFollowSort.update,
-                child: Text(t.comicFollow.lastUpdate),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    state.sort == ComicFollowSort.lastRead
-                        ? t.comicFollow.lastRead
-                        : t.comicFollow.lastUpdate,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+          CommonPopupBox<void>(
+            targetBuilder: (open) => Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: open,
+                borderRadius: BorderRadius.circular(12),
+                child: Tooltip(
+                  message: t.comicFollow.sort,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          state.sort == ComicFollowSort.lastRead
+                              ? t.comicFollow.lastRead
+                              : t.comicFollow.lastUpdate,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(width: 4),
+                        const GlyphIcon(AppGlyphs.sort, size: 18),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const GlyphIcon(AppGlyphs.sort, size: 18),
-                ],
+                ),
               ),
+            ),
+            // 排序键各带一颗：最后阅读 = 历史，最近更新 = 日期
+            // （与文件管理器排序菜单里「修改日期」那颗同一语义）。
+            popupBuilder: (_) => CommonPopupMenu(
+              items: [
+                CommonPopupMenuItem(
+                  label: t.comicFollow.lastRead,
+                  glyph: AppGlyphs.history,
+                  checked: state.sort == ComicFollowSort.lastRead,
+                  onPressed: () => cubit.setSort(ComicFollowSort.lastRead),
+                ),
+                CommonPopupMenuItem(
+                  label: t.comicFollow.lastUpdate,
+                  glyph: AppGlyphs.calendar,
+                  checked: state.sort == ComicFollowSort.update,
+                  onPressed: () => cubit.setSort(ComicFollowSort.update),
+                ),
+              ],
             ),
           ),
         ],

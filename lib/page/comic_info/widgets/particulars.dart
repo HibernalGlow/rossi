@@ -1,16 +1,9 @@
-import 'dart:io';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:path/path.dart' as p;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/main.dart';
-import 'package:zephyr/network/http/plugin/qjs_download_runtime.dart';
-import 'package:zephyr/object_box/model.dart';
-import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/comic_info.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 import 'package:zephyr/util/comic/favorite_tag_matcher.dart';
@@ -18,12 +11,12 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/favorite_tag_badge.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     show ComicInfo, ComicInfoActionItem;
+import 'package:zephyr/service/download/download_storage_layout.dart';
+import 'package:zephyr/service/download/download_storage_summary.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
-import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
-import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -134,107 +127,15 @@ class _InfoColumnState extends State<_InfoColumn> {
   }
 
   Future<void> _calculateStorageSize() async {
-    try {
-      final downloadPath = await getDownloadPath();
-      int totalSize = 0;
-      var foundDirectory = false;
-
-      for (final storagePath in await _storageRoots(downloadPath)) {
-        final dir = Directory(storagePath);
-        try {
-          if (!await dir.exists()) continue;
-          foundDirectory = true;
-          await for (final entity in dir.list(
-            recursive: true,
-            followLinks: false,
-          )) {
-            if (entity is File) {
-              try {
-                totalSize += await entity.length();
-              } on FileSystemException {
-                continue;
-              }
-            }
-          }
-        } on FileSystemException {
-          // 某个历史目录不可访问时，继续统计其他兼容目录。
-        }
-      }
-
-      if (foundDirectory && mounted) {
-        setState(() => _storageSize = totalSize);
-      }
-    } catch (_) {
-      // ignore errors
+    final stat = await measureComicDownloadStorage(
+      from: widget.from,
+      comicId: widget.comicInfo.id,
+    );
+    // 一个目录都没找到时保持 null：显示「0 B」会被读成「这本没占地方」，
+    // 而真实情况可能是布局换了或还没统计过。
+    if (stat.measured && mounted) {
+      setState(() => _storageSize = stat.bytes);
     }
-  }
-
-  Future<List<String>> _storageRoots(String downloadPath) async {
-    final roots = <String, String>{};
-    void addRoot(String path) {
-      final normalized = p.normalize(p.absolute(path));
-      final key = Platform.isWindows ? normalized.toLowerCase() : normalized;
-      roots[key] = normalized;
-    }
-
-    final comicId = widget.comicInfo.id.trim();
-    final sourceCandidates = <String>{
-      widget.from.trim(),
-      normalizePluginId(widget.from),
-    }..removeWhere((source) => source.isEmpty);
-
-    for (final source in sourceCandidates) {
-      // 当前下载布局：hash(from)/hash(cartoonId)。
-      try {
-        addRoot(
-          p.join(
-            downloadPath,
-            encodePath(path: source),
-            encodePath(path: comicId),
-          ),
-        );
-      } catch (_) {
-        // Rust 编码服务尚未就绪时，仍继续统计历史目录。
-      }
-
-      // c703e334 产生的旧编码目录。
-      try {
-        addRoot(
-          p.join(downloadPath, source, 'original', encodePath(path: comicId)),
-        );
-      } catch (_) {}
-
-      // 更早的未编码目录。
-      addRoot(p.join(downloadPath, source, 'original', comicId));
-    }
-
-    // 旧数据库记录可能保存了当时实际使用的绝对 storageRoot。
-    for (final source in sourceCandidates) {
-      final query = objectbox.unifiedDownloadBox
-          .query(UnifiedComicDownload_.uniqueKey.equals('$source:$comicId'))
-          .build();
-      UnifiedComicDownload? download;
-      try {
-        download = query.findFirst();
-      } finally {
-        query.close();
-      }
-      final storedRoot = download?.storageRoot.trim() ?? '';
-      if (storedRoot.isNotEmpty && p.isAbsolute(storedRoot)) {
-        addRoot(storedRoot);
-      }
-    }
-
-    return roots.values.toList();
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   @override
@@ -345,7 +246,7 @@ class _InfoColumnState extends State<_InfoColumn> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _formatFileSize(_storageSize!),
+                      formatDownloadBytes(_storageSize!),
                       style: context.theme.textTheme.labelMedium?.copyWith(
                         letterSpacing: 0.8,
                         fontWeight: FontWeight.w700,

@@ -32,6 +32,7 @@ extension _ComicInfoContentPart on _ComicInfoState {
       comicTitle: comicInfo.title,
       allowDownload: showDownloadUi,
     );
+    _readController.attach(from: widget.from, comicId: _comicId);
     final comicKey = '${widget.from}:$_comicId';
     if (_collapsedForComic != comicKey) {
       _collapsedForComic = comicKey;

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 原位详情的内容布局。封面和书名属于上方被选中的卡片，不在这里重复。
 /// 业务宿主提供真实操作、元数据和章节；这里仅负责空间与层级。
@@ -49,7 +50,7 @@ class ComicInlineDetailsSurface extends StatelessWidget {
                     minHeight: 48,
                   ),
                   onPressed: onClose,
-                  icon: const Icon(Icons.close_rounded),
+                  icon: const GlyphIcon(AppGlyphs.close),
                 ),
               ],
             ),
@@ -201,10 +202,10 @@ class _ComicInlineChapterBoardState extends State<ComicInlineChapterBoard> {
           ),
           TextButton.icon(
             onPressed: widget.onReverse,
-            icon: Icon(
-              widget.reversed
-                  ? Icons.arrow_upward_rounded
-                  : Icons.arrow_downward_rounded,
+            icon: MorphingGlyph(
+              on: widget.reversed,
+              glyph: AppGlyphs.arrowDown,
+              turns: 0.5,
             ),
             label: Text(widget.reversed ? '恢复正序' : '倒序'),
           ),
@@ -231,7 +232,7 @@ class _ComicInlineChapterBoardState extends State<ComicInlineChapterBoard> {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed: () => setState(() => _visible += 24),
-            icon: const Icon(Icons.expand_more_rounded),
+            icon: const GlyphIcon(AppGlyphs.chevronDown),
             label: const Text('显示更多章节'),
           ),
         ),
