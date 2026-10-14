@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -70,6 +71,7 @@ class FileManagerSettingPage extends StatelessWidget {
 
     return SettingPageShell(
       title: t.settings.fileManager,
+      description: t.settings.fileManagerSubtitle,
       child: ListView(
         padding: kSettingPagePadding,
         children: [
@@ -82,11 +84,10 @@ class FileManagerSettingPage extends StatelessWidget {
             title: t.settings.fileManagerSectionHome,
             icon: AppGlyphs.home,
             children: [
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.toggle),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.toggle),
                 title: Text(t.settings.fileManagerHomeEnabled),
                 subtitle: Text(t.settings.fileManagerHomeEnabledSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.homeEnabled,
                 onChanged: (value) => cubit.updateFileManagerSetting(
                   (current) => current.copyWith(homeEnabled: value),
@@ -113,11 +114,10 @@ class FileManagerSettingPage extends StatelessWidget {
               // 只有设过主页才摆这一条：没主页时它没有任何可生效的值，
               // 摆一个开不动的开关比不摆更糟（与「清除主页」同口径）。
               if (homePath.isNotEmpty)
-                SwitchListTile(
-                  secondary: const GlyphIcon(AppGlyphs.rocket),
+                SettingGroup.switchTile(
+                  leading: const GlyphIcon(AppGlyphs.rocket),
                   title: Text(t.settings.fileManagerOpenHomeOnStart),
                   subtitle: Text(t.settings.fileManagerOpenHomeOnStartSubtitle),
-                  thumbIcon: kSettingSwitchThumbIcon,
                   value: setting.openHomeOnStart,
                   // 主页键关掉 ⇒ 这条开不动：`material_ui` 的 SwitchListTile 由
                   // `onChanged == null` 自己推导禁用，它没有 `enabled` 形参。
@@ -174,21 +174,19 @@ class FileManagerSettingPage extends StatelessWidget {
                   (current) => current.copyWith(breadcrumbStyle: value),
                 ),
               ),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.bookmark),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.bookmark),
                 title: Text(t.settings.fileManagerRememberViewState),
                 subtitle: Text(t.settings.fileManagerRememberViewStateSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.rememberViewState,
                 onChanged: (value) => cubit.updateFileManagerSetting(
                   (current) => current.copyWith(rememberViewState: value),
                 ),
               ),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.wrap),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.wrap),
                 title: Text(t.settings.fileManagerWrapGridTitle),
                 subtitle: Text(t.settings.fileManagerWrapGridTitleSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.wrapGridTitle,
                 onChanged: (value) => cubit.updateFileManagerSetting(
                   (current) => current.copyWith(wrapGridTitle: value),
@@ -201,13 +199,12 @@ class FileManagerSettingPage extends StatelessWidget {
             title: t.settings.fileManagerSectionSearch,
             icon: AppGlyphs.search,
             children: [
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.tree),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.tree),
                 title: Text(t.settings.fileManagerSearchSubfoldersDefault),
                 subtitle: Text(
                   t.settings.fileManagerSearchSubfoldersDefaultSubtitle,
                 ),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.searchSubfoldersDefault,
                 // 不发「重启后生效」的提示：这条改的是**新页签的起手范围**，
                 // 正在搜的那一批页签不该被设置页偷偷换范围（那等于改他的搜索结果）。
@@ -222,11 +219,10 @@ class FileManagerSettingPage extends StatelessWidget {
             title: t.settings.fileManagerSectionTabs,
             icon: AppGlyphs.layoutTabs,
             children: [
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.reset),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.reset),
                 title: Text(t.settings.fileManagerRestoreTabs),
                 subtitle: Text(t.settings.fileManagerRestoreTabsSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.restoreTabs,
                 // 和「启动时默认打开主页」同一个口径：恢复是**新建会话**时才做的事，
                 // 设置页不该把用户正开着的那批页签搬走，所以改完只说明「下次生效」。
@@ -248,11 +244,10 @@ class FileManagerSettingPage extends StatelessWidget {
             title: t.settings.fileManagerSectionFileOps,
             icon: AppGlyphs.folderCopy,
             children: [
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.delete),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.delete),
                 title: Text(t.settings.fileManagerFileOperations),
                 subtitle: Text(t.settings.fileManagerFileOperationsSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.fileOperations,
                 onChanged: (value) => cubit.updateFileManagerSetting(
                   (current) => current.copyWith(fileOperations: value),

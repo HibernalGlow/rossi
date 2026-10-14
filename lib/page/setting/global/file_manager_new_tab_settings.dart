@@ -1,9 +1,12 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/widgets/popup_select_field.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 /// 默认值与继承策略只用于未来页签；改设置时不覆盖已经打开的页签。
 class FileManagerNewTabSettings extends StatelessWidget {
@@ -17,25 +20,20 @@ class FileManagerNewTabSettings extends StatelessWidget {
       String label,
       T value,
       Map<T, String> choices,
-      ValueChanged<T> change,
-    ) => Padding(
+      ValueChanged<T> change, {
+      Glyph? Function(T value)? glyphOf,
+    }) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: DropdownButtonFormField<T>(
-        key: ValueKey('$label:$value'),
-        initialValue: value,
-        isExpanded: true,
-        decoration: InputDecoration(labelText: label),
-        items: [
-          for (final choice in choices.entries)
-            DropdownMenuItem(value: choice.key, child: Text(choice.value)),
-        ],
-        onChanged: (value) {
-          if (value != null) change(value);
-        },
+      child: PopupSelectField<T>(
+        label: label,
+        value: value,
+        options: choices,
+        glyphOf: glyphOf,
+        onChanged: change,
       ),
     );
     return SettingSectionCard(
-      title: '新页签启动选项',
+      title: t.settings.fmNewTabStartup,
       icon: AppGlyphs.layoutTabs,
       children: [
         select(
@@ -48,6 +46,13 @@ class FileManagerNewTabSettings extends StatelessWidget {
           (value) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabPolicy: value),
           ),
+          // 预设 = 「回到默认」那一颗（与泳道的恢复默认宽度同一语义）；
+          // 继承最近 / 继承触发页签分别是历史与定位。
+          glyphOf: (policy) => switch (policy) {
+            FileManagerTabStartupPolicy.defaults => AppGlyphs.reset,
+            FileManagerTabStartupPolicy.recent => AppGlyphs.history,
+            FileManagerTabStartupPolicy.triggering => AppGlyphs.target,
+          },
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -64,6 +69,9 @@ class FileManagerNewTabSettings extends StatelessWidget {
           (value) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabViewMode: value),
           ),
+          // 图标只有一份：直接取 `LibraryViewMode.icon`，与文件卡工具栏
+          // 「视图模式：$label」那六颗同一套，这里不再另画。
+          glyphOf: (name) => LibraryViewMode.values.asNameMap()[name]?.icon,
         ),
         select(
           '默认内容布局',
@@ -78,34 +86,39 @@ class FileManagerNewTabSettings extends StatelessWidget {
           (value) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabLayoutMode: value),
           ),
+          // 树形 / 分栏沿用工具栏上那两颗（文件树开关、目录列开关），
+          // 内容视图是「只有条目列表」，取列表那一颗。
+          glyphOf: (name) => switch (name) {
+            'tree' => AppGlyphs.tree,
+            'columns' => AppGlyphs.columnsTwo,
+            'content' => AppGlyphs.appsList,
+            _ => null,
+          },
         ),
-        SwitchListTile(
-          title: const Text('默认启用穿透'),
-          thumbIcon: kSettingSwitchThumbIcon,
+        SettingGroup.switchTile(
+          title: Text(t.settings.fmNewTabPassthrough),
           value: setting.newTabPenetration,
           onChanged: (v) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabPenetration: v),
           ),
         ),
-        SwitchListTile(
-          title: const Text('默认显示隐藏项'),
-          thumbIcon: kSettingSwitchThumbIcon,
+        SettingGroup.switchTile(
+          title: Text(t.settings.fmNewTabShowHidden),
           value: setting.newTabShowHidden,
           onChanged: (v) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabShowHidden: v),
           ),
         ),
-        SwitchListTile(
-          title: const Text('默认显示内部条目'),
-          thumbIcon: kSettingSwitchThumbIcon,
+        SettingGroup.switchTile(
+          title: Text(t.settings.fmNewTabShowInternal),
           value: setting.newTabShowChildNames,
           onChanged: (v) => cubit.updateFileManagerSetting(
             (s) => s.copyWith(newTabShowChildNames: v),
           ),
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.all(16),
-          child: Text('预设默认值仅在“使用预设默认值”时采用；默认递归范围沿用下方搜索设置。复制与恢复已关闭页签保留原有设置。'),
+          child: Text(t.settings.fmNewTabPresetHint),
         ),
       ],
     );
