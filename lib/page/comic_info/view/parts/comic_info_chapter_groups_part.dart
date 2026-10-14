@@ -59,6 +59,7 @@ extension _ComicInfoChapterGroupsPart on _ComicInfoState {
       doc: doc,
       chapter: chapter,
       controller: _dlController,
+      readController: _readController,
       allInfo: allInfo,
       epsLength: epsLength,
       displayTotal: displayTotal,
@@ -71,13 +72,20 @@ extension _ComicInfoChapterGroupsPart on _ComicInfoState {
       downloadDisabledReason: downloadDisabledReason,
       onAction: () => _onChapterAction(context, chapter, downloadAllowed),
       onToggleSelect: () => _dlController.toggleSelect(chapter.id),
-      onEnterSelect: () {
-        if (!downloadAllowed) {
-          _showDownloadDisabledToast(downloadDisabledReason);
-          return;
-        }
-        _dlController.enterSelection(chapter.id);
-      },
+      // 长按进多选不再看下载能力：多选里还有「标记已读/未读」这组与下载无关的动作。
+      // 下载与删除按钮自己按 allowDownload 禁用。
+      onEnterSelect: () => _dlController.enterSelection(chapter.id),
+      onMarkThroughRead: () => _markThroughRead(chapter),
+    );
+  }
+
+  /// 「标记至此为已读」的范围按**当前显示列表**算：插件返回的 order 不可信
+  /// （行号本来就是宿主自己编的），倒序显示时「此前」落在数组另一头。
+  void _markThroughRead(DownloadChapter target) {
+    _readController.markThroughRead(
+      target: target,
+      displayChapters: _dlController.lastChapters,
+      displayReversed: _isReversed,
     );
   }
 

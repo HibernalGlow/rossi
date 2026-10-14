@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ComicFollowState {
 
- ComicFollowStatus get status; List<ComicFollow> get items; bool get isCheckingUpdates; String get result; int get revision; Map<String, UnifiedComicHistory> get histories; ComicFollowFilter get filter; ComicFollowSort get sort;
+ ComicFollowStatus get status; List<ComicFollow> get items; bool get isCheckingUpdates; String get result; int get revision; Map<String, UnifiedComicHistory> get histories; Map<String, Map<String, ChapterMark>> get chapterMarks; ComicFollowFilter get filter; ComicFollowSort get sort;
 /// Create a copy of ComicFollowState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $ComicFollowStateCopyWith<ComicFollowState> get copyWith => _$ComicFollowStateCo
 @override
 bool operator ==(Object other) {
   final _this = this as ComicFollowState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicFollowState&&(identical(other.status, _this.status) || other.status == _this.status)&&const DeepCollectionEquality().equals(other.items, _this.items)&&(identical(other.isCheckingUpdates, _this.isCheckingUpdates) || other.isCheckingUpdates == _this.isCheckingUpdates)&&(identical(other.result, _this.result) || other.result == _this.result)&&(identical(other.revision, _this.revision) || other.revision == _this.revision)&&const DeepCollectionEquality().equals(other.histories, _this.histories)&&(identical(other.filter, _this.filter) || other.filter == _this.filter)&&(identical(other.sort, _this.sort) || other.sort == _this.sort));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComicFollowState&&(identical(other.status, _this.status) || other.status == _this.status)&&const DeepCollectionEquality().equals(other.items, _this.items)&&(identical(other.isCheckingUpdates, _this.isCheckingUpdates) || other.isCheckingUpdates == _this.isCheckingUpdates)&&(identical(other.result, _this.result) || other.result == _this.result)&&(identical(other.revision, _this.revision) || other.revision == _this.revision)&&const DeepCollectionEquality().equals(other.histories, _this.histories)&&const DeepCollectionEquality().equals(other.chapterMarks, _this.chapterMarks)&&(identical(other.filter, _this.filter) || other.filter == _this.filter)&&(identical(other.sort, _this.sort) || other.sort == _this.sort));
 }
 
 
 @override
 int get hashCode {
   final _this = this as ComicFollowState;
-  return Object.hash(runtimeType,_this.status,const DeepCollectionEquality().hash(_this.items),_this.isCheckingUpdates,_this.result,_this.revision,const DeepCollectionEquality().hash(_this.histories),_this.filter,_this.sort);
+  return Object.hash(runtimeType,_this.status,const DeepCollectionEquality().hash(_this.items),_this.isCheckingUpdates,_this.result,_this.revision,const DeepCollectionEquality().hash(_this.histories),const DeepCollectionEquality().hash(_this.chapterMarks),_this.filter,_this.sort);
 }
 
 @override
 String toString() {
   final _this = this as ComicFollowState;
-  return 'ComicFollowState(status: ${_this.status}, items: ${_this.items}, isCheckingUpdates: ${_this.isCheckingUpdates}, result: ${_this.result}, revision: ${_this.revision}, histories: ${_this.histories}, filter: ${_this.filter}, sort: ${_this.sort})';
+  return 'ComicFollowState(status: ${_this.status}, items: ${_this.items}, isCheckingUpdates: ${_this.isCheckingUpdates}, result: ${_this.result}, revision: ${_this.revision}, histories: ${_this.histories}, chapterMarks: ${_this.chapterMarks}, filter: ${_this.filter}, sort: ${_this.sort})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $ComicFollowStateCopyWith<$Res>  {
   factory $ComicFollowStateCopyWith(ComicFollowState value, $Res Function(ComicFollowState) _then) = _$ComicFollowStateCopyWithImpl;
 @useResult
 $Res call({
- ComicFollowStatus status, List<ComicFollow> items, bool isCheckingUpdates, String result, int revision, Map<String, UnifiedComicHistory> histories, ComicFollowFilter filter, ComicFollowSort sort
+ ComicFollowStatus status, List<ComicFollow> items, bool isCheckingUpdates, String result, int revision, Map<String, UnifiedComicHistory> histories, Map<String, Map<String, ChapterMark>> chapterMarks, ComicFollowFilter filter, ComicFollowSort sort
 });
 
 
@@ -68,7 +68,7 @@ class _$ComicFollowStateCopyWithImpl<$Res>
 
 /// Create a copy of ComicFollowState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? items = null,Object? isCheckingUpdates = null,Object? result = null,Object? revision = null,Object? histories = null,Object? filter = null,Object? sort = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? items = null,Object? isCheckingUpdates = null,Object? result = null,Object? revision = null,Object? histories = null,Object? chapterMarks = null,Object? filter = null,Object? sort = null,}) {
   return _then(ComicFollowState(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ComicFollowStatus,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
@@ -76,7 +76,8 @@ as List<ComicFollow>,isCheckingUpdates: null == isCheckingUpdates ? _self.isChec
 as bool,result: null == result ? _self.result : result // ignore: cast_nullable_to_non_nullable
 as String,revision: null == revision ? _self.revision : revision // ignore: cast_nullable_to_non_nullable
 as int,histories: null == histories ? _self.histories : histories // ignore: cast_nullable_to_non_nullable
-as Map<String, UnifiedComicHistory>,filter: null == filter ? _self.filter : filter // ignore: cast_nullable_to_non_nullable
+as Map<String, UnifiedComicHistory>,chapterMarks: null == chapterMarks ? _self.chapterMarks : chapterMarks // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, ChapterMark>>,filter: null == filter ? _self.filter : filter // ignore: cast_nullable_to_non_nullable
 as ComicFollowFilter,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
 as ComicFollowSort,
   ));
@@ -163,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ComicFollowStatus status,  List<ComicFollow> items,  bool isCheckingUpdates,  String result,  int revision,  Map<String, UnifiedComicHistory> histories,  ComicFollowFilter filter,  ComicFollowSort sort)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ComicFollowStatus status,  List<ComicFollow> items,  bool isCheckingUpdates,  String result,  int revision,  Map<String, UnifiedComicHistory> histories,  Map<String, Map<String, ChapterMark>> chapterMarks,  ComicFollowFilter filter,  ComicFollowSort sort)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ComicFollowState() when $default != null:
-return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_that.revision,_that.histories,_that.filter,_that.sort);case _:
+return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_that.revision,_that.histories,_that.chapterMarks,_that.filter,_that.sort);case _:
   return orElse();
 
 }
@@ -184,10 +185,10 @@ return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ComicFollowStatus status,  List<ComicFollow> items,  bool isCheckingUpdates,  String result,  int revision,  Map<String, UnifiedComicHistory> histories,  ComicFollowFilter filter,  ComicFollowSort sort)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ComicFollowStatus status,  List<ComicFollow> items,  bool isCheckingUpdates,  String result,  int revision,  Map<String, UnifiedComicHistory> histories,  Map<String, Map<String, ChapterMark>> chapterMarks,  ComicFollowFilter filter,  ComicFollowSort sort)  $default,) {final _that = this;
 switch (_that) {
 case _ComicFollowState():
-return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_that.revision,_that.histories,_that.filter,_that.sort);case _:
+return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_that.revision,_that.histories,_that.chapterMarks,_that.filter,_that.sort);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +205,10 @@ return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ComicFollowStatus status,  List<ComicFollow> items,  bool isCheckingUpdates,  String result,  int revision,  Map<String, UnifiedComicHistory> histories,  ComicFollowFilter filter,  ComicFollowSort sort)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ComicFollowStatus status,  List<ComicFollow> items,  bool isCheckingUpdates,  String result,  int revision,  Map<String, UnifiedComicHistory> histories,  Map<String, Map<String, ChapterMark>> chapterMarks,  ComicFollowFilter filter,  ComicFollowSort sort)?  $default,) {final _that = this;
 switch (_that) {
 case _ComicFollowState() when $default != null:
-return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_that.revision,_that.histories,_that.filter,_that.sort);case _:
+return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_that.revision,_that.histories,_that.chapterMarks,_that.filter,_that.sort);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.status,_that.items,_that.isCheckingUpdates,_that.result,_t
 
 
 class _ComicFollowState extends ComicFollowState {
-  const _ComicFollowState({this.status = ComicFollowStatus.initial,  List<ComicFollow> items = const <ComicFollow>[], this.isCheckingUpdates = false, this.result = '', this.revision = 0,  Map<String, UnifiedComicHistory> histories = const <String, UnifiedComicHistory>{}, this.filter = ComicFollowFilter.all, this.sort = ComicFollowSort.lastRead}): _items = items,_histories = histories,super._();
+  const _ComicFollowState({this.status = ComicFollowStatus.initial,  List<ComicFollow> items = const <ComicFollow>[], this.isCheckingUpdates = false, this.result = '', this.revision = 0,  Map<String, UnifiedComicHistory> histories = const <String, UnifiedComicHistory>{},  Map<String, Map<String, ChapterMark>> chapterMarks = const <String, Map<String, ChapterMark>>{}, this.filter = ComicFollowFilter.all, this.sort = ComicFollowSort.lastRead}): _items = items,_histories = histories,_chapterMarks = chapterMarks,super._();
   
 
 @override@JsonKey() final  ComicFollowStatus status;
@@ -240,6 +241,13 @@ class _ComicFollowState extends ComicFollowState {
   return EqualUnmodifiableMapView(_histories);
 }
 
+ final  Map<String, Map<String, ChapterMark>> _chapterMarks;
+@override@JsonKey() Map<String, Map<String, ChapterMark>> get chapterMarks {
+  if (_chapterMarks is EqualUnmodifiableMapView) return _chapterMarks;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_chapterMarks);
+}
+
 @override@JsonKey() final  ComicFollowFilter filter;
 @override@JsonKey() final  ComicFollowSort sort;
 
@@ -253,18 +261,18 @@ _$ComicFollowStateCopyWith<_ComicFollowState> get copyWith => __$ComicFollowStat
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicFollowState&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.items, _items)&&(identical(other.isCheckingUpdates, isCheckingUpdates) || other.isCheckingUpdates == isCheckingUpdates)&&(identical(other.result, result) || other.result == result)&&(identical(other.revision, revision) || other.revision == revision)&&const DeepCollectionEquality().equals(other.histories, _histories)&&(identical(other.filter, filter) || other.filter == filter)&&(identical(other.sort, sort) || other.sort == sort));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComicFollowState&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.items, _items)&&(identical(other.isCheckingUpdates, isCheckingUpdates) || other.isCheckingUpdates == isCheckingUpdates)&&(identical(other.result, result) || other.result == result)&&(identical(other.revision, revision) || other.revision == revision)&&const DeepCollectionEquality().equals(other.histories, _histories)&&const DeepCollectionEquality().equals(other.chapterMarks, _chapterMarks)&&(identical(other.filter, filter) || other.filter == filter)&&(identical(other.sort, sort) || other.sort == sort));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,status,const DeepCollectionEquality().hash(_items),isCheckingUpdates,result,revision,const DeepCollectionEquality().hash(_histories),filter,sort);
+    return Object.hash(runtimeType,status,const DeepCollectionEquality().hash(_items),isCheckingUpdates,result,revision,const DeepCollectionEquality().hash(_histories),const DeepCollectionEquality().hash(_chapterMarks),filter,sort);
 }
 
 @override
 String toString() {
-    return 'ComicFollowState(status: $status, items: $items, isCheckingUpdates: $isCheckingUpdates, result: $result, revision: $revision, histories: $histories, filter: $filter, sort: $sort)';
+    return 'ComicFollowState(status: $status, items: $items, isCheckingUpdates: $isCheckingUpdates, result: $result, revision: $revision, histories: $histories, chapterMarks: $chapterMarks, filter: $filter, sort: $sort)';
 }
 
 
@@ -275,7 +283,7 @@ abstract mixin class _$ComicFollowStateCopyWith<$Res> implements $ComicFollowSta
   factory _$ComicFollowStateCopyWith(_ComicFollowState value, $Res Function(_ComicFollowState) _then) = __$ComicFollowStateCopyWithImpl;
 @override @useResult
 $Res call({
- ComicFollowStatus status, List<ComicFollow> items, bool isCheckingUpdates, String result, int revision, Map<String, UnifiedComicHistory> histories, ComicFollowFilter filter, ComicFollowSort sort
+ ComicFollowStatus status, List<ComicFollow> items, bool isCheckingUpdates, String result, int revision, Map<String, UnifiedComicHistory> histories, Map<String, Map<String, ChapterMark>> chapterMarks, ComicFollowFilter filter, ComicFollowSort sort
 });
 
 
@@ -292,7 +300,7 @@ class __$ComicFollowStateCopyWithImpl<$Res>
 
 /// Create a copy of ComicFollowState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? items = null,Object? isCheckingUpdates = null,Object? result = null,Object? revision = null,Object? histories = null,Object? filter = null,Object? sort = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? items = null,Object? isCheckingUpdates = null,Object? result = null,Object? revision = null,Object? histories = null,Object? chapterMarks = null,Object? filter = null,Object? sort = null,}) {
   return _then(_ComicFollowState(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ComicFollowStatus,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
@@ -300,7 +308,8 @@ as List<ComicFollow>,isCheckingUpdates: null == isCheckingUpdates ? _self.isChec
 as bool,result: null == result ? _self.result : result // ignore: cast_nullable_to_non_nullable
 as String,revision: null == revision ? _self.revision : revision // ignore: cast_nullable_to_non_nullable
 as int,histories: null == histories ? _self._histories : histories // ignore: cast_nullable_to_non_nullable
-as Map<String, UnifiedComicHistory>,filter: null == filter ? _self.filter : filter // ignore: cast_nullable_to_non_nullable
+as Map<String, UnifiedComicHistory>,chapterMarks: null == chapterMarks ? _self._chapterMarks : chapterMarks // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, ChapterMark>>,filter: null == filter ? _self.filter : filter // ignore: cast_nullable_to_non_nullable
 as ComicFollowFilter,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
 as ComicFollowSort,
   ));

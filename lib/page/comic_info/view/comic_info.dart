@@ -43,6 +43,7 @@ part 'parts/comic_info_chapter_groups_part.dart';
 part 'parts/comic_info_content_part.dart';
 part 'parts/comic_info_sections_part.dart';
 part 'parts/comic_info_inline_part.dart';
+part 'parts/embedded_comic_info_part.dart';
 
 enum MenuOption { export, cloudCollect, follow }
 
@@ -95,40 +96,6 @@ class ComicInfoPage extends StatelessWidget {
   }
 }
 
-/// 原位详情复用同一套加载、章节与下载状态；关闭只作用于所在展墙。
-class EmbeddedComicInfo extends StatelessWidget {
-  const EmbeddedComicInfo({
-    super.key,
-    required this.comicId,
-    required this.from,
-    required this.type,
-    required this.onClose,
-  });
-  final String comicId;
-  final String from;
-  final ComicEntryType type;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) => MultiBlocProvider(
-    providers: [
-      BlocProvider(
-        create: (_) => GetComicInfoBloc()
-          ..add(
-            GetComicInfoEvent(comicId: comicId, from: from.trim(), type: type),
-          ),
-      ),
-      BlocProvider(create: (_) => StringSelectCubit()),
-    ],
-    child: _ComicInfo(
-      comicId: comicId,
-      type: type,
-      from: from.trim(),
-      onClose: onClose,
-    ),
-  );
-}
-
 class _ComicInfo extends StatefulWidget {
   final VoidCallback? onClose;
   final String comicId;
@@ -168,6 +135,10 @@ class _ComicInfoState extends State<_ComicInfo>
   String _title = "";
   late final EpisodeDownloadController _dlController =
       EpisodeDownloadController();
+
+  /// 章节阅读标记（与下载控制器共用一份选中态）。
+  late final EpisodeReadMarkController _readController =
+      EpisodeReadMarkController();
   // 已折叠的章节组（存组标题 key）。默认全展开；漫画切换时清空。
   final Set<String> _collapsedGroups = {};
   String _collapsedForComic = '';
@@ -213,6 +184,7 @@ class _ComicInfoState extends State<_ComicInfo>
   @override
   void dispose() {
     _dlController.dispose();
+    _readController.dispose();
     super.dispose();
   }
 
@@ -416,8 +388,9 @@ class _ComicInfoState extends State<_ComicInfo>
               bloc: _dlController.statusCubit,
               builder: (context, _) => BlocBuilder<EpisodeSelectionCubit, int>(
                 bloc: _dlController.selectionCubit,
-                builder: (context, _) => _SelectionActionBar(
+                builder: (context, _) => EpisodeSelectionActionBar(
                   controller: _dlController,
+                  readController: _readController,
                   isDownloadType: _type == ComicEntryType.download,
                 ),
               ),

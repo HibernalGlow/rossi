@@ -7,7 +7,9 @@ import 'package:zephyr/page/comic_follow/cubit/comic_follow_state.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
     as normal;
 import 'package:zephyr/page/comic_info/method/chapter_group.dart';
+import 'package:zephyr/page/comic_info/models/chapter_read_state.dart';
 import 'package:zephyr/service/comic_follow/comic_follow_service.dart';
+import 'package:zephyr/service/reader/chapter_read_mark_service.dart';
 
 export 'package:zephyr/page/comic_follow/cubit/comic_follow_state.dart';
 
@@ -22,11 +24,13 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
     try {
       final items = ComicFollowService.instance.listActiveFollows();
       final histories = ComicFollowService.instance.listActiveHistories();
+      final chapterMarks = ChapterReadMarkService.instance.allMarksByComic();
       emit(
         state.copyWith(
           status: ComicFollowStatus.success,
           items: items,
           histories: histories,
+          chapterMarks: chapterMarks,
           revision: state.revision + 1,
         ),
       );
@@ -67,7 +71,8 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
 
   Future<void> refreshHistories() async {
     final histories = ComicFollowService.instance.listActiveHistories();
-    emit(state.copyWith(histories: histories));
+    final chapterMarks = ChapterReadMarkService.instance.allMarksByComic();
+    emit(state.copyWith(histories: histories, chapterMarks: chapterMarks));
   }
 
   Future<void> addOrUpdateFollow({
@@ -184,11 +189,34 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
 
   /// 全部标为已读：把每条的 lastChapterCount 对齐到 detectedChapterCount，
   /// 清掉未读徽标。不碰 detected 数据，只是确认“我看到了当前最新”。
+  ///
+  /// 顺带墓碑化这些漫画里「人为标未读」的章节标记 —— 不这么做，一条手标的未读
+  /// 会让这个按钮按下去永远清不掉（未读项恒 > 0）。「全部标为已读」是一部漫画范围
+  /// 的最新判决，它覆盖逐章的未读标记；但**仍然不碰书签行**，实际读到哪里照旧。
   Future<void> markAllAsRead() async {
     final now = DateTime.now().toUtc();
+    final marksAfter = <String, Map<String, ChapterMark>>{};
     final newItems = state.items.map((item) {
       if (item.deleted || !state.hasUnreadUpdate(item)) {
         return item;
+      }
+      final marks = state.marksFor(item);
+      if (marks.isNotEmpty) {
+        final unreadChapterIds = [
+          for (final entry in marks.entries)
+            if (!entry.value.markedRead) entry.key,
+        ];
+        if (unreadChapterIds.isNotEmpty) {
+          ChapterReadMarkService.instance.removeMarksOf(
+            item.source,
+            item.comicId,
+            unreadChapterIds,
+          );
+          marksAfter[item.uniqueKey] = {
+            for (final entry in marks.entries)
+              if (entry.value.markedRead) entry.key: entry.value,
+          };
+        }
       }
       final marked = item.copyWith(
         lastChapterCount: item.detectedChapterCount,
@@ -198,7 +226,15 @@ class ComicFollowCubit extends Cubit<ComicFollowState> {
       ComicFollowService.instance.putFollow(marked);
       return marked;
     }).toList();
-    emit(state.copyWith(items: newItems, revision: state.revision + 1));
+    emit(
+      state.copyWith(
+        items: newItems,
+        chapterMarks: marksAfter.isEmpty
+            ? state.chapterMarks
+            : {...state.chapterMarks, ...marksAfter},
+        revision: state.revision + 1,
+      ),
+    );
   }
 
   /// [userInitiated] 区分两条来路：启动后那一次自动检查是后台行为（可被逐事项开关

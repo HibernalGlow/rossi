@@ -42,6 +42,7 @@ extension _ComicInfoInlinePart on _ComicInfoState {
         comicTitle: _title,
         allowDownload: allowDownload,
       );
+      _readController.attach(from: widget.from, comicId: _comicId);
       final eps = _resolveDisplayEps(info.eps);
       final chapters = _dlController.adaptEps(eps);
       final capability = ComicPreviewCapability.fromInfo(info);
@@ -147,8 +148,9 @@ extension _ComicInfoInlinePart on _ComicInfoState {
                     EpisodeDownloadStatusState
                   >(
                     bloc: _dlController.statusCubit,
-                    builder: (_, _) => _SelectionActionBar(
+                    builder: (_, _) => EpisodeSelectionActionBar(
                       controller: _dlController,
+                      readController: _readController,
                       isDownloadType: _type == ComicEntryType.download,
                       inline: true,
                       onClose: widget.onClose,

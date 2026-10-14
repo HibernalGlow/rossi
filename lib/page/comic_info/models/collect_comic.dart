@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
@@ -697,7 +698,7 @@ Future<Map<String, dynamic>?> _showFavoriteWorkflowForm(
     switch (field.type) {
       case 'switch':
       case 'confirm':
-        return SwitchListTile(
+        return SettingGroup.switchTile(
           contentPadding: EdgeInsets.zero,
           title: Text(field.label),
           subtitle: field.description == null ? null : Text(field.description!),
