@@ -1,25 +1,26 @@
 // 只用 material_ui：它自带一套 MaterialApp / Scaffold / Icons（与主应用同一套），
 // 再 import flutter/material 会得到一堆二义名。
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/discover/service/plugin_function_kind.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/widgets/spring_lens/jelly_hover.dart';
 
-/// 插件卡上那一排功能胶囊。
+/// 插件卡上那一排 MD3 Expressive 功能胶囊。
 ///
-/// 一排同色同形的描边药丸辨识度低，但解法**不是**给每类刷一种颜色 ——
-/// MD3 的调色板只有 primary / secondary / tertiary / error 四条轴线，
-/// 硬凑十种色相只会变成一坨与主题无关的彩虹（换套主题就全乱）。
-/// 这里按 MD3 自己的两条分工来做：
-/// - **档位**（[PluginFunctionTone]）用容器色分开：浏览类走 `secondaryContainer` 实心
-///   tonal，用户自己的东西走 `tertiaryContainer` 实心 tonal，工具与兜底退成
-///   透明底 + `outline` 描边的 assist chip。三档的显眼程度递减，
-///   「进去看内容」的那两颗自然浮出来。
-/// - **具体是哪一项**交给 leading icon —— 形状比字扫得快，而且图标是主题无关的，
-///   插件作者把「最新」写成「新番」也还是那个时钟。
+/// 按 MD3E 语义分工与流体形态设计：
+/// - **档位**（[PluginFunctionTone]）用主题语义容器色分层：
+///   - 浏览类（`browse`）走 `secondaryContainer` 实心 tonal；
+///   - 用户个人类（`library`）走 `primaryContainer` 实心 tonal（跟随全局主色，避免旧版暗黄褐色突兀）；
+///   - 工具与兜底类（`tool`）走透明底 + `outline` 描边的 assist chip；
+/// - **形态与物理动效**：静止态为超椭圆圆角（`RoundedSuperellipseBorder`），悬停时经 [JellyHover]
+///   双轴弹簧连续收成全圆角胶囊（stadium），按压时经 [ElasticButton] 触发空间弹簧形变与触觉反馈。
 class PluginFunctionChips extends StatelessWidget {
   const PluginFunctionChips({
     super.key,
@@ -69,19 +70,23 @@ class PluginFunctionChips extends StatelessWidget {
       };
     }
     final enabled = resolved.isNotEmpty;
+    final animate =
+        enabled &&
+        !eInkInstantRoutes &&
+        !MediaQuery.disableAnimationsOf(context);
 
     final background = !enabled
         ? colorScheme.onSurfaceVariant.withValues(alpha: 0.12)
         : switch (kind.tone) {
             PluginFunctionTone.browse => colorScheme.secondaryContainer,
-            PluginFunctionTone.library => colorScheme.tertiaryContainer,
+            PluginFunctionTone.library => colorScheme.primaryContainer,
             PluginFunctionTone.tool => Colors.transparent,
           };
     final foreground = !enabled
         ? colorScheme.onSurface.withValues(alpha: 0.38)
         : switch (kind.tone) {
             PluginFunctionTone.browse => colorScheme.onSecondaryContainer,
-            PluginFunctionTone.library => colorScheme.onTertiaryContainer,
+            PluginFunctionTone.library => colorScheme.onPrimaryContainer,
             PluginFunctionTone.tool => colorScheme.onSurfaceVariant,
           };
     // 实心两档不带描边（MD3 的 tonal chip 就是没有边的）；只有描边档需要一条边。
@@ -91,35 +96,53 @@ class PluginFunctionChips extends StatelessWidget {
         ? BorderSide(color: colorScheme.outline)
         : BorderSide.none;
 
-    return ActionChip(
-      avatar: GlyphIcon(_iconOf(kind), size: 16, color: foreground),
-      label: ConstrainedBox(
-        // 标题是插件作者写的，长度没有上限；不给个顶，一颗长名胶囊就能把整排撑成
-        // 一行一个，比原来那排药丸还难扫。
-        // 160 是**宽度预算**的最后一项，不是随手取的数：
-        // 8 + 16(图标) + 6 + 160 + 8 = 198dp，而最窄手机上卡片的内容区有
-        // 320 − 32(卡边距) − 40(内边距) = 248dp，所以单颗胶囊撑不破一行，
-        // 超出的字由 ellipsis 收掉。
-        constraints: const BoxConstraints(maxWidth: 160),
-        child: Text(
-          title.let(convertChineseForDisplay),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      onPressed: enabled ? () => onAction(resolved) : null,
-      backgroundColor: background,
-      disabledColor: background,
-      side: side,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      labelPadding: const EdgeInsets.only(left: 6),
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: foreground,
-        fontWeight: FontWeight.w500,
-      ),
+    return JellyHover(
+      enabled: animate,
+      builder: (context, swellX, _) {
+        final morph = swellX.clamp(0.0, 1.0);
+        // 静止态为 14dp 超椭圆圆角，悬停/按压时平滑过渡为 24dp 胶囊（Stadium）。
+        final cornerRadius = 14.0 + 10.0 * morph;
+        return ElasticButton(
+          enabled: animate,
+          child: ActionChip(
+            avatar: GlyphIcon(_iconOf(kind), size: 16, color: foreground),
+            label: ConstrainedBox(
+              // 标题是插件作者写的，长度没有上限；不给个顶，一颗长名胶囊就能把整排撑成
+              // 一行一个，比原来那排药丸还难扫。
+              // 160 是**宽度预算**的最后一项，不是随手取的数：
+              // 8 + 16(图标) + 6 + 160 + 8 = 198dp，而最窄手机上卡片的内容区有
+              // 320 − 32(卡边距) − 40(内边距) = 248dp，所以单颗胶囊撑不破一行，
+              // 超出的字由 ellipsis 收掉。
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(
+                title.let(convertChineseForDisplay),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            onPressed: enabled
+                ? () {
+                    HapticFeedback.lightImpact();
+                    onAction(resolved);
+                  }
+                : null,
+            backgroundColor: background,
+            disabledColor: background,
+            side: side,
+            shape: RoundedSuperellipseBorder(
+              borderRadius: BorderRadius.circular(cornerRadius),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            labelPadding: const EdgeInsets.only(left: 6, right: 2),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+      },
     );
   }
 

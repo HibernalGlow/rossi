@@ -1,4 +1,8 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/page/comic_list/view/discover_library_entries.dart';
+import 'package:zephyr/page/comic_list/view/discover_library_view.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/comic_list/cubit/plugin_paged_comic_list_cubit.dart';
 import 'package:zephyr/page/comic_list/cubit/plugin_paged_comic_list_state.dart';
@@ -18,11 +22,13 @@ class PluginPagedComicListView extends StatelessWidget {
     required this.coreBuilder,
     required this.externBuilder,
     this.shrinkWrap = false,
+    this.editorialKey,
     this.physics,
     this.collectionTargetId,
     this.collectionTargetName,
   });
 
+  final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
   final String pluginId;
   final String fnPath;
   final PluginPageCoreBuilder coreBuilder;
@@ -42,6 +48,8 @@ class PluginPagedComicListView extends StatelessWidget {
         externBuilder: externBuilder,
       )..loadInitial(),
       child: _PluginPagedComicListBody(
+        editorialKey: editorialKey,
+        presentationScope: 'discover:$pluginId:$fnPath',
         shrinkWrap: shrinkWrap,
         physics: physics,
         collectionTargetId: collectionTargetId,
@@ -54,11 +62,15 @@ class PluginPagedComicListView extends StatelessWidget {
 class _PluginPagedComicListBody extends StatefulWidget {
   const _PluginPagedComicListBody({
     required this.shrinkWrap,
+    required this.presentationScope,
+    this.editorialKey,
     required this.physics,
     this.collectionTargetId,
     this.collectionTargetName,
   });
 
+  final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
+  final String presentationScope;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
   final String? collectionTargetId;
@@ -96,39 +108,93 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
       onRefresh: () => context.read<PluginPagedComicListCubit>().loadInitial(),
       child: BlocBuilder<PluginPagedComicListCubit, PluginPagedComicListState>(
         builder: (context, state) {
-          switch (state.status) {
-            case PluginPagedComicListStatus.initial:
-              return const CustomScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ],
-              );
-            case PluginPagedComicListStatus.failure:
-              return CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: ErrorView(
-                      errorMessage:
-                          '${state.result}\n${t.comicList.loadFailedRetry}',
-                      onRetry: () => context
-                          .read<PluginPagedComicListCubit>()
-                          .loadInitial(),
-                    ),
-                  ),
-                ],
-              );
-            case PluginPagedComicListStatus.loadingMore:
-            case PluginPagedComicListStatus.loadingMoreFailure:
-            case PluginPagedComicListStatus.success:
-              return _buildContent(context, state);
+          if (widget.editorialKey != null && !widget.shrinkWrap) {
+            final settings = context.watch<GlobalSettingCubit>().state;
+            final comics = mapToUnifiedComicSimplifyEntryInfoList(
+              state.list,
+            ).where((info) => info.title != '无数据').toList();
+            return DiscoverLibraryView(
+              canvasKey: widget.editorialKey!,
+              scope: widget.presentationScope,
+              entries: [
+                for (final info in comics) discoverLibraryEntry(info, settings),
+              ],
+              collectionTargetId: widget.collectionTargetId,
+              collectionTargetName: widget.collectionTargetName,
+              onReachEnd: () {
+                if (state.status == PluginPagedComicListStatus.success) {
+                  context.read<PluginPagedComicListCubit>().loadMore();
+                }
+              },
+              footerBuilder: (_) => _wallFooter(context, state),
+              legacyBuilder: (_) => _legacyContent(context, state),
+            );
           }
+          return _legacyContent(context, state);
         },
+      ),
+    );
+  }
+
+  Widget _legacyContent(BuildContext context, PluginPagedComicListState state) {
+    switch (state.status) {
+      case PluginPagedComicListStatus.initial:
+        return const CustomScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        );
+      case PluginPagedComicListStatus.failure:
+        return CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: ErrorView(
+                errorMessage: '${state.result}\n${t.comicList.loadFailedRetry}',
+                onRetry: () =>
+                    context.read<PluginPagedComicListCubit>().loadInitial(),
+              ),
+            ),
+          ],
+        );
+      case PluginPagedComicListStatus.loadingMore:
+      case PluginPagedComicListStatus.loadingMoreFailure:
+      case PluginPagedComicListStatus.success:
+        return _buildContent(context, state);
+    }
+  }
+
+  Widget _wallFooter(BuildContext context, PluginPagedComicListState state) {
+    if (state.status == PluginPagedComicListStatus.loadingMore) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (state.status == PluginPagedComicListStatus.loadingMoreFailure) {
+      return Center(
+        child: FilledButton.tonal(
+          onPressed: () =>
+              context.read<PluginPagedComicListCubit>().retryLoadMore(),
+          child: Text(t.oldHome.loadMoreFailed),
+        ),
+      );
+    }
+    if (state.hasReachedMax) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(child: Text(t.oldHome.noMore)),
+      );
+    }
+    return Center(
+      child: TextButton(
+        onPressed: () => context.read<PluginPagedComicListCubit>().loadMore(),
+        child: Text(t.oldHome.loadMore),
       ),
     );
   }

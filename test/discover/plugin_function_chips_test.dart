@@ -1,8 +1,9 @@
 // 只用 material_ui：它自带一套 MaterialApp / Scaffold / Icons（与主应用同一套），
 // 再 import flutter/material 会得到一堆二义名。
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/discover/widgets/plugin_function_chips.dart';
 
 /// 功能胶囊那一排。
@@ -79,16 +80,16 @@ void main() {
     final chips = _chips(tester);
     expect(chips.length, 7);
 
-    final icons = <IconData>[];
+    final glyphs = <Glyph>[];
     for (final chip in chips) {
-      expect(chip.avatar, isA<Icon>(), reason: '有胶囊没拿到图标');
-      icons.add((chip.avatar! as Icon).icon!);
+      expect(chip.avatar, isA<GlyphIcon>(), reason: '有胶囊没拿到图标');
+      glyphs.add((chip.avatar! as GlyphIcon).glyph);
     }
     // 「排行」和「最新」以前是两颗一模一样的描边药丸 —— 这轮改动要的就是它们不再同形。
     expect(
-      icons.toSet().length,
-      icons.length,
-      reason: '有语义不同的胶囊共用了同一个图标：$icons',
+      glyphs.toSet().length,
+      glyphs.length,
+      reason: '有语义不同的胶囊共用了同一个图标：$glyphs',
     );
   });
 

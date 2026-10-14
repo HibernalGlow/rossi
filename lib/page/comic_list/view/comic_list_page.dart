@@ -1,5 +1,8 @@
 import 'package:auto_route/annotations.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_list/view/discover_filter_fab.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/page/comic_list/cubit/comic_list_cubit.dart';
 import 'package:zephyr/page/comic_list/models/comic_list_scene.dart';
@@ -7,7 +10,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_list/scene_filter/plugin_list_filter_dialog.dart';
 import 'package:zephyr/page/comic_list/view/plugin_paged_comic_list_view.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/discover/service/discover_tab_toolbar.dart';
 
 @RoutePage()
 class ComicListPage extends StatelessWidget {
@@ -51,6 +54,37 @@ class _ComicListView extends StatefulWidget {
 
 class _ComicListViewState extends State<_ComicListView>
     with AutomaticKeepAliveClientMixin {
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
+  DiscoverTabToolbarController? _tabToolbar;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final toolbar = DiscoverTabToolbarScope.maybeOf(context);
+    if (identical(toolbar, _tabToolbar)) return;
+    _tabToolbar?.unregister(this);
+    _tabToolbar = toolbar;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(_tabToolbar, toolbar)) {
+        toolbar?.register(
+          this,
+          (anchor) async {
+            await _canvasKey.currentState?.openSettings(anchor);
+          },
+          // 长按工具栏那颗键 = 就地开关展墙；正文禁用（加载中/出错）时
+          // 画布自己会挡下这次翻转。
+          togglePresentation: () => _canvasKey.currentState?.toggleEditorial(),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabToolbar?.unregister(this);
+    super.dispose();
+  }
+
   @override
   bool get wantKeepAlive => true;
 
@@ -61,19 +95,44 @@ class _ComicListViewState extends State<_ComicListView>
       builder: (context, state) {
         final title =
             widget.title ?? (state.scene?.title ?? t.comicList.defaultTitle);
+        // 与默认值不一致才算「筛选生效」，用它点亮角标。
+        final filterDirty =
+            state.hasResolvedFilter &&
+            state.filterSelections.entries.any(
+              (entry) =>
+                  state.filterBundle?.defaultSelections[entry.key] !=
+                  entry.value,
+            );
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(title),
-            actions: [
+          appBar: _tabToolbar != null
+              ? null
+              : AppBar(
+                  title: Text(title),
+                  actions: [
+                    LibraryPresentationButton(
+                      canvasKey: _canvasKey,
+                      enabled: !state.sceneLoading && state.sceneError == null,
+                    ),
+                  ],
+                ),
+          body: Stack(
+            children: [
+              Positioned.fill(child: _buildBody(context, state)),
               if (state.requiresFilter)
-                IconButton(
-                  icon: const GlyphIcon(AppGlyphs.sliders),
-                  onPressed: () => _openFilterDialog(context),
+                Positioned(
+                  // 挂 `floatingActionButton` 时 Scaffold 只按键盘高度定位，
+                  // 看不见 Dock —— 底栏占位由外层写进 body 的 `padding.bottom`
+                  // （`navigation_bar.dart` 的 `_buildDockLayout`），这里自己抬。
+                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                  right: 16,
+                  child: DiscoverFilterFab(
+                    hasFilters: filterDirty,
+                    onPressed: () => _openFilterDialog(context),
+                  ),
                 ),
             ],
           ),
-          body: _buildBody(context, state),
         );
       },
     );
@@ -152,6 +211,7 @@ class _ComicListViewState extends State<_ComicListView>
 
     return PluginPagedComicListView(
       key: ValueKey('${request.fnPath}_${listCore}_$listExtern'),
+      editorialKey: _canvasKey,
       pluginId: state.currentFrom,
       fnPath: request.fnPath,
       coreBuilder: (page) => {'page': page, ...listCore},

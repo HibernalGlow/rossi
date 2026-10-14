@@ -1,9 +1,12 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/discover/cubit/discover_cubit.dart';
 import 'package:zephyr/page/discover/service/discover_router.dart';
 import 'package:zephyr/page/discover/service/discover_tabs.dart';
@@ -14,8 +17,11 @@ import 'package:zephyr/page/plugin_settings/view/plugin_settings_page.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 
 @RoutePage()
 class DiscoverPage extends StatelessWidget {
@@ -63,7 +69,9 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
 
   @override
   Widget build(BuildContext context) {
-    final setting = context.watch<GlobalSettingCubit>().state.discoverSetting;
+    final globalState = context.watch<GlobalSettingCubit>().state;
+    final setting = globalState.discoverSetting;
+    final leftHand = globalState.leftHandModeEnabled;
 
     return ListenableBuilder(
       listenable: _tabs.controller,
@@ -75,24 +83,36 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
         resizeToAvoidBottomInset: false,
         body: SafeArea(
           bottom: false,
-          child: DiscoverPlatView(
-            tabs: _tabs,
-            setting: setting,
-            onSearch: () => _openAggregateSearch(context),
-            onCustomizeOrder: () => showPluginOrderDialog(context),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: DiscoverPlatView(
+                  tabs: _tabs,
+                  setting: setting,
+                  onSearch: () => _openAggregateSearch(context),
+                  onCustomizeOrder: () => showPluginOrderDialog(context),
+                ),
+              ),
+              if (_tabs.onHome)
+                Positioned(
+                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                  left: leftHand ? 16 : null,
+                  right: leftHand ? null : 16,
+                  child: ExpressiveIconButton(
+                    key: const ValueKey('discover-aggregate-search-fab'),
+                    glyph: AppGlyphs.search,
+                    tooltip: t.discover.search,
+                    size: 56,
+                    shape: ExpressiveButtonShape.cookie4Sided,
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _openAggregateSearch(context);
+                    },
+                  ),
+                ),
+            ],
           ),
         ),
-        floatingActionButtonLocation:
-            context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
-            ? FloatingActionButtonLocation.startFloat
-            : FloatingActionButtonLocation.endFloat,
-        floatingActionButton: _tabs.onHome
-            ? FloatingActionButton(
-                tooltip: t.discover.search,
-                onPressed: () => _openAggregateSearch(context),
-                child: const GlyphIcon(AppGlyphs.search),
-              )
-            : null,
       ),
     );
   }
@@ -116,7 +136,7 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
   }
 }
 
-/// 首页标签的内容：插件商店入口 + 每张插件卡。
+/// 首页标签的内容：MD3 Expressive 插件商店入口横幅 + 分段式插件管理列表。
 ///
 /// 单独一个 widget 是为了拿到一个挂在两个 cubit 之下的 element context ——
 /// 标签的 `content` 构建器由标签宿主调用，把那个 context 存进 widget 字段里
@@ -141,32 +161,53 @@ class _PluginHome extends StatelessWidget {
   }
 
   Widget _buildPluginHome(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return BlocBuilder<DiscoverCubit, DiscoverState>(
       builder: (context, state) {
         final plugins = state.plugins.values.toList();
+        final enabledCount = plugins.where((p) => p.isEnabled).length;
 
         return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 120),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
           children: [
-            const SizedBox(height: 16),
-            _buildPluginStoreButton(context),
-            const SizedBox(height: 8),
-            _buildSectionHeader(context, t.discover.pluginManagement),
+            _buildPluginStoreBanner(context),
+            const SizedBox(height: 20),
+            _buildSectionHeader(
+              context,
+              title: t.discover.pluginManagement,
+              enabledCount: enabledCount,
+              totalCount: plugins.length,
+            ),
             if (plugins.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Text(
-                    t.discover.noPlugins,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
+              ExpressiveTile(
+                tone: ExpressiveTone.sunken,
+                radius: expressiveCornerLg,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
+                child: ExpressiveEmptyState(
+                  icon: AppGlyphs.puzzle,
+                  text: t.discover.noPlugins,
+                  hint: t.discover.browseInstall,
                 ),
               )
             else
-              for (final plugin in plugins) ...[
-                _buildPluginCard(context, plugin, state),
-              ],
+              M3EList(
+                key: const ValueKey('discover-plugin-list'),
+                itemCount: plugins.length,
+                outerRadius: 24,
+                innerRadius: 6,
+                gap: 4,
+                padding: EdgeInsets.zero,
+                color: scheme.surfaceContainerLow,
+                colorBuilder: (index) => plugins[index].isEnabled
+                    ? scheme.surfaceContainerLow
+                    : scheme.surfaceContainerLowest,
+                itemBuilder: (context, index) =>
+                    _buildPluginCard(context, plugins[index], state),
+              ),
           ],
         );
       },
@@ -184,27 +225,21 @@ class _PluginHome extends StatelessWidget {
         state.infoStates[plugin.uuid] ??
         const DiscoverPluginInfoState(loading: true);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: PluginCard(
-        pluginUuid: plugin.uuid,
-        pluginState: plugin,
-        infoState: infoState,
-        isToggling: state.togglingUuids.contains(plugin.uuid),
-        onSearch: () => _openPluginSearch(context, tabs, plugin.uuid),
-        onSettings: (title) => _openPluginSettings(tabs, plugin.uuid, title),
-        onToggleEnabled: (enabled) => cubit.toggleEnabled(plugin.uuid, enabled),
-        onRetry: () => cubit.retryLoadInfo(plugin.uuid),
-        onAction: (action) => DiscoverRouter.route(
-          context,
-          action: DiscoverRouter.attachSource(action, plugin.uuid),
-          currentFrom: cubit.currentFrom,
-          tabs: tabs,
-        ),
+    return PluginCard(
+      key: ValueKey('discover-plugin-card:${plugin.uuid}'),
+      pluginUuid: plugin.uuid,
+      pluginState: plugin,
+      infoState: infoState,
+      isToggling: state.togglingUuids.contains(plugin.uuid),
+      onSearch: () => _openPluginSearch(context, tabs, plugin.uuid),
+      onSettings: (title) => _openPluginSettings(tabs, plugin.uuid, title),
+      onToggleEnabled: (enabled) => cubit.toggleEnabled(plugin.uuid, enabled),
+      onRetry: () => cubit.retryLoadInfo(plugin.uuid),
+      onAction: (action) => DiscoverRouter.route(
+        context,
+        action: DiscoverRouter.attachSource(action, plugin.uuid),
+        currentFrom: cubit.currentFrom,
+        tabs: tabs,
       ),
     );
   }
@@ -237,57 +272,137 @@ class _PluginHome extends StatelessWidget {
     );
   }
 
-  Widget _buildPluginStoreButton(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => context.pushRoute(const PluginStoreRoute()),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          children: [
-            GlyphIcon(
-              AppGlyphs.storefront,
-              size: 22,
-              color: colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                t.discover.pluginStore,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
+  Widget _buildPluginStoreBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final animate =
+        !eInkInstantRoutes && !MediaQuery.disableAnimationsOf(context);
+
+    return ActionBubbleRegion(
+      child: ActionBubbleTarget(
+        enabled: !eInkInstantRoutes,
+        corner: 28,
+        child: ElasticPress(
+          enabled: animate,
+          child: Material(
+            key: const ValueKey('discover-plugin-store-banner'),
+            color: scheme.primaryContainer,
+            borderRadius: expressiveCornerLg,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              borderRadius: expressiveCornerLg,
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                context.pushRoute(const PluginStoreRoute());
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 18,
+                ),
+                child: Row(
+                  children: [
+                    M3EShapeContainer(
+                      kind: M3EShapeKind.cookie4Sided,
+                      width: 48,
+                      height: 48,
+                      color: scheme.primary,
+                      child: Center(
+                        child: GlyphIcon(
+                          AppGlyphs.storefront,
+                          size: 24,
+                          color: scheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            t.discover.pluginStore,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: scheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            t.discover.browseInstall,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onPrimaryContainer.withValues(
+                                alpha: 0.84,
+                              ),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: ShapeDecoration(
+                        color: scheme.primary.withValues(alpha: 0.14),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Center(
+                        child: GlyphIcon(
+                          AppGlyphs.chevronForward,
+                          size: 20,
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            Text(
-              t.discover.browseInstall,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 4),
-            GlyphIcon(
-              AppGlyphs.chevronForward,
-              size: 20,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title) {
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    required int enabledCount,
+    required int totalCount,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.only(left: 20, bottom: 8, top: 4),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+      child: Row(
+        children: [
+          GlyphIcon(AppGlyphs.puzzle, size: 18, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          if (totalCount > 0)
+            ExpressiveStatusPill(
+              text: '$enabledCount / $totalCount',
+              tone: ExpressiveTone.secondary,
+              compact: true,
+              dot: true,
+            ),
+        ],
       ),
     );
   }
