@@ -134,9 +134,10 @@ class _SliderWidgetState extends State<SliderWidget> {
         setting.readSetting.noAnimation ||
         setting.eInkSetting.enabled ||
         MediaQuery.disableAnimationsOf(context);
-    final doc = thumbnail && slot < coordinator.docs.length
-        ? coordinator.docs[slot]
-        : null;
+    // 预览要的是「这一格显示的那一页」，所以按显示顺序取，不是按页表下标取
+    // （开了页面排序之后两者不等价）。
+    final ordered = coordinator.orderedDocs;
+    final doc = thumbnail && slot < ordered.length ? ordered[slot] : null;
     return Positioned(
       bottom: bottom,
       left: 0,

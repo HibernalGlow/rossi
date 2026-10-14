@@ -34,6 +34,7 @@ import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/app_bar.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_toolbar_shell.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_slideshow_panel.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_upscale_status_chip.dart';
 import 'package:zephyr/util/reader/reader_top_bar_style.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
@@ -381,7 +382,7 @@ void main() {
       expect(find.text('超分'), findsOneWidget);
     });
 
-    testWidgets('neo 那五颗占位不再占主行宽度', (tester) async {
+    testWidgets('还没接的那几颗占位不再占主行宽度', (tester) async {
       await _paintBar(tester, 1920);
       expect(find.byIcon(Icons.slideshow_rounded), findsNothing);
       expect(find.byIcon(Icons.zoom_in_map_rounded), findsNothing);
@@ -392,15 +393,37 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('幻灯片'), findsOneWidget);
-      await tester.tap(find.text('幻灯片'));
+      expect(find.text('全景模式'), findsOneWidget);
+      await tester.tap(find.text('全景模式'));
       await tester.pump();
       // SnackBar 的入场动画要推进一帧才画得出来。
       await tester.pump(const Duration(milliseconds: 400));
       expect(
-        find.text('幻灯片 还没接进本仓的阅读器'),
+        find.text('全景模式 还没接进本仓的阅读器'),
         findsOneWidget,
         reason: '占位不能静默失效，否则人只会以为是自己点歪了',
+      );
+    });
+
+    testWidgets('幻灯片／放大镜／页面排序的菜单入口一点就开面板', (tester) async {
+      await _paintBar(tester, 1920);
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.more,
+        ),
+      );
+      await tester.pumpAndSettle();
+      // 宽档主行只摆三颗视图入口，另外三颗的入口必须在这里。
+      expect(find.text('幻灯片放映'), findsOneWidget);
+      expect(find.text('放大镜'), findsOneWidget);
+      expect(find.text('页面排序'), findsOneWidget);
+      await tester.tap(find.text('幻灯片放映'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReaderSlideshowPanel), findsOneWidget);
+      expect(
+        find.text('幻灯片 还没接进本仓的阅读器'),
+        findsNothing,
+        reason: '幻灯片已接进本仓，不该再给占位那一句',
       );
     });
   });
@@ -543,9 +566,12 @@ void main() {
       expect(find.text('版式工具'), findsNothing);
       expect(find.text('旋转设置'), findsNothing);
       expect(find.text(t.reader.pinTopBar), findsNothing);
-      // 让位项之外的东西一个不少：滚屏与那五颗占位仍然住在菜单里。
+      // 让位项之外的东西一个不少：滚屏、六块面板的入口、还没接的那几颗都在。
       expect(find.text('开启自动滚屏'), findsOneWidget);
-      expect(find.text('幻灯片'), findsOneWidget);
+      expect(find.text('全景模式'), findsOneWidget);
+      expect(find.text('幻灯片放映'), findsOneWidget);
+      expect(find.text('放大镜'), findsOneWidget);
+      expect(find.text('页面排序'), findsOneWidget);
     });
 
     testWidgets('窗高不够（横屏手机）时让位项退回菜单，不是消失', (tester) async {

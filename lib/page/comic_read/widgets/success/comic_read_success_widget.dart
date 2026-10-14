@@ -29,6 +29,13 @@ class ComicReadSuccessWidget extends StatefulWidget {
   final WidgetBuilder buildBottom;
   final WidgetBuilder buildAutoReadControl;
   final WidgetBuilder buildEinkControl;
+
+  /// 幻灯片放映的屏上驻留指示（放映没开时它自己返回空壳）。
+  final WidgetBuilder buildSlideshowControl;
+
+  /// 放大镜覆盖层。要挂在正文之上、上下栏之下：放在栏里就会跟着栏被揭示掉，
+  /// 而「鼠标还悬在画面上」这件事跟栏开不开没关系。
+  final WidgetBuilder buildMagnifierLayer;
   final int Function(ReadSettingState readSetting)? resolveTotalSlots;
   final void Function(
     BuildContext innerContext,
@@ -50,6 +57,8 @@ class ComicReadSuccessWidget extends StatefulWidget {
     required this.buildBottom,
     required this.buildAutoReadControl,
     required this.buildEinkControl,
+    required this.buildSlideshowControl,
+    required this.buildMagnifierLayer,
     this.resolveTotalSlots,
     required this.onReady,
   });
@@ -190,12 +199,14 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
                               ),
                             ),
                           ),
+                        widget.buildMagnifierLayer(innerContext),
                         widget.buildProgressBar(innerContext),
                         widget.buildPageCount(innerContext),
                         widget.buildAppBar(innerContext),
                         widget.buildBottom(innerContext),
                         widget.buildAutoReadControl(innerContext),
                         widget.buildEinkControl(innerContext),
+                        widget.buildSlideshowControl(innerContext),
                       ],
                     ),
                   ),
