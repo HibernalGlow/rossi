@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/widgets/common_popup.dart';
-import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
@@ -152,9 +151,7 @@ class PanelTabStrip extends StatefulWidget {
   /// 所以「还剩多少给标题、右边那几颗按钮要不要让位」必须拿**这个数**去算；
   /// 反过来先给标题预留一块、剩下的封顶给它，窄泳道上就会把图标裁掉。
   ///
-  /// 问的是与 `build` 同一份记账（注册表 + 这一侧的隐藏项），所以「这一档到底
-  /// 有没有页签条」两处是同一个答案：`panels.isEmpty && hidden.isEmpty` 时
-  /// `build` 直接 `SizedBox.shrink()`，这里也返回 0。
+  /// 面板隐藏后直接从面板栏彻底移除（不再保留隐藏入口图标），因此宽度只算可见面板。
   static double titleMountedWidth(
     WorkspacePanelSide side,
     WorkspaceBoardLayout board, {
@@ -162,18 +159,13 @@ class PanelTabStrip extends StatefulWidget {
   }) {
     final registry = WorkspacePanelRegistry.I;
     final tabs = registry.panelsForSide(side, board).length;
-    final hidden = registry
-        .hiddenPanels(board)
-        .where((p) => registry.effectivePanelLayout(p, board).side == side)
-        .length;
-    if (tabs == 0 && hidden == 0) return 0;
+    if (tabs == 0) return 0;
 
     final width =
         stripHPadding * 2 +
         (sortMode
             ? tabStride * tabs + trailingSlotWidth
-            : (tabSize + tabHPadding * 2) * tabs) +
-        (hidden > 0 ? hiddenMenuWidth(hidden) : 0);
+            : (tabSize + tabHPadding * 2) * tabs);
     // 向上取整：栏头拿它判「装不装得下」，宁可提前一档让位，
     // 也不要差半个像素把最后一个图标裁掉。
     return width.ceilToDouble();
@@ -186,7 +178,7 @@ class PanelTabStrip extends StatefulWidget {
 String _tooltipFor(WorkspacePanelDefinition panel) =>
     '${panel.title}'
     '${panel.canMove ? '（编辑布局后长按排序 / 换泳道）' : ''}'
-    '${panel.canHide ? '　右键收起' : ''}';
+    '${panel.canHide ? '　右键隐藏' : ''}';
 
 class _PanelTabStripState extends State<PanelTabStrip> {
   String? _dragging;
@@ -211,14 +203,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     final registry = WorkspacePanelRegistry.I;
 
     final panels = registry.panelsForSide(widget.side, board);
-    final hidden = registry
-        .hiddenPanels(board)
-        .where(
-          (p) => registry.effectivePanelLayout(p, board).side == widget.side,
-        )
-        .toList();
-
-    if (panels.isEmpty && hidden.isEmpty) return const SizedBox.shrink();
+    if (panels.isEmpty) return const SizedBox.shrink();
 
     final activeId =
         state.activePanel[widget.side.laneId] ??
@@ -270,7 +255,6 @@ class _PanelTabStripState extends State<PanelTabStrip> {
                 onHide: (panel) => _hide(cubit, panel),
               ),
       ),
-      if (hidden.isNotEmpty) _buildHiddenMenu(theme, hidden, cubit),
     ];
 
     return ConstrainedBox(
@@ -725,57 +709,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     );
   }
 
-  Widget _buildHiddenMenu(
-    ThemeData theme,
-    List<WorkspacePanelDefinition> hidden,
-    WorkspaceCubit cubit,
-  ) {
-    return FluentPopupMenuButton<String>(
-      tooltip: '已收起的面板',
-      onSelected: (id) {
-        cubit.setPanelVisible(id, true);
-        cubit.setActivePanel(widget.side.laneId, id);
-      },
-      itemBuilder: (context) => [
-        for (final panel in hidden)
-          FluentPopupMenuItem<String>(
-            value: panel.id,
-            leading: GlyphIcon(
-              panel.icon,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            title: Text(panel.title, style: theme.textTheme.bodySmall),
-          ),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: PanelTabStrip.hiddenHPadding,
-          vertical: 6,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GlyphIcon(
-              AppGlyphs.eyeOff,
-              size: PanelTabStrip.hiddenIconWidth,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: PanelTabStrip.hiddenIconGap),
-            Text(
-              '${hidden.length}',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 收起一个面板（右键）。最后一条页签不能被收起 —— 否则这条泳道就
-  /// 既没法切面板、也没法恢复。
+  /// 隐藏一个面板（右键）。最后一条页签不能被隐藏 —— 否则这条泳道变空。
   void _hide(WorkspaceCubit cubit, WorkspacePanelDefinition panel) {
     final board = cubit.state.board;
     final panels = WorkspacePanelRegistry.I.panelsForSide(widget.side, board);

@@ -48,6 +48,7 @@ class ImageInformationCard extends StatelessWidget {
           cardId: 'image_information',
           title: '图像信息',
           icon: AppGlyphs.photos,
+          expressive: true,
           isExpanded: isExpanded,
           onToggle: onToggle,
           onMoveUp: onMoveUp,
@@ -56,7 +57,17 @@ class ImageInformationCard extends StatelessWidget {
           trailing: hasSession ? InfoCardCounter('#${slot + 1}') : null,
           child: hasSession
               ? _buildRows(coordinator, presenter, slot)
-              : const InfoEmpty(icon: AppGlyphs.photos, text: '打开书本后显示当前页信息'),
+              : const InfoEmpty(
+                  icon: AppGlyphs.photos,
+                  text: '打开书本后显示当前页信息',
+                  hint: '随翻页刷新；量不到的项不猜',
+                  fields: [
+                    ('文件名', AppGlyphs.article),
+                    ('编码大小', AppGlyphs.compress),
+                    ('像素尺寸', AppGlyphs.cropFree),
+                    ('渲染路径', AppGlyphs.devices),
+                  ],
+                ),
         );
       },
     );
@@ -71,7 +82,7 @@ class ImageInformationCard extends StatelessWidget {
     final pageRef = (source != null && slot < source.pages.length)
         ? source.pages[slot]
         : null;
-    final docs = coordinator.docs;
+    final docs = coordinator.orderedDocs;
     final doc = slot < docs.length ? docs[slot] : null;
 
     final name = pageRef?.name ?? doc?.originalName;
@@ -92,26 +103,86 @@ class ImageInformationCard extends StatelessWidget {
         ? '${stats.width}×${stats.height}'
         : null;
 
-    return InfoFacts(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        InfoRow(label: '页码', value: '${slot + 1} / ${coordinator.totalSlots}'),
-        InfoRow(label: '文件名', value: name),
-        InfoRow(label: '格式', value: name == null ? null : formatInfoExt(name)),
-        InfoRow(label: '编码大小', value: formatInfoBytes(pageRef?.size)),
-        InfoRow(
-          label: '像素尺寸',
-          value: raster == null ? null : formatImageSize(raster.sourceSize),
+        ExpressiveTileGrid(
+          minTileWidth: 104,
+          children: [
+            ExpressiveStatTile(
+              value: name == null ? '—' : formatInfoExt(name),
+              label: '编码格式',
+              icon: AppGlyphs.code,
+              highlight: true,
+            ),
+            ExpressiveStatTile(
+              value: formatInfoBytes(pageRef?.size),
+              label: '编码大小',
+              icon: AppGlyphs.compress,
+            ),
+            ExpressiveStatTile(
+              value:
+                  (raster == null
+                      ? null
+                      : formatImageSize(raster.sourceSize)) ??
+                  '—',
+              label: '像素尺寸',
+              icon: AppGlyphs.cropFree,
+              caption: raster == null
+                  ? '量不到图头'
+                  : '超分后 ${formatImageSize(raster.enhancedSize) ?? '—'}',
+            ),
+          ],
         ),
-        InfoRow(
-          label: '超分后',
-          value: raster == null ? null : formatImageSize(raster.enhancedSize),
+        const SizedBox(height: 12),
+        InfoFacts(
+          children: [
+            InfoRow(
+              label: '页码',
+              value: '${slot + 1} / ${coordinator.totalSlots}',
+              icon: AppGlyphs.cardMedium,
+            ),
+            InfoRow(label: '文件名', value: name, icon: AppGlyphs.article),
+            InfoRow(
+              label: '编码大小',
+              value: formatInfoBytes(pageRef?.size),
+              icon: AppGlyphs.compress,
+            ),
+            InfoRow(
+              label: '像素尺寸',
+              value: raster == null ? null : formatImageSize(raster.sourceSize),
+              icon: AppGlyphs.cropFree,
+            ),
+            InfoRow(
+              label: '超分后',
+              value: raster == null
+                  ? null
+                  : formatImageSize(raster.enhancedSize),
+              icon: AppGlyphs.sparkle,
+            ),
+            if (displaySize != null)
+              InfoRow(
+                label: '显示目标',
+                value: displaySize,
+                icon: AppGlyphs.fitScreen,
+              ),
+            InfoRow(
+              label: '渲染路径',
+              value: renderPath,
+              emphasis: source == null || (presenter?.canPresent ?? false),
+              icon: AppGlyphs.devices,
+            ),
+            if (doc != null && source == null) ...[
+              InfoRow(label: '页地址', value: doc.path, icon: AppGlyphs.link),
+              InfoRow(
+                label: '服务器',
+                value: doc.fileServer,
+                icon: AppGlyphs.router,
+              ),
+            ],
+          ],
         ),
-        if (displaySize != null) InfoRow(label: '显示目标', value: displaySize),
-        InfoRow(label: '渲染路径', value: renderPath),
-        if (doc != null && source == null) ...[
-          InfoRow(label: '页地址', value: doc.path),
-          InfoRow(label: '服务器', value: doc.fileServer),
-        ],
       ],
     );
   }

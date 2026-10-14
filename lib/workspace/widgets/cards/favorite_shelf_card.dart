@@ -1,3 +1,5 @@
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
@@ -32,6 +34,7 @@ import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_book_details.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_chip.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_rail.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
@@ -76,6 +79,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     LibraryColumn(key: 'time', label: '收藏时间', width: 90),
   ];
 
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
   final _searchController = TextEditingController();
   String _selectedList = _kAllLists;
   LibraryViewMode _viewMode = LibraryViewMode.coverList;
@@ -94,11 +98,24 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   /// 「书签少了一半」，而少掉的那些并没有被删。
   final _viewMemory = ShelfViewMemory(WorkspacePanelId.favorite);
 
+  /// 书签列表（`ComicFolder` 里 `type == favorite` 那一族）的变更流。
+  StreamSubscription<void>? _foldersSub;
+
+  /// 上一次读到的列表标识，用来把「别的类型也写这张表」造成的空转挡掉。
+  String _foldersSignature = '';
+
   @override
   void initState() {
     super.initState();
     _loadLists();
     unawaited(_restoreViewState());
+    // **必须订阅，不能只在 initState 读一次。** 这张面板是常驻的（切面板走
+    // `RetainedPanelSwitcher`，State 不重建），而书架页的「收藏」模式同样能新建
+    // 书签列表。早先版本只在自己增删改之后刷新，于是在书架页建的列表永远进不了
+    // 这条分类轨 —— 看着就是「tab 少了」。口径与不刷新的后果都写在服务侧。
+    _foldersSub = BookmarkLibraryService.watchListsChanged().listen((_) {
+      _loadLists();
+    });
   }
 
   Future<void> _restoreViewState() async {
@@ -128,12 +145,20 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
 
   @override
   void dispose() {
+    _foldersSub?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _loadLists() {
-    setState(() => _folders = BookmarkLibraryService.lists());
+    if (!mounted) return;
+    final folders = BookmarkLibraryService.lists();
+    final signature = folders.map((folder) => folder.name).join('|');
+    // `comicFolderBox` 是所有类型的收藏夹共用的一张表，书架 / 本地那侧的写也会
+    // 推到这条流上；名称集合没变就不 setState，免得每次动书架都在重建这条轨。
+    if (signature == _foldersSignature) return;
+    _foldersSignature = signature;
+    setState(() => _folders = folders);
   }
 
   /// 繁简同搜：口径与书架那边一致（trim + 小写 + t2s）。
@@ -221,8 +246,13 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         _buildListRail(context),
         const SizedBox(height: 6),
         ShelfListToolbar(
+          presentationButton: LibraryPresentationButton(
+            canvasKey: _canvasKey,
+            enabled: !_timeline,
+          ),
           viewMode: _viewMode,
           onViewMode: (mode) {
+            _canvasKey.currentState?.showLegacyView();
             setState(() => _viewMode = mode);
             _rememberViewState();
           },
@@ -264,6 +294,17 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       return _buildTimeline(context, rows, libraryEmpty, menuEnabled);
     }
     return LibraryEntryList(
+      editorialKey: _canvasKey,
+      editorialScope: 'bookmarks',
+      detailBuilder: (context, row, close) {
+        final item = row.source! as UnifiedComicFavorite;
+        return LibraryBookDetails(
+          entry: row,
+          comicId: item.comicId,
+          from: item.source,
+          onClose: close,
+        );
+      },
       mode: _viewMode,
       entries: rows,
       standalone: widget.isStandalone,
@@ -307,6 +348,8 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   ///
   /// 行内容仍然由 `ShelfTimelineView` 转给 `LibraryEntrySurface`，这里只供
   /// 时间与右键壳子 —— 与列表档共用同一套，两档不会长歪。
+  final _timelineExpanded = <String>{};
+
   Widget _buildTimeline(
     BuildContext context,
     List<LibraryEntry> rows,
@@ -315,6 +358,17 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   ) {
     final timeline = ShelfTimelineView(
       entries: rows,
+      expandedKeys: _timelineExpanded,
+      onCloseDetail: (key) => setState(() => _timelineExpanded.remove(key)),
+      detailBuilder: (context, row, close) {
+        final item = row.source! as UnifiedComicFavorite;
+        return LibraryBookDetails(
+          entry: row,
+          comicId: item.comicId,
+          from: item.source,
+          onClose: close,
+        );
+      },
       standalone: widget.isStandalone,
       timeOf: (row) => (row.source! as UnifiedComicFavorite).updatedAt,
       emptyText: libraryEmpty
@@ -322,7 +376,9 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           : _keyword.trim().isNotEmpty
           ? '没有匹配的书签'
           : '这个列表里还没有书签',
-      onTap: (row) => _open(context, row.source! as UnifiedComicFavorite),
+      onTap: (row) => setState(() {
+        if (!_timelineExpanded.remove(row.key)) _timelineExpanded.add(row.key);
+      }),
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
         enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicFavorite),
@@ -331,7 +387,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         child: child,
       ),
     );
-    return widget.isStandalone ? Expanded(child: timeline) : timeline;
+    return timeline;
   }
 
   // ── 列表轨 ────────────────────────────────────────────────────────────────
@@ -355,11 +411,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   Widget _listChip({required String label, required String path}) {
     return ShelfListChip(
       label: label,
+      // 形状按**路径**定种子：重命名之后路径不变，那一档的轮廓就不跟着换
+      // （见 `ShelfListChip.identity`）。
+      identity: path,
       selected: path == _selectedList,
-      onTap: () => setState(() {
-        _selectedList = path;
-        _folders = BookmarkLibraryService.lists();
-      }),
+      onTap: () => setState(() => _selectedList = path),
     );
   }
 
@@ -476,7 +532,8 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     Map<String, String> pluginNames,
   ) {
     final theme = Theme.of(context);
-    final cover = unifiedComicFromUnifiedFavorite(item).cover;
+    final comic = unifiedComicFromUnifiedFavorite(item);
+    final cover = comic.cover;
     final author = shelfCreatorName(item.creator);
     final source = shelfSourceLabel(
       source: item.source,
@@ -487,7 +544,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     return LibraryEntry(
       key: item.uniqueKey,
       title: item.title,
+      description: item.description,
+      tags: comic.toSimplifyEntryInfo().tags,
       source: item,
+      timestamp: item.updatedAt,
+      section: source,
       subtitle: joinShelfMeta([source, author.isEmpty ? time : author]),
       tertiary: time,
       metaText: source,
@@ -516,19 +577,6 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [author.isEmpty ? '—' : author, source, time],
       onRead: () => _read(item),
-      // 行上的图标钮走**行档**，不是工具栏那条 40 的带：文件管理器那侧已验收的
-      // 画法就是 28 命中区 + 16~18 图标 + `padding: zero`（见
-      // `parts/file_manager_card_view_part.dart` 的 `_trailing`）。
-      // 原来是 `size: 13`，比行里的正文字还小，读起来不像一个能按的东西。
-      trailing: IconButton(
-        icon: const GlyphIcon(AppGlyphs.chevronForward, size: 18),
-        color: theme.colorScheme.onSurfaceVariant,
-        tooltip: '打开',
-        visualDensity: VisualDensity.compact,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-        onPressed: () => _open(context, item),
-      ),
     );
   }
 

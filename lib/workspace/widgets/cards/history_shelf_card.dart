@@ -1,3 +1,5 @@
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,12 +23,14 @@ import 'package:zephyr/workspace/model/history_library_portable.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/model/shelf_view_state.dart';
+import 'package:zephyr/workspace/model/shelf_timeline.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/history_library_service.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
 import 'package:zephyr/workspace/widgets/cards/shelf_entry_context_menu.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_book_details.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -68,6 +72,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     LibraryColumn(key: 'time', label: '最后阅读', width: 90),
   ];
 
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
   final _searchController = TextEditingController();
   LibraryViewMode _viewMode = LibraryViewMode.coverList;
   ShelfSort _sort = const ShelfSort(field: ShelfSortField.time);
@@ -189,9 +194,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       // 时间线**固定按时间倒序**（最近的在最上面），不跟着 `_sort` 走：
       // 一条按标题排好的时间线会切出一堆上下来回的日期段，那不是时间线。
       // 工具栏里排序那颗键在这时是灰的，所以这里不需要解释「你排的序呢」。
-      sort: _timeline
-          ? const ShelfSort(field: ShelfSortField.time)
-          : _sort,
+      sort: _timeline ? const ShelfSort(field: ShelfSortField.time) : _sort,
       normalize: _normalize,
     );
     // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
@@ -205,8 +208,13 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ShelfListToolbar(
+          presentationButton: LibraryPresentationButton(
+            canvasKey: _canvasKey,
+            enabled: !_timeline,
+          ),
           viewMode: _viewMode,
           onViewMode: (mode) {
+            _canvasKey.currentState?.showLegacyView();
             setState(() => _viewMode = mode);
             _rememberViewState();
           },
@@ -245,6 +253,17 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
   ) {
     if (_timeline) return _buildTimeline(context, rows, menuEnabled);
     return LibraryEntryList(
+      editorialKey: _canvasKey,
+      editorialScope: 'reading-history',
+      detailBuilder: (context, row, close) {
+        final item = row.source! as UnifiedComicHistory;
+        return LibraryBookDetails(
+          entry: row,
+          comicId: item.comicId,
+          from: item.source,
+          onClose: close,
+        );
+      },
       mode: _viewMode,
       entries: rows,
       standalone: widget.isStandalone,
@@ -285,6 +304,8 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
   ///
   /// 行内容仍然由 `ShelfTimelineView` 转给 `LibraryEntrySurface`，这里只负责
   /// 供时间与右键壳子 —— 与列表档共用同一套，两档不会长歪。
+  final _timelineExpanded = <String>{};
+
   Widget _buildTimeline(
     BuildContext context,
     List<LibraryEntry> rows,
@@ -292,10 +313,23 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
   ) {
     final timeline = ShelfTimelineView(
       entries: rows,
+      expandedKeys: _timelineExpanded,
+      onCloseDetail: (key) => setState(() => _timelineExpanded.remove(key)),
+      detailBuilder: (context, row, close) {
+        final item = row.source! as UnifiedComicHistory;
+        return LibraryBookDetails(
+          entry: row,
+          comicId: item.comicId,
+          from: item.source,
+          onClose: close,
+        );
+      },
       standalone: widget.isStandalone,
       timeOf: (row) => (row.source! as UnifiedComicHistory).lastReadAt,
       emptyText: _keyword.trim().isNotEmpty ? '没有匹配的阅读记录' : '暂无阅读历史',
-      onTap: (row) => _open(context, row.source! as UnifiedComicHistory),
+      onTap: (row) => setState(() {
+        if (!_timelineExpanded.remove(row.key)) _timelineExpanded.add(row.key);
+      }),
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
         enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicHistory),
@@ -304,9 +338,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         child: child,
       ),
     );
-    return widget.isStandalone
-        ? Expanded(child: timeline)
-        : timeline;
+    return timeline;
   }
 
   // ── 导入 / 导出 ───────────────────────────────────────────────────────────
@@ -381,7 +413,8 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
 
   LibraryEntry _row(UnifiedComicHistory item, Map<String, String> pluginNames) {
     final theme = Theme.of(context);
-    final cover = unifiedComicFromUnifiedHistory(item).cover;
+    final comic = unifiedComicFromUnifiedHistory(item);
+    final cover = comic.cover;
     final source = shelfSourceLabel(
       source: item.source,
       comicId: item.comicId,
@@ -395,7 +428,12 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     return LibraryEntry(
       key: item.uniqueKey,
       title: item.title,
+      description: item.description,
+      tags: comic.toSimplifyEntryInfo().tags,
       source: item,
+      timestamp: item.lastReadAt,
+      reading: true,
+      section: shelfTimelineDayLabel(item.lastReadAt, now: DateTime.now()),
       subtitle: joinShelfMeta([source, chapter, 'P.${item.pageIndex + 1}']),
       tertiary: time,
       metaText: time,

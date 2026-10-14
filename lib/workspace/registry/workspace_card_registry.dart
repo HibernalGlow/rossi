@@ -3,6 +3,8 @@ import 'package:zephyr/workspace/widgets/cards/reading_activity_card.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/widgets/cards/discover_plugins_card.dart';
+import 'package:zephyr/workspace/widgets/cards/plugin_status_card.dart';
+import 'package:zephyr/workspace/widgets/cards/plugin_shortcuts_card.dart';
 import 'package:zephyr/workspace/widgets/cards/download_shelf_card.dart';
 import 'package:zephyr/workspace/widgets/cards/favorite_shelf_card.dart';
 import 'package:zephyr/workspace/widgets/cards/history_shelf_card.dart';
@@ -106,6 +108,15 @@ class WorkspaceCardDefinition {
   /// 卡片内容需要的最小宽度；窄面板自动减少同一行的卡片数。
   final double minimumWidth;
 
+  /// 是否为无常驻标题栏的 MD3 小组件（日常态隐藏标题行，右键/长按弹菜单，编辑态显示拖拽条）。
+  final bool headerless;
+
+  /// 是否在默认全宽排版下自动撑满面板的剩余可视高度（例如页面导航的中间展示区）。
+  final bool fillRemainingHeight;
+
+  /// 紧凑型工具条卡片在默认未手动拉高时的像素高度（避免工具条占用整格 96dp 高度）。
+  final double? compactMainAxisExtent;
+
   /// 是否允许用户把它收起来（`false` = 面板的固定主体）。
   final bool canHide;
 
@@ -129,6 +140,9 @@ class WorkspaceCardDefinition {
     this.defaultWidthSpan = 4,
     this.defaultHeightSpan = 2,
     this.minimumWidth = 240,
+    this.headerless = false,
+    this.fillRemainingHeight = false,
+    this.compactMainAxisExtent,
     this.canHide = true,
     this.supportedHere,
     this.unsupportedHint,
@@ -148,7 +162,11 @@ class WorkspaceCardRegistry {
   static const String download = 'download';
   static const String plugins = 'plugins';
   static const String localFolder = 'local_folder';
+
+  /// 页面导航面板三组件：搜索栏、中间展示栏（pageList）、底部跳转栏
+  static const String pageListSearch = 'page_list_search';
   static const String pageList = 'page_list';
+  static const String pageListJump = 'page_list_jump';
 
   /// 控制面板（N-17）：切换提示
   static const String switchToast = 'switch_toast';
@@ -164,6 +182,10 @@ class WorkspaceCardRegistry {
   static const String storageInformation = 'storage_information';
   static const String timeInformation = 'time_information';
   static const String preloadStatus = 'preload_status';
+
+  /// 发现面板的两张插件小组件卡
+  static const String pluginStatus = 'plugin_status';
+  static const String pluginShortcuts = 'plugin_shortcuts';
 
   static const String readingOverview = 'reading_overview';
   static const String activityCalendar = 'activity_calendar';
@@ -252,13 +274,59 @@ class WorkspaceCardRegistry {
         isStandalone: chrome.standalone,
       ),
     ),
+    // ── 页面导航面板：无标题栏 MD3 小组件三件套（搜索栏 / 展示栏 / 跳转栏） ──
+    WorkspaceCardDefinition(
+      id: pageListSearch,
+      title: '搜索栏',
+      icon: AppGlyphs.search,
+      defaultPanelId: WorkspacePanelId.pageList,
+      defaultOrder: 0,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 1,
+      minimumWidth: 200,
+      headerless: true,
+      compactMainAxisExtent: 46,
+      builder: (context, chrome) => PageListSearchCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
     WorkspaceCardDefinition(
       id: pageList,
       title: '页面导航',
       icon: AppGlyphs.cardMedium,
       defaultPanelId: WorkspacePanelId.pageList,
-      defaultOrder: 0,
+      defaultOrder: 1,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 4,
+      minimumWidth: 200,
+      headerless: true,
+      fillRemainingHeight: true,
       builder: (context, chrome) => PageListCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: pageListJump,
+      title: '跳转栏',
+      icon: AppGlyphs.linearScale,
+      defaultPanelId: WorkspacePanelId.pageList,
+      defaultOrder: 2,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 1,
+      minimumWidth: 200,
+      headerless: true,
+      compactMainAxisExtent: 44,
+      builder: (context, chrome) => PageListJumpCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,
@@ -342,6 +410,45 @@ class WorkspaceCardRegistry {
       defaultOrder: 4,
       defaultWidthSpan: 2,
       builder: (context, chrome) => PreloadStatusCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    // ── 发现面板：只注册插件小组件；上游发现页是面板本身 ────────────────
+    WorkspaceCardDefinition(
+      id: pluginStatus,
+      title: '插件运行状态',
+      icon: AppGlyphs.puzzle,
+      defaultPanelId: WorkspacePanelId.discover,
+      defaultOrder: 1,
+      defaultVisible: false,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 3,
+      minimumWidth: 260,
+      builder: (context, chrome) => PluginStatusCard(
+        isExpanded: chrome.expanded,
+        onToggle: chrome.onToggle,
+        onMoveUp: chrome.onMoveUp,
+        onMoveDown: chrome.onMoveDown,
+        onHide: chrome.onHide,
+        isStandalone: chrome.standalone,
+      ),
+    ),
+    WorkspaceCardDefinition(
+      id: pluginShortcuts,
+      title: '图源快捷入口',
+      icon: AppGlyphs.apps,
+      defaultPanelId: WorkspacePanelId.discover,
+      defaultOrder: 2,
+      defaultVisible: false,
+      defaultWidthSpan: 4,
+      defaultHeightSpan: 2,
+      minimumWidth: 240,
+      builder: (context, chrome) => PluginShortcutsCard(
         isExpanded: chrome.expanded,
         onToggle: chrome.onToggle,
         onMoveUp: chrome.onMoveUp,

@@ -105,6 +105,7 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
           cardId: 'storage_information',
           title: '存储信息',
           icon: AppGlyphs.storage,
+          expressive: true,
           isExpanded: widget.isExpanded,
           onToggle: widget.onToggle,
           onMoveUp: widget.onMoveUp,
@@ -112,7 +113,16 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
           onHide: widget.onHide,
           child: hasSession
               ? _buildRows(source)
-              : const InfoEmpty(icon: AppGlyphs.box, text: '打开书本后显示存储信息'),
+              : const InfoEmpty(
+                  icon: AppGlyphs.box,
+                  text: '打开书本后显示存储信息',
+                  hint: 'Rust 内存只在展开时取，收起不轮询',
+                  fields: [
+                    ('来源类型', AppGlyphs.box),
+                    ('页表总量', AppGlyphs.storage),
+                    ('Rust 内存', AppGlyphs.memory),
+                  ],
+                ),
         );
       },
     );
@@ -150,28 +160,90 @@ class _StorageInformationCardState extends State<StorageInformationCard> {
                 .join(' · ');
           }();
 
-    return InfoFacts(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        InfoRow(label: '来源类型', value: isLocal ? kindLabel : '在线图源'),
-        if (isLocal) InfoRow(label: '根路径', value: path),
-        InfoRow(
-          label: '总页数',
-          value: source != null
-              ? '${source.pages.length}'
-              : '${coordinator.docs.length}',
+        ExpressiveTileGrid(
+          minTileWidth: 104,
+          children: [
+            ExpressiveStatTile(
+              value: source != null
+                  ? '${source.pages.length}'
+                  : '${coordinator.docs.length}',
+              label: '总页数',
+              icon: AppGlyphs.layers,
+              highlight: true,
+            ),
+            ExpressiveStatTile(
+              value: isLocal ? formatInfoBytes(total) : '—',
+              label: '页表总量',
+              icon: AppGlyphs.storage,
+              caption: isLocal ? kindLabel : '在线图源没有归档',
+            ),
+            ExpressiveStatTile(
+              value: memory == null
+                  ? (_memoryFailed ? '—' : '…')
+                  : formatInfoBytes(memory.totalAllocated),
+              label: 'Rust 内存',
+              icon: AppGlyphs.memory,
+              caption: memory == null
+                  ? '展开时每 3 秒取一次'
+                  : '峰值 ${formatInfoBytes(memory.peakAllocated)}',
+              gauge: memory == null || memory.peakAllocated <= BigInt.zero
+                  ? null
+                  : memory.totalAllocated.toDouble() /
+                        memory.peakAllocated.toDouble(),
+            ),
+          ],
         ),
-        if (isLocal) InfoRow(label: '页表总量', value: formatInfoBytes(total)),
-        if (isLocal)
-          InfoRow(label: '当前页大小', value: formatInfoBytes(currentPageSize)),
-        InfoRow(
-          label: 'Rust 内存',
-          value: memory == null
-              ? (_memoryFailed ? '—' : '获取中…')
-              : formatInfoBytes(memory.totalAllocated),
+        const SizedBox(height: 12),
+        InfoFacts(
+          children: [
+            InfoRow(
+              label: '来源类型',
+              value: isLocal ? kindLabel : '在线图源',
+              icon: AppGlyphs.box,
+            ),
+            if (isLocal)
+              InfoRow(label: '根路径', value: path, icon: AppGlyphs.folder),
+            InfoRow(
+              label: '总页数',
+              value: source != null
+                  ? '${source.pages.length}'
+                  : '${coordinator.docs.length}',
+              icon: AppGlyphs.layers,
+            ),
+            if (isLocal)
+              InfoRow(
+                label: '页表总量',
+                value: formatInfoBytes(total),
+                icon: AppGlyphs.storage,
+              ),
+            if (isLocal)
+              InfoRow(
+                label: '当前页大小',
+                value: formatInfoBytes(currentPageSize),
+                icon: AppGlyphs.cardMedium,
+              ),
+            InfoRow(
+              label: 'Rust 内存',
+              value: memory == null
+                  ? (_memoryFailed ? '—' : '获取中…')
+                  : formatInfoBytes(memory.totalAllocated),
+              emphasis: memory != null,
+              icon: AppGlyphs.memory,
+            ),
+            if (memory != null)
+              InfoRow(
+                label: '峰值',
+                value: formatInfoBytes(memory.peakAllocated),
+                icon: AppGlyphs.trend,
+              ),
+            if (topTags != null)
+              InfoRow(label: '主要占用', value: topTags, icon: AppGlyphs.equalizer),
+          ],
         ),
-        if (memory != null)
-          InfoRow(label: '峰值', value: formatInfoBytes(memory.peakAllocated)),
-        if (topTags != null) InfoRow(label: '主要占用', value: topTags),
       ],
     );
   }

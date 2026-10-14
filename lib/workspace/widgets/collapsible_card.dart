@@ -1,5 +1,7 @@
+import 'package:material_new_shapes/material_new_shapes.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -8,6 +10,8 @@ import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/widgets/motion/retained_panel_switcher.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_control_kit.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_menu_button.dart';
 import 'package:zephyr/workspace/widgets/grid/card_layout_scope.dart';
 import 'package:zephyr/workspace/widgets/card_header_actions.dart';
@@ -65,6 +69,31 @@ class CollapsibleCard extends StatelessWidget {
     this.disabledHint,
   });
 
+  static ExpressiveButtonShape _headerShapeForCard(String cardId, int seed) {
+    return switch (cardId) {
+      'switch_toast' => ExpressiveButtonShape.softBurst,
+      'image_tuning' => ExpressiveButtonShape.clover4Leaf,
+      'super_resolution' => ExpressiveButtonShape.verySunny,
+      'translate' => ExpressiveButtonShape.puffyDiamond,
+      'book_information' => ExpressiveButtonShape.cookie4Sided,
+      'image_information' => ExpressiveButtonShape.flower,
+      'storage_information' => ExpressiveButtonShape.cookie7Sided,
+      'time_information' => ExpressiveButtonShape.sunny,
+      'preload_status' => ExpressiveButtonShape.gem,
+      _ => expressiveShapeForSeed(seed),
+    };
+  }
+
+  static ExpressiveTone _headerToneForCard(String cardId, int seed) {
+    return switch (cardId) {
+      'switch_toast' => ExpressiveTone.primary,
+      'image_tuning' => ExpressiveTone.tertiary,
+      'super_resolution' => ExpressiveTone.secondary,
+      'translate' => ExpressiveTone.primary,
+      _ => expressiveAccentToneForSeed(seed),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -72,6 +101,9 @@ class CollapsibleCard extends StatelessWidget {
     // MD3 的 filled 卡片靠**容器色**分层，不描边、不投影；圆角跟主题的形状档走。
     final radius = themeRadius(context, fallback: 12);
     final showLayoutControls = layout?.editing == true;
+    final cardSeed = expressiveBlobSeed(cardId);
+    final headerShape = _headerShapeForCard(cardId, cardSeed);
+    final headerTone = _headerToneForCard(cardId, cardSeed);
     final content = Padding(
       padding: contentPadding ?? const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: applyCardGate(child, disabledHint: disabledHint),
@@ -108,6 +140,23 @@ class CollapsibleCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.passthrough,
             children: [
+              if (expressive)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  width: 196,
+                  height: 82,
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: _CardHeaderPatchPainter(
+                        seed: cardSeed,
+                        shape: headerShape,
+                        scheme: theme.colorScheme,
+                        isExpanded: isExpanded,
+                      ),
+                    ),
+                  ),
+                ),
               LayoutBuilder(
                 builder: (context, bounds) => Column(
                   mainAxisSize: MainAxisSize.min,
@@ -116,7 +165,7 @@ class CollapsibleCard extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 2,
+                        vertical: 4,
                       ),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
@@ -145,24 +194,14 @@ class CollapsibleCard extends StatelessWidget {
                                     children: [
                                       if (titleConstraints.maxWidth >= 64) ...[
                                         if (expressive)
-                                          SizedBox(
-                                            width: 36,
-                                            height: 36,
-                                            child: M3EShapeContainer(
-                                              kind: M3EShapeKind.cookie4Sided,
-                                              color: theme
-                                                  .colorScheme
-                                                  .primaryContainer,
-                                              child: Center(
-                                                child: GlyphIcon(
-                                                  icon,
-                                                  size: 20,
-                                                  color: theme
-                                                      .colorScheme
-                                                      .onPrimaryContainer,
-                                                ),
-                                              ),
-                                            ),
+                                          ExpressiveShapeBadge(
+                                            icon: icon,
+                                            shape: headerShape,
+                                            seed: cardSeed,
+                                            size: 38,
+                                            glyphSize: 20,
+                                            tone: headerTone,
+                                            active: !isExpanded,
                                           )
                                         else
                                           GlyphIcon(
@@ -172,7 +211,7 @@ class CollapsibleCard extends StatelessWidget {
                                                 .colorScheme
                                                 .onSurfaceVariant,
                                           ),
-                                        const SizedBox(width: 8),
+                                        const SizedBox(width: 10),
                                       ],
                                       Expanded(
                                         child: Text(
@@ -181,7 +220,8 @@ class CollapsibleCard extends StatelessWidget {
                                               ? theme.textTheme.titleMedium
                                                     ?.copyWith(
                                                       fontWeight:
-                                                          FontWeight.w700,
+                                                          FontWeight.w800,
+                                                      letterSpacing: .15,
                                                     )
                                               : theme.textTheme.titleSmall,
                                           maxLines: 1,
@@ -404,6 +444,103 @@ class CollapsibleCard extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 卡片标题栏右上角的 **M3E 撞色几何贴片群**。
+class _CardHeaderPatchPainter extends CustomPainter {
+  const _CardHeaderPatchPainter({
+    required this.seed,
+    required this.shape,
+    required this.scheme,
+    required this.isExpanded,
+  });
+
+  final int seed;
+  final ExpressiveButtonShape shape;
+  final ColorScheme scheme;
+  final bool isExpanded;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final s = seed.abs();
+    final isDark = scheme.brightness == Brightness.dark;
+    final colors = [
+      scheme.primaryContainer,
+      scheme.tertiaryContainer,
+      scheme.secondaryContainer,
+    ];
+    final firstColor = colors[s % colors.length].withValues(
+      alpha: isDark ? 0.36 : 0.55,
+    );
+    final secondColor = colors[(s + 1) % colors.length].withValues(
+      alpha: isDark ? 0.28 : 0.45,
+    );
+
+    // 1. 右上主几何贴片
+    _drawPolygon(
+      canvas,
+      polygon: shape.polygon,
+      center: Offset(size.width - 20, 14),
+      diameter: 66,
+      angle: ((s % 9) - 4) * 0.14 + (isExpanded ? 0.15 : 0.0),
+      paint: Paint()..color = firstColor,
+    );
+
+    // 2. 左侧错位次级撞色多边形贴片
+    final secondShape = expressiveShapeForSeed(s >> 5);
+    _drawPolygon(
+      canvas,
+      polygon: secondShape.polygon,
+      center: Offset(size.width - 76, 8),
+      diameter: 40,
+      angle: -((s % 7) * 0.18),
+      paint: Paint()..color = secondColor,
+    );
+
+    // 3. 种子驱动的不规则 Blob 描边环
+    final blobPath = ExpressiveBlob.ofSeed(s ^ 0x27d4eb2d).path(
+      rect: Rect.fromCenter(
+        center: Offset(size.width - 48, 28),
+        width: 48,
+        height: 32,
+      ),
+      progress: isExpanded ? 0.2 : 0.8,
+      safeInset: 4,
+    );
+    canvas.drawPath(
+      blobPath,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..color = scheme.primary.withValues(alpha: isDark ? 0.32 : 0.42),
+    );
+  }
+
+  void _drawPolygon(
+    Canvas canvas, {
+    required RoundedPolygon polygon,
+    required Offset center,
+    required double diameter,
+    required double angle,
+    required Paint paint,
+  }) {
+    var path = polygon.toPath();
+    final matrix = Matrix4.identity()
+      ..translateByDouble(center.dx, center.dy, 0, 1)
+      ..rotateZ(angle)
+      ..scaleByDouble(diameter, diameter, 1, 1)
+      ..translateByDouble(-.5, -.5, 0, 1);
+    path = path.transform(matrix.storage);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CardHeaderPatchPainter oldDelegate) =>
+      oldDelegate.seed != seed ||
+      oldDelegate.shape != shape ||
+      oldDelegate.scheme != scheme ||
+      oldDelegate.isExpanded != isExpanded;
 }
 
 /// 标题行上那颗「这台机器做不到」的小标签。

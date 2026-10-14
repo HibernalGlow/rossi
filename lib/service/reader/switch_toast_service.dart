@@ -162,7 +162,8 @@ class SwitchToastService {
     final total = c.totalSlots;
     final currentPageDisplay = total > 0 ? (slot + 1).clamp(1, total) : 0;
     final path = c.localSource?.path ?? '';
-    final doc = slot < c.docs.length ? c.docs[slot] : null;
+    final ordered = c.orderedDocs;
+    final doc = slot < ordered.length ? ordered[slot] : null;
     return SwitchToastContext(
       book: <String, Object?>{
         'name': c.displayTitle,

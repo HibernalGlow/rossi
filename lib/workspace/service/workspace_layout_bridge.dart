@@ -1,5 +1,7 @@
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
+import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
+import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/service/workspace_layout_store.dart';
@@ -72,30 +74,41 @@ class WorkspaceLayoutBridge {
     }
   }
 
-  /// 改布局的**呈现与交互**那两块（默认启动视图 / 焦点独占 / 唤出区）。
+  /// 改布局的呈现、交互、泳道顺序或面板看板记账。
   ///
-  /// 只碰这两块，其余（泳道宽度、面板与卡片记账、激活泳道）原样保留 ——
-  /// 设置页不该有一次「顺手保存」就把用户摆好的泳道宽度抹平。
+  /// 只碰传入的那几块，其余原样保留 —— 设置页不该有一次「顺手保存」就把用户
+  /// 摆好的其它配置抹平。
   ///
   /// 走 [write] 的落盘路径与工作台**自己**改时不同：这里是**立刻写**，
   /// 因为设置页没有去抖器，而「改完就切后台」正好落在去抖窗口里。
   Future<void> write({
     WorkspaceMode? mode,
     WorkspaceInteractionSettings? interaction,
+    WorkspaceLayoutConfig? layout,
+    WorkspaceBoardLayout? board,
+    Map<String, String>? activePanel,
   }) async {
     final live = _cubit;
     if (live != null) {
       if (mode != null) live.setMode(mode);
       if (interaction != null) live.setInteraction(interaction);
+      if (layout != null) live.setLayout(layout);
+      if (board != null || activePanel != null) {
+        live.setBoard(board ?? live.state.board, activePanel: activePanel);
+      }
       return;
     }
 
     try {
       final store = WorkspaceLayoutFileStore(await workspaceLayoutDirectory());
       final current = await store.load() ?? WorkspaceLayoutSnapshot.defaults();
-      var next = current;
-      if (mode != null) next = next.copyWithMode(mode);
-      if (interaction != null) next = next.copyWithInteraction(interaction);
+      final next = current.copyWith(
+        mode: mode,
+        interaction: interaction,
+        layout: layout,
+        board: board,
+        activePanel: activePanel,
+      );
       await store.save(next);
     } on Object {
       // 存不下去不炸设置页：见 [read] 里同一条理由。

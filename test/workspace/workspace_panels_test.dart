@@ -132,6 +132,27 @@ Future<void> _dragTabOnto(
 }
 
 void main() {
+  // ── 0：默认隐藏图源扩展面板且面板栏彻底不画隐藏图标 ────────────────────────
+
+  testWidgets('图源扩展面板默认彻底隐藏，面板栏不渲染隐藏图标入口', (tester) async {
+    final cubit = await _pumpStrips(tester);
+
+    final pluginsDef = WorkspacePanelRegistry.I.find(WorkspacePanelId.plugins)!;
+    expect(pluginsDef.defaultVisible, isFalse);
+    expect(
+      _idsOn(cubit, WorkspacePanelSide.right),
+      isNot(contains(WorkspacePanelId.plugins)),
+    );
+    // 面板栏上既没有图源扩展图标，也没有 eyeOff 隐藏图标按钮。
+    expect(_tabIcon(WorkspacePanelId.plugins), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.eyeOff,
+      ),
+      findsNothing,
+    );
+  });
+
   // ── 1 / 2：插入位 ────────────────────────────────────────────────────────
 
   testWidgets('跨侧拖动落在光标底下那个位置，不是永远追加到末尾', (tester) async {
@@ -142,11 +163,10 @@ void main() {
       WorkspacePanelId.discover,
       WorkspacePanelId.fileManager,
       WorkspacePanelId.pageList,
-      WorkspacePanelId.plugins,
       WorkspacePanelId.tools,
       // 控制面板（N-17 首卡「切换提示」）排在右泳道末尾（`defaultOrder: 7`）。
       WorkspacePanelId.control,
-    ], reason: '前置：右泳道的默认次序');
+    ], reason: '前置：右泳道的默认次序（图源扩展默认隐藏）');
 
     // 左泳道的「下载」拖到右泳道「文件管理」那个页签上 = 插到它**前面**。
     await _dragTabOnto(
@@ -163,7 +183,6 @@ void main() {
         WorkspacePanelId.download,
         WorkspacePanelId.fileManager,
         WorkspacePanelId.pageList,
-        WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
         WorkspacePanelId.control,
       ],
@@ -200,7 +219,6 @@ void main() {
         WorkspacePanelId.discover,
         WorkspacePanelId.fileManager,
         WorkspacePanelId.pageList,
-        WorkspacePanelId.plugins,
         WorkspacePanelId.download,
         WorkspacePanelId.tools,
         WorkspacePanelId.control,
@@ -239,7 +257,6 @@ void main() {
         WorkspacePanelId.fileManager,
         WorkspacePanelId.discover,
         WorkspacePanelId.pageList,
-        WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
         WorkspacePanelId.control,
       ],
@@ -275,7 +292,6 @@ void main() {
         WorkspacePanelId.discover,
         WorkspacePanelId.fileManager,
         WorkspacePanelId.pageList,
-        WorkspacePanelId.plugins,
         WorkspacePanelId.tools,
         WorkspacePanelId.control,
       ],

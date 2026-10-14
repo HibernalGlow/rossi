@@ -29,6 +29,13 @@ class SuperGrid extends StatefulWidget {
     this.onRemoveCard,
     this.canRemoveCard,
     this.minimumCardWidth,
+    this.minimumCardHeight,
+    this.maxHeightSpan,
+    this.onToggleEditing,
+    this.hiddenCards = const <HiddenCardEntry>[],
+    this.onRestoreCard,
+    this.isFillingRemainingHeight,
+    this.onFillRemainingHeight,
   });
 
   final List<GridItem> children;
@@ -42,6 +49,13 @@ class SuperGrid extends StatefulWidget {
   final CardRemoveCallback? onRemoveCard;
   final bool Function(Key key)? canRemoveCard;
   final double Function(Key key)? minimumCardWidth;
+  final double Function(Key key)? minimumCardHeight;
+  final int Function(Key key)? maxHeightSpan;
+  final VoidCallback? onToggleEditing;
+  final List<HiddenCardEntry> hiddenCards;
+  final ValueChanged<String>? onRestoreCard;
+  final bool Function(Key key)? isFillingRemainingHeight;
+  final ValueChanged<Key>? onFillRemainingHeight;
 
   @override
   State<SuperGrid> createState() => SuperGridState();
@@ -170,13 +184,18 @@ class SuperGridState extends State<SuperGrid> {
       ),
       start.width,
     );
+    final minimumHeight = math.min(
+      widget.minimumCardHeight?.call(_resizeKey!) ?? widget.mainAxisExtent,
+      start.height,
+    );
+    final maxSpan = widget.maxHeightSpan?.call(_resizeKey!) ?? 4;
     setState(() {
       _resizeDelta = delta;
       _previewSize = Size(
         (start.width + delta.dx).clamp(minimumWidth, _resizeMaximumWidth),
         (start.height + delta.dy).clamp(
-          widget.mainAxisExtent,
-          math.max(start.height, widget.mainAxisExtent * 4),
+          minimumHeight,
+          math.max(start.height, widget.mainAxisExtent * maxSpan),
         ),
       );
     });
@@ -208,12 +227,13 @@ class SuperGridState extends State<SuperGrid> {
           }
         }
       }
+      final maxSpan = widget.maxHeightSpan?.call(key) ?? 4;
       final height = _resizeDelta.dy.abs() > 1
           ? ((preview.height + widget.mainAxisSpacing) /
                     (widget.mainAxisExtent + widget.mainAxisSpacing))
                 .round()
-                .clamp(1, 4)
-          : (item.mainAxisCellCount ?? 1).round().clamp(1, 4);
+                .clamp(1, maxSpan)
+          : (item.mainAxisCellCount ?? 1).round().clamp(1, maxSpan);
       widget.onResizeCard?.call(key, span, height);
     }
     if (mounted) {
@@ -230,6 +250,8 @@ class SuperGridState extends State<SuperGrid> {
     final resizing = _resizeKey == key;
     final preview = resizing ? _previewSize : null;
     final cardKey = _cardKeys.putIfAbsent(key, GlobalKey.new);
+    final fillingRemaining =
+        widget.isFillingRemainingHeight?.call(key) ?? false;
     return DragTarget<Key>(
       onWillAcceptWithDetails: (details) {
         if (details.data == key) return false;
@@ -262,6 +284,13 @@ class SuperGridState extends State<SuperGrid> {
             onResize: widget.onResizeCard == null
                 ? null
                 : (w, h) => widget.onResizeCard!(key, w, h),
+            onToggleEditing: widget.onToggleEditing,
+            hiddenCards: widget.hiddenCards,
+            onRestoreCard: widget.onRestoreCard,
+            fillRemainingHeight: fillingRemaining,
+            onFillRemainingHeight: widget.onFillRemainingHeight == null
+                ? null
+                : () => widget.onFillRemainingHeight!(key),
             resizeHandle:
                 widget.editing &&
                     item.mainAxisCellCount != null &&

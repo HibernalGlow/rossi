@@ -36,7 +36,8 @@ class TranslateCard extends StatelessWidget {
     Widget content = const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: [TranslateSettingsSection()],
+      // 卡片标题行已经写了「翻译」，节内不再重复一遍。
+      children: [TranslateSettingsSection(showTitle: false)],
     );
 
     if (isStandalone) {
@@ -50,6 +51,7 @@ class TranslateCard extends StatelessWidget {
 
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.translate,
+      expressive: true,
       title: '翻译',
       icon: AppGlyphs.translate,
       isExpanded: isExpanded,

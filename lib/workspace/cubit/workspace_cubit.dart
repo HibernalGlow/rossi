@@ -199,6 +199,21 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   // ── 面板 / 卡片的布局记账 ──────────────────────────────────────────────
 
+  /// 直接更新完整泳道几何与顺序配置（供设置页看板修改泳道顺序等）。
+  void setLayout(WorkspaceLayoutConfig layout) {
+    if (state.layout == layout) return;
+    emit(state.copyWith(layout: layout));
+  }
+
+  /// 直接更新面板与卡片布局记账（供设置页看板批量更新面板排序与显隐）。
+  void setBoard(
+    WorkspaceBoardLayout board, {
+    Map<String, String>? activePanel,
+  }) {
+    if (state.board == board && activePanel == null) return;
+    emit(state.copyWith(board: board, activePanel: activePanel));
+  }
+
   /// 把面板放到 [side] 侧的指定位置（轨内重排与跨泳道搬移走的是同一个口子）。
   void placePanel({
     required String panelId,
@@ -218,8 +233,68 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     );
   }
 
-  /// 显示 / 隐藏一个面板。
-  void setPanelVisible(String panelId, bool visible) {
+  /// 面板在看板里**还没有布局记录**时的默认记录：取注册表已经算好的有效布局。
+  PanelLayout _fallbackPanelLayout(String panelId, WorkspacePanelSide side) {
+    final registry = WorkspacePanelRegistry.I;
+    final def = registry.find(panelId);
+    if (def == null) return PanelLayout(visible: true, order: 0, side: side);
+    return registry.effectivePanelLayout(def, state.board);
+  }
+
+  /// 在看板中把面板放到 [side] 侧的指定位置，同时保留各面板自身的显示/隐藏状态。
+  void arrangePanelInBoard({
+    required String panelId,
+    required WorkspacePanelSide side,
+    required int insertIndex,
+    bool? visible,
+  }) {
+    final registry = WorkspacePanelRegistry.I;
+    final panel = registry.find(panelId);
+    if (panel == null) return;
+    final currentLayout = registry.effectivePanelLayout(panel, state.board);
+    if (!panel.canMove && currentLayout.side != side) return;
+
+    final siblings = [
+      for (final p in registry.allPanelsForSide(side, state.board))
+        if (p.id != panelId) p.id,
+    ];
+    final nextBoard = state.board.arrangePanel(
+      panelId: panelId,
+      side: side,
+      siblingIds: siblings,
+      insertIndex: insertIndex,
+      visible: visible,
+      fallbackFor: (id) => _fallbackPanelLayout(id, side),
+    );
+    emit(state.copyWith(board: nextBoard));
+  }
+
+  /// 在看板中将某条泳道内的面板上移（`direction = -1`）或下移（`direction = 1`）。
+  void movePanelInBoard(
+    WorkspacePanelSide side,
+    String panelId,
+    int direction,
+  ) {
+    final registry = WorkspacePanelRegistry.I;
+    final ordered = [
+      for (final p in registry.allPanelsForSide(side, state.board)) p.id,
+    ];
+    final nextBoard = state.board.movePanel(
+      panelId,
+      direction,
+      ordered,
+      fallbackFor: (id) => _fallbackPanelLayout(id, side),
+    );
+    if (nextBoard == null) return;
+    emit(state.copyWith(board: nextBoard));
+  }
+
+  /// 显示 / 隐藏一个面板（可选保持其当前顺序而不重排到末尾）。
+  void setPanelVisible(
+    String panelId,
+    bool visible, {
+    bool preserveOrder = false,
+  }) {
     final panel = WorkspacePanelRegistry.I.find(panelId);
     if (panel == null) return;
     final effective = WorkspacePanelRegistry.I.effectivePanelLayout(
@@ -228,11 +303,13 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
     );
     if (effective.visible == visible) return;
 
-    final order = visible
-        ? WorkspacePanelRegistry.I
-              .panelsForSide(effective.side, state.board)
-              .length
-        : effective.order;
+    final order = preserveOrder
+        ? effective.order
+        : (visible
+              ? WorkspacePanelRegistry.I
+                    .panelsForSide(effective.side, state.board)
+                    .length
+              : effective.order);
     emit(
       state.copyWith(
         board: state.board.setPanelVisible(
@@ -241,6 +318,19 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
           order: order,
           visible: visible,
         ),
+      ),
+    );
+  }
+
+  /// 仅重置泳道顺序与面板看板布局（保留泳道宽度、交互设置与卡片内部布局）。
+  void resetSwimlaneAndPanelLayout() {
+    emit(
+      state.copyWith(
+        layout: state.layout.copyWith(
+          laneOrder: LaneId.defaultOrder,
+        ),
+        board: state.board.resetPanels(),
+        activePanel: const <String, String>{},
       ),
     );
   }
@@ -295,6 +385,26 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
           order: effective.order,
           widthSpan: widthSpan,
           heightSpan: heightSpan,
+        ),
+      ),
+    );
+  }
+
+  /// 恢复卡片的默认全宽与自适应高度（清除手动 heightSpan 覆盖）。
+  void resetCardAutoHeight(String cardId) {
+    final card = WorkspaceCardRegistry.I.find(cardId);
+    if (card == null) return;
+    final effective = WorkspaceCardRegistry.I.effectiveLayout(
+      card,
+      state.board,
+    );
+    emit(
+      state.copyWith(
+        board: state.board.resetCardAutoHeight(
+          cardId: cardId,
+          panelId: effective.panelId,
+          order: effective.order,
+          defaultWidthSpan: card.defaultWidthSpan,
         ),
       ),
     );

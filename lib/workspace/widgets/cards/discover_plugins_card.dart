@@ -118,6 +118,7 @@ class DiscoverPluginsCard extends StatelessWidget {
 
     return CollapsibleCard(
       cardId: 'discover_plugins',
+      expressive: true,
       title: '图源与扩展 (Extensions)',
       icon: AppGlyphs.puzzle,
       isExpanded: isExpanded,

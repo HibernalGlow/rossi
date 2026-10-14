@@ -1,20 +1,26 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyDownEvent;
+import 'package:flutter/services.dart'
+    show HapticFeedback, KeyDownEvent, LogicalKeyboardKey;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
-import 'package:zephyr/workspace/widgets/collapsible_card.dart';
-import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/widgets/expressive/expressive_shape.dart';
+import 'package:zephyr/widgets/motion/action_bubble.dart';
+import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
+import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
+import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
+import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 
 /// 「切换提示」卡片 —— neoview「控制」面板的 `SwitchToastCard` 的 Flutter 重建。
 ///
 /// 上游卡片四节里的「提示悬浮窗」（X/Y 摆位、透明度、液态玻璃）**不在这里**：
 /// Rossi 的提示条外观统一由「设置 → 提示样式」的九宫格负责，两处摆位会打架。
-/// 保留的是这张卡的实质：**触发条件 + 两本模板 + 变量表 + 测试提示**。
+/// 保留的是这张卡的实质：**触发条件 + 两本模板 + 变量胶囊（点击直接插入） + 测试提示**。
 ///
 /// 输入框沿用上游 `DraftTextarea` 的语义：失焦才提交、`Esc` 取消回滚，
-/// 于是「正在编辑」不会被外部（同一设置页另一处）的重建打断。
+/// 同时支持点击下方 M3E 模板变量胶囊直接插入到当前聚焦（或最近激活）的模板输入框。
 class SwitchToastCard extends StatefulWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
@@ -38,19 +44,27 @@ class SwitchToastCard extends StatefulWidget {
 }
 
 class _SwitchToastCardState extends State<SwitchToastCard> {
-  static const List<(String, String)> _bookVariables = [
-    ('{{book.displayName}}', '书籍显示名'),
-    ('{{book.currentPageDisplay}}', '当前页码'),
-    ('{{book.totalPages}}', '总页数'),
-    ('{{book.progressPercent}}', '阅读进度（%）'),
-    ('{{book.path}}', '书籍路径（本地来源才有值）'),
+  static const List<(String, String, Glyph)> _bookVariables = [
+    ('{{book.displayName}}', '书籍显示名', AppGlyphs.book),
+    ('{{book.currentPageDisplay}}', '当前页码', AppGlyphs.bookmark),
+    ('{{book.totalPages}}', '总页数', AppGlyphs.layers),
+    ('{{book.progressPercent}}', '阅读进度（%）', AppGlyphs.pieChart),
+    ('{{book.path}}', '书籍路径（本地来源才有值）', AppGlyphs.folder),
   ];
 
-  static const List<(String, String)> _pageVariables = [
-    ('{{page.indexDisplay}}', '当前页码'),
-    ('{{page.name}}', '页面文件名'),
-    ('{{page.path}}', '页面路径'),
+  static const List<(String, String, Glyph)> _pageVariables = [
+    ('{{page.indexDisplay}}', '当前页码', AppGlyphs.linearScale),
+    ('{{page.name}}', '页面文件名', AppGlyphs.article),
+    ('{{page.path}}', '页面路径', AppGlyphs.folderCopy),
   ];
+
+  final GlobalKey<_DraftFieldState> _boundaryFieldKey =
+      GlobalKey<_DraftFieldState>();
+
+  static int _activeTriggerCount(SwitchToastSettingState s) =>
+      (s.enableBook ? 1 : 0) +
+      (s.enablePage ? 1 : 0) +
+      (s.enableBoundaryToast ? 1 : 0);
 
   @override
   Widget build(BuildContext context) {
@@ -58,66 +72,126 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
         .watch<GlobalSettingCubit>()
         .state
         .switchToastSetting;
+    final activeCount = _activeTriggerCount(setting);
 
     Widget content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '位置与外观在「设置 → 提示样式」里调整。',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
+        ExpressiveHeroBanner(
+          seed: expressiveBlobSeed('switch_toast_hero'),
+          icon: AppGlyphs.customize,
+          shape: ExpressiveButtonShape.softBurst,
+          tone: activeCount > 0
+              ? ExpressiveTone.secondary
+              : ExpressiveTone.neutral,
+          active: activeCount > 0,
+          title: '阅读切换悬浮提示',
+          subtitle: '位置与外观在「设置 → 提示样式」里调整。',
+          pills: [
+            ExpressiveStatusPill(
+              text: activeCount == 0 ? '触发全关' : '已开 $activeCount / 3 项',
+              icon: activeCount == 0 ? AppGlyphs.bellOff : AppGlyphs.bell,
+              dot: false,
+              compact: true,
+              tone: activeCount > 0
+                  ? ExpressiveTone.primary
+                  : ExpressiveTone.neutral,
             ),
-            FilledButton.tonal(
-              onPressed: () => showInfoToast(
-                '这是一条切换提示的预览',
-                title: '切换提示测试',
-                context: context,
+            if (setting.enableBook)
+              const ExpressiveStatusPill(
+                text: '切书提示',
+                icon: AppGlyphs.book,
+                dot: false,
+                compact: true,
+                tone: ExpressiveTone.primary,
               ),
-              style: FilledButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+            if (setting.enablePage)
+              const ExpressiveStatusPill(
+                text: '翻页提示',
+                icon: AppGlyphs.photos,
+                dot: false,
+                compact: true,
+                tone: ExpressiveTone.secondary,
               ),
-              child: const Text('显示测试提示', style: TextStyle(fontSize: 11)),
-            ),
+            if (setting.enableBoundaryToast)
+              const ExpressiveStatusPill(
+                text: '末页提示',
+                icon: AppGlyphs.locate,
+                dot: false,
+                compact: true,
+                tone: ExpressiveTone.tertiary,
+              ),
           ],
+          trailing: FilledButton.tonalIcon(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              showInfoToast('这是一条切换提示的预览', title: '切换提示测试', context: context);
+            },
+            icon: const GlyphIcon(AppGlyphs.play, size: 14),
+            label: const Text('显示测试提示', style: TextStyle(fontSize: 11)),
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: const StadiumBorder(),
+            ),
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         _Section(
           title: '触发条件',
           icon: AppGlyphs.bell,
           children: [
-            _toggle(
-              '切换书籍时显示提示',
-              setting.enableBook,
-              (v) => context
-                  .read<GlobalSettingCubit>()
-                  .updateSwitchToastSetting((c) => c.copyWith(enableBook: v)),
-            ),
-            _toggle(
-              '切换页面时显示提示',
-              setting.enablePage,
-              (v) => context
-                  .read<GlobalSettingCubit>()
-                  .updateSwitchToastSetting((c) => c.copyWith(enablePage: v)),
-            ),
-            _toggle(
-              '到达最后一页时显示提示',
-              setting.enableBoundaryToast,
-              (v) =>
-                  context.read<GlobalSettingCubit>().updateSwitchToastSetting(
-                    (c) => c.copyWith(enableBoundaryToast: v),
-                  ),
+            ExpressiveTileGrid(
+              minTileWidth: 170,
+              spacing: 8,
+              children: [
+                ExpressiveToggleTile(
+                  title: '切换书籍时显示提示',
+                  subtitle: '打开或切到另一本漫画时弹出',
+                  icon: AppGlyphs.book,
+                  shape: ExpressiveButtonShape.clover4Leaf,
+                  activeTone: ExpressiveTone.primary,
+                  value: setting.enableBook,
+                  onChanged: (v) => context
+                      .read<GlobalSettingCubit>()
+                      .updateSwitchToastSetting(
+                        (c) => c.copyWith(enableBook: v),
+                      ),
+                ),
+                ExpressiveToggleTile(
+                  title: '切换页面时显示提示',
+                  subtitle: '翻页或跳页时实时反馈页码',
+                  icon: AppGlyphs.photos,
+                  shape: ExpressiveButtonShape.sunny,
+                  activeTone: ExpressiveTone.secondary,
+                  value: setting.enablePage,
+                  onChanged: (v) => context
+                      .read<GlobalSettingCubit>()
+                      .updateSwitchToastSetting(
+                        (c) => c.copyWith(enablePage: v),
+                      ),
+                ),
+                ExpressiveToggleTile(
+                  title: '到达最后一页时显示提示',
+                  subtitle: '读到章节末尾继续翻页时提醒',
+                  icon: AppGlyphs.locate,
+                  shape: ExpressiveButtonShape.puffyDiamond,
+                  activeTone: ExpressiveTone.tertiary,
+                  value: setting.enableBoundaryToast,
+                  onChanged: (v) => context
+                      .read<GlobalSettingCubit>()
+                      .updateSwitchToastSetting(
+                        (c) => c.copyWith(enableBoundaryToast: v),
+                      ),
+                ),
+              ],
             ),
           ],
         ),
         _TemplateSection(
+          seed: expressiveBlobSeed('book_template_section'),
+          tone: ExpressiveTone.primary,
           title: '书籍提示模板',
           icon: AppGlyphs.book,
           titleLabel: '书籍标题模板',
@@ -137,6 +211,8 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
           variables: _bookVariables,
         ),
         _TemplateSection(
+          seed: expressiveBlobSeed('page_template_section'),
+          tone: ExpressiveTone.tertiary,
           title: '页面提示模板',
           icon: AppGlyphs.photos,
           titleLabel: '页面标题模板',
@@ -154,25 +230,76 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
                 (c) => c.copyWith(pageDescriptionTemplate: v),
               ),
           variables: _pageVariables,
-          footer: const Text(
-            '页面模板同样可以使用 {{book.*}} 变量。',
-            style: TextStyle(fontSize: 10),
+          footer: Row(
+            children: [
+              GlyphIcon(
+                AppGlyphs.sparkle,
+                size: 13,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  '页面模板同样可以使用 {{book.*}} 变量；点击任一变量胶囊可直接插入。',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         _Section(
           title: '边界提示文案',
           icon: AppGlyphs.chevronForward,
           children: [
-            const SizedBox(height: 2),
-            _DraftField(
-              key: ValueKey('boundary-${setting.lastPageMessage}'),
-              label: '最后一页提示文案',
-              value: setting.lastPageMessage,
-              placeholder: '例如：已经是最后一页',
-              onCommit: (v) =>
-                  context.read<GlobalSettingCubit>().updateSwitchToastSetting(
-                    (c) => c.copyWith(lastPageMessage: v),
+            ExpressivePatchBackdrop(
+              seed: expressiveBlobSeed('boundary_toast_section'),
+              tone: ExpressiveTone.sunken,
+              active: setting.enableBoundaryToast,
+              intensity: 0.85,
+              borderRadius: expressiveCornerMd,
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DraftField(
+                    key: _boundaryFieldKey,
+                    label: '最后一页提示文案',
+                    icon: AppGlyphs.locate,
+                    value: setting.lastPageMessage,
+                    placeholder: '例如：已经是最后一页',
+                    onCommit: (v) => context
+                        .read<GlobalSettingCubit>()
+                        .updateSwitchToastSetting(
+                          (c) => c.copyWith(lastPageMessage: v),
+                        ),
                   ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final (preset, glyph) in const [
+                        ('已经是最后一页', AppGlyphs.checkCircle),
+                        ('本话已读完 · 准备下一话', AppGlyphs.openBook),
+                        ('到底啦 ~ 没有更多页面', AppGlyphs.sparkle),
+                      ])
+                        _VariableCapsule(
+                          variable: preset,
+                          description: '点击填入',
+                          icon: glyph,
+                          tone: ExpressiveTone.secondary,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _boundaryFieldKey.currentState?.replaceText(preset);
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -189,6 +316,7 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
 
     return CollapsibleCard(
       cardId: WorkspaceCardRegistry.switchToast,
+      expressive: true,
       title: '切换提示',
       icon: AppGlyphs.bell,
       isExpanded: widget.isExpanded,
@@ -196,17 +324,13 @@ class _SwitchToastCardState extends State<SwitchToastCard> {
       onMoveUp: widget.onMoveUp,
       onMoveDown: widget.onMoveDown,
       onHide: widget.onHide,
+      trailing: ExpressiveStatusPill(
+        text: activeCount == 0 ? '全部关闭' : '$activeCount 项开启',
+        dot: false,
+        compact: true,
+        tone: activeCount > 0 ? ExpressiveTone.primary : ExpressiveTone.neutral,
+      ),
       child: content,
-    );
-  }
-
-  Widget _toggle(String label, bool value, ValueChanged<bool> onChanged) {
-    return SwitchListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      title: Text(label, style: const TextStyle(fontSize: 12)),
-      value: value,
-      onChanged: onChanged,
     );
   }
 }
@@ -215,44 +339,27 @@ class _Section extends StatelessWidget {
   final String title;
   final Glyph icon;
   final List<Widget> children;
+  final Widget? trailing;
 
   const _Section({
     required this.title,
     required this.icon,
     required this.children,
+    this.trailing,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GlyphIcon(icon, size: 14, color: theme.colorScheme.primary),
-              const SizedBox(width: 4),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          ...children,
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ExpressiveSection(
+    title: title,
+    icon: icon,
+    trailing: trailing,
+    children: children,
+  );
 }
 
-class _TemplateSection extends StatelessWidget {
+class _TemplateSection extends StatefulWidget {
+  final int seed;
+  final ExpressiveTone tone;
   final String title;
   final Glyph icon;
   final String titleLabel;
@@ -263,10 +370,12 @@ class _TemplateSection extends StatelessWidget {
   final String descriptionValue;
   final String descriptionPlaceholder;
   final ValueChanged<String> onDescriptionCommit;
-  final List<(String, String)> variables;
+  final List<(String, String, Glyph)> variables;
   final Widget? footer;
 
   const _TemplateSection({
+    required this.seed,
+    required this.tone,
     required this.title,
     required this.icon,
     required this.titleLabel,
@@ -282,48 +391,153 @@ class _TemplateSection extends StatelessWidget {
   });
 
   @override
+  State<_TemplateSection> createState() => _TemplateSectionState();
+}
+
+class _TemplateSectionState extends State<_TemplateSection> {
+  final GlobalKey<_DraftFieldState> _titleKey = GlobalKey<_DraftFieldState>();
+  final GlobalKey<_DraftFieldState> _descKey = GlobalKey<_DraftFieldState>();
+
+  /// 0 = 标题模板，1 = 描述模板。点击下方变量胶囊会直接插入到该目标输入框。
+  int _activeTarget = 0;
+
+  void _insertVariable(String token) {
+    HapticFeedback.lightImpact();
+    final target = _activeTarget == 0
+        ? _titleKey.currentState
+        : _descKey.currentState;
+    target?.insertText(token);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final targetName = _activeTarget == 0
+        ? widget.titleLabel
+        : widget.descriptionLabel;
+
+    final titleField = _DraftField(
+      key: _titleKey,
+      label: widget.titleLabel,
+      icon: AppGlyphs.textShort,
+      value: widget.titleValue,
+      placeholder: widget.titlePlaceholder,
+      isTarget: _activeTarget == 0,
+      onFocused: () {
+        if (_activeTarget != 0) setState(() => _activeTarget = 0);
+      },
+      onCommit: widget.onTitleCommit,
+    );
+
+    final descField = _DraftField(
+      key: _descKey,
+      label: widget.descriptionLabel,
+      icon: AppGlyphs.subtitles,
+      value: widget.descriptionValue,
+      placeholder: widget.descriptionPlaceholder,
+      isTarget: _activeTarget == 1,
+      onFocused: () {
+        if (_activeTarget != 1) setState(() => _activeTarget = 1);
+      },
+      onCommit: widget.onDescriptionCommit,
+    );
+
     return _Section(
-      title: title,
-      icon: icon,
+      title: widget.title,
+      icon: widget.icon,
+      trailing: GestureDetector(
+        onTap: () => setState(() => _activeTarget = 1 - _activeTarget),
+        child: ExpressiveStatusPill(
+          text: '插入至：$targetName',
+          icon: AppGlyphs.edit,
+          dot: false,
+          compact: true,
+          tone: widget.tone,
+        ),
+      ),
       children: [
-        _DraftField(
-          // 外部值换了一本卡（重置布局）时重建控制器，避免残留上一本的草稿。
-          key: ValueKey('title-$titleValue'),
-          label: titleLabel,
-          value: titleValue,
-          placeholder: titlePlaceholder,
-          onCommit: onTitleCommit,
+        ExpressivePatchBackdrop(
+          seed: widget.seed,
+          tone: ExpressiveTone.sunken,
+          active: true,
+          intensity: 0.9,
+          borderRadius: expressiveCornerMd,
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth >= 460) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: titleField),
+                        const SizedBox(width: 10),
+                        Expanded(child: descField),
+                      ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      titleField,
+                      const SizedBox(height: 8),
+                      descField,
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final (index, (variable, description, glyph))
+                      in widget.variables.indexed)
+                    _VariableCapsule(
+                      variable: variable,
+                      description: description,
+                      icon: glyph,
+                      tone: const [
+                        ExpressiveTone.primary,
+                        ExpressiveTone.secondary,
+                        ExpressiveTone.tertiary,
+                      ][index % 3],
+                      onTap: () => _insertVariable(variable),
+                    ),
+                ],
+              ),
+              if (widget.footer != null) ...[
+                const SizedBox(height: 8),
+                widget.footer!,
+              ],
+            ],
+          ),
         ),
-        const SizedBox(height: 6),
-        _DraftField(
-          key: ValueKey('desc-$descriptionValue'),
-          label: descriptionLabel,
-          value: descriptionValue,
-          placeholder: descriptionPlaceholder,
-          onCommit: onDescriptionCommit,
-        ),
-        const SizedBox(height: 6),
-        _VariableTable(variables: variables),
-        if (footer != null) ...[const SizedBox(height: 4), footer!],
       ],
     );
   }
 }
 
-/// 失焦提交、`Esc` 回滚的单行草稿输入。
+/// 失焦提交、`Esc` 回滚的单行草稿输入，支持从外部胶囊直接插入变量。
 class _DraftField extends StatefulWidget {
   final String label;
+  final Glyph icon;
   final String value;
   final String placeholder;
+  final bool isTarget;
+  final VoidCallback? onFocused;
   final ValueChanged<String> onCommit;
 
   const _DraftField({
     super.key,
     required this.label,
+    required this.icon,
     required this.value,
     required this.placeholder,
     required this.onCommit,
+    this.isTarget = false,
+    this.onFocused,
   });
 
   @override
@@ -334,11 +548,63 @@ class _DraftFieldState extends State<_DraftField> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.value,
   );
+  late final FocusNode _focusNode = FocusNode()..addListener(_handleFocus);
+
+  void _handleFocus() {
+    if (_focusNode.hasFocus) {
+      widget.onFocused?.call();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DraftField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value &&
+        !_focusNode.hasFocus &&
+        _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_handleFocus);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  /// 在当前光标位置（或末尾）直接插入变量并立即写回设置。
+  void insertText(String token) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final int start;
+    final int end;
+    if (selection.isValid &&
+        selection.start >= 0 &&
+        selection.end <= text.length) {
+      start = selection.start;
+      end = selection.end;
+    } else {
+      start = text.length;
+      end = text.length;
+    }
+    final next = text.replaceRange(start, end, token);
+    final cursor = start + token.length;
+    _controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: cursor),
+    );
+    widget.onCommit(next);
+  }
+
+  /// 整段替换为预设文案并立即提交。
+  void replaceText(String next) {
+    _controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+    widget.onCommit(next);
   }
 
   void _commit() {
@@ -349,17 +615,35 @@ class _DraftFieldState extends State<_DraftField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: TextStyle(
-            fontSize: 10,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        Row(
+          children: [
+            GlyphIcon(
+              widget.icon,
+              size: 13,
+              color: widget.isTarget ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: widget.isTarget
+                      ? FontWeight.w700
+                      : FontWeight.w600,
+                  color: widget.isTarget
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Focus(
           canRequestFocus: false,
           // 子级 TextField 处理不了的键（Esc）才冒泡到这里；不吞其它按键。
@@ -373,20 +657,34 @@ class _DraftFieldState extends State<_DraftField> {
           },
           child: TextField(
             controller: _controller,
-            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+            focusNode: _focusNode,
+            onTap: widget.onFocused,
+            style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace'),
             decoration: InputDecoration(
               isDense: true,
+              filled: true,
+              fillColor: scheme.surfaceContainerHighest.withValues(alpha: .55),
               hintText: widget.placeholder,
               hintStyle: TextStyle(
-                fontSize: 10,
-                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 10.5,
+                color: scheme.onSurfaceVariant.withValues(alpha: .75),
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 6,
+                horizontal: 10,
+                vertical: 9,
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: widget.isTarget
+                      ? scheme.primary.withValues(alpha: .65)
+                      : scheme.outlineVariant.withValues(alpha: .45),
+                  width: widget.isTarget ? 1.3 : 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: scheme.primary, width: 1.6),
               ),
             ),
             onSubmitted: (_) => _commit(),
@@ -398,57 +696,104 @@ class _DraftFieldState extends State<_DraftField> {
   }
 }
 
-class _VariableTable extends StatelessWidget {
-  final List<(String, String)> variables;
+/// 可点击直接插入的 **M3E 有机几何变量胶囊**。
+///
+/// 每个变量都有种子生成的 [ExpressiveBlobBorder] 不规则圆角轮廓 + 多态图标徽章，
+/// 彻底替掉原先干巴巴的纯文本表格。
+class _VariableCapsule extends StatelessWidget {
+  final String variable;
+  final String description;
+  final Glyph icon;
+  final ExpressiveTone tone;
+  final VoidCallback onTap;
 
-  const _VariableTable({required this.variables});
+  const _VariableCapsule({
+    required this.variable,
+    required this.description,
+    required this.icon,
+    required this.tone,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (final (variable, description) in variables)
-            Row(
-              children: [
-                SizedBox(
-                  width: 132,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 3,
-                    ),
-                    child: Text(
-                      variable,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 3,
-                    ),
-                    child: Text(
-                      description,
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                  ),
-                ),
-              ],
+    final scheme = theme.colorScheme;
+    final tones = expressiveToneColors(scheme, tone);
+    final seed = expressiveBlobSeed(variable);
+    final animate =
+        !eInkInstantRoutes && !MediaQuery.disableAnimationsOf(context);
+
+    return ActionBubbleTarget(
+      enabled: !eInkInstantRoutes,
+      corner: 16,
+      child: ElasticPress(
+        enabled: animate,
+        child: Material(
+          color: tones.container.withValues(alpha: .78),
+          shape: ExpressiveBlobBorder(
+            seed: seed,
+            progress: 0.25,
+            safeInset: 8,
+            side: BorderSide(
+              color: tones.onContainer.withValues(alpha: .22),
+              width: 1,
             ),
-        ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ExpressiveShapeBadge(
+                    icon: icon,
+                    seed: seed,
+                    size: 22,
+                    glyphSize: 12,
+                    tone: tone,
+                    active: true,
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          variable,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w700,
+                            color: tones.onContainer,
+                          ),
+                        ),
+                        Text(
+                          description,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 9.5,
+                            color: tones.onContainer.withValues(alpha: .82),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GlyphIcon(
+                    AppGlyphs.add,
+                    size: 12,
+                    color: tones.onContainer.withValues(alpha: .85),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
