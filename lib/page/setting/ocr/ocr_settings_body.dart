@@ -326,233 +326,250 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
     }
 
     final children = <Widget>[
-      settingSectionTitle(context, t.ocr.endpointSection),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.split),
-        title: Text(t.ocr.engine),
-        subtitle: Text(t.ocr.engineSubtitle),
-        trailing: FluentDropdown<String>(
-          value: _draft.engine.id,
-          displayValue: _engineLabel(_draft.engine),
-          items: {
-            for (final c in OcrSettings.engineChoices)
-              if (c.$1.availableHere) c.$1.id: c.$2,
-          },
-          onChanged: (id) async {
-            final e = OcrTranslateEngine.fromId(id);
-            await _save(_draft.copyWith(engine: e));
-          },
-        ),
+      SettingSectionCard(
+        title: t.ocr.endpointSection,
+        icon: AppGlyphs.split,
+        children: [
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.split),
+            title: Text(t.ocr.engine),
+            subtitle: Text(t.ocr.engineSubtitle),
+            trailing: FluentDropdown<String>(
+              value: _draft.engine.id,
+              displayValue: _engineLabel(_draft.engine),
+              items: {
+                for (final c in OcrSettings.engineChoices)
+                  if (c.$1.availableHere) c.$1.id: c.$2,
+              },
+              onChanged: (id) async {
+                final e = OcrTranslateEngine.fromId(id);
+                await _save(_draft.copyWith(engine: e));
+              },
+            ),
+          ),
+          if (_engineHintText case final hint?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SelectableText(
+                hint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (_appleNoteText case final note?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(note, style: Theme.of(context).textTheme.bodySmall),
+            ),
+          if (!_configured)
+            ListTile(
+              leading: const GlyphIcon(AppGlyphs.info),
+              title: Text(t.ocr.notConfigured),
+            ),
+          if (_endpointOnly) ...[
+            _tile(
+              icon: AppGlyphs.link,
+              label: t.ocr.baseUrl,
+              value: _draft.baseUrl.isEmpty
+                  ? t.ocr.baseUrlNone
+                  : _draft.baseUrl,
+              onTap: () => _edit(
+                label: t.ocr.baseUrl,
+                hint: t.ocr.baseUrlHint,
+                value: _draft.baseUrl,
+                apply: (v) => _save(_draft.copyWith(baseUrl: v)),
+              ),
+            ),
+            _tile(
+              icon: AppGlyphs.sparkle,
+              label: t.ocr.model,
+              value: _draft.model.isEmpty ? '-' : _draft.model,
+              onTap: () => _edit(
+                label: t.ocr.model,
+                hint: t.ocr.modelHint,
+                value: _draft.model,
+                apply: (v) => _save(_draft.copyWith(model: v)),
+              ),
+            ),
+            _tile(
+              icon: AppGlyphs.key,
+              label: t.ocr.apiKey,
+              value: _draft.apiKey.isEmpty ? '-' : '••••••',
+              subtitle: t.ocr.apiKeySubtitle,
+              onTap: () => _edit(
+                label: t.ocr.apiKey,
+                hint: 'sk-...',
+                value: _draft.apiKey,
+                subtitle: t.ocr.apiKeySubtitle,
+                obscure: true,
+                apply: (v) => _save(_draft.copyWith(apiKey: v)),
+              ),
+            ),
+          ],
+          _tile(
+            icon: AppGlyphs.translate,
+            label: t.ocr.targetLanguage,
+            value: _draft.targetLanguage,
+            onTap: () => _edit(
+              label: t.ocr.targetLanguage,
+              hint: 'zh-Hans / en / ja',
+              value: _draft.targetLanguage,
+              apply: (v) => _save(_draft.copyWith(targetLanguage: v)),
+            ),
+          ),
+          if (_glossaryApplies)
+            _tile(
+              icon: AppGlyphs.book,
+              label: t.ocr.glossary,
+              value: _glossarySummary,
+              subtitle: t.ocr.glossarySubtitle,
+              onTap: () => _edit(
+                label: t.ocr.glossary,
+                hint: t.ocr.glossaryHint,
+                value: _draft.glossary,
+                subtitle: t.ocr.glossarySubtitle,
+                multiline: true,
+                apply: (v) => _save(_draft.copyWith(glossary: v)),
+              ),
+            )
+          else
+            ListTile(
+              leading: const GlyphIcon(AppGlyphs.book),
+              title: Text(t.ocr.glossary),
+              subtitle: Text(t.ocr.glossaryIgnoredOnApple),
+            ),
+        ],
       ),
-      if (_engineHintText case final hint?)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: SelectableText(
-            hint,
-            style: Theme.of(context).textTheme.bodySmall,
+      SettingSectionCard(
+        title: t.ocr.epSection,
+        icon: AppGlyphs.storage,
+        children: [
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.storage),
+            title: Text(t.ocr.ep),
+            subtitle: Text(t.ocr.epSubtitle),
+            trailing: FluentDropdown<String>(
+              value: _ep,
+              displayValue: _epLabel(_ep),
+              items: {for (final c in OcrSettings.epChoices) c.$1: c.$2},
+              onChanged: (ep) async {
+                await OcrSettings.saveEp(ep);
+                if (mounted) await _load();
+              },
+            ),
           ),
-        ),
-      if (_appleNoteText case final note?)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Text(note, style: Theme.of(context).textTheme.bodySmall),
-        ),
-      if (!_configured)
-        ListTile(
-          leading: const GlyphIcon(AppGlyphs.info),
-          title: Text(t.ocr.notConfigured),
-        ),
-      if (_endpointOnly) ...[
-        _tile(
-          icon: AppGlyphs.link,
-          label: t.ocr.baseUrl,
-          value: _draft.baseUrl.isEmpty ? t.ocr.baseUrlNone : _draft.baseUrl,
-          onTap: () => _edit(
-            label: t.ocr.baseUrl,
-            hint: t.ocr.baseUrlHint,
-            value: _draft.baseUrl,
-            apply: (v) => _save(_draft.copyWith(baseUrl: v)),
-          ),
-        ),
-        _tile(
-          icon: AppGlyphs.sparkle,
-          label: t.ocr.model,
-          value: _draft.model.isEmpty ? '-' : _draft.model,
-          onTap: () => _edit(
-            label: t.ocr.model,
-            hint: t.ocr.modelHint,
-            value: _draft.model,
-            apply: (v) => _save(_draft.copyWith(model: v)),
-          ),
-        ),
-        _tile(
-          icon: AppGlyphs.key,
-          label: t.ocr.apiKey,
-          value: _draft.apiKey.isEmpty ? '-' : '••••••',
-          subtitle: t.ocr.apiKeySubtitle,
-          onTap: () => _edit(
-            label: t.ocr.apiKey,
-            hint: 'sk-...',
-            value: _draft.apiKey,
-            subtitle: t.ocr.apiKeySubtitle,
-            obscure: true,
-            apply: (v) => _save(_draft.copyWith(apiKey: v)),
-          ),
-        ),
-      ],
-      _tile(
-        icon: AppGlyphs.translate,
-        label: t.ocr.targetLanguage,
-        value: _draft.targetLanguage,
-        onTap: () => _edit(
-          label: t.ocr.targetLanguage,
-          hint: 'zh-Hans / en / ja',
-          value: _draft.targetLanguage,
-          apply: (v) => _save(_draft.copyWith(targetLanguage: v)),
-        ),
+          if (_epPlan case final plan?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                _epPlanText(plan),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
       ),
-      if (_glossaryApplies)
-        _tile(
-          icon: AppGlyphs.book,
-          label: t.ocr.glossary,
-          value: _glossarySummary,
-          subtitle: t.ocr.glossarySubtitle,
-          onTap: () => _edit(
-            label: t.ocr.glossary,
-            hint: t.ocr.glossaryHint,
-            value: _draft.glossary,
-            subtitle: t.ocr.glossarySubtitle,
-            multiline: true,
-            apply: (v) => _save(_draft.copyWith(glossary: v)),
+      SettingSectionCard(
+        title: t.ocr.displaySection,
+        icon: AppGlyphs.layers,
+        children: [
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.layers),
+            title: Text(t.ocr.displayChoice),
+            subtitle: Text(t.ocr.displayChoiceSubtitle),
+            trailing: FluentDropdown<String>(
+              value: _displayChoice.name,
+              displayValue: _displayLabel(_displayChoice),
+              items: {
+                for (final c in TranslatedPageDisplayChoice.values)
+                  c.name: _displayLabel(c),
+              },
+              onChanged: (name) async {
+                final next = TranslatedPageDisplayChoice.values.firstWhere(
+                  (c) => c.name == name,
+                );
+                await TranslatedPageDisplayMode.save(next);
+                if (!mounted) return;
+                setState(() => _displayChoice = next);
+                showSuccessToast(t.ocr.saved);
+              },
+            ),
           ),
-        )
-      else
-        ListTile(
-          leading: const GlyphIcon(AppGlyphs.book),
-          title: Text(t.ocr.glossary),
-          subtitle: Text(t.ocr.glossaryIgnoredOnApple),
-        ),
-
-      const SizedBox(height: 8),
-      const Divider(height: 1, thickness: 0.3),
-      settingSectionTitle(context, t.ocr.epSection),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.storage),
-        title: Text(t.ocr.ep),
-        subtitle: Text(t.ocr.epSubtitle),
-        trailing: FluentDropdown<String>(
-          value: _ep,
-          displayValue: _epLabel(_ep),
-          items: {for (final c in OcrSettings.epChoices) c.$1: c.$2},
-          onChanged: (ep) async {
-            await OcrSettings.saveEp(ep);
-            if (mounted) await _load();
-          },
-        ),
+          if (_displayChoice == TranslatedPageDisplayChoice.overlay)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SelectableText(
+                t.ocr.displayOverlayHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
       ),
-      if (_epPlan case final plan?)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Text(
-            _epPlanText(plan),
-            style: Theme.of(context).textTheme.bodySmall,
+      SettingSectionCard(
+        title: t.ocr.modelSection,
+        icon: AppGlyphs.download,
+        children: [
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.download),
+            title: Text(
+              _missing.isEmpty
+                  ? t.ocr.weightsReady(count: _readyCount)
+                  : t.ocr.weightsMissing(missing: _missing.join('、')),
+            ),
+            subtitle: _downloading
+                ? LinearProgressIndicator(value: _progress)
+                : null,
+            trailing: TextButton(
+              onPressed: _downloading ? null : _download,
+              child: Text(_downloading ? t.ocr.downloading : t.ocr.download),
+            ),
           ),
-        ),
-
-      const SizedBox(height: 8),
-      const Divider(height: 1, thickness: 0.3),
-      settingSectionTitle(context, t.ocr.displaySection),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.layers),
-        title: Text(t.ocr.displayChoice),
-        subtitle: Text(t.ocr.displayChoiceSubtitle),
-        trailing: FluentDropdown<String>(
-          value: _displayChoice.name,
-          displayValue: _displayLabel(_displayChoice),
-          items: {
-            for (final c in TranslatedPageDisplayChoice.values)
-              c.name: _displayLabel(c),
-          },
-          onChanged: (name) async {
-            final next = TranslatedPageDisplayChoice.values.firstWhere(
-              (c) => c.name == name,
-            );
-            await TranslatedPageDisplayMode.save(next);
-            if (!mounted) return;
-            setState(() => _displayChoice = next);
-            showSuccessToast(t.ocr.saved);
-          },
-        ),
+        ],
       ),
-      if (_displayChoice == TranslatedPageDisplayChoice.overlay)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: SelectableText(
-            t.ocr.displayOverlayHint,
-            style: Theme.of(context).textTheme.bodySmall,
+      SettingSectionCard(
+        title: t.ocr.cacheSection,
+        icon: AppGlyphs.broom,
+        children: [
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.broom),
+            title: Text(t.ocr.clearCache),
+            subtitle: Text(
+              _cacheCount == 0
+                  ? t.ocr.cacheEmpty
+                  : '${t.ocr.cacheCount(count: _cacheCount)}；${t.ocr.clearCacheSubtitle}',
+            ),
+            trailing: TextButton(
+              onPressed: _cacheCount == 0 ? null : _clearCache,
+              child: Text(t.common.delete),
+            ),
           ),
-        ),
-
-      const SizedBox(height: 8),
-      const Divider(height: 1, thickness: 0.3),
-      settingSectionTitle(context, t.ocr.modelSection),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.download),
-        title: Text(
-          _missing.isEmpty
-              ? t.ocr.weightsReady(count: _readyCount)
-              : t.ocr.weightsMissing(missing: _missing.join('、')),
-        ),
-        subtitle: _downloading
-            ? LinearProgressIndicator(value: _progress)
-            : null,
-        trailing: TextButton(
-          onPressed: _downloading ? null : _download,
-          child: Text(_downloading ? t.ocr.downloading : t.ocr.download),
-        ),
-      ),
-
-      const SizedBox(height: 8),
-      const Divider(height: 1, thickness: 0.3),
-      settingSectionTitle(context, t.ocr.cacheSection),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.broom),
-        title: Text(t.ocr.clearCache),
-        subtitle: Text(
-          _cacheCount == 0
-              ? t.ocr.cacheEmpty
-              : '${t.ocr.cacheCount(count: _cacheCount)}；${t.ocr.clearCacheSubtitle}',
-        ),
-        trailing: TextButton(
-          onPressed: _cacheCount == 0 ? null : _clearCache,
-          child: Text(t.common.delete),
-        ),
-      ),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.touch),
-        title: Text(t.ocr.readerHint),
-      ),
-
-      const SizedBox(height: 8),
-      const Divider(height: 1, thickness: 0.3),
-      settingSectionTitle(context, t.ocr.logSection),
-      ListTile(
-        leading: const GlyphIcon(AppGlyphs.article),
-        title: Text(t.ocr.viewLog),
-        subtitle: Text(t.ocr.logHint),
-        trailing: TextButton(
-          onPressed: () => showAppLogDialog(
-            context,
-            log: OcrLog.log,
-            title: t.ocr.logDialogTitle,
-            emptyText: t.ocr.logEmpty,
-            copyLabel: t.ocr.copyLog,
-            copiedToast: t.ocr.logCopied,
-            openLabel: t.ocr.openLogLocation,
-            closeLabel: t.common.close,
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.touch),
+            title: Text(t.ocr.readerHint),
           ),
-          child: Text(t.ocr.viewLog),
-        ),
+        ],
+      ),
+      SettingSectionCard(
+        title: t.ocr.logSection,
+        icon: AppGlyphs.article,
+        children: [
+          ListTile(
+            leading: const GlyphIcon(AppGlyphs.article),
+            title: Text(t.ocr.viewLog),
+            subtitle: Text(t.ocr.logHint),
+            trailing: TextButton(
+              onPressed: () => showAppLogDialog(
+                context,
+                log: OcrLog.log,
+                title: t.ocr.logDialogTitle,
+                emptyText: t.ocr.logEmpty,
+                copyLabel: t.ocr.copyLog,
+                copiedToast: t.ocr.logCopied,
+                openLabel: t.ocr.openLogLocation,
+                closeLabel: t.common.close,
+              ),
+              child: Text(t.ocr.viewLog),
+            ),
+          ),
+        ],
       ),
       const SizedBox(height: 32),
     ];
@@ -563,6 +580,6 @@ class _OcrSettingsBodyState extends State<OcrSettingsBody> {
         children: children,
       );
     }
-    return ListView(children: children);
+    return ListView(padding: kSettingPagePadding, children: children);
   }
 }

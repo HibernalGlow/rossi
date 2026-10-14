@@ -15,6 +15,10 @@ class OcrSettingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SettingPageShell(title: t.ocr.title, child: const OcrSettingsBody());
+    return SettingPageShell(
+      title: t.ocr.title,
+      description: t.settings.ocrSubtitle,
+      child: const OcrSettingsBody(),
+    );
   }
 }
