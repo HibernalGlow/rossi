@@ -1,13 +1,18 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:async';
 
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/page/setting/global/widgets/swimlane_panel_kanban_card.dart';
+import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
 import 'package:zephyr/workspace/model/workspace_lane_interaction.dart';
+import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 import 'package:zephyr/workspace/model/workspace_mode.dart';
 import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
@@ -22,21 +27,8 @@ part 'parts/workspace_layout_reveal_zone_part.dart';
 part 'parts/workspace_layout_delay_controls_part.dart';
 part 'parts/workspace_layout_lane_interaction_part.dart';
 
-/// 「设置 → 布局」：工作台走哪条呈现、焦点与独占什么时候响应、
+/// 「设置 → 布局」：工作台走哪条呈现、泳道与面板看板、焦点与独占什么时候响应、
 /// 以及**悬停唤出区**那块可以拖的画布。
-///
-/// 复刻的是 neoview 的 `BoardLayoutSettingsCard`（「泳道与布局」卡片的泳道页）。
-/// 那里头的另一半「布局看板」（面板 / 卡片拖到左栏 / 右栏 / 隐藏）不在这一页 ——
-/// 它改的是面板记账，与这里的「指针停在哪儿会把东西调出来」是两件事。
-///
-/// # 值存在哪儿
-///
-/// 全部落在 `workspace_layout.json` 的 `mode` 与 `interaction` 两块里，
-/// **不进** `GlobalSettingState`。理由与 `WorkspaceLayoutSnapshot` 同源：
-/// 这些是布局的偏好，与泳道宽度、面板记账是同一批要一起备份、一起重置的东西；
-/// 拆到全局设置里就会有两个真相（改一处、另一处仍然生效）。
-/// 读写走 [WorkspaceLayoutBridge]：工作台在场时改的是活的 cubit
-/// （直接写盘会被它的去抖落盘覆盖回去），不在场时才读盘改写。
 @RoutePage()
 class WorkspaceLayoutSettingPage extends StatefulWidget {
   const WorkspaceLayoutSettingPage({super.key});
@@ -67,11 +59,17 @@ class _WorkspaceLayoutSettingPageState
   void _write({
     WorkspaceMode? mode,
     WorkspaceInteractionSettings? interaction,
+    WorkspaceLayoutConfig? layout,
+    WorkspaceBoardLayout? board,
+    Map<String, String>? activePanel,
   }) {
     unawaited(
       WorkspaceLayoutBridge.instance.write(
         mode: mode,
         interaction: interaction,
+        layout: layout,
+        board: board,
+        activePanel: activePanel,
       ),
     );
   }
@@ -81,6 +79,7 @@ class _WorkspaceLayoutSettingPageState
     final snapshot = _snapshot;
     return SettingPageShell(
       title: t.settings.workspaceLayout,
+      description: t.settings.workspaceLayoutSubtitle,
       child: snapshot == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -98,8 +97,8 @@ class _WorkspaceLayoutSettingPageState
                 if (!hasWorkspaceEntry(context)) ...[
                   settingCategoryTile(
                     icon: AppGlyphs.gridPlus,
-                    title: '进入工作台',
-                    subtitle: '按下面选好的呈现打开；退出用系统返回键',
+                    title: t.settings.enterWorkspace,
+                    subtitle: t.settings.enterWorkspaceSubtitle,
                     onTap: () => context.pushRoute(BreezeWorkspaceRoute()),
                   ),
                   const SizedBox(height: 12),
@@ -109,6 +108,18 @@ class _WorkspaceLayoutSettingPageState
                   onChanged: (mode) {
                     setState(() => _snapshot = _snapshot!.copyWithMode(mode));
                     _write(mode: mode);
+                  },
+                ),
+                const SizedBox(height: 12),
+                WorkspaceSwimlanePanelKanbanCard(
+                  snapshot: snapshot,
+                  onChanged: (next) {
+                    setState(() => _snapshot = next);
+                    _write(
+                      layout: next.layout,
+                      board: next.board,
+                      activePanel: next.activePanel,
+                    );
                   },
                 ),
                 const SizedBox(height: 12),
@@ -248,49 +259,44 @@ class _FocusAndSoloCard extends StatelessWidget {
           title: Text(t.settings.laneFocusSoloSubtitle),
           subtitle: Text(t.settings.delayRangeHint),
         ),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.arrowForward),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.arrowForward),
           title: Text(t.settings.autoFocusReaderOnOpen),
           subtitle: Text(t.settings.autoFocusReaderOnOpenSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.autoFocusReaderOnOpen,
           onChanged: (value) =>
               _patch((c) => c.copyWith(autoFocusReaderOnOpen: value)),
         ),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.locate),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.locate),
           title: Text(t.settings.readerSoloOnFocus),
           subtitle: Text(t.settings.readerSoloOnFocusSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.autoSoloOnFocus,
           onChanged: (value) =>
               _patch((c) => c.copyWith(autoSoloOnFocus: value)),
         ),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.columnsThree),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.columnsThree),
           title: Text(t.settings.showLaneNavigatorInSolo),
           subtitle: Text(t.settings.showLaneNavigatorInSoloSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.showLaneNavigatorInSolo,
           onChanged: (value) =>
               _patch((c) => c.copyWith(showLaneNavigatorInSolo: value)),
         ),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.gesture),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.gesture),
           title: Text(t.settings.manualScrollEnabled),
           subtitle: Text(t.settings.manualScrollEnabledSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.manualScrollEnabled,
           onChanged: (value) =>
               _patch((c) => c.copyWith(manualScrollEnabled: value)),
         ),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.lock),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.lock),
           title: Text(t.settings.blockManualScrollInReaderFullscreen),
           subtitle: Text(
             t.settings.blockManualScrollInReaderFullscreenSubtitle,
           ),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.blockManualScrollInReaderFullscreen,
           onChanged: (value) => _patch(
             (c) => c.copyWith(blockManualScrollInReaderFullscreen: value),
@@ -303,11 +309,10 @@ class _FocusAndSoloCard extends StatelessWidget {
         // 与页签条**右键把手那个菜单**里的是同一颗（同一份
         // `interaction.panelTabSortMode`）：栏头挂进栏头时把手不画，那边够不着，
         // 所以设置页这一条不能省。
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.sort),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.sort),
           title: Text(t.settings.panelTabSortMode),
           subtitle: Text(t.settings.panelTabSortModeSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.panelTabSortMode,
           onChanged: (value) =>
               _patch((c) => c.copyWith(panelTabSortMode: value)),
@@ -321,19 +326,18 @@ class _FocusAndSoloCard extends StatelessWidget {
           onChanged: (value) =>
               _patch((c) => c.copyWith(edgeRevealDelayMs: value)),
         ),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.locate),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.locate),
           title: Text(t.settings.revealFocusesLane),
           subtitle: Text(t.settings.revealFocusesLaneSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.revealFocusesLane,
           onChanged: (value) =>
               _patch((c) => c.copyWith(revealFocusesLane: value)),
         ),
         _DelayTile(
           icon: AppGlyphs.mouse,
-          title: '默认悬停定位延迟',
-          subtitle: '泳道未单独设置延时时使用此值',
+          title: t.settings.defaultHoverDelay,
+          subtitle: t.settings.defaultHoverDelaySubtitle,
           value: interaction.hoverFocusDelayMs,
           min: 60,
           max: 5000,
@@ -364,11 +368,10 @@ class _LaneHeaderCard extends StatelessWidget {
       icon: AppGlyphs.resize,
       children: [
         ListTile(title: Text(t.settings.laneHeaderChromeSubtitle)),
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.resize),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.resize),
           title: Text(t.settings.showLaneWidthBadge),
           subtitle: Text(t.settings.showLaneWidthBadgeSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: interaction.showLaneWidthBadge,
           onChanged: (value) =>
               onChanged(interaction.copyWith(showLaneWidthBadge: value)),

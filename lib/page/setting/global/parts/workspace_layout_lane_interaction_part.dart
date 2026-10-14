@@ -20,7 +20,7 @@ class _LaneInteractionCard extends StatelessWidget {
     return DefaultTabController(
       length: laneIds.length,
       child: SettingSectionCard(
-        title: '泳道交互',
+        title: t.settings.laneInteraction,
         icon: AppGlyphs.mouse,
         children: [
           TabBar(
@@ -75,26 +75,24 @@ class _LaneInteractionFields extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SwitchListTile(
-          title: const Text('键盘目标跟随鼠标'),
-          subtitle: const Text('鼠标进入本泳道后，将键盘操作交给本泳道'),
-          thumbIcon: kSettingSwitchThumbIcon,
+        SettingGroup.switchTile(
+          title: Text(t.settings.laneKeyboardFollowsMouse),
+          subtitle: Text(t.settings.laneKeyboardFollowsMouseSubtitle),
           value: value.inputTargetOnHover,
           onChanged: (enabled) =>
               onChanged(value.copyWith(inputTargetOnHover: enabled)),
         ),
         const Divider(height: 1),
-        SwitchListTile(
-          title: const Text('悬停后完整显示'),
-          subtitle: const Text('停留后自动移动工作台，让本泳道完整显示'),
-          thumbIcon: kSettingSwitchThumbIcon,
+        SettingGroup.switchTile(
+          title: Text(t.settings.laneHoverReveal),
+          subtitle: Text(t.settings.laneHoverRevealSubtitle),
           value: value.autoReveal,
           onChanged: (enabled) =>
               onChanged(value.copyWith(autoReveal: enabled)),
         ),
         const Divider(height: 1),
         ListTile(
-          title: const Text('悬停定位延迟'),
+          title: Text(t.settings.laneHoverDelay),
           subtitle: Text(
             inheritsDelay
                 ? '继承全局：${interaction.hoverFocusDelayMs} 毫秒'
@@ -112,7 +110,7 @@ class _LaneInteractionFields extends StatelessWidget {
                     onChanged(value.copyWith(hoverDelayMs: () => delay)),
               ),
               IconButton(
-                tooltip: '恢复继承全局延迟',
+                tooltip: t.settings.laneHoverDelayInherit,
                 icon: const GlyphIcon(AppGlyphs.reset),
                 onPressed: inheritsDelay
                     ? null

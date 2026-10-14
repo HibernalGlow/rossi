@@ -60,9 +60,11 @@ List<Widget> _unregisteredRows(List<Widget> children) {
 }
 
 List<Widget> _childrenOfPage(WidgetTester tester) {
-  return tester
-      .widget<SettingEntryList>(find.byType(SettingEntryList))
-      .children;
+  // 行现在装在分组卡里：卡是 SettingEntryList 的一个下标，不是「一行」。
+  // 数的必须是拆开后的行，否则漏登记的行会藏在卡里数不到。
+  return flattenSettingEntries(
+    tester.widget<SettingEntryList>(find.byType(SettingEntryList)).children,
+  );
 }
 
 Future<void> _pumpPage(WidgetTester tester) async {
@@ -123,14 +125,12 @@ void main() {
     // 用「树上最后一条」当目标的话，期望文案就得跟着平台变，测起来反而像在赌平台。
     const targetId = 'behavior.searchHistoryGroupBySource';
     final targetKey = find.byKey(const SettingEntryKey(targetId));
+    final viewport = tester.getRect(find.byType(ListView));
 
-    // 先证「它在视口外」：默认 800x600 的测试窗口里，后面那几行压根没被构建。
-    expect(targetKey, findsNothing);
-    expect(
-      find.text(t.settings.searchHistoryGroupBySource),
-      findsNothing,
-      reason: '对照组：还没跳，这一行的标题不该在屏上',
-    );
+    // 先证「它在视口外」。行的现在装在一张分组卡里，而一张卡只是一个列表下标，
+    // 卡里的行会跟着卡一起被建出来 —— 所以这里只能用几何（在视口下方），
+    // 不能再用「树上找不到」当对照，那样量的已经不是「画面上有没有」。
+    expect(tester.getRect(targetKey).top, greaterThanOrEqualTo(viewport.bottom));
 
     settingFocusRequest.value = targetId;
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
@@ -141,7 +141,6 @@ void main() {
       findsOneWidget,
       reason: '画面上得真换了，不是只动了个值',
     );
-    final viewport = tester.getRect(find.byType(ListView));
     expect(tester.getRect(targetKey).overlaps(viewport), isTrue);
     expect(settingFocusRequest.value, isNull);
   });
@@ -149,11 +148,11 @@ void main() {
   testWidgets('不认识的 id 不认领、也不动', (tester) async {
     await _pumpPage(tester);
     final splashRow = find.byKey(const SettingEntryKey('behavior.splashPage'));
-    final before = tester.getRect(splashRow);
-    expect(
-      find.byKey(const SettingEntryKey('behavior.searchHistoryGroupBySource')),
-      findsNothing,
+    final targetRow = find.byKey(
+      const SettingEntryKey('behavior.searchHistoryGroupBySource'),
     );
+    final before = tester.getRect(splashRow);
+    final targetBefore = tester.getRect(targetRow);
 
     settingFocusRequest.value = 'behavior.definitelyNotARow';
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
@@ -164,5 +163,10 @@ void main() {
       reason: '别人的请求要留着',
     );
     expect(tester.getRect(splashRow), before);
+    expect(
+      tester.getRect(targetRow),
+      targetBefore,
+      reason: '别人的 id 不该把本页滚走',
+    );
   });
 }

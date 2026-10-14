@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,6 +28,7 @@ class ToastSettingPage extends StatelessWidget {
 
     return SettingPageShell(
       title: t.settings.toastStyle,
+      description: t.settings.toastStyleSubtitle,
       child: ListView(
         padding: kSettingPagePadding,
         children: [
@@ -141,39 +143,35 @@ class ToastSettingPage extends StatelessWidget {
             title: t.settings.toastSectionStyle,
             icon: AppGlyphs.palette,
             children: [
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.motion),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.motion),
                 title: Text(t.settings.toastLiquidGlass),
                 subtitle: Text(t.settings.toastLiquidGlassSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.liquidGlass,
                 onChanged: (value) =>
                     update((current) => current.copyWith(liquidGlass: value)),
               ),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.linearScale),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.linearScale),
                 title: Text(t.settings.toastShowProgressBar),
                 subtitle: Text(t.settings.toastShowProgressBarSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.showProgressBar,
                 onChanged: (value) => update(
                   (current) => current.copyWith(showProgressBar: value),
                 ),
               ),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.sparkle),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.sparkle),
                 title: Text(t.settings.toastShowIcon),
                 subtitle: Text(t.settings.toastShowIconSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.showIcon,
                 onChanged: (value) =>
                     update((current) => current.copyWith(showIcon: value)),
               ),
-              SwitchListTile(
-                secondary: const GlyphIcon(AppGlyphs.close),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.close),
                 title: Text(t.settings.toastShowCloseButton),
                 subtitle: Text(t.settings.toastShowCloseButtonSubtitle),
-                thumbIcon: kSettingSwitchThumbIcon,
                 value: setting.showCloseButton,
                 onChanged: (value) => update(
                   (current) => current.copyWith(showCloseButton: value),

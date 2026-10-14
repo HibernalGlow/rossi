@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -63,82 +64,84 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       title: t.settings.appBehavior,
       child: SettingEntryList(
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.appBehavior,
-            icon: AppGlyphs.settings,
+          SettingSectionCard(
+            children: [
+              // 「启动直接打开工作台」并进了这一条的下拉（见 `_splashPage`），
+              // 不再单开一栏 —— 两者本来就是同一件事：启动落到哪儿。
+              settingEntry('behavior.splashPage', _splashPage(state, cubit)),
+              if (workspaceAvailableOnDevice(context))
+                settingEntry(
+                  'behavior.workspaceSleepCoveredUi',
+                  _workspaceSleepCoveredUi(state, cubit),
+                ),
+              settingEntry(
+                'behavior.skipUpdateCheck',
+                _skipUpdateCheck(state, cubit),
+              ),
+              if (isDesktop)
+                settingEntry(
+                  'behavior.desktopCloseBehavior',
+                  _desktopCloseBehaviorTile(),
+                ),
+              if (Platform.isAndroid)
+                settingEntry(
+                  'behavior.androidKeepAlive',
+                  _androidKeepAlive(state, cubit),
+                ),
+              if (Platform.isAndroid)
+                settingEntry(
+                  'behavior.backPressExit',
+                  _backPressExit(state, cubit),
+                ),
+              // 这一块展开时有 2~4 行，但它们是同一件事（手势锁 + PIN + 删除），
+              // 所以整块只给一个 id：落点停在开关那一行就够了。
+              settingEntry('behavior.appLock', _appLockSetting(state, cubit)),
+              settingEntry(
+                'behavior.oldPageRollback',
+                _oldPageRollback(state, cubit),
+              ),
+              settingEntry(
+                'behavior.cloudFavoritePreferred',
+                _cloudFavoritePreferred(state, cubit),
+              ),
+              settingEntry(
+                'behavior.autoFollowOnCollect',
+                _autoFollowOnCollect(state, cubit),
+              ),
+              settingEntry(
+                'behavior.autoFavoriteOnDownload',
+                _autoFavoriteOnDownload(state, cubit),
+              ),
+              settingEntry(
+                'behavior.writeDownloadMetadataFile',
+                _writeDownloadMetadataFile(state, cubit),
+              ),
+              settingEntry(
+                'behavior.leftHandMode',
+                _leftHandMode(state, cubit),
+              ),
+              settingEntry(
+                'behavior.clickCoverToStartReading',
+                _clickCoverToStartReading(state, cubit),
+              ),
+              settingEntry(
+                'behavior.searchHistoryGroupBySource',
+                _searchHistoryGroupBySource(state, cubit),
+              ),
+              // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
+              // 摆一个点了没反应的开关比不摆更糟（与 `_desktopCloseBehaviorTile` 同口径）。
+              if (isDesktop)
+                settingEntry(
+                  'behavior.comicInfoInlineReadButton',
+                  _comicInfoInlineReadButton(state, cubit),
+                ),
+              if (isDesktop)
+                settingEntry(
+                  'behavior.comicInfoRailLiquidGlass',
+                  _comicInfoRailLiquidGlass(state, cubit),
+                ),
+            ],
           ),
-          // 「启动直接打开工作台」并进了这一条的下拉（见 `_splashPage`），
-          // 不再单开一栏 —— 两者本来就是同一件事：启动落到哪儿。
-          settingEntry('behavior.splashPage', _splashPage(state, cubit)),
-          if (workspaceAvailableOnDevice(context))
-            settingEntry(
-              'behavior.workspaceSleepCoveredUi',
-              _workspaceSleepCoveredUi(state, cubit),
-            ),
-          settingEntry(
-            'behavior.skipUpdateCheck',
-            _skipUpdateCheck(state, cubit),
-          ),
-          if (isDesktop)
-            settingEntry(
-              'behavior.desktopCloseBehavior',
-              _desktopCloseBehaviorTile(),
-            ),
-          if (Platform.isAndroid)
-            settingEntry(
-              'behavior.androidKeepAlive',
-              _androidKeepAlive(state, cubit),
-            ),
-          if (Platform.isAndroid)
-            settingEntry(
-              'behavior.backPressExit',
-              _backPressExit(state, cubit),
-            ),
-          // 这一块展开时有 2~4 行，但它们是同一件事（手势锁 + PIN + 删除），
-          // 所以整块只给一个 id：落点停在开关那一行就够了。
-          settingEntry('behavior.appLock', _appLockSetting(state, cubit)),
-          settingEntry(
-            'behavior.oldPageRollback',
-            _oldPageRollback(state, cubit),
-          ),
-          settingEntry(
-            'behavior.cloudFavoritePreferred',
-            _cloudFavoritePreferred(state, cubit),
-          ),
-          settingEntry(
-            'behavior.autoFollowOnCollect',
-            _autoFollowOnCollect(state, cubit),
-          ),
-          settingEntry(
-            'behavior.autoFavoriteOnDownload',
-            _autoFavoriteOnDownload(state, cubit),
-          ),
-          settingEntry(
-            'behavior.writeDownloadMetadataFile',
-            _writeDownloadMetadataFile(state, cubit),
-          ),
-          settingEntry('behavior.leftHandMode', _leftHandMode(state, cubit)),
-          settingEntry(
-            'behavior.clickCoverToStartReading',
-            _clickCoverToStartReading(state, cubit),
-          ),
-          settingEntry(
-            'behavior.searchHistoryGroupBySource',
-            _searchHistoryGroupBySource(state, cubit),
-          ),
-          // 只在桌面端给这个开关：触摸端只有右下角悬浮按钮一种落点，
-          // 摆一个点了没反应的开关比不摆更糟（与 `_desktopCloseBehaviorTile` 同口径）。
-          if (isDesktop)
-            settingEntry(
-              'behavior.comicInfoInlineReadButton',
-              _comicInfoInlineReadButton(state, cubit),
-            ),
-          if (isDesktop)
-            settingEntry(
-              'behavior.comicInfoRailLiquidGlass',
-              _comicInfoRailLiquidGlass(state, cubit),
-            ),
           const SizedBox(height: 32),
         ],
       ),
@@ -202,11 +205,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.battery1),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.battery1),
       title: Text(t.settings.workspaceSleepCoveredUi),
       subtitle: Text(t.settings.workspaceSleepCoveredUiSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.workspaceSleepCoveredUi,
       onChanged: (bool value) {
         cubit.updateState(
@@ -220,11 +222,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   /// 启动时要不要跳过「检查上游新版本」。默认开：本仓是 fork，版本号永远低于
   /// 上游，弹窗只会把人引向 deretame/Breeze 的安装包。
   Widget _skipUpdateCheck(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.block),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.block),
       title: Text(t.settings.skipUpdateCheck),
       subtitle: Text(t.settings.skipUpdateCheckSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.skipUpdateCheck,
       onChanged: (bool value) {
         cubit.updateState(
@@ -236,11 +237,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   }
 
   Widget _oldPageRollback(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.reset),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.reset),
       title: Text(t.settings.oldPageRollback),
       subtitle: Text(t.settings.oldPageRollbackSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.oldPageRollbackEnabled,
       onChanged: (bool value) {
         cubit.updateState(
@@ -255,11 +255,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.cloud),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.cloud),
       title: Text(t.settings.cloudFavoritePreferred),
       subtitle: Text(t.settings.cloudFavoritePreferredSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.cloudFavoritePreferred,
       onChanged: (bool value) {
         cubit.updateState(
@@ -274,11 +273,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.bell),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.bell),
       title: Text(t.settings.autoFollowOnCollect),
       subtitle: Text(t.settings.autoFollowOnCollectSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.autoFollowOnCollect,
       onChanged: (bool value) {
         cubit.updateState(
@@ -293,11 +291,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.bookmark),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.bookmark),
       title: Text(t.settings.autoFavoriteOnDownload),
       subtitle: Text(t.settings.autoFavoriteOnDownloadSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.autoFavoriteOnDownload,
       onChanged: (bool value) {
         cubit.updateState(
@@ -312,11 +309,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.article),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.article),
       title: Text(t.settings.writeDownloadMetadataFile),
       subtitle: Text(t.settings.writeDownloadMetadataFileSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.writeDownloadMetadataFile,
       onChanged: (bool value) {
         cubit.updateState(
@@ -328,11 +324,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   }
 
   Widget _leftHandMode(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.hand),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.hand),
       title: Text(t.settings.leftHandMode),
       subtitle: Text(t.settings.leftHandModeSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.leftHandModeEnabled,
       onChanged: (bool value) {
         cubit.updateState(
@@ -347,11 +342,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.touch),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.touch),
       title: Text(t.settings.clickCoverToStartReading),
       subtitle: Text(t.settings.clickCoverToStartReadingSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.clickCoverToStartReading,
       onChanged: (bool value) {
         cubit.updateState(
@@ -368,11 +362,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.category),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.category),
       title: Text(t.settings.searchHistoryGroupBySource),
       subtitle: Text(t.settings.searchHistoryGroupBySourceSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.searchHistoryGroupBySource,
       onChanged: (bool value) {
         cubit.updateState(
@@ -387,11 +380,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.book),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.book),
       title: Text(t.settings.comicInfoInlineReadButton),
       subtitle: Text(t.settings.comicInfoInlineReadButtonSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.comicInfoInlineReadButton,
       onChanged: (bool value) {
         cubit.updateState(
@@ -408,11 +400,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.motion),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.motion),
       title: Text(t.settings.comicInfoRailLiquidGlass),
       subtitle: Text(t.settings.comicInfoRailLiquidGlassSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.comicInfoRailLiquidGlass,
       onChanged: (bool value) {
         cubit.updateState(
@@ -424,11 +415,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   }
 
   Widget _androidKeepAlive(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.batteryCharging),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.batteryCharging),
       title: Text(t.settings.androidKeepAlive),
       subtitle: Text(t.settings.androidKeepAliveSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.androidKeepAliveEnabled,
       onChanged: (bool value) async {
         cubit.updateState(
@@ -452,11 +442,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   }
 
   Widget _backPressExit(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.openExternal),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.openExternal),
       title: Text(t.settings.backPressExit),
       subtitle: Text(t.settings.backPressExitSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.backPressExitEnabled,
       onChanged: (bool value) {
         cubit.updateState(
@@ -499,11 +488,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
     return Column(
       children: [
-        SwitchListTile(
-          secondary: const GlyphIcon(AppGlyphs.lock),
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.lock),
           title: Text(t.settings.appLock),
           subtitle: Text(t.settings.appLockSubtitle),
-          thumbIcon: kSettingSwitchThumbIcon,
           value: lockSetting.enabled,
           onChanged: (bool value) async {
             if (value && !isReady) {
@@ -623,7 +611,7 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
 
     final pin = await showPinCodeSetupDialog(
       context,
-      title: '设置重置 PIN',
+      title: t.settings.setResetPin,
       confirmTitle: '确认重置 PIN',
     );
     if (pin == null) {

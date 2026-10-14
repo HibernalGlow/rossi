@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
@@ -351,21 +352,22 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
     return SettingPageShell(
       title: t.settings.favoriteTagManagement,
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: kSettingPagePadding,
         children: [
-          SwitchListTile(
-            secondary: const GlyphIcon(
-              AppGlyphs.sell,
-              color: Color(0xFFF59E0B),
-            ),
-            title: Text(t.settings.favoriteTagHighlight),
-            subtitle: Text(t.settings.favoriteTagHighlightSubtitle),
-            thumbIcon: kSettingSwitchThumbIcon,
-            value: setting.highlightEnabled,
-            onChanged: cubit.toggleHighlightFavoriteTags,
+          SettingSectionCard(
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(
+                  AppGlyphs.sell,
+                  color: Color(0xFFF59E0B),
+                ),
+                title: Text(t.settings.favoriteTagHighlight),
+                subtitle: Text(t.settings.favoriteTagHighlightSubtitle),
+                value: setting.highlightEnabled,
+                onChanged: cubit.toggleHighlightFavoriteTags,
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.3),
           const SizedBox(height: 16),
 
           Row(
@@ -434,7 +436,7 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                   ),
                 ),
                 icon: const GlyphIcon(AppGlyphs.arrowUp, size: 18),
-                label: const Text('导入文件 (TXT/JSON/EMM setting.json)'),
+                label: Text(t.settings.importFileTxtJsonEmm),
                 onPressed: () => _importFromFile(context),
               ),
               if (tags.isNotEmpty)

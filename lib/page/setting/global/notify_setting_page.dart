@@ -1,3 +1,4 @@
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,60 +26,63 @@ class NotifySettingPage extends StatelessWidget {
 
     return SettingPageShell(
       title: t.settings.notifyPersonalize,
+      description: t.settings.notifyPersonalizeSubtitle,
       child: ListView(
         padding: kSettingPagePadding,
         children: [
-          settingSectionTitle(
-            context,
-            t.settings.notifySectionAmbient,
-            icon: AppGlyphs.bell,
-          ),
-          SwitchListTile(
-            secondary: const GlyphIcon(AppGlyphs.bellOff),
-            title: Text(t.settings.notifyMaster),
-            subtitle: Text(t.settings.notifyMasterHint),
-            thumbIcon: kSettingSwitchThumbIcon,
-            value: setting.enabled,
-            onChanged: (bool value) {
-              cubit.updateNotifySetting(
-                (current) => current.copyWith(enabled: value),
-              );
-            },
-          ),
-          // 层叠关系要显示出来：总闸关着时逐事项仍是用户设的那个值，但当下不起作用。
-          // 不说会被读成设置自相矛盾；也不把它们禁成灰块 —— 关着总闸时先把某一项
-          // 安排好是合理操作，禁掉等于逼用户两步走。
-          if (!setting.enabled)
-            _Note(icon: AppGlyphs.info, text: t.settings.notifyMasterOffNote),
-          for (final topic in NotifyTopic.ambientTopics)
-            SwitchListTile(
-              secondary: GlyphIcon(_topicIcon(topic)),
-              title: Text(topic.label),
-              subtitle: Text(topic.hint),
-              thumbIcon: kSettingSwitchThumbIcon,
-              value: topic.enabledIn(setting),
-              onChanged: (bool value) => _setTopic(cubit, topic, value),
-            ),
-          const SizedBox(height: 16),
-          settingSectionTitle(
-            context,
-            t.settings.notifySectionOutside,
-            icon: AppGlyphs.block,
-          ),
-          _Note(
-            icon: AppGlyphs.touch,
-            text: '${NotifyTopic.action.label}：${NotifyTopic.action.hint}',
-          ),
-          _Note(
-            icon: AppGlyphs.openBook,
-            text:
-                '${NotifyTopic.readerSwitch.label}：${NotifyTopic.readerSwitch.hint}',
-          ),
-          _Note(icon: AppGlyphs.bell, text: t.settings.notifySystemChannelNote),
-          const SizedBox(height: 16),
           SettingSectionCard(
-            title: t.settings.notifyPersonalize,
-            icon: AppGlyphs.reset,
+            title: t.settings.notifySectionAmbient,
+            icon: AppGlyphs.bell,
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.bellOff),
+                title: Text(t.settings.notifyMaster),
+                subtitle: Text(t.settings.notifyMasterHint),
+                value: setting.enabled,
+                onChanged: (bool value) {
+                  cubit.updateNotifySetting(
+                    (current) => current.copyWith(enabled: value),
+                  );
+                },
+              ),
+              // 层叠关系要显示出来：总闸关着时逐事项仍是用户设的那个值，但当下不起作用。
+              // 不说会被读成设置自相矛盾；也不把它们禁成灰块 —— 关着总闸时先把某一项
+              // 安排好是合理操作，禁掉等于逼用户两步走。
+              if (!setting.enabled)
+                _Note(
+                  icon: AppGlyphs.info,
+                  text: t.settings.notifyMasterOffNote,
+                ),
+              for (final topic in NotifyTopic.ambientTopics)
+                SettingGroup.switchTile(
+                  leading: GlyphIcon(_topicIcon(topic)),
+                  title: Text(topic.label),
+                  subtitle: Text(topic.hint),
+                  value: topic.enabledIn(setting),
+                  onChanged: (bool value) => _setTopic(cubit, topic, value),
+                ),
+            ],
+          ),
+          SettingSectionCard(
+            title: t.settings.notifySectionOutside,
+            icon: AppGlyphs.block,
+            children: [
+              _Note(
+                icon: AppGlyphs.touch,
+                text: '${NotifyTopic.action.label}：${NotifyTopic.action.hint}',
+              ),
+              _Note(
+                icon: AppGlyphs.openBook,
+                text:
+                    '${NotifyTopic.readerSwitch.label}：${NotifyTopic.readerSwitch.hint}',
+              ),
+              _Note(
+                icon: AppGlyphs.bell,
+                text: t.settings.notifySystemChannelNote,
+              ),
+            ],
+          ),
+          SettingSectionCard(
             children: [
               TextButton.icon(
                 onPressed: () {

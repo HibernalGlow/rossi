@@ -35,43 +35,39 @@ List<Widget> navigationChromeTiles({
       icon: AppGlyphs.layoutTabs,
     ),
     if (sidebarCapable)
-      SwitchListTile(
-        secondary: const GlyphIcon(AppGlyphs.layoutTabs),
+      SettingGroup.switchTile(
+        leading: const GlyphIcon(AppGlyphs.layoutTabs),
         title: Text(t.navigation.sidebarEnabled),
         subtitle: Text(t.navigation.sidebarEnabledSubtitle),
-        thumbIcon: kSettingSwitchThumbIcon,
         value: nav.sidebarEnabled,
         onChanged: (value) =>
             patch((current) => current.copyWith(sidebarEnabled: value)),
       ),
     // 展开态只在侧栏开着时才需要回答 —— 关着时摆出来只会让人犹豫。
     if (sidebarCapable && nav.sidebarEnabled)
-      SwitchListTile(
-        secondary: const GlyphIcon(AppGlyphs.unfold),
+      SettingGroup.switchTile(
+        leading: const GlyphIcon(AppGlyphs.unfold),
         title: Text(t.navigation.sidebarExpanded),
         subtitle: Text(t.navigation.sidebarExpandedSubtitle),
-        thumbIcon: kSettingSwitchThumbIcon,
         value: nav.sidebarExpanded,
         onChanged: (value) =>
             patch((current) => current.copyWith(sidebarExpanded: value)),
       ),
     // Dock 那一支在手机上就是主力，所以这一项不按平台收 ——
     // 它在桌面上也不是摆设：窗口被拉窄（见下面那条阈值）时露出的就是它。
-    SwitchListTile(
-      secondary: const GlyphIcon(AppGlyphs.dashboard),
+    SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.dashboard),
       title: Text(t.navigation.dockEnabled),
       subtitle: Text(t.navigation.dockEnabledSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: nav.dockEnabled,
       onChanged: (value) =>
           patch((current) => current.copyWith(dockEnabled: value)),
     ),
     if (sidebarCapable)
-      SwitchListTile(
-        secondary: const GlyphIcon(AppGlyphs.linearScale),
+      SettingGroup.switchTile(
+        leading: const GlyphIcon(AppGlyphs.linearScale),
         title: Text(t.navigation.autoNarrowMobileLayout),
         subtitle: Text(t.navigation.autoNarrowMobileLayoutSubtitle),
-        thumbIcon: kSettingSwitchThumbIcon,
         value: nav.autoNarrowMobileLayout,
         onChanged: (value) =>
             patch((current) => current.copyWith(autoNarrowMobileLayout: value)),
