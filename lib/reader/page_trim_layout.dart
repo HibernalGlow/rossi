@@ -11,6 +11,16 @@ class PageTrimLayout extends ChangeNotifier {
     return entry?.$1 == optionsKey ? entry?.$2 : null;
   }
 
+  bool hasResultFor(int index, String optionsKey) =>
+      _rects[index]?.$1 == optionsKey;
+
+  void invalidate(int index) {
+    if (_rects.containsKey(index)) {
+      _rects.remove(index);
+      notifyListeners();
+    }
+  }
+
   void report(int index, String optionsKey, Rect? rect) {
     if (_rects[index] == (optionsKey, rect)) return;
     _rects[index] = (optionsKey, rect);

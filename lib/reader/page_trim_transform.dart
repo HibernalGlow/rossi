@@ -27,6 +27,7 @@ class PageTrimTransform extends StatelessWidget {
           );
     if (geometry == null) return child;
     return ClipRect(
+      clipper: _ContentClipper(geometry.clipRect),
       child: SizedBox.fromSize(
         size: boxSize,
         child: Transform(
@@ -40,4 +41,15 @@ class PageTrimTransform extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ContentClipper extends CustomClipper<Rect> {
+  const _ContentClipper(this.rect);
+  final Rect rect;
+
+  @override
+  Rect getClip(Size size) => rect.intersect(Offset.zero & size);
+
+  @override
+  bool shouldReclip(_ContentClipper oldClipper) => oldClipper.rect != rect;
 }

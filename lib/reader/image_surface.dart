@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:zephyr/gpu/gpu_present_bridge.dart';
 import 'package:zephyr/page/comic_read/model/page_split.dart';
 import 'package:zephyr/page/comic_read/model/page_trim.dart';
-import 'package:zephyr/reader/margin_fit_cache.dart';
+import 'package:zephyr/reader/auto_trim_settings.dart';
+import 'package:zephyr/reader/page_trim_transform.dart';
+import 'package:zephyr/reader/surface_trim_detection.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/page_source.dart';
 
@@ -80,10 +82,12 @@ class ImageSurface extends StatefulWidget {
     this.bitmapWidthScale = 1.0,
     this.onPathChanged,
     this.onIntrinsicSize,
+    this.onTrimResolved,
     this.slice = PageSlice.full,
     this.ambientEnabled = false,
     this.autoTrimMargins = false,
     this.verticalScroll = false,
+    this.trimDetector = detectSurfaceTrim,
   });
 
   /// 已打开的页面来源。
@@ -104,6 +108,8 @@ class ImageSurface extends StatefulWidget {
   /// `margin_fit.rs` 的移植（Rust 侧 `rossi_local_core::margin_fit`），
   /// 检测说「裁不动」就照原样画。
   final bool autoTrimMargins;
+  final SurfaceTrimDetector trimDetector;
+  final void Function(Rect?)? onTrimResolved;
 
   /// 这一页是不是**纵向滚动**（条漫/列模式）里的一段。
   ///
@@ -164,6 +170,18 @@ class _ImageSurfaceState extends State<ImageSurface> {
   int? _loadedIndex;
   int? _loadedWidth;
 
+  /// 当前位图的实际像素尺寸（只用于纵横比，裁边的 contain 落位要靠它）。
+  Size? _loadedImageSize;
+  Size? _trimImageSize;
+
+  /// 这一页要**显示时裁掉**的内容矩形（归一化），`null` = 照原样画。
+  ///
+  /// 与页面来源绑定；CPU 位图释放后 GPU 纹理仍可继续使用这份矩形。
+  Rect? _trimRect;
+
+  /// 在飞的裁边检测的代号。换页 / 重解之后过期结果整段作废。
+  final _trimDetection = SurfaceTrimDetection();
+
   /// 正在飞的那一次解码请求的目标。用来避免对**同一个目标**重复发请求；
   /// 目标不同（用户翻页了）就照发不误 —— 靠 [_loadToken] 丢弃过期结果，
   /// 而不是把新请求也挡在外面（那样会卡住不加载）。
@@ -206,6 +224,8 @@ class _ImageSurfaceState extends State<ImageSurface> {
   @override
   void initState() {
     super.initState();
+    AutoTrimSettings.options.addListener(_onTrimOptionsChanged);
+    unawaited(AutoTrimSettings.load());
     _lastKnownState = widget.presenter.state;
     _lastKnownTextureId = widget.presenter.textureId;
     _lastKnownPresentCount = widget.presenter.presentCount;
@@ -235,7 +255,26 @@ class _ImageSurfaceState extends State<ImageSurface> {
       _cancelRetry?.cancel();
       _cancelRetry = null;
       _cancelRetries = 0;
+      _trimDetection.reset();
+      _trimRect = null;
+      _trimImageSize = null;
       _releaseCpuImage();
+    }
+    if ((!oldWidget.autoTrimMargins && widget.autoTrimMargins) ||
+        (oldWidget.verticalScroll != widget.verticalScroll &&
+            widget.autoTrimMargins)) {
+      _trimDetection.reset();
+      final reported = _reportedSize;
+      if (reported != null &&
+          identical(reported.$1, widget.source) &&
+          reported.$2 == widget.index) {
+        _trimImageSize = reported.$3;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_detectTrimFromSource());
+      });
+    } else if (oldWidget.autoTrimMargins && !widget.autoTrimMargins) {
+      _trimDetection.reset();
     }
     if (oldWidget.holdOwnBitmap && !widget.holdOwnBitmap) {
       // 这一个开关关掉之后不再替「退场时那一半」留画面，位图没必要继续占着。
@@ -245,8 +284,10 @@ class _ImageSurfaceState extends State<ImageSurface> {
 
   @override
   void dispose() {
+    AutoTrimSettings.options.removeListener(_onTrimOptionsChanged);
     widget.presenter.removeListener(_onPresenterChanged);
     _loadToken++;
+    _trimDetection.reset();
     _cancelRetry?.cancel();
     _cancelRetry = null;
     _cpuImage?.dispose();
@@ -356,6 +397,11 @@ class _ImageSurfaceState extends State<ImageSurface> {
       if (ready) {
         _switchTo(ImageSurfacePath.gpu);
         unawaited(_reportGpuSize(source, index));
+        if (widget.autoTrimMargins &&
+            !widget.slice.isHalf &&
+            !widget.holdOwnBitmap) {
+          unawaited(_detectTrimFromSource());
+        }
         if (!widget.holdOwnBitmap) {
           // 兜底那张位图没有理由继续留着（单页可达 179 MB）。
           // 顺带作废在飞的那次兜底解码：GPU 路马上会拿画面，它回来时该自弃。
@@ -382,7 +428,7 @@ class _ImageSurfaceState extends State<ImageSurface> {
       widget.index < 0 || widget.index >= widget.source.pageCount;
 
   Future<void> _reportGpuSize(PageSource source, int index) async {
-    if (widget.onIntrinsicSize == null ||
+    if ((widget.onIntrinsicSize == null && !widget.autoTrimMargins) ||
         _sizeRequest == (source, index) ||
         (_reportedSize?.$1 == source && _reportedSize?.$2 == index)) {
       return;
@@ -406,6 +452,10 @@ class _ImageSurfaceState extends State<ImageSurface> {
       return;
     }
     _reportedSize = (source, index, size);
+    if (_trimImageSize != size) {
+      _trimImageSize = size;
+      if (_trimRect != null) setState(() {});
+    }
     widget.onIntrinsicSize?.call(size);
   }
 
@@ -502,10 +552,22 @@ class _ImageSurfaceState extends State<ImageSurface> {
           // 目前只有位图页。视频页加进来时这个 switch 会**编译不过**
           // （sealed 联合没有别的分支），那时必须在此决定怎么显示它，
           // 而不是把它当静态图画出来 —— 这正是把内容做成封闭联合要买的东西。
-          final Future<ui.Image> decoding = switch (content) {
-            RasterPageContent(:final rgba, :final width, :final height) =>
-              _decodeRgba(rgba, width, height),
+          final (
+            Uint8List rgba,
+            int pixelWidth,
+            int pixelHeight,
+          ) = switch (content) {
+            RasterPageContent(:final rgba, :final width, :final height) => (
+              rgba,
+              width,
+              height,
+            ),
           };
+          final Future<ui.Image> decoding = _decodeRgba(
+            rgba,
+            pixelWidth,
+            pixelHeight,
+          );
           final ui.Image image = await decoding;
           if (!mounted || token != _loadToken) {
             image.dispose();
@@ -522,6 +584,16 @@ class _ImageSurfaceState extends State<ImageSurface> {
             _loadedSource = source;
             _loadedIndex = index;
             _loadedWidth = targetWidth;
+            _loadedImageSize = Size(
+              pixelWidth.toDouble(),
+              pixelHeight.toDouble(),
+            );
+            // 换页先把上一份内容矩形摘掉：宁可这一瞬看到整图，
+            // 也不能把上一页的裁切套到这一页上（那是切掉画面）。
+            _trimImageSize = Size(
+              pixelWidth.toDouble(),
+              pixelHeight.toDouble(),
+            );
             _failureMessage = null;
           });
           _reportSize(source, index, switch (content) {
@@ -565,32 +637,71 @@ class _ImageSurfaceState extends State<ImageSurface> {
   /// 问一次「这一页的内容矩形在哪」，把结果挂成这一页自己的显示裁切。
   ///
   /// 走 `MarginFitCache`：同一页同一尺寸只分析一次，翻页来回不重算。
-  /// 结果回来时**这一页可能早就被翻走了** —— 用 [_trimToken] 判定过期，
+  /// 结果回来时**这一页可能早就被翻走了** —— 用检测请求的代号判定过期，
   /// 过期就整段作废，绝不把旧页的矩形挂到新页上。
+  void _onTrimOptionsChanged() {
+    _trimDetection.reset();
+    if (!mounted) return;
+    setState(() => _trimRect = null);
+    if (widget.autoTrimMargins) unawaited(_detectTrimFromSource());
+  }
+
+  bool _trimIsCurrent(PageSource source, int index) =>
+      mounted &&
+      identical(widget.source, source) &&
+      widget.index == index &&
+      widget.autoTrimMargins &&
+      !widget.slice.isHalf;
+
+  void _applyDetectedTrim(Rect? detected, Size size) {
+    final applied = trimRectForScroll(
+      detected: detected,
+      verticalScroll: widget.verticalScroll,
+    );
+    setState(() {
+      _trimRect = applied;
+      _trimImageSize = size;
+    });
+    widget.onTrimResolved?.call(applied);
+  }
+
   Future<void> _resolveTrim(
     PageSource source,
     int index,
     Uint8List rgba,
     int width,
     int height,
-  ) async {
-    final int token = ++_trimToken;
-    final Rect? detected = await MarginFitCache.instance.bboxFor(
+  ) => _trimDetection.fromPixels(
+    source: source,
+    index: index,
+    rgba: rgba,
+    width: width,
+    height: height,
+    isCurrent: () => _trimIsCurrent(source, index),
+    resolved: _applyDetectedTrim,
+    detector: widget.trimDetector,
+  );
+
+  Future<void> _detectTrimFromSource() async {
+    if (!mounted || !widget.autoTrimMargins || widget.slice.isHalf) return;
+    final source = widget.source;
+    final index = widget.index;
+    await _trimDetection.fromSource(
       source: source,
-      pageIndex: index,
-      rgba: rgba,
-      width: width,
-      height: height,
+      index: index,
+      sizeOf: () async {
+        final reported = _reportedSize;
+        if (reported != null &&
+            identical(reported.$1, source) &&
+            reported.$2 == index) {
+          return reported.$3;
+        }
+        return widget.presenter.sourceSizeFor(source, index);
+      },
+      isCurrent: () => _trimIsCurrent(source, index),
+      resolved: _applyDetectedTrim,
+      detector: widget.trimDetector,
     );
-    // 条漫（纵向滚动）只裁左右：分段图的上下边可能就是连续画面的接缝。
-    final Rect? applied = trimRectForScroll(
-      detected: detected,
-      verticalScroll: widget.verticalScroll,
-    );
-    if (!mounted || token != _trimToken) return;
-    setState(() {
-      _trimRect = applied;
-    });
   }
 
   Future<ui.Image> _decodeRgba(Uint8List rgba, int width, int height) {
@@ -619,6 +730,7 @@ class _ImageSurfaceState extends State<ImageSurface> {
     _loadedSource = null;
     _loadedIndex = null;
     _loadedWidth = null;
+    _loadedImageSize = null;
     WidgetsBinding.instance.addPostFrameCallback((_) => doomed.dispose());
   }
 
@@ -754,11 +866,10 @@ class _ImageSurfaceState extends State<ImageSurface> {
   /// - 盒子尺寸无界（列模式在 `paintSize` 到位之前根本没有可裁的盒子）。
   ///
   /// 语义与 `draw_fs_image` 的「余白分ズームインして再センタリングする」一致：
-  /// 内容矩形按 contain 重新铺满整页原本占的那块，所以留边比例仍按**整页**纵横比，
-  /// 不会因为裁边把画面拉变形。
+  /// 内容矩形按 contain 重新铺满可用盒子，同一倍率缩放，画面不会拉变形。
   Widget _wrapTrim(Widget child, BoxConstraints constraints) {
     final Rect? trim = _trimRect;
-    final Size? imageSize = _loadedImageSize;
+    final Size? imageSize = _loadedImageSize ?? _trimImageSize;
     if (!widget.autoTrimMargins ||
         widget.slice.isHalf ||
         trim == null ||
@@ -767,39 +878,11 @@ class _ImageSurfaceState extends State<ImageSurface> {
         !constraints.hasBoundedHeight) {
       return child;
     }
-    final PageTrimGeometry? geometry = computePageTrim(
+    return PageTrimTransform(
       boxSize: Size(constraints.maxWidth, constraints.maxHeight),
       imageSize: imageSize,
       contentRect: trim,
-    );
-    if (geometry == null) return child;
-    return ClipRect(
-      child: SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: Transform(
-          // 列主序仿射矩阵：p' = scale * p + translate。
-          transform: Matrix4(
-            geometry.scale,
-            0,
-            0,
-            0,
-            0,
-            geometry.scale,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-            geometry.dx,
-            geometry.dy,
-            0,
-            1,
-          ),
-          child: child,
-        ),
-      ),
+      child: child,
     );
   }
 
