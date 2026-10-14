@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,7 +10,11 @@ import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/model/page_split.dart';
+import 'package:zephyr/page/comic_read/model/page_trim.dart';
 import 'package:zephyr/page/setting/real_sr/service/upscaled_image_cache.dart';
+import 'package:zephyr/reader/margin_fit_cache.dart';
+import 'package:zephyr/reader/auto_trim_settings.dart';
+import 'package:zephyr/reader/page_trim_transform.dart';
 
 class ImageDisplay extends StatefulWidget {
   final String imagePath;
@@ -30,6 +35,7 @@ class ImageDisplay extends StatefulWidget {
   /// 这条网络/已下载文件的路**没有着色器**，`Image` 自己没有任何办法只画一半 ——
   /// 不在这里裁，整幅横图就会被塞进半格里（等比缩到一半宽，字小到读不了）。
   final PageSlice slice;
+  final void Function(Rect?)? onTrimResolved;
 
   const ImageDisplay({
     super.key,
@@ -40,6 +46,7 @@ class ImageDisplay extends StatefulWidget {
     this.imageAlignment = Alignment.center,
     this.paintSize,
     this.slice = PageSlice.full,
+    this.onTrimResolved,
   });
 
   @override
@@ -52,6 +59,9 @@ class _ImageDisplayState extends State<ImageDisplay> {
   Timer? _einkDelayTimer;
   StreamSubscription<String>? _replacementSubscription;
   int _imageRevision = 0;
+  int _trimRequestRevision = -1;
+  int _trimResolvedRevision = -1;
+  Rect? _trimRect;
 
   double? _rawWidth;
   double? _rawHeight;
@@ -66,6 +76,8 @@ class _ImageDisplayState extends State<ImageDisplay> {
     _replacementSubscription = UpscaledImageCache.replacements.listen(
       _onImageReplaced,
     );
+    AutoTrimSettings.options.addListener(_onTrimOptionsChanged);
+    unawaited(AutoTrimSettings.load());
     _resolveImageMeta();
     _startEinkDelayIfNeeded(context.readEffectiveReadSetting());
   }
@@ -77,8 +89,11 @@ class _ImageDisplayState extends State<ImageDisplay> {
     if (widget.isColumn != oldWidget.isColumn ||
         widget.imagePath != oldWidget.imagePath) {
       _stopListening();
+      _imageRevision++;
       _rawWidth = null;
       _rawHeight = null;
+      _trimRect = null;
+      _trimRequestRevision = -1;
       _resolveImageMeta();
     }
 
@@ -116,6 +131,18 @@ class _ImageDisplayState extends State<ImageDisplay> {
     });
   }
 
+  void _onTrimOptionsChanged() {
+    if (!mounted) return;
+    setState(() {
+      _imageRevision++;
+      _trimRect = null;
+      _trimRequestRevision = -1;
+    });
+    if (context.readEffectiveReadSetting().autoTrimPageMargins) {
+      unawaited(_detectTrim());
+    }
+  }
+
   void _onImageReplaced(String path) {
     if (!mounted || path != widget.imagePath) return;
 
@@ -124,33 +151,53 @@ class _ImageDisplayState extends State<ImageDisplay> {
       _rawWidth = null;
       _rawHeight = null;
       _imageRevision++;
+      _trimRect = null;
+      _trimRequestRevision = -1;
     });
     _resolveImageMeta();
   }
 
   void _resolveImageMeta() {
+    final revision = _imageRevision;
+    // 同页原图切换到增强图时，旧矩形尚未应用于新文件，预览也必须显示待检测。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          _imageRevision == revision &&
+          _trimResolvedRevision != revision) {
+        context.read<ImageSizeCubit>().trimLayout.invalidate(
+          widget.sizeCacheIndex,
+        );
+      }
+    });
     final imageProvider = FileImage(File(widget.imagePath));
     final newStream = imageProvider.resolve(ImageConfiguration.empty);
 
     final newListener = ImageStreamListener(
       (ImageInfo imageInfo, bool synchronousCall) {
-        if (!mounted) return;
+        try {
+          if (!mounted) return;
 
-        _rawWidth = imageInfo.image.width.toDouble();
-        _rawHeight = imageInfo.image.height.toDouble();
-
-        if (context.mounted) {
-          // 原始像素尺寸要单独报给 cubit：`reader.original`（原始大小）要的是绝对
-          // 像素，而下面 `_updateCubitSize` 记的是「按某个宽度铺出来的显示尺寸」，
-          // 那里只有宽高比可信。
-          context.read<ImageSizeCubit>().updateIntrinsicSize(
-            widget.sizeCacheIndex,
-            Size(_rawWidth!, _rawHeight!),
-          );
-          final renderBox = context.findRenderObject() as RenderBox?;
-          if (renderBox != null && renderBox.hasSize) {
-            _updateCubitSize(renderBox.size.width);
+          _rawWidth = imageInfo.image.width.toDouble();
+          _rawHeight = imageInfo.image.height.toDouble();
+          if (context.readEffectiveReadSetting().autoTrimPageMargins) {
+            unawaited(_detectTrim());
           }
+
+          if (context.mounted) {
+            // 原始像素尺寸要单独报给 cubit：`reader.original`（原始大小）要的是绝对
+            // 像素，而下面 `_updateCubitSize` 记的是「按某个宽度铺出来的显示尺寸」，
+            // 那里只有宽高比可信。
+            context.read<ImageSizeCubit>().updateIntrinsicSize(
+              widget.sizeCacheIndex,
+              Size(_rawWidth!, _rawHeight!),
+            );
+            final renderBox = context.findRenderObject() as RenderBox?;
+            if (renderBox != null && renderBox.hasSize) {
+              _updateCubitSize(renderBox.size.width);
+            }
+          }
+        } finally {
+          imageInfo.dispose();
         }
       },
       onError: (exception, stackTrace) {
@@ -188,8 +235,77 @@ class _ImageDisplayState extends State<ImageDisplay> {
     _imageListener = null;
   }
 
+  Future<void> _detectTrim() async {
+    if (widget.slice.isHalf ||
+        _rawWidth == null ||
+        _rawHeight == null ||
+        _trimRequestRevision == _imageRevision) {
+      return;
+    }
+    final path = widget.imagePath;
+    final revision = _imageRevision;
+    _trimRequestRevision = revision;
+    ui.Codec? codec;
+    ui.Image? image;
+    try {
+      final file = File(path);
+      final stat = await file.stat();
+
+      if (stat.type != FileSystemEntityType.file) return;
+      final targetWidth =
+          (1000 *
+                  _rawWidth! /
+                  (_rawWidth! > _rawHeight! ? _rawWidth! : _rawHeight!))
+              .round()
+              .clamp(1, 1000);
+      codec = await ui.instantiateImageCodec(
+        await file.readAsBytes(),
+        targetWidth: targetWidth,
+      );
+
+      if (codec.frameCount != 1) return;
+      image = (await codec.getNextFrame()).image;
+      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      if (data == null) return;
+      final detected = await MarginFitCache.instance.bboxForFile(
+        path: path,
+        revision: revision,
+        byteLength: stat.size,
+        modified: stat.modified,
+        rgba: data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        width: image.width,
+        height: image.height,
+      );
+
+      if (!mounted || widget.imagePath != path || _imageRevision != revision) {
+        return;
+      }
+      setState(() {
+        _trimResolvedRevision = revision;
+        _trimRect = trimRectForScroll(
+          detected: detected,
+          verticalScroll: widget.isColumn,
+        );
+      });
+      final layout = context.read<ImageSizeCubit>().trimLayout;
+      layout.report(
+        widget.sizeCacheIndex,
+        AutoTrimSettings.options.value.cacheKey,
+        _trimRect,
+      );
+      widget.onTrimResolved?.call(_trimRect);
+    } catch (error) {
+      logger.w('Failed to detect page margins: $error');
+    } finally {
+      image?.dispose();
+      codec?.dispose();
+    }
+  }
+
   @override
   void dispose() {
+    AutoTrimSettings.options.removeListener(_onTrimOptionsChanged);
     _replacementSubscription?.cancel();
     _stopListening();
     _einkDelayTimer?.cancel();
@@ -199,6 +315,13 @@ class _ImageDisplayState extends State<ImageDisplay> {
   @override
   Widget build(BuildContext context) {
     final readSetting = context.watchEffectiveReadSetting();
+    if (readSetting.autoTrimPageMargins &&
+        _rawWidth != null &&
+        _trimRequestRevision != _imageRevision) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_detectTrim());
+      });
+    }
     final showStaticPlaceholder = context.select(
       (GlobalSettingCubit c) => c.state.eInkSetting.shouldRemoveLoadingSpinner,
     );
@@ -272,7 +395,9 @@ class _ImageDisplayState extends State<ImageDisplay> {
             key: ValueKey((widget.imagePath, _imageRevision)),
             width: width,
             height: paintSize?.height,
-            fit: paintSize != null
+            fit: readSetting.autoTrimPageMargins && _trimRect != null
+                ? BoxFit.contain
+                : paintSize != null
                 ? BoxFit.fill
                 : isColumn
                 ? BoxFit.fill
@@ -302,11 +427,27 @@ class _ImageDisplayState extends State<ImageDisplay> {
         // 盒子尺寸取 `LayoutBuilder` 的约束而不是 `context.screenWidth` —— 侧边
         // 留白开着时后者比 contentWidth 宽，拿它裁就是一条溢出红条（与上面
         // `width` 的取值同一回事）。
-        return wrapPageSlice(
+        final visiblePage = wrapPageSlice(
           page,
           slice: widget.slice,
           width: constraints.maxWidth,
           height: constraints.maxHeight,
+        );
+        final trim = _trimRect;
+        if (!readSetting.autoTrimPageMargins ||
+            widget.slice.isHalf ||
+            trim == null ||
+            _rawWidth == null ||
+            _rawHeight == null ||
+            !constraints.hasBoundedWidth ||
+            !constraints.hasBoundedHeight) {
+          return visiblePage;
+        }
+        return PageTrimTransform(
+          boxSize: Size(constraints.maxWidth, constraints.maxHeight),
+          imageSize: Size(_rawWidth!, _rawHeight!),
+          contentRect: trim,
+          child: visiblePage,
         );
       },
     );

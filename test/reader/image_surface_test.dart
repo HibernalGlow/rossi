@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -7,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/reader/gpu_present_controller.dart';
 import 'package:zephyr/reader/image_surface.dart';
 import 'package:zephyr/reader/page_source.dart';
+import 'package:zephyr/reader/page_trim_transform.dart';
+import 'package:zephyr/reader/auto_trim_settings.dart';
 
 class _SizePresenter extends GpuPresentController {
   final requests = <int>[];
@@ -192,6 +195,68 @@ Widget _host(
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  testWidgets('GPU 裁边开启后只更新裁剪几何，关闭恢复，重复重建不重解码', (tester) async {
+    AutoTrimSettings.resetForTesting();
+    final presenter = _SizePresenter();
+    final source = _FakeSource();
+    var detections = 0;
+    final resolved = <Rect?>[];
+    Widget host(bool enabled) => MaterialApp(
+      home: Center(
+        child: SizedBox(
+          width: 400,
+          height: 400,
+          child: ImageSurface(
+            source: source,
+            index: 1,
+            presenter: presenter,
+            autoTrimMargins: enabled,
+            trimDetector: (source, index, rgba, width, height) async {
+              detections++;
+              return const Rect.fromLTRB(0, 0, .8, 1);
+            },
+            onTrimResolved: resolved.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(host(false));
+    await tester.pumpAndSettle();
+    expect(find.byType(Texture), findsOneWidget);
+    expect(find.byType(PageTrimTransform), findsNothing);
+    expect(source.loads, isEmpty);
+    await tester.pumpWidget(host(true));
+    await tester.pumpAndSettle();
+    final transformed = tester.widget<PageTrimTransform>(
+      find.byType(PageTrimTransform),
+    );
+    expect(transformed.imageSize, const Size(600, 1200));
+    expect(transformed.contentRect, const Rect.fromLTRB(0, 0, .8, 1));
+    expect(resolved.last, transformed.contentRect);
+    final clip = tester.widget<ClipRect>(
+      find.descendant(
+        of: find.byType(PageTrimTransform),
+        matching: find.byType(ClipRect),
+      ),
+    );
+    expect(clip.clipper!.getClip(const Size(400, 400)).right, lessThan(400));
+    expect(source.loads.single.targetWidth, 500);
+    for (var i = 0; i < 10; i++) {
+      await tester.pumpWidget(host(true));
+      await tester.pumpAndSettle();
+    }
+    expect(detections, 1);
+    expect(source.loads, hasLength(1));
+    expect(presenter.presents, hasLength(1), reason: '裁边无需重写原生纹理');
+    await tester.pumpWidget(host(false));
+    await tester.pumpAndSettle();
+    expect(find.byType(PageTrimTransform), findsNothing);
+    expect(find.byType(Texture), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    presenter.dispose();
+  });
+
   // ── 尺寸突变那一段：不许出现「什么都没有」的那一帧 ─────────────────────────
   //
   // 为什么这条判据在这儿：泳道宽度会因**用户自己的动作**而变（拖分隔条、开独占、
@@ -206,9 +271,7 @@ void main() {
   //    这条不是 bug 报告，是「这把尺子看得见空窗」的证明，也是那个开关买到的东西。
   for (final hold in [true, false]) {
     testWidgets(
-      hold
-          ? '宽度突变的一瞬：留着位图时仍然画得出旧像素'
-          : '宽度突变的一瞬：不留位图才会露出空窗（这是那个开关的代价）',
+      hold ? '宽度突变的一瞬：留着位图时仍然画得出旧像素' : '宽度突变的一瞬：不留位图才会露出空窗（这是那个开关的代价）',
       (tester) async {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.reset);
@@ -242,7 +305,11 @@ void main() {
           // `loads` 在 `_ensureCpuContent` 开头就记了一笔，那一刻位图还没回来，
           // 拿它当前置会让下面那条断言在验空气。可靠的信号是位图落地时上报的
           // **原始尺寸**（CPU 路报 200×200；GPU 路报的是 `sourceSizeFor` 那份）。
-          for (int i = 0; i < 20 && !sizes.contains(const Size(200, 200)); i++) {
+          for (
+            int i = 0;
+            i < 20 && !sizes.contains(const Size(200, 200));
+            i++
+          ) {
             await tester.pump();
             await tester.runAsync(
               () => Future<void>.delayed(const Duration(milliseconds: 10)),
@@ -265,11 +332,7 @@ void main() {
             find.byType(RawImage).evaluate().isNotEmpty ||
             find.byType(Texture).evaluate().isNotEmpty;
         if (hold) {
-          expect(
-            pixels,
-            isTrue,
-            reason: '按新宽重解还没回来时，必须拿留着的那张位图顶着，不许空',
-          );
+          expect(pixels, isTrue, reason: '按新宽重解还没回来时，必须拿留着的那张位图顶着，不许空');
         } else {
           expect(
             pixels,
@@ -520,7 +583,9 @@ void main() {
     expect(find.byType(RawImage), findsNothing);
   });
 
-  testWidgets('cancelled 不当作错误、也不把这一页钉死（那一页完全可能解得出）', (WidgetTester tester) async {
+  testWidgets('cancelled 不当作错误、也不把这一页钉死（那一页完全可能解得出）', (
+    WidgetTester tester,
+  ) async {
     // 这份来源**每次都**回 cancelled，所以「重试用尽」那一步也一并验到。
     final _FakeSource source = _FakeSource(
       failure: PageLoadFailureKind.cancelled,
@@ -542,7 +607,11 @@ void main() {
     // 于是这一页被永久拉黑 —— 文案说"过期"（暗示会重来），代码却再也不会重来。
     // 现在它自己安排重试（`_cancelRetry`），推一点时间就能看见第二次请求。
     await tester.pump(const Duration(milliseconds: 150));
-    expect(source.loads.length, greaterThan(1), reason: '一次 cancelled 之后必须还会再试');
+    expect(
+      source.loads.length,
+      greaterThan(1),
+      reason: '一次 cancelled 之后必须还会再试',
+    );
 
     // 重试用尽（8 × 120 ms）之后才给那句中性的说明：说的是"这一次没轮到"，
     // 不是"这一页坏了"。

@@ -18,7 +18,10 @@ class PageTrimGeometry {
   /// 缩放后再平移的 Y。
   final double dy;
 
-  const PageTrimGeometry(this.scale, this.dx, this.dy);
+  /// 内容区在最终画布上的范围。即使不需要放大，也必须隐藏范围外的余白。
+  final Rect clipRect;
+
+  const PageTrimGeometry(this.scale, this.dx, this.dy, this.clipRect);
 
   @override
   String toString() =>
@@ -99,7 +102,12 @@ PageTrimGeometry? computePageTrim({
       boxSize.width / contentWidth < boxSize.height / contentHeight
       ? boxSize.width / contentWidth
       : boxSize.height / contentHeight;
-  if (scale <= _kMinTrimScale) return null;
+  // 高度受限、只裁左右时倍率恰好为 1，仍需裁掉余白并重新居中。
+  // 只有内容区本身接近整页时才跳过，不能用缩放倍率判断是否裁边。
+  if (contentRect.width >= 1 / _kMinTrimScale &&
+      contentRect.height >= 1 / _kMinTrimScale) {
+    return null;
+  }
 
   // 缩放后内容矩形在可用盒子内居中。
   final double targetWidth = contentWidth * scale;
@@ -111,6 +119,7 @@ PageTrimGeometry? computePageTrim({
     scale,
     targetLeft - left * scale,
     targetTop - top * scale,
+    Rect.fromLTWH(targetLeft, targetTop, targetWidth, targetHeight),
   );
 }
 

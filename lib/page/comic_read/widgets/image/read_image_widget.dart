@@ -1,6 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:zephyr/page/comic_read/widgets/image/enhanced_online_page.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
-import 'dart:async';
+import 'package:zephyr/reader/auto_trim_settings.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
@@ -193,6 +196,11 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                   localIndex &&
               (widget.slotIsCurrent ??
                   localIndex == context.read<ReaderCubit>().state.currentSlot),
+          trimLayout: context.read<ImageSizeCubit>().trimLayout,
+          trimIndex: cacheIndex,
+          trimEnabled: readSetting.autoTrimPageMargins,
+          halfPage: widget.slice.isHalf,
+          presenter: presenter,
         );
       }
 
@@ -250,6 +258,17 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
                     slice: widget.slice,
                     presenter: presenter,
                     ambientEnabled: readSetting.readerAmbientEnabled,
+                    // 非破坏式裁边：只改可见区域，像素不动（检测在 Rust 侧）。
+                    autoTrimMargins: readSetting.autoTrimPageMargins,
+                    onTrimResolved: (rect) {
+                      context.read<ImageSizeCubit>().trimLayout.report(
+                        cacheIndex,
+                        AutoTrimSettings.options.value.cacheKey,
+                        rect,
+                      );
+                    },
+                    // 条漫（列模式）的上下边可能就是连续画面的接缝，只裁左右。
+                    verticalScroll: isColumn,
                     // 只有当前页推共享纹理：两个 slot 都推就是 Ping-Pong 拔河
                     // （同一张纹理被交替覆写）—— 那就是红黄闪的成因。
                     drivesPresentation: isActiveSlot,
@@ -369,7 +388,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
     );
   }
 
-  void _reportImageInfoForPath(String path) {
+  void _reportImageInfoForPath(String path, {String? originalPath}) {
     CurrentPageImageInfo.instance.reportFileAfterFrame(
       this,
       path,
@@ -377,6 +396,15 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
           mounted &&
           (widget.slotIsCurrent ??
               widget.index == context.read<ReaderCubit>().state.currentSlot),
+      originalPath: originalPath,
+      trimLayout: context.read<ImageSizeCubit>().trimLayout,
+      trimIndex: cacheIndex,
+      trimEnabled: context.readEffectiveReadSetting().autoTrimPageMargins,
+      halfPage: widget.slice.isHalf,
+      bookKey: RealSrBookScope.keyFor(
+        from: widget.pictureInfo.from,
+        comicId: widget.pictureInfo.cartoonId,
+      ),
     );
   }
 
@@ -402,7 +430,6 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
   }) {
     final scope = onlineTranslatedPageScope(widget.pictureInfo);
     if (scope == null) {
-      _reportImageInfoForPath(resolvedPath);
       return _enhancePage(context, resolvedPath, backgroundColor);
     }
     final track = OnlineTranslatedPageTrack.instance;
@@ -417,7 +444,6 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
           index: widget.index,
           sourcePath: resolvedPath,
         );
-        _reportImageInfoForPath(path);
         return _enhancePage(context, path, backgroundColor);
       },
     );
@@ -434,7 +460,7 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
       comicId: widget.pictureInfo.cartoonId,
     ),
     builder: (context, displayed) {
-      _reportImageInfoForPath(displayed);
+      _reportImageInfoForPath(displayed, originalPath: path);
       return _paintPage(context, displayed, backgroundColor);
     },
   );
