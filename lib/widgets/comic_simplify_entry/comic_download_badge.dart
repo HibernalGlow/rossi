@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
+import 'package:zephyr/page/download/widgets/comic_download_options_sheet.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/download_task_progress.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -113,11 +116,22 @@ class _ComicDownloadBadgeState extends State<ComicDownloadBadge> {
     try {
       switch (state) {
         case ComicDownloadVisualState.notDownloaded:
-          await startComicDownloadAll(
-            context: context,
+          // 与详情页同一个面板、同一份分发；卡片手上没有章节表，所以整本那一档
+          // 只写「全部章节」，实际章数由入队后的提示给出。
+          await promptAndRunComicDownload(
+            context,
             from: _source,
             comicId: _comicId,
             comicName: widget.title,
+            onOpenChapterPicker: () {
+              unawaited(
+                openComicDownloadChapterPicker(
+                  context,
+                  from: _source,
+                  comicId: _comicId,
+                ),
+              );
+            },
           );
         case ComicDownloadVisualState.downloading:
         case ComicDownloadVisualState.paused:

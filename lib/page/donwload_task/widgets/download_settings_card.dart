@@ -3,22 +3,35 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/service/download/image_download.dart';
+import 'package:zephyr/util/context/context_extensions.dart';
+import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/icons/icons.dart';
 
 /// 下载管理页顶部的并发与节流设置。
 ///
 /// 放在这里而不是全局设置页：调这些值的人正站在「下载慢 / 被风控」的现场，
 /// 让他跑去设置翻完再回来，等于每试一个取值都要多走两步。
-class DownloadSettingsCard extends StatelessWidget {
+///
+/// 默认只占一行（当前取值浓缩成一颗摘要胶囊），点开才是三行控件：任务列表才是
+/// 这页的主角，常驻一叠滑杆会把下载中的行挤到第二屏。
+class DownloadSettingsCard extends StatefulWidget {
   const DownloadSettingsCard({super.key});
+
+  @override
+  State<DownloadSettingsCard> createState() => _DownloadSettingsCardState();
+}
+
+class _DownloadSettingsCardState extends State<DownloadSettingsCard> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.watch<GlobalSettingCubit>();
     final state = cubit.state;
-    final theme = Theme.of(context);
+    final colorScheme = context.theme.colorScheme;
     final chapters = state.downloadTaskConcurrency.clamp(
       1,
       kMaxParallelChapters,
@@ -26,87 +39,123 @@ class DownloadSettingsCard extends StatelessWidget {
     final images = state.downloadConcurrency.clamp(1, kMaxImageConcurrency);
     final delayMs = state.downloadDelayMs.clamp(0, kMaxDownloadDelayMs);
 
-    return Card(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      child: SettingsCardGroup(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                GlyphIcon(
-                  AppGlyphs.sliders,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  t.download.settingsTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
           ListTile(
             dense: true,
-            title: Text(t.settings.downloadTaskConcurrency),
-            subtitle: Text(t.settings.downloadTaskConcurrencySubtitle),
-            trailing: _NumberField(
-              value: chapters,
-              min: 1,
-              max: kMaxParallelChapters,
-              onCommit: (value) {
-                cubit.updateState(
-                  (current) => current.copyWith(downloadTaskConcurrency: value),
-                );
-              },
+            visualDensity: VisualDensity.compact,
+            leading: GlyphIcon(
+              AppGlyphs.sliders,
+              size: 18,
+              color: colorScheme.primary,
+            ),
+            title: Text(
+              t.download.settingsTitle,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            // 摘要走 subtitle 而不是 trailing 胶囊：手机窄屏上标题+胶囊+箭头会顶出
+            // 一行，subtitle 自带省略号，长了也只是被截断。展开后每个控件自己带取值
+            // 胶囊，这行摘要就成重复信息，收起。
+            subtitle: _expanded
+                ? null
+                : Text(
+                    t.download.settingsValueSummary(
+                      chapters: chapters,
+                      images: images,
+                      delayMs: delayMs,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _expanded = !_expanded);
+            },
+            trailing: AnimatedRotation(
+              turns: _expanded ? 0.5 : 0,
+              duration: ExpressiveMotion.duration(
+                context,
+                ExpressiveMotion.spatialDuration,
+              ),
+              curve: ExpressiveMotion.spatialCurve,
+              child: GlyphIcon(
+                AppGlyphs.chevronDown,
+                size: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          ListTile(
-            dense: true,
-            title: Text(t.settings.downloadConcurrency),
-            subtitle: Text(t.settings.downloadConcurrencySubtitle),
-            trailing: _NumberField(
-              value: images,
-              min: 1,
-              max: kMaxImageConcurrency,
-              onCommit: (value) {
-                cubit.updateState(
-                  (current) => current.copyWith(downloadConcurrency: value),
-                );
-              },
-            ),
-          ),
-          ListTile(
-            dense: true,
-            title: Text(t.settings.downloadDelay),
-            subtitle: Text(t.settings.downloadDelaySubtitle),
-            trailing: Row(
+          SettingsAnimatedCollapse(
+            isExpanded: _expanded,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _NumberField(
+                SettingsSliderCard(
+                  title: t.settings.downloadTaskConcurrency,
+                  value: chapters,
+                  min: 1,
+                  max: kMaxParallelChapters,
+                  divisions: kMaxParallelChapters - 1,
+                  suffix: '',
+                  onChanged: (value) {
+                    cubit.updateState(
+                      (current) =>
+                          current.copyWith(downloadTaskConcurrency: value),
+                    );
+                  },
+                ),
+                SettingsSliderCard(
+                  title: t.settings.downloadConcurrency,
+                  value: images,
+                  min: 1,
+                  max: kMaxImageConcurrency,
+                  divisions: kMaxImageConcurrency - 1,
+                  suffix: '',
+                  onChanged: (value) {
+                    cubit.updateState(
+                      (current) => current.copyWith(downloadConcurrency: value),
+                    );
+                  },
+                ),
+                SettingsSliderCard(
+                  title: t.settings.downloadDelay,
                   value: delayMs,
                   min: 0,
                   max: kMaxDownloadDelayMs,
-                  onCommit: (value) {
+                  divisions: kMaxDownloadDelayMs ~/ 100,
+                  suffix: ' ms',
+                  onChanged: (value) {
                     cubit.updateState(
                       (current) => current.copyWith(downloadDelayMs: value),
                     );
                   },
                 ),
-                const SizedBox(width: 6),
-                Text('ms', style: theme.textTheme.bodySmall),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _HelpLine(
+                        text: t.download.settingsBudgetHint(
+                          count: chapters * images,
+                        ),
+                      ),
+                      _HelpLine(
+                        text: t.settings.downloadTaskConcurrencySubtitle,
+                      ),
+                      _HelpLine(text: t.settings.downloadConcurrencySubtitle),
+                      _HelpLine(text: t.settings.downloadDelaySubtitle),
+                    ],
+                  ),
+                ),
               ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Text(
-              t.download.settingsBudgetHint(count: chapters * images),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
             ),
           ),
         ],
@@ -115,81 +164,22 @@ class DownloadSettingsCard extends StatelessWidget {
   }
 }
 
-/// 整数输入框：回车或失焦才提交，避免「100 → 1 → 10 → 100」这种边打字边生效的抖动。
-class _NumberField extends StatefulWidget {
-  const _NumberField({
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onCommit,
-  });
+/// 说明行：material_ui 的 textTheme token 不带字号，这里把 12 号写死。
+class _HelpLine extends StatelessWidget {
+  const _HelpLine({required this.text});
 
-  final int value;
-  final int min;
-  final int max;
-  final ValueChanged<int> onCommit;
-
-  @override
-  State<_NumberField> createState() => _NumberFieldState();
-}
-
-class _NumberFieldState extends State<_NumberField> {
-  late final TextEditingController _controller = TextEditingController(
-    text: '${widget.value}',
-  );
-  late final FocusNode _focus = FocusNode()..addListener(_onFocusChanged);
-  bool _editing = false;
-
-  @override
-  void didUpdateWidget(covariant _NumberField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // 外部值变了要跟上；正在打字时不改，否则光标跳走、半截数字被覆盖。
-    if (!_editing && _controller.text != '${widget.value}') {
-      _controller.text = '${widget.value}';
-    }
-  }
-
-  @override
-  void dispose() {
-    _focus.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onFocusChanged() {
-    final focused = _focus.hasFocus;
-    if (!focused) _commit();
-    if (focused != _editing) setState(() => _editing = focused);
-  }
-
-  void _commit() {
-    final parsed = int.tryParse(_controller.text.trim());
-    if (parsed == null) {
-      _controller.text = '${widget.value}';
-      return;
-    }
-    final next = parsed.clamp(widget.min, widget.max);
-    _controller.text = '$next';
-    if (next != widget.value) widget.onCommit(next);
-  }
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 76,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focus,
-        textAlign: TextAlign.center,
-        keyboardType: const TextInputType.numberWithOptions(signed: false),
-        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
-        style: const TextStyle(fontSize: 13),
-        decoration: InputDecoration(
-          isDense: true,
-          isCollapsed: true,
-          hintText: '${widget.min}-${widget.max}',
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          color: context.theme.colorScheme.onSurfaceVariant,
         ),
-        onSubmitted: (_) => _commit(),
       ),
     );
   }

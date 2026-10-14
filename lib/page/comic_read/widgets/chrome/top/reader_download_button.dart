@@ -88,7 +88,7 @@ class ReaderDownloadButton extends StatelessWidget {
         } else {
           iconData = AppGlyphs.download;
           iconColor = colorScheme.onSurfaceVariant;
-          tooltip = t.reader.startDownload;
+          tooltip = t.reader.downloadManage;
         }
 
         final button = ReaderToolbarIconButton(
@@ -96,27 +96,15 @@ class ReaderDownloadButton extends StatelessWidget {
           tint: iconColor,
           tooltip: tooltip,
           onPressed: () {
-            if (!isDownloading && !isPaused && !isFailed && !isCompleted) {
-              // 1. 未开始下载：单击直接开始下载整本
-              startComicDownload(
-                context: context,
-                from: from,
-                comicId: comicId,
-                comicTitle: comicTitle,
-                comicInfo: comicInfo,
-                chapterRefs: chapterRefs,
-              );
-            } else {
-              // 2. 正在下载/暂停/失败/已完成：呼出下载管理面板
-              showReaderDownloadSheet(
-                context,
-                from: from,
-                comicId: comicId,
-                comicTitle: comicTitle,
-                comicInfo: comicInfo,
-                chapterRefs: chapterRefs,
-              );
-            }
+            // 取消第一屏（未下载时直接盲起全本下载），一律直接呼出「下载管理」面板
+            showReaderDownloadSheet(
+              context,
+              from: from,
+              comicId: comicId,
+              comicTitle: comicTitle,
+              comicInfo: comicInfo,
+              chapterRefs: chapterRefs,
+            );
           },
           onLongPress: () {
             showReaderDownloadSheet(
