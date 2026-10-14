@@ -124,7 +124,10 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
           widget.onReady(innerContext, readSetting, readMode);
 
           _hoverController ??= ReaderHoverController(innerContext);
-          _hoverController!.updateContext(innerContext);
+          _hoverController!.updateContext(
+            innerContext,
+            readSetting: readSetting,
+          );
 
           return ReaderVideoControlsHost(
             onToggleControls: () => cubit.updateMenuVisible(),
@@ -153,7 +156,9 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
                     // 取色还没到 / 这一页没采到 / 不是本地漫画（取色那条路不适用）时，
                     // 露出来的就是它。自适应颜色只叠在它上面、在页面之下。
                     color: backgroundColor,
-                    child: Stack(
+                    child: ReaderHoverStack(
+                      controller: _hoverController!,
+                      readSetting: readSetting,
                       children: [
                         // 阅读背景的**最底层**。它被 `RepaintBoundary` 圈住、
                         // 且只监听一个独立的调色板通知 —— 每次取色到达只重绘它自己，
@@ -185,11 +190,6 @@ class _ComicReadSuccessWidgetState extends State<ComicReadSuccessWidget> {
                               ),
                             ),
                           ),
-                        Positioned.fill(
-                          child: ReaderHoverRevealOverlay(
-                            controller: _hoverController!,
-                          ),
-                        ),
                         widget.buildProgressBar(innerContext),
                         widget.buildPageCount(innerContext),
                         widget.buildAppBar(innerContext),
