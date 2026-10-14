@@ -131,7 +131,9 @@ void main() {
     await tester.pumpAndSettle();
     api.conflict = true;
     await tester.tap(
-      find.widgetWithText(PopupMenuItem<String>, t.bindingEditor.keyboard),
+      // 「添加绑定」已换成托盘菜单，项上不再有 `PopupMenuItem`；
+      // `.last` 取弹层里那一行（字段上显示的当前设备也可能同字）。
+      find.text(t.bindingEditor.keyboard).last,
     );
     await tester.pumpAndSettle();
     expect(find.text(t.bindingEditor.conflictHint), findsWidgets);

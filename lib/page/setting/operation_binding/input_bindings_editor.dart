@@ -8,6 +8,8 @@ import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart
 import 'package:zephyr/page/setting/operation_binding/binding_input_editor.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_search_field.dart';
+import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/popup_select_field.dart';
 
 /// 动作分类导航 + 绑定摘要；编辑时仍使用核心的同一份平面绑定表。
 class InputBindingsEditor extends StatefulWidget {
@@ -286,37 +288,45 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
         ),
       ),
       const SizedBox(width: 4),
-      PopupMenuButton<String>(
-        tooltip: t.bindingEditor.allContexts,
-        icon: Badge(
-          isLabelVisible: _context.isNotEmpty || _boundOnly,
-          child: const GlyphIcon(AppGlyphs.sliders),
-        ),
-        onSelected: (value) => setState(() {
-          if (value == 'bound-only') {
-            _boundOnly = !_boundOnly;
-          } else {
-            _context = value;
-          }
-          _showList();
-        }),
-        itemBuilder: (_) => [
-          CheckedPopupMenuItem(
-            value: 'bound-only',
-            checked: _boundOnly,
-            child: Text(t.bindingEditor.boundOnly),
+      // 换成 App 自己的托盘弹出器：这个 SDK 的 `PopupMenuItem` 根本没有 leading 槽
+      // （构造函数只有 value/onTap/enabled/height/padding/textStyle/child），
+      // Material 菜单挂不进图标；`CommonPopupMenuItem` 有 `glyph`。
+      CommonPopupBox(
+        targetBuilder: (open) => IconButton(
+          tooltip: t.bindingEditor.allContexts,
+          onPressed: open,
+          icon: Badge(
+            isLabelVisible: _context.isNotEmpty || _boundOnly,
+            child: const GlyphIcon(AppGlyphs.sliders),
           ),
-          const PopupMenuDivider(),
-          for (final entry in {
-            '': t.bindingEditor.allContexts,
-            ...bindingContextLabels,
-          }.entries)
-            CheckedPopupMenuItem(
-              value: entry.key,
-              checked: _context == entry.key,
-              child: Text(entry.value),
+        ),
+        popupBuilder: (_) => CommonPopupMenu(
+          items: [
+            CommonPopupMenuItem(
+              label: t.bindingEditor.boundOnly,
+              glyph: AppGlyphs.link,
+              checked: _boundOnly,
+              onPressed: () => setState(() {
+                _boundOnly = !_boundOnly;
+                _showList();
+              }),
             ),
-        ],
+            const CommonPopupMenuItem.divider(),
+            for (final entry in {
+              '': t.bindingEditor.allContexts,
+              ...bindingContextLabels,
+            }.entries)
+              CommonPopupMenuItem(
+                label: entry.value,
+                glyph: bindingContextIcon(entry.key),
+                checked: _context == entry.key,
+                onPressed: () => setState(() {
+                  _context = entry.key;
+                  _showList();
+                }),
+              ),
+          ],
+        ),
       ),
     ],
   );
@@ -361,12 +371,14 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
           children: [
             if (_context.isNotEmpty)
               InputChip(
+                avatar: GlyphIcon(bindingContextIcon(_context), size: 18),
                 label: Text(bindingContextLabels[_context] ?? _context),
                 onDeleted: () => setState(() => _context = ''),
                 shape: const StadiumBorder(),
               ),
             if (_boundOnly)
               InputChip(
+                avatar: const GlyphIcon(AppGlyphs.link, size: 18),
                 label: Text(t.bindingEditor.boundOnly),
                 onDeleted: () => setState(() => _boundOnly = false),
                 shape: const StadiumBorder(),
@@ -615,27 +627,28 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  tooltip: t.bindingEditor.addBinding,
-                  icon: const GlyphIcon(AppGlyphs.add),
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    foregroundColor: theme.colorScheme.onPrimaryContainer,
+                CommonPopupBox<void>(
+                  targetBuilder: (open) => IconButton(
+                    tooltip: t.bindingEditor.addBinding,
+                    onPressed: open,
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    icon: const GlyphIcon(AppGlyphs.add),
                   ),
-                  onSelected: (device) => _add(action, device),
-                  itemBuilder: (_) => [
-                    for (final device in bindingDeviceLabels.entries)
-                      PopupMenuItem(
-                        value: device.key,
-                        child: Row(
-                          children: [
-                            GlyphIcon(bindingDeviceIcon(device.key), size: 20),
-                            const SizedBox(width: 12),
-                            Text(device.value),
-                          ],
+                  // 设备那一组用 `glyph` 槽，不再往 `child` 里塞 Row：
+                  // 菜单项的图标几何、间距与禁用态都由弹出器自己管。
+                  popupBuilder: (_) => CommonPopupMenu(
+                    items: [
+                      for (final device in bindingDeviceLabels.entries)
+                        CommonPopupMenuItem(
+                          label: device.value,
+                          glyph: bindingDeviceIcon(device.key),
+                          onPressed: () => _add(action, device.key),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -802,10 +815,11 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                       ),
                     ),
                   if (!managed) ...[
-                    BindingSelect<String>(
+                    PopupSelectField<String>(
                       label: t.bindingEditor.context,
                       value: row['context'] as String,
                       options: bindingContextLabels,
+                      glyphOf: bindingContextIcon,
                       onChanged: (value) => _update({...row, 'context': value}),
                     ),
                     const SizedBox(height: 12),
@@ -831,34 +845,46 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        PopupMenuButton<String>(
-                          tooltip: t.bindingEditor.copyTo,
-                          onSelected: (target) => widget.onChanged([
-                            ...widget.bindings,
-                            copyBindingToContext(row, target),
-                          ]),
-                          itemBuilder: (_) => [
-                            for (final target in bindingContextLabels.entries)
-                              if (target.key != row['context'])
-                                PopupMenuItem(
-                                  value: target.key,
-                                  child: Text(target.value),
+                        CommonPopupBox<void>(
+                          targetBuilder: (open) => Material(
+                            type: MaterialType.transparency,
+                            child: Tooltip(
+                              message: t.bindingEditor.copyTo,
+                              child: InkWell(
+                                onTap: open,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const GlyphIcon(AppGlyphs.copy, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(t.bindingEditor.copyTo),
+                                      const GlyphIcon(
+                                        AppGlyphs.chevronDown,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                          ],
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const GlyphIcon(AppGlyphs.copy, size: 18),
-                                const SizedBox(width: 8),
-                                Text(t.bindingEditor.copyTo),
-                                const GlyphIcon(
-                                  AppGlyphs.chevronDown,
-                                  size: 18,
-                                ),
-                              ],
+                              ),
                             ),
+                          ),
+                          // 目标是别处的上下文，图标与「上下文」选择器同一颗。
+                          popupBuilder: (_) => CommonPopupMenu(
+                            items: [
+                              for (final target in bindingContextLabels.entries)
+                                if (target.key != row['context'])
+                                  CommonPopupMenuItem(
+                                    label: target.value,
+                                    glyph: bindingContextIcon(target.key),
+                                    onPressed: () => widget.onChanged([
+                                      ...widget.bindings,
+                                      copyBindingToContext(row, target.key),
+                                    ]),
+                                  ),
+                            ],
                           ),
                         ),
                         IconButton(
@@ -921,7 +947,7 @@ class _InputBindingsEditorState extends State<InputBindingsEditor>
                   Text('${i + 2}'),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: BindingSelect<String>(
+                    child: PopupSelectField<String>(
                       label: '${t.bindingEditor.followUps} ${i + 1}',
                       value: actions[i],
                       options: {

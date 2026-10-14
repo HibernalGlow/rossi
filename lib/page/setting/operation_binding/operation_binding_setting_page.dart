@@ -393,6 +393,7 @@ class _OperationBindingSettingPageState
       },
       child: SettingPageShell(
         title: t.settings.operationBinding,
+        description: t.settings.operationBindingSubtitle,
         maxWidth: 1600,
         child: ListView(
           padding: kSettingPagePadding,

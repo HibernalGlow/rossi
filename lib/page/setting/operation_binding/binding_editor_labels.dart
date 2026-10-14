@@ -69,6 +69,23 @@ Glyph bindingDeviceIcon(String device) => switch (device) {
   _ => AppGlyphs.key,
 };
 
+/// 上下文（作用范围）的图标。设备那一侧早就有 [bindingDeviceIcon] 了，上下文
+/// 一直只有文字，筛选菜单与筛选条上读不出层级差别。
+///
+/// `''` 是「全部上下文」，用九宫格 —— 与文件管理器「类型：全部」同一颗，
+/// 同一个语义不该有第二颗图形。
+Glyph bindingContextIcon(String context) => switch (context) {
+  '' => AppGlyphs.apps,
+  'global' => AppGlyphs.globe,
+  'reader' => AppGlyphs.book,
+  'video' => AppGlyphs.playCircle,
+  'panel' => AppGlyphs.pip,
+  'shell' => AppGlyphs.box,
+  'editor' => AppGlyphs.edit,
+  'modal' => AppGlyphs.windowRestore,
+  _ => AppGlyphs.layers,
+};
+
 String bindingInputSummary(Map<String, dynamic> input) {
   final mods = [
     for (final key in ['ctrl', 'alt', 'shift', 'meta'])

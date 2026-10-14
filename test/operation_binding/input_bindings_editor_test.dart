@@ -7,6 +7,8 @@ import 'package:zephyr/page/setting/operation_binding/binding_input_recorder.dar
 import 'package:zephyr/page/setting/operation_binding/input_bindings_editor.dart';
 import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
+import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/popup_select_field.dart';
 import 'package:zephyr/icons/icons.dart';
 
 const catalog = [
@@ -229,7 +231,9 @@ void main() {
     await tester.tap(copy);
     await tester.pumpAndSettle();
     await tester.tap(
-      find.widgetWithText(PopupMenuItem<String>, t.bindingEditor.global),
+      // 「复制到」已换成托盘菜单，项上不再有 `PopupMenuItem`；
+      // `.last` 取的是弹层里那一行（字段上显示的当前值也可能同字）。
+      find.text(t.bindingEditor.global).last,
     );
     await tester.pumpAndSettle();
     final duplicate = bindings.last;
@@ -324,12 +328,24 @@ void main() {
     expect(bindings.single['input']['code'], 'ArrowLeft');
     expect(tester.widget<TextField>(code).focusNode?.hasFocus ?? true, isTrue);
     final device = find.byWidgetPredicate(
-      (w) => w is BindingSelect<String> && w.label == t.bindingEditor.device,
+      (w) => w is PopupSelectField<String> && w.label == t.bindingEditor.device,
     );
-    await tester.tap(
-      find.descendant(of: device, matching: find.byType(DropdownMenu<String>)),
-    );
+    await tester.tap(device);
     await tester.pumpAndSettle();
+    // 弹的是全仓统一的那套托盘弹出器，不是 SDK 默认的 DropdownMenu 淡入缩放。
+    expect(find.byType(CommonPopupMenu), findsOneWidget);
+    // 设备这一组每一项都带前导图标（这一页原来只有文字，图标挂在 Row 里塞不进
+    // Material 菜单）；`glyph` 槽才是本仓图标进菜单的那条路。
+    expect(
+      find.descendant(
+        of: find.byType(CommonPopupMenu),
+        matching: find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.touch,
+        ),
+      ),
+      findsOneWidget,
+      reason: '触屏那一行没有图标，就是这一页漏补的那一处',
+    );
     await tester.tap(find.text(t.bindingEditor.touch).last);
     await tester.pumpAndSettle();
     expect(bindings.single['input'], defaultBindingInput('touch'));

@@ -6,6 +6,7 @@ import 'package:zephyr/service/operation_binding/binding_doc.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_store.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_editor_labels.dart';
 import 'package:zephyr/page/setting/operation_binding/binding_input_recorder.dart';
+import 'package:zephyr/widgets/popup_select_field.dart';
 import 'package:zephyr/icons/icons.dart';
 
 /// 描述符表单只编辑文档；匹配与冲突判定由核心处理。
@@ -35,10 +36,11 @@ class BindingInputEditor extends StatelessWidget {
         input['trigger'] == 'hold' ||
         input['action'] == 'hold' ||
         input['gesture'] == 'long-press';
-    final selector = BindingSelect<String>(
+    final selector = PopupSelectField<String>(
       label: t.bindingEditor.device,
       value: device,
       options: bindingDeviceLabels,
+      glyphOf: bindingDeviceIcon,
       onChanged: (value) => onChanged({
         ...defaultBindingInput(value),
         if ((value == InputDevice.mouse || value == InputDevice.touch) &&
@@ -50,7 +52,7 @@ class BindingInputEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (device == InputDevice.mouse || device == InputDevice.touch) ...[
-          BindingSelect<String>(
+          PopupSelectField<String>(
             label: t.bindingEditor.area,
             value: input['area'] as String? ?? '',
             options: {'': t.bindingEditor.anyArea, ...bindingAreaLabels},
@@ -78,7 +80,7 @@ class BindingInputEditor extends StatelessWidget {
           ),
         if (device == InputDevice.mouse ||
             device == InputDevice.mouseGesture) ...[
-          BindingSelect<int>(
+          PopupSelectField<int>(
             label: t.bindingEditor.button,
             value: input['button'] as int? ?? 0,
             options: {
@@ -142,10 +144,13 @@ class BindingInputEditor extends StatelessWidget {
           ),
         ],
         if (device == InputDevice.wheel)
-          _select('direction', t.bindingEditor.wheel, {
-            'up': t.bindingEditor.up,
-            'down': t.bindingEditor.downDirection,
-          }),
+          _select(
+            'direction',
+            t.bindingEditor.wheel,
+            {'up': t.bindingEditor.up, 'down': t.bindingEditor.downDirection},
+            glyphOf: (value) =>
+                value == 'up' ? AppGlyphs.arrowUp : AppGlyphs.arrowDown,
+          ),
         if (device == InputDevice.keyboard || device == InputDevice.wheel)
           Wrap(
             spacing: 4,
@@ -176,7 +181,7 @@ class BindingInputEditor extends StatelessWidget {
               const SizedBox(width: 8),
               SizedBox(
                 width: 90,
-                child: BindingSelect<int>(
+                child: PopupSelectField<int>(
                   label: t.bindingEditor.fingers,
                   value: input['fingers'] as int,
                   options: {
@@ -268,10 +273,12 @@ class BindingInputEditor extends StatelessWidget {
     String label,
     Map<String, String> options, {
     String? fallback,
-  }) => BindingSelect<String>(
+    Glyph? Function(String value)? glyphOf,
+  }) => PopupSelectField<String>(
     label: label,
     value: input[field] as String? ?? fallback ?? options.keys.first,
     options: options,
+    glyphOf: glyphOf,
     onChanged: (value) => field == 'gesture' && value == 'double-tap'
         ? onChanged({...input, 'gesture': value, 'fingers': 1})
         : _patch(field, value),
@@ -281,7 +288,7 @@ class BindingInputEditor extends StatelessWidget {
       _BindingTextField(
         key: ValueKey(field),
         value: input[field] as String? ?? '',
-        decoration: bindingFieldDecoration(context, label),
+        decoration: popupFieldDecoration(context, label),
         onChanged: (value) {
           _patch(field, value.trim());
         },
@@ -298,69 +305,12 @@ class BindingInputEditor extends StatelessWidget {
     key: ValueKey(field),
     value: '${input[field] ?? fallback}',
     keyboardType: TextInputType.number,
-    decoration: bindingFieldDecoration(context, label),
+    decoration: popupFieldDecoration(context, label),
     onChanged: (value) {
       final number = int.tryParse(value);
       if (number != null && number >= min && number <= max) {
         _patch(field, number);
       }
-    },
-  );
-}
-
-class BindingSelect<T> extends StatelessWidget {
-  const BindingSelect({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-  });
-  final String label;
-  final T value;
-  final Map<T, String> options;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) => DropdownMenu<T>(
-    key: ValueKey('$label:$value'),
-    initialSelection: value,
-    expandedInsets: EdgeInsets.zero,
-    requestFocusOnTap: false,
-    label: Text(label),
-    inputDecorationTheme: InputDecorationThemeData(
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border: UnderlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: UnderlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: UnderlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.primary,
-          width: 2,
-        ),
-      ),
-    ),
-    menuStyle: MenuStyle(
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-    dropdownMenuEntries: [
-      for (final item in options.entries)
-        DropdownMenuEntry<T>(value: item.key, label: item.value),
-      if (!options.containsKey(value))
-        DropdownMenuEntry<T>(value: value, label: '$value'),
-    ],
-    onSelected: (value) {
-      if (value != null) onChanged(value);
     },
   );
 }
@@ -409,26 +359,3 @@ class _BindingTextFieldState extends State<_BindingTextField> {
     onChanged: widget.onChanged,
   );
 }
-
-InputDecoration bindingFieldDecoration(BuildContext context, String label) =>
-    InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border: UnderlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: UnderlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: UnderlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.primary,
-          width: 2,
-        ),
-      ),
-    );

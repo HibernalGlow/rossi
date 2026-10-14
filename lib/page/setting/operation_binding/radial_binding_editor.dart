@@ -1,5 +1,6 @@
 // 轮盘文档与动作绑定编辑；交互预览使用独立 flutter_ray_menu。
 
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
@@ -334,8 +335,8 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Switch(
-              thumbIcon: kSettingSwitchThumbIcon,
+            M3ESwitch(
+              selectedIcon: const Icon(Icons.check, size: 16),
               value: _doc.enabled,
               onChanged: _toggleEnabled,
             ),
@@ -613,8 +614,8 @@ class _RadialBindingEditorState extends State<RadialBindingEditor> {
           ),
           ListTile(
             title: Text(t.settings.operationBindingRadialItemEnabled),
-            trailing: Switch(
-              thumbIcon: kSettingSwitchThumbIcon,
+            trailing: M3ESwitch(
+              selectedIcon: const Icon(Icons.check, size: 16),
               value: !item.disabled,
               onChanged: (value) =>
                   _patchItem((entry) => entry.copyWith(disabled: !value)),
