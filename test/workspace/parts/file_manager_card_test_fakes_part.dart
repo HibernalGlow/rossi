@@ -69,6 +69,7 @@ class _FileManagerApi implements RustLibApi {
   /// 非空时，`setSearchQuery` 的回复挂在这个 Completer 上。用来造一个「请求还在
   /// 飞行中」的时刻 —— 增量搜索的关键判据（输入框不能因此禁打）只能在那一刻测。
   Completer<FileManagerSnapshot>? searchReply;
+  Completer<FileManagerSnapshot>? searchTabReply;
   Completer<bool>? cancelSearchReply;
 
   /// 非空时，**递归那一次遍历**（`fileManagerSearch`）的回复挂在这个 Completer 上。
@@ -99,9 +100,32 @@ class _FileManagerApi implements RustLibApi {
         return Future.value(const <String>[]);
       case #crateApiFileManagerBrowseFileManagerCreate:
         return Future.value(BigInt.one);
+      case #crateApiFileManagerSearchFileManagerSearchInNewTab:
+        if (snapshotError != null)
+          return Future<FileManagerSnapshot>.error(snapshotError!);
+        return (searchTabReply?.future ??
+                Future.value(
+                  _snapshot(
+                    query: (invocation.namedArguments[#query] as String).trim(),
+                    activeTabId: 3,
+                    subfolders: snapshot.searchIncludeSubfolders,
+                    searchActive: true,
+                    viewMode: snapshot.viewMode,
+                    layoutMode: snapshot.layoutMode,
+                  ),
+                ))
+            .then((value) => snapshot = value);
       case #crateApiFileManagerSearchFileManagerSetSearchQuery:
         final gate = searchReply;
-        return gate == null ? Future.value(snapshot) : gate.future;
+        return gate?.future ??
+            Future.value(
+              snapshot = _snapshot(
+                query: (invocation.namedArguments[#query] as String).trim(),
+                activeTabId: snapshot.activeTabId.toInt(),
+                subfolders: snapshot.searchIncludeSubfolders,
+                searchActive: snapshot.searchActive,
+              ),
+            );
       case #crateApiFileManagerSearchFileManagerSearch:
         final gate = searchRunReply;
         return gate == null ? Future.value(snapshot) : gate.future;

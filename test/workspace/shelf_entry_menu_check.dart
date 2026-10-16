@@ -178,6 +178,18 @@ void _orderPutsDestructiveLast() {
 // ── 6. 「新页签」落点解析 ──────────────────────────────────────────────────
 
 void _pathResolution() {
+  check(
+    '带归档扩展名的已知目录打开自身',
+    resolveFileManagerTabPath('/books/series.cbz', isDirectory: true) ==
+        '/books/series.cbz',
+  );
+  for (final file in ['movie.mp4', 'note.txt', 'README']) {
+    check(
+      '已知文件不依赖扩展名判断',
+      resolveFileManagerTabPath('/books/$file', isDirectory: false) == '/books',
+    );
+  }
+
   const cases = <String, String?>{
     // 归档：开它**所在目录**，不是归档文件本身。
     '/Users/glow/comics/a.cbz': '/Users/glow/comics',

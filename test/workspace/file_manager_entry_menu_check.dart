@@ -59,6 +59,15 @@ FileManagerEntryMenuInput _input({
 
 void main() {
   _everyActionIsPresent();
+  for (final directory in [false, true]) {
+    final menu = buildFileManagerEntryMenuItems(
+      _input(isDirectory: directory, canOpen: false),
+    );
+    check(
+      '文件和目录均可在新页签打开（不受阅读格式支持限制）',
+      _item(menu, FileManagerEntryAction.openInNewTab).enabled,
+    );
+  }
   _revealNeedsADesktopHost();
   _batchGreysOutWhatHasNoMeaning();
   _pasteRequiresADirectory();

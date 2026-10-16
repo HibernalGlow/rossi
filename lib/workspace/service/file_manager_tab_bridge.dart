@@ -19,7 +19,7 @@ enum FileManagerTabOpenOutcome {
   failed,
 }
 
-/// 「在文件管理的**新页签**里打开某个目录」的通道。
+/// 「在文件管理的**新页签**里打开某个文件或目录」的通道。
 ///
 /// # 为什么需要这一层
 ///
@@ -77,6 +77,7 @@ class FileManagerTabBridge {
   }
 
   /// 把 [path] 交给当前（或即将就绪的）文件管理会话，新开一个页签。
+  /// 目录打开自身，文件打开所在目录并定位该文件。
   Future<FileManagerTabOpenOutcome> openInNewTab(
     String path, {
     Duration timeout = const Duration(milliseconds: 2000),

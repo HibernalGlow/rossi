@@ -86,7 +86,9 @@ Future<void> openShelfEntryInFileManagerTab(
     WorkspacePanelId.fileManager,
   );
 
-  final outcome = await FileManagerTabBridge.instance.openInNewTab(path);
+  final outcome = await FileManagerTabBridge.instance.openInNewTab(
+    comicId.trim(),
+  );
   if (!context.mounted) return;
   switch (outcome) {
     case FileManagerTabOpenOutcome.opened:

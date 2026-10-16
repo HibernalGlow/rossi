@@ -163,12 +163,14 @@ FileManagerSnapshot _snapshot({
   bool depthLimited = false,
   bool noEntries = false,
   int tabCount = 2,
+  int activeTabId = 1,
+  List<FileManagerEntry>? entries,
 }) => FileManagerSnapshot(
   sessionId: BigInt.one,
   maxTabs: 8,
   canCreateTab: canCreate,
   generation: BigInt.one,
-  activeTabId: BigInt.one,
+  activeTabId: BigInt.from(activeTabId),
   activePath: '/books',
   canGoUp: true,
   breadcrumbs: const [
@@ -207,26 +209,29 @@ FileManagerSnapshot _snapshot({
       canGoForward: canGoForward,
     ),
     if (tabCount > 1) _tab(2, 'pictures'),
+    if (activeTabId > 2) _tab(activeTabId, 'search'),
   ],
   recentlyClosed: [_tab(3, 'closed')],
   // 「零命中」要能单独造出来：往下找的那条出口只在真的没命中时才该出现。
-  entries: noEntries
-      ? const []
-      : searchActive
-      ? [
-          // 搜索结果页签：同名条目只有靠相对目录才分得开。
-          _entry('001.jpg', searchDirectory: '春组/本子'),
-          _entry('cover.cbz', searchDirectory: '春组'),
-        ]
-      : [
-          _entry('book.cbz'),
-          _entry(
-            'series with a long name',
-            directory: true,
-            children: 8,
-            penetratable: folderPenetratable,
-          ),
-        ],
+  entries:
+      entries ??
+      (noEntries
+          ? const []
+          : searchActive
+          ? [
+              // 搜索结果页签：同名条目只有靠相对目录才分得开。
+              _entry('001.jpg', searchDirectory: '春组/本子'),
+              _entry('cover.cbz', searchDirectory: '春组'),
+            ]
+          : [
+              _entry('book.cbz'),
+              _entry(
+                'series with a long name',
+                directory: true,
+                children: 8,
+                penetratable: folderPenetratable,
+              ),
+            ]),
   roots: const [LocalRootLocation(label: '主目录', path: '/home')],
   penetrationEnabled: true,
   showChildNames: true,

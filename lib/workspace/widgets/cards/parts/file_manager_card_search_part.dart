@@ -12,6 +12,37 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     _searchDebounce = null;
   }
 
+  /// 一轮输入只创建一个结果页签，源目录与先前保存的搜索保持原样。
+  /// 创建期间继续输入时，等页签就绪后再提交最新文本，避免丢字或连开多个页签。
+  Future<void> _searchInTab(String query, {bool commit = false}) async {
+    _cancelPendingSearch();
+    final opening = _searchTabCreation;
+    if (opening != null) {
+      if (commit && query.trim() == _openingSearchQuery?.trim()) {
+        _commitOpeningSearch = true;
+      }
+      await opening;
+      if (!mounted || query != _searchController.text) return;
+      if (_snapshot?.searchQuery == query.trim()) return;
+    }
+    if (_disposed || _sessionId == null || _busy) return;
+    if (_snapshot?.activeTabId == _liveSearchTabId) {
+      await _submitSearch(query, commit: commit);
+      return;
+    }
+    if (query.trim().isEmpty) return;
+    _openingSearchQuery = query;
+    _commitOpeningSearch = commit;
+    final creation = _openSearchTab(query);
+    _searchTabCreation = creation;
+    try {
+      await creation;
+    } finally {
+      _searchTabCreation = null;
+      _openingSearchQuery = null;
+    }
+  }
+
   /// 搜索专用的提交通道：**不走 [_apply] 的 `_busy` 门控**。
   ///
   /// `_busy` 会同时禁用输入框、列表和整排工具键，那是给「一次动作把目录换掉」
@@ -50,6 +81,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
     final id = _sessionId;
     if (id == null || _disposed || query.trim().isEmpty || _busy) return;
     _cancelPendingSearch();
+    _pendingSearchQuery = query;
     ++_searchSerial;
     final serial = ++_requestSerial;
     // ignore: invalid_use_of_protected_member
@@ -68,10 +100,11 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
       setState(() {
         _busy = false;
         _searchPending = false;
+        _liveSearchTabId = next.activeTabId;
         _acceptSnapshot(next);
       });
-      if (!_isRecursiveSearch(next)) await _runSearch(next);
-      await _recordSearchHistory(query);
+      if (!_isRecursiveSearch(next)) unawaited(_runSearch(next));
+      if (_commitOpeningSearch) await _recordSearchHistory(query);
     } catch (error) {
       if (!mounted || serial != _requestSerial) return;
       // ignore: invalid_use_of_protected_member
@@ -249,7 +282,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
 
   /// 可折叠搜索框：由工具栏的搜索键展开；已有生效查询时强制显示。
   ///
-  /// 输入即搜（防抖 [_searchDebounceDuration]），回车或历史点选创建独立结果页签。
+  /// 输入即搜（防抖 [_searchDebounceDuration]），首次查询创建独立结果页签。
+  /// 回车或历史点选确认搜索；继续输入复用本轮结果页签。
   /// 匹配语法由 Rust 侧的 `search_query` 定义：空格分词求交、`-词` 排除、
   /// `"带空格"` 当一个词。
   Widget _buildSearchField(BuildContext context, FileManagerSnapshot snapshot) {
@@ -284,7 +318,8 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
                 tooltip: t.workspace.clearSearchAndCollapse,
                 icon: const GlyphIcon(AppGlyphs.close, size: 16),
                 onPressed: () {
-                  _submitSearch('');
+                  _searchController.clear();
+                  _searchInTab('');
                   // ignore: invalid_use_of_protected_member
                   setState(() => _searchExpanded = false);
                 },
@@ -292,7 +327,7 @@ extension _FileManagerCardSearchPart on _FileManagerCardState {
         border: const OutlineInputBorder(),
       ),
       onChanged: _scheduleSearch,
-      onSubmitted: (query) => _openSearchTab(query),
+      onSubmitted: (query) => _searchInTab(query, commit: true),
     );
   }
 
