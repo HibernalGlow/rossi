@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -53,8 +54,7 @@ class ImageSleep extends StatelessWidget {
   /// 真实内容（成功分支的那颗图片）。
   final Widget child;
 
-  /// 判据用：直接给定「设置开关」的值，绕过 ObjectBox（测试环境没有数据库）。
-  /// 应用路径传 null = 读 `globalSetting.workspaceSleepCoveredUi`。
+  /// 可直接指定开关；缺省时只在 scope 休眠时订阅内存中的设置。
   final bool? enabled;
 
   @override
@@ -62,7 +62,13 @@ class ImageSleep extends StatelessWidget {
     // dependOn：scope 值翻转（进/退工作台）时这里跟着重建。
     final scope = context
         .dependOnInheritedWidgetOfExactType<WorkspaceImageSleepScope>();
-    final settingOn = enabled ?? globalSetting.workspaceSleepCoveredUi;
+    // 大多数图片不在休眠范围内，不需要读取设置，更不能在每次布局时读库解码。
+    if (scope?.asleep != true) return child;
+    final settingOn =
+        enabled ??
+        context.select<GlobalSettingCubit, bool>(
+          (cubit) => cubit.state.workspaceSleepCoveredUi,
+        );
     if (!resolveImageSleep(
       scopeAsleep: scope?.asleep ?? false,
       settingEnabled: settingOn,

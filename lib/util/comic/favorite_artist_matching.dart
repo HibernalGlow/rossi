@@ -12,14 +12,7 @@ class _FavoriteArtistMatching {
   final _artistIndex = <String, ({String raw, int rank})>{};
   final _circleIndex = <String, ({String raw, int rank})>{};
 
-  FavoriteArtistMatchResult match({
-    required String title,
-    required Iterable<String> artistTags,
-    required Iterable<String> circleTags,
-    required String? creator,
-    required Iterable<String> favoriteArtists,
-    required FavoriteArtistCircleMode circleMode,
-  }) {
+  void prepare(Iterable<String> favoriteArtists) {
     final favorites = favoriteArtists.toList(growable: false);
     // 比较快照内容：支持 Freezed 包装列表和原地增删，不能只按 List 身份失效。
     if (!listEquals(_favorites, favorites)) {
@@ -46,6 +39,20 @@ class _FavoriteArtistMatching {
       _tokens.clear();
       _results.clear();
     }
+  }
+
+  bool contains(String key, {required bool circleSide}) =>
+      (circleSide ? _circleIndex : _artistIndex).containsKey(key);
+
+  FavoriteArtistMatchResult match({
+    required String title,
+    required Iterable<String> artistTags,
+    required Iterable<String> circleTags,
+    required String? creator,
+    required Iterable<String> favoriteArtists,
+    required FavoriteArtistCircleMode circleMode,
+  }) {
+    prepare(favoriteArtists);
     if (entries.isEmpty) return FavoriteArtistMatchResult.notMatched;
     final artists = artistTags.toList(growable: false);
     final circles = circleTags.toList(growable: false);

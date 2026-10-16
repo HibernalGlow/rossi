@@ -69,9 +69,10 @@ class _DiscoverTabsHostState extends State<_DiscoverTabsHost> {
 
   @override
   Widget build(BuildContext context) {
-    final globalState = context.watch<GlobalSettingCubit>().state;
-    final setting = globalState.discoverSetting;
-    final leftHand = globalState.leftHandModeEnabled;
+    final (setting, leftHand) = context.select(
+      (GlobalSettingCubit cubit) =>
+          (cubit.state.discoverSetting, cubit.state.leftHandModeEnabled),
+    );
 
     return ListenableBuilder(
       listenable: _tabs.controller,

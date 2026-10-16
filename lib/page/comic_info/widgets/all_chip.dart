@@ -48,10 +48,16 @@ class _AllChipWidgetState extends State<AllChipWidget> {
   @override
   Widget build(BuildContext context) {
     final runSpacings = isDesktop ? 5.0 : 8.0;
-    final processedTitle = processText(title).let(convertChineseForDisplay);
-    final globalSetting = context.watch<GlobalSettingCubit>().state;
-    final favoriteSetting = globalSetting.favoriteArtistSetting;
-    final favoriteTagSetting = globalSetting.favoriteTagSetting;
+    final (favoriteSetting, favoriteTagSetting, chineseMode) = context.select(
+      (GlobalSettingCubit cubit) => (
+        cubit.state.favoriteArtistSetting,
+        cubit.state.favoriteTagSetting,
+        cubit.state.chineseConvertMode,
+      ),
+    );
+    String display(String value) =>
+        convertChineseForDisplay(processText(value), mode: chineseMode);
+    final processedTitle = display(title);
     // 一整组胶囊共用同一张别名索引：每颗胶囊各建一次的话，一页几十个 tag 就要
     // 把收藏列表扫几十遍。
     final tagIndex = favoriteTagSetting.highlightEnabled
@@ -76,7 +82,7 @@ class _AllChipWidgetState extends State<AllChipWidget> {
           item.name,
         );
         return AllChipItem(
-          label: processText(item.name).let(convertChineseForDisplay),
+          label: display(item.name),
           isFavorite: isFavorite,
           isFavoriteTag: isFavoriteTag,
           expressive: widget.inline,
