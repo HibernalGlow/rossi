@@ -36,6 +36,7 @@ class ShelfTimelineView extends StatefulWidget {
     this.expandedKeys = const {},
     this.onCloseDetail,
     this.inlineDetails,
+    this.shrinkWrap = false,
   }) : emptyText = emptyText ?? t.workspace.noEntries;
   final List<LibraryEntry> entries;
   final LibraryDetailBuilder? detailBuilder;
@@ -44,6 +45,7 @@ class ShelfTimelineView extends StatefulWidget {
 
   /// 由 `LibraryEditorialCanvas` 统一托管的原位详情映射（键为 `entry.key`）。
   final Map<String, Widget>? inlineDetails;
+  final bool shrinkWrap;
 
   /// 取一个条目的时间：书签是收藏时间，历史是最后阅读。
   ///
@@ -113,6 +115,8 @@ class _ShelfTimelineViewState extends State<ShelfTimelineView> {
     final list = ListView.builder(
       primary: false,
       padding: EdgeInsets.zero,
+      physics: widget.shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+      shrinkWrap: widget.shrinkWrap,
       itemCount: cells.length,
       itemBuilder: (context, index) {
         final cell = cells[index];
@@ -129,8 +133,9 @@ class _ShelfTimelineViewState extends State<ShelfTimelineView> {
           onTap: enabled ? () => onTap(entry) : null,
           onLongPress: enabled ? entry.onLongPress : null,
         );
+        final inlineDetail = widget.inlineDetails?[entry.key];
         return LibraryDetailRetention(
-          keep: _retained.contains(entry.key),
+          keep: inlineDetail != null || _retained.contains(entry.key),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -143,7 +148,9 @@ class _ShelfTimelineViewState extends State<ShelfTimelineView> {
                 showTopLine: !cell.isGroupFirst,
                 showBottomLine: !cell.isGroupLast,
               ),
-              if (_retained.contains(entry.key) && detailBuilder != null)
+              if (inlineDetail != null)
+                Padding(padding: const EdgeInsets.all(8), child: inlineDetail)
+              else if (_retained.contains(entry.key) && detailBuilder != null)
                 LibraryInlineExpansion(
                   key: ValueKey('timeline-detail:${entry.key}'),
                   visible: widget.expandedKeys.contains(entry.key),
@@ -178,7 +185,7 @@ class _ShelfTimelineViewState extends State<ShelfTimelineView> {
     );
 
     return Stack(
-      fit: standalone ? StackFit.expand : StackFit.loose,
+      fit: standalone && !widget.shrinkWrap ? StackFit.expand : StackFit.loose,
       children: [
         standalone
             ? content

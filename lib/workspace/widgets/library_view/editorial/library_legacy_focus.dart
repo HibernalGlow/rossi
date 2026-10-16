@@ -16,6 +16,7 @@ class LibraryLegacyFocus extends StatelessWidget {
     this.footer,
     this.physics,
     this.controller,
+    this.shrinkWrap = false,
   });
   final ScrollController? controller;
   final int count;
@@ -26,56 +27,59 @@ class LibraryLegacyFocus extends StatelessWidget {
   final EdgeInsets padding;
   final Widget? footer;
   final ScrollPhysics? physics;
+  final bool shrinkWrap;
   final IndexedWidgetBuilder itemBuilder;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      ?header,
-      Expanded(
-        child: ListView.builder(
-          controller: controller,
-          primary: false,
-          physics: physics,
-          padding: padding,
-          itemCount: (count / columns).ceil() + (footer == null ? 0 : 1),
-          itemBuilder: (context, row) {
-            if (row == (count / columns).ceil()) return footer!;
-            final start = row * columns;
-            final end = math.min(start + columns, count);
-            Widget items;
-            if (columns == 1 && extent == null) {
-              items = itemBuilder(context, start);
-            } else {
-              items = SizedBox(
-                height: extent,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var i = start; i < end; i++) ...[
-                      if (i > start) const SizedBox(width: 6),
-                      Expanded(child: itemBuilder(context, i)),
-                    ],
-                    for (var i = end; i < start + columns; i++)
-                      const Expanded(child: SizedBox.shrink()),
-                  ],
-                ),
-              );
-            }
-            final rowDetails = [for (var i = start; i < end; i++) ?details[i]];
-            return LibraryDetailRetention(
-              keep: rowDetails.isNotEmpty,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [items, ...rowDetails],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final list = ListView.builder(
+      controller: controller,
+      primary: false,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : physics,
+      shrinkWrap: shrinkWrap,
+      padding: padding,
+      itemCount: (count / columns).ceil() + (footer == null ? 0 : 1),
+      itemBuilder: (context, row) {
+        if (row == (count / columns).ceil()) return footer!;
+        final start = row * columns;
+        final end = math.min(start + columns, count);
+        Widget items;
+        if (columns == 1 && extent == null) {
+          items = itemBuilder(context, start);
+        } else {
+          items = SizedBox(
+            height: extent,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = start; i < end; i++) ...[
+                  if (i > start) const SizedBox(width: 6),
+                  Expanded(child: itemBuilder(context, i)),
+                ],
+                for (var i = end; i < start + columns; i++)
+                  const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+          );
+        }
+        final rowDetails = [for (var i = start; i < end; i++) ?details[i]];
+        return LibraryDetailRetention(
+          keep: rowDetails.isNotEmpty,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [items, ...rowDetails],
+            ),
+          ),
+        );
+      },
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ?header,
+        if (shrinkWrap) list else Expanded(child: list),
+      ],
+    );
+  }
 }

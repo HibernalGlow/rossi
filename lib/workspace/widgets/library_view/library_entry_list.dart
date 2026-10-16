@@ -43,6 +43,7 @@ class LibraryEntryList extends StatelessWidget {
     this.initialEditorial,
     this.timeline = false,
     this.timelineTimeOf,
+    this.shrinkWrap = false,
   }) : emptyText = emptyText ?? t.workspace.noEntries;
   final String? editorialScope;
   final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
@@ -150,6 +151,7 @@ class LibraryEntryList extends StatelessWidget {
               if (expandedDetails.containsKey(entries[i].key))
                 i: expandedDetails[entries[i].key]!,
           },
+          shrinkWrap: shrinkWrap,
           header: details ? _buildDetailsHeader(context) : null,
           itemBuilder: (context, index) {
             final entry = entries[index];
@@ -183,15 +185,18 @@ class LibraryEntryList extends StatelessWidget {
           },
         );
         if (!details) return list;
+        final detailsList = shrinkWrap
+            ? SizedBox(width: width, child: list)
+            : SizedBox(
+                width: width,
+                height: constraints.maxHeight,
+                child: list,
+              );
         return DetailsColumns(
           columns: columns,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: width,
-              height: constraints.maxHeight,
-              child: list,
-            ),
+            child: detailsList,
           ),
         );
       },
