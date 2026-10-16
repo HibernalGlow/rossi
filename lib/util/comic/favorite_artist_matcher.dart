@@ -334,22 +334,17 @@ class FavoriteArtistMatcher {
     final key = normalizeArtist(label);
     if (key.isEmpty) return false;
     final relevance = classifyNamespace(namespaceType, namespaceName);
-    for (final artist in favoriteArtists) {
-      final entry = _parseFavorite(artist);
-      switch (relevance) {
-        case FavoriteArtistRelevance.artist:
-          if (entry.artistKeys.contains(key)) return true;
-        case FavoriteArtistRelevance.circle:
-          if (circleMode == FavoriteArtistCircleMode.off) continue;
-          if (entry.circleKeys.contains(key)) return true;
-        case FavoriteArtistRelevance.irrelevant:
-          if (entry.artistKeys.contains(key) ||
-              entry.circleKeys.contains(key)) {
-            return true;
-          }
-      }
+    _favoriteArtistMatching.prepare(favoriteArtists);
+    switch (relevance) {
+      case FavoriteArtistRelevance.artist:
+        return _favoriteArtistMatching.contains(key, circleSide: false);
+      case FavoriteArtistRelevance.circle:
+        return circleMode != FavoriteArtistCircleMode.off &&
+            _favoriteArtistMatching.contains(key, circleSide: true);
+      case FavoriteArtistRelevance.irrelevant:
+        return _favoriteArtistMatching.contains(key, circleSide: false) ||
+            _favoriteArtistMatching.contains(key, circleSide: true);
     }
-    return false;
   }
 
   /// 从标题解析画师块；没有非噪声方括号块时返回 null（此时只剩兜底一档）。

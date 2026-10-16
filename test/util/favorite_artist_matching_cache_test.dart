@@ -2,6 +2,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/util/comic/favorite_artist_matcher.dart';
 
 void main() {
+  test('标签与封面共享名单缓存，原地修改会同步更新两个入口', () {
+    final favorites = ['[CircleOne (ArtistOne)]'];
+    bool chip(
+      String label, {
+      String type = 'tag:artist',
+      FavoriteArtistCircleMode mode = FavoriteArtistCircleMode.fallbackOnly,
+    }) => FavoriteArtistMatcher.chipIsFavorite(
+      label: label,
+      namespaceType: type,
+      namespaceName: '',
+      favoriteArtists: favorites,
+      circleMode: mode,
+    );
+    FavoriteArtistMatchResult match() => FavoriteArtistMatcher.match(
+      title: 'Book',
+      artistTags: ['ArtistOne', 'ArtistTwo'],
+      favoriteArtists: favorites,
+    );
+    expect(chip('ArtistOne'), isTrue);
+    expect(chip('CircleOne', type: 'tag:group'), isTrue);
+    expect(
+      chip('CircleOne', type: 'tag:group', mode: FavoriteArtistCircleMode.off),
+      isFalse,
+    );
+    expect(match().matchedArtist, favorites.single);
+    favorites[0] = '[CircleTwo (ArtistTwo)]';
+    expect(chip('ArtistOne'), isFalse);
+    expect(chip('ArtistTwo'), isTrue);
+    expect(chip('CircleOne', type: 'tag:group'), isFalse);
+    expect(match().matchedArtist, favorites.single);
+    favorites.clear();
+    expect(chip('ArtistTwo'), isFalse);
+    expect(match().isMatched, isFalse);
+  });
   test('相同名单原地增删与改顺序后，命中和优先级立即更新', () {
     final favorites = ['ArtistOne', 'ArtistTwo'];
     FavoriteArtistMatchResult match() => FavoriteArtistMatcher.match(
