@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+
+part 'package:zephyr/util/comic/favorite_artist_matching.dart';
 
 /// 社团名（circle）在匹配里的地位。
 ///
@@ -417,148 +421,14 @@ class FavoriteArtistMatcher {
     required Iterable<String> favoriteArtists,
     FavoriteArtistCircleMode circleMode = FavoriteArtistCircleMode.fallbackOnly,
   }) {
-    final entries = <_FavoriteEntry>[];
-    for (final artist in favoriteArtists) {
-      final entry = _parseFavorite(artist);
-      if (entry.artistKeys.isNotEmpty || entry.circleKeys.isNotEmpty) {
-        entries.add(entry);
-      }
-    }
-    if (entries.isEmpty) return FavoriteArtistMatchResult.notMatched;
-
-    final block = _parseAuthorBlock(title);
-    final artistTagNames = _namesFromTags(artistTags, artistPosition: true);
-    final circleTagNames = _namesFromTags(circleTags, artistPosition: false);
-    final creatorName = _name(creator);
-    final titleArtist = _name(block?.artist);
-    final titleCircle = _name(block?.circle);
-    final titleBare = _name(block?.bare);
-
-    FavoriteArtistMatchResult firstHit(
-      Iterable<_Name> names,
-      FavoriteArtistEvidence evidence, {
-      required bool circleSide,
-    }) {
-      for (final entry in entries) {
-        final keys = circleSide ? entry.circleKeys : entry.artistKeys;
-        for (final name in names) {
-          if (name.key.isNotEmpty && keys.contains(name.key)) {
-            return FavoriteArtistMatchResult(
-              isMatched: true,
-              matchedArtist: entry.raw,
-              matchedName: name.display,
-              evidence: evidence,
-            );
-          }
-        }
-      }
-      return FavoriteArtistMatchResult.notMatched;
-    }
-
-    // 1. 画师命名空间的标签：插件明写的，最可信。
-    var result = firstHit(
-      artistTagNames,
-      FavoriteArtistEvidence.artistTag,
-      circleSide: false,
+    return _favoriteArtistMatching.match(
+      title: title,
+      artistTags: artistTags,
+      circleTags: circleTags,
+      creator: creator,
+      favoriteArtists: favoriteArtists,
+      circleMode: circleMode,
     );
-    if (result.isMatched) return result;
-
-    // 2. 详情作者字段。
-    if (creatorName != null) {
-      result = firstHit(
-        [creatorName],
-        FavoriteArtistEvidence.creator,
-        circleSide: false,
-      );
-      if (result.isMatched) return result;
-    }
-
-    // 3. 标题画师块的画师位。
-    if (titleArtist != null) {
-      result = firstHit(
-        [titleArtist],
-        FavoriteArtistEvidence.titleArtist,
-        circleSide: false,
-      );
-      if (result.isMatched) return result;
-    }
-
-    // 4. 标题画师块只有一个名字：社团/画师不分，先按画师认一次。
-    if (titleBare != null) {
-      result = firstHit(
-        [titleBare],
-        FavoriteArtistEvidence.titleAuthorBlock,
-        circleSide: false,
-      );
-      if (result.isMatched) return result;
-    }
-
-    // 5. 社团证据。fallbackOnly 的前提是这条本子压根没有画师证据；
-    //    independent 时社团照样参与，只是排在上面几档之后。
-    if (circleMode != FavoriteArtistCircleMode.off) {
-      final hasArtistEvidence =
-          artistTagNames.isNotEmpty ||
-          creatorName != null ||
-          titleArtist != null;
-      final allowed =
-          circleMode == FavoriteArtistCircleMode.independent ||
-          !hasArtistEvidence;
-      if (allowed) {
-        result = firstHit(
-          circleTagNames,
-          FavoriteArtistEvidence.circleTag,
-          circleSide: true,
-        );
-        if (result.isMatched) return result;
-        for (final name in [titleCircle, titleBare]) {
-          if (name == null) continue;
-          result = firstHit(
-            [name],
-            FavoriteArtistEvidence.titleCircle,
-            circleSide: true,
-          );
-          if (result.isMatched) return result;
-        }
-      }
-    }
-
-    // 6. 兜底：画师名以独立词的形式出现在标题正文里。
-    //    噪声括号（事件码、汉化组、语言标记）内部不算，画师块本身也不算 ——
-    //    块里的社团位已经由 3~5 档按 circleMode 判过，这里再认一遍等于绕开开关。
-    final haystack = _noiseMaskedTitle(
-      title,
-      maskFrom: block?.start ?? -1,
-      maskTo: block?.end ?? -1,
-    );
-    final tokenKeys = <({String key, String raw})>[];
-    for (final entry in entries) {
-      for (final key in entry.artistKeys) {
-        // `社团 (画师)` 这种复合键不可能作为独立词出现，跳过。
-        if (key.contains('(') || key.contains('（')) continue;
-        tokenKeys.add((key: key, raw: entry.raw));
-      }
-      if (circleMode == FavoriteArtistCircleMode.independent) {
-        for (final key in entry.circleKeys) {
-          if (key.contains('(') || key.contains('（')) continue;
-          tokenKeys.add((key: key, raw: entry.raw));
-        }
-      }
-    }
-    tokenKeys.sort((a, b) => b.key.length.compareTo(a.key.length));
-    for (final token in tokenKeys) {
-      // 两个字的画师名几乎一定撞上标题里的别的词，宁可不认。
-      if (token.key.length < 3) continue;
-      final at = _standaloneTokenAt(haystack, token.key);
-      if (at == null) continue;
-      return FavoriteArtistMatchResult(
-        isMatched: true,
-        matchedArtist: token.raw,
-        matchedName: title.substring(at, at + token.key.length),
-        evidence: FavoriteArtistEvidence.titleToken,
-      );
-    }
-
-    return FavoriteArtistMatchResult.notMatched;
   }
 
   static _Name? _name(String? raw) {
