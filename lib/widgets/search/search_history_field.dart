@@ -214,45 +214,20 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
     _selected(query);
   }
 
-  Future<void> _openHistory({bool filter = false}) async {
+  Future<void> _openHistory() async {
     _manualHistory = true;
     await _reload();
     if (!mounted || !widget.enabled || !_manualHistory) return;
     _popup.show(
       context,
       SearchHistorySuggestions(
-        queries: _history
-            .where(
-              (entry) =>
-                  !filter ||
-                  entry.toLowerCase().contains(
-                    _controller.text.trim().toLowerCase(),
-                  ),
-            )
-            .take(filter ? 8 : 12)
-            .toList(),
+        queries: _history.take(12).toList(),
         onSelected: _replay,
         onClear: () => unawaited(_clearHistory()),
       ),
       _buttonOwner,
-      sourceKey: filter ? _fieldKey : _buttonKey,
+      sourceKey: _buttonKey,
     );
-  }
-
-  void _fieldTapped(PointerDownEvent event) {
-    final button = _buttonKey.currentContext?.findRenderObject();
-    if (button is RenderBox &&
-        (button.localToGlobal(Offset.zero) & button.size).contains(
-          event.position,
-        )) {
-      return;
-    }
-    // 输入框已持有焦点时再次点击也应打开历史，不让用户先失焦再回来。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.enabled && _focus.hasFocus && _dismissed) {
-        unawaited(_openHistory(filter: true));
-      }
-    });
   }
 
   Widget _historyButton() => Focus(
@@ -338,16 +313,14 @@ class _SearchHistoryAutocompleteState extends State<SearchHistoryAutocomplete> {
         }
         return KeyEventResult.ignored;
       },
-      child: Listener(
-        onPointerDown: _fieldTapped,
-        child: widget.fieldBuilder(
-          context,
-          controller,
-          focus,
-          _changed,
-          (value) => _submit(value, selectHighlighted),
-          _historyButton(),
-        ),
+      // 点击、双击与拖选交给输入框；关闭后的历史由编辑或历史按钮重开。
+      child: widget.fieldBuilder(
+        context,
+        controller,
+        focus,
+        _changed,
+        (value) => _submit(value, selectHighlighted),
+        _historyButton(),
       ),
     ),
   );

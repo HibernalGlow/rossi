@@ -328,13 +328,23 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace>
         state.interaction.manualScrollEnabled &&
         !(state.isReaderFullscreen &&
             state.interaction.blockManualScrollInReaderFullscreen);
-    return SingleChildScrollView(
-      controller: _scroll,
-      scrollDirection: Axis.horizontal,
-      physics: userScrollAllowed
-          ? const ClampingScrollPhysics()
-          : const _ProgrammaticScrollPhysics(),
-      child: SizedBox(width: metrics.contentWidth, child: strip),
+    final contentScrollBehavior = ScrollConfiguration.of(context);
+    return ScrollConfiguration(
+      // 泳道中的鼠标按住拖动留给文本选区，包括输入框内部的横向滚动层。
+      // 触屏拖动、触控板与滚轮仍按原有配置滚动。
+      behavior: contentScrollBehavior.copyWith(
+        dragDevices: contentScrollBehavior.dragDevices.difference({
+          PointerDeviceKind.mouse,
+        }),
+      ),
+      child: SingleChildScrollView(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        physics: userScrollAllowed
+            ? const ClampingScrollPhysics()
+            : const _ProgrammaticScrollPhysics(),
+        child: SizedBox(width: metrics.contentWidth, child: strip),
+      ),
     );
   }
 

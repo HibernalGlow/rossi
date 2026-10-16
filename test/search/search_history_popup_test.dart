@@ -233,32 +233,71 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('clicking an already focused field reopens dismissed history', (
-    tester,
-  ) async {
-    final store = await seed('retap-expressive');
-    final focus = FocusNode();
-    addTearDown(focus.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SearchHistoryField(
-            history: store,
-            focusNode: focus,
-            autofocus: true,
+  testWidgets(
+    'clicking an already focused field keeps dismissed history closed',
+    (tester) async {
+      final store = await seed('retap-expressive');
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SearchHistoryField(
+              history: store,
+              focusNode: focus,
+              autofocus: true,
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pumpAndSettle();
-    expect(find.byType(SearchHistoryPanel), findsNothing);
-    expect(focus.hasFocus, isTrue);
-    await tester.tap(find.byType(TextField));
-    await tester.pumpAndSettle();
-    expect(find.byType(SearchHistoryPanel), findsOneWidget);
-  });
+      );
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchHistoryPanel), findsNothing);
+      expect(focus.hasFocus, isTrue);
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchHistoryPanel), findsNothing);
+      expect(focus.hasFocus, isTrue);
+      await tester.tap(find.byTooltip(t.search.history));
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchHistoryPanel), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'clicking the text dismisses suggestions without reopening them',
+    (tester) async {
+      final store = await seed('edit-expressive');
+      final controller = TextEditingController(text: 'alpha');
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SearchHistoryField(
+              history: store,
+              controller: controller,
+              autofocus: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchHistoryPanel), findsOneWidget);
+      await tester.tapAt(
+        tester.getTopLeft(find.byType(TextField)) + const Offset(10, 20),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchHistoryPanel), findsNothing);
+      expect(controller.selection.isCollapsed, isTrue);
+      expect(controller.selection.baseOffset, lessThan(controller.text.length));
+      await tester.tapAt(
+        tester.getTopLeft(find.byType(TextField)) + const Offset(10, 20),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchHistoryPanel), findsNothing);
+    },
+  );
 
   testWidgets('keyboard highlight stays visible in a short viewport', (
     tester,
