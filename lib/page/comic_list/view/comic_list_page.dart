@@ -1,6 +1,7 @@
 import 'package:auto_route/annotations.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zephyr/page/comic_list/view/discover_filter_fab.dart';
+import 'package:zephyr/page/comic_list/view/discover_browse_menu.dart';
+import 'package:zephyr/page/comic_list/service/plugin_list_navigation_controller.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -55,6 +56,7 @@ class _ComicListView extends StatefulWidget {
 class _ComicListViewState extends State<_ComicListView>
     with AutomaticKeepAliveClientMixin {
   final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
+  final _navigation = PluginListNavigationController();
   DiscoverTabToolbarController? _tabToolbar;
 
   @override
@@ -82,6 +84,7 @@ class _ComicListViewState extends State<_ComicListView>
   @override
   void dispose() {
     _tabToolbar?.unregister(this);
+    _navigation.dispose();
     super.dispose();
   }
 
@@ -119,18 +122,22 @@ class _ComicListViewState extends State<_ComicListView>
           body: Stack(
             children: [
               Positioned.fill(child: _buildBody(context, state)),
-              if (state.requiresFilter)
-                Positioned(
-                  // 挂 `floatingActionButton` 时 Scaffold 只按键盘高度定位，
-                  // 看不见 Dock —— 底栏占位由外层写进 body 的 `padding.bottom`
-                  // （`navigation_bar.dart` 的 `_buildDockLayout`），这里自己抬。
-                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
-                  right: 16,
-                  child: DiscoverFilterFab(
-                    hasFilters: filterDirty,
-                    onPressed: () => _openFilterDialog(context),
-                  ),
+              Positioned(
+                // 挂 `floatingActionButton` 时 Scaffold 只按键盘高度定位，
+                // 看不见 Dock —— 底栏占位由外层写进 body 的 `padding.bottom`
+                // （`navigation_bar.dart` 的 `_buildDockLayout`），这里自己抬。
+                bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                right: 16,
+                child: DiscoverBrowseMenu(
+                  navigation: _navigation,
+                  hasFilters: filterDirty,
+                  onFilter: state.requiresFilter
+                      ? () => _openFilterDialog(context)
+                      : null,
+                  onPresentation: (anchor) async =>
+                      _canvasKey.currentState?.openSettings(anchor),
                 ),
+              ),
             ],
           ),
         );
@@ -212,9 +219,10 @@ class _ComicListViewState extends State<_ComicListView>
     return PluginPagedComicListView(
       key: ValueKey('${request.fnPath}_${listCore}_$listExtern'),
       editorialKey: _canvasKey,
+      navigationController: _navigation,
       pluginId: state.currentFrom,
       fnPath: request.fnPath,
-      coreBuilder: (page) => {'page': page, ...listCore},
+      coreBuilder: (page) => {...listCore, 'page': page},
       externBuilder: (_) => listExtern,
       collectionTargetId: collectionTargetId,
     );

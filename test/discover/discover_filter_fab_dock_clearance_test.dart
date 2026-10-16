@@ -53,11 +53,11 @@ Future<void> _pumpDockedListPage(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('筛选键抬到 Dock 之上，且收起态只有图标', (tester) async {
+  testWidgets('通用浏览菜单抬到 Dock 之上', (tester) async {
     _usePhone(tester);
     await _pumpDockedListPage(tester);
 
-    final fabRect = tester.getRect(find.byTooltip(t.comicList.filter));
+    final fabRect = tester.getRect(find.byTooltip(t.comicList.browseMenu));
     final dockRect = tester.getRect(find.byType(NavigationDock));
     debugPrint('FAB=$fabRect DOCK=$dockRect');
 

@@ -1,4 +1,8 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_list/service/plugin_list_navigation_controller.dart';
+import 'package:zephyr/page/comic_list/service/plugin_list_position_store.dart';
+import 'package:zephyr/page/comic_list/view/plugin_list_navigation_host.dart';
+import 'package:zephyr/widgets/library_viewport_anchor.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/comic_list/view/discover_library_entries.dart';
 import 'package:zephyr/page/comic_list/view/discover_library_view.dart';
@@ -23,11 +27,13 @@ class PluginPagedComicListView extends StatelessWidget {
     required this.externBuilder,
     this.shrinkWrap = false,
     this.editorialKey,
+    this.navigationController,
     this.physics,
     this.collectionTargetId,
     this.collectionTargetName,
   });
 
+  final PluginListNavigationController? navigationController;
   final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
   final String pluginId;
   final String fnPath;
@@ -49,6 +55,13 @@ class PluginPagedComicListView extends StatelessWidget {
       )..loadInitial(),
       child: _PluginPagedComicListBody(
         editorialKey: editorialKey,
+        navigationController: navigationController,
+        positionScope: pluginListPositionScope(
+          pluginId,
+          fnPath,
+          coreBuilder(1),
+          externBuilder(1),
+        ),
         presentationScope: 'discover:$pluginId:$fnPath',
         shrinkWrap: shrinkWrap,
         physics: physics,
@@ -63,12 +76,16 @@ class _PluginPagedComicListBody extends StatefulWidget {
   const _PluginPagedComicListBody({
     required this.shrinkWrap,
     required this.presentationScope,
+    required this.positionScope,
+    this.navigationController,
     this.editorialKey,
     required this.physics,
     this.collectionTargetId,
     this.collectionTargetName,
   });
 
+  final String positionScope;
+  final PluginListNavigationController? navigationController;
   final GlobalKey<LibraryEditorialCanvasState>? editorialKey;
   final String presentationScope;
   final bool shrinkWrap;
@@ -84,6 +101,7 @@ class _PluginPagedComicListBody extends StatefulWidget {
 class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
     with AutomaticKeepAliveClientMixin {
   final ScrollController scrollController = ScrollController();
+  final _viewport = LibraryViewportRegistry();
 
   @override
   bool get wantKeepAlive => true;
@@ -104,7 +122,7 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return RefreshIndicator(
+    final content = RefreshIndicator(
       onRefresh: () => context.read<PluginPagedComicListCubit>().loadInitial(),
       child: BlocBuilder<PluginPagedComicListCubit, PluginPagedComicListState>(
         builder: (context, state) {
@@ -115,6 +133,8 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
             ).where((info) => info.title != '无数据').toList();
             return DiscoverLibraryView(
               canvasKey: widget.editorialKey!,
+              viewportRegistry: _viewport,
+              scrollController: scrollController,
               scope: widget.presentationScope,
               entries: [
                 for (final info in comics) discoverLibraryEntry(info, settings),
@@ -122,7 +142,8 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
               collectionTargetId: widget.collectionTargetId,
               collectionTargetName: widget.collectionTargetName,
               onReachEnd: () {
-                if (state.status == PluginPagedComicListStatus.success) {
+                if (state.status == PluginPagedComicListStatus.success &&
+                    widget.navigationController?.busy != true) {
                   context.read<PluginPagedComicListCubit>().loadMore();
                 }
               },
@@ -133,6 +154,16 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
           return _legacyContent(context, state);
         },
       ),
+    );
+    final navigation = widget.navigationController;
+    if (navigation == null) return content;
+    return PluginListNavigationHost(
+      navigation: navigation,
+      scope: widget.positionScope,
+      viewport: _viewport,
+      scroll: scrollController,
+      canvasKey: widget.editorialKey,
+      child: content,
     );
   }
 
@@ -156,8 +187,9 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
               hasScrollBody: false,
               child: ErrorView(
                 errorMessage: '${state.result}\n${t.comicList.loadFailedRetry}',
-                onRetry: () =>
-                    context.read<PluginPagedComicListCubit>().loadInitial(),
+                onRetry: () => context
+                    .read<PluginPagedComicListCubit>()
+                    .jumpToPage(state.page),
               ),
             ),
           ],
@@ -238,7 +270,7 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
   }
 
   void _onScroll() {
-    if (_isBottom) {
+    if (_isBottom && widget.navigationController?.busy != true) {
       context.read<PluginPagedComicListCubit>().loadMore();
     }
   }

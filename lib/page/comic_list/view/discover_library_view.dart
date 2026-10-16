@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/widgets/library_viewport_anchor.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_list/view/discover_library_entries.dart';
 import 'package:zephyr/type/enum.dart';
@@ -21,6 +22,8 @@ class DiscoverLibraryView extends StatelessWidget {
     required this.legacyBuilder,
     required this.footerBuilder,
     required this.onReachEnd,
+    this.viewportRegistry,
+    this.scrollController,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -31,6 +34,16 @@ class DiscoverLibraryView extends StatelessWidget {
   final WidgetBuilder legacyBuilder, footerBuilder;
   final VoidCallback onReachEnd;
   final String? collectionTargetId, collectionTargetName;
+  final LibraryViewportRegistry? viewportRegistry;
+  final ScrollController? scrollController;
+
+  Widget _anchor(LibraryEntry row, Widget child) => viewportRegistry == null
+      ? child
+      : LibraryViewportAnchor(
+          registry: viewportRegistry!,
+          entryKey: row.key,
+          child: child,
+        );
 
   void _open(BuildContext context, LibraryEntry row) => ComicSimplifyEntry(
     info: row.source! as ComicSimplifyEntryInfo,
@@ -42,6 +55,8 @@ class DiscoverLibraryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LibraryEditorialCanvas(
     key: canvasKey,
+    scrollController: scrollController,
+    wrapCard: (_, row, child) => _anchor(row, child),
     scope: scope,
     standalone: true,
     tapOpensDetail: false,
@@ -90,6 +105,7 @@ class DiscoverLibraryView extends StatelessWidget {
               return false;
             },
             child: LibraryLegacyFocus(
+              controller: scrollController,
               count: entries.length,
               columns: columns,
               extent: cardWidth / grid.childAspectRatio,
@@ -103,26 +119,29 @@ class DiscoverLibraryView extends StatelessWidget {
               },
               itemBuilder: (context, index) {
                 final row = entries[index];
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ComicSimplifyEntry(
-                      info: row.source! as ComicSimplifyEntryInfo,
-                      type: ComicEntryType.normal,
-                      onTapOverride: (_) => onCoverTap(row),
-                      collectionTargetId: collectionTargetId,
-                      collectionTargetName: collectionTargetName,
-                    ),
-                    Positioned(
-                      right: 6,
-                      bottom: 6,
-                      child: IconButton.filledTonal(
-                        tooltip: '展开信息',
-                        onPressed: () => toggle(row),
-                        icon: const GlyphIcon(AppGlyphs.info),
+                return _anchor(
+                  row,
+                  Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ComicSimplifyEntry(
+                        info: row.source! as ComicSimplifyEntryInfo,
+                        type: ComicEntryType.normal,
+                        onTapOverride: (_) => onCoverTap(row),
+                        collectionTargetId: collectionTargetId,
+                        collectionTargetName: collectionTargetName,
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        right: 6,
+                        bottom: 6,
+                        child: IconButton.filledTonal(
+                          tooltip: '展开信息',
+                          onPressed: () => toggle(row),
+                          icon: const GlyphIcon(AppGlyphs.info),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),

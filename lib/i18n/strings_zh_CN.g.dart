@@ -9176,6 +9176,45 @@ class Translations$comicList$zh_CN {
 
 	// Translations
 
+	/// zh-CN: '浏览菜单'
+	String get browseMenu => '浏览菜单';
+
+	/// zh-CN: '第 $page 页'
+	String currentPage({required Object page}) => '第 ${page} 页';
+
+	/// zh-CN: '第 $page / $total 页'
+	String pageOfTotal({required Object page, required Object total}) => '第 ${page} / ${total} 页';
+
+	/// zh-CN: '快速跳页'
+	String get jumpToPage => '快速跳页';
+
+	/// zh-CN: '目标页码'
+	String get pageInput => '目标页码';
+
+	/// zh-CN: '请输入大于 0 的整数'
+	String get invalidPage => '请输入大于 0 的整数';
+
+	/// zh-CN: '页码不能超过 $total'
+	String pageOutOfRange({required Object total}) => '页码不能超过 ${total}';
+
+	/// zh-CN: '恢复上次浏览位置'
+	String get restorePosition => '恢复上次浏览位置';
+
+	/// zh-CN: '上次看到第 $page 页'
+	String restorePage({required Object page}) => '上次看到第 ${page} 页';
+
+	/// zh-CN: '还没有浏览记录'
+	String get noSavedPosition => '还没有浏览记录';
+
+	/// zh-CN: '滚动后自动保存位置'
+	String get positionSavedAutomatically => '滚动后自动保存位置';
+
+	/// zh-CN: '上一页'
+	String get previousPage => '上一页';
+
+	/// zh-CN: '下一页'
+	String get nextPage => '下一页';
+
 	/// zh-CN: '漢化'
 	String get chineseLocalized => '漢化';
 
@@ -13660,6 +13699,19 @@ extension on Translations {
 			'searchResult.jumpToPage' => '跳转页面',
 			'searchResult.jump' => '跳转',
 			'searchResult.retry' => '点击重试',
+			'comicList.browseMenu' => '浏览菜单',
+			'comicList.currentPage' => ({required Object page}) => '第 ${page} 页',
+			'comicList.pageOfTotal' => ({required Object page, required Object total}) => '第 ${page} / ${total} 页',
+			'comicList.jumpToPage' => '快速跳页',
+			'comicList.pageInput' => '目标页码',
+			'comicList.invalidPage' => '请输入大于 0 的整数',
+			'comicList.pageOutOfRange' => ({required Object total}) => '页码不能超过 ${total}',
+			'comicList.restorePosition' => '恢复上次浏览位置',
+			'comicList.restorePage' => ({required Object page}) => '上次看到第 ${page} 页',
+			'comicList.noSavedPosition' => '还没有浏览记录',
+			'comicList.positionSavedAutomatically' => '滚动后自动保存位置',
+			'comicList.previousPage' => '上一页',
+			'comicList.nextPage' => '下一页',
 			'comicList.chineseLocalized' => '漢化',
 			'comicList.downloadedAtLabel' => '下载时间',
 			'comicList.likedArtists' => '喜欢的画师',

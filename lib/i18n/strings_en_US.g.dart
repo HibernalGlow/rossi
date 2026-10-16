@@ -3254,6 +3254,19 @@ class _Translations$comicList$en_US extends Translations$comicList$zh_CN {
 	final TranslationsEnUs _root; // ignore: unused_field
 
 	// Translations
+	@override String get browseMenu => 'Browse menu';
+	@override String currentPage({required Object page}) => 'Page ${page}';
+	@override String pageOfTotal({required Object page, required Object total}) => 'Page ${page} of ${total}';
+	@override String get jumpToPage => 'Jump to page';
+	@override String get pageInput => 'Page number';
+	@override String get invalidPage => 'Enter a positive whole number';
+	@override String pageOutOfRange({required Object total}) => 'Page cannot exceed ${total}';
+	@override String get restorePosition => 'Restore last position';
+	@override String restorePage({required Object page}) => 'Last viewed page ${page}';
+	@override String get noSavedPosition => 'No saved position yet';
+	@override String get positionSavedAutomatically => 'Position is saved automatically after scrolling';
+	@override String get previousPage => 'Previous page';
+	@override String get nextPage => 'Next page';
 	@override String get chineseLocalized => 'CN-localised';
 	@override String get downloadedAtLabel => 'Downloaded at';
 	@override String get likedArtists => 'Favourite artists';
@@ -6831,6 +6844,19 @@ extension on TranslationsEnUs {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
+			'comicList.browseMenu' => 'Browse menu',
+			'comicList.currentPage' => ({required Object page}) => 'Page ${page}',
+			'comicList.pageOfTotal' => ({required Object page, required Object total}) => 'Page ${page} of ${total}',
+			'comicList.jumpToPage' => 'Jump to page',
+			'comicList.pageInput' => 'Page number',
+			'comicList.invalidPage' => 'Enter a positive whole number',
+			'comicList.pageOutOfRange' => ({required Object total}) => 'Page cannot exceed ${total}',
+			'comicList.restorePosition' => 'Restore last position',
+			'comicList.restorePage' => ({required Object page}) => 'Last viewed page ${page}',
+			'comicList.noSavedPosition' => 'No saved position yet',
+			'comicList.positionSavedAutomatically' => 'Position is saved automatically after scrolling',
+			'comicList.previousPage' => 'Previous page',
+			'comicList.nextPage' => 'Next page',
 			'comicList.chineseLocalized' => 'CN-localised',
 			'comicList.downloadedAtLabel' => 'Downloaded at',
 			'comicList.likedArtists' => 'Favourite artists',

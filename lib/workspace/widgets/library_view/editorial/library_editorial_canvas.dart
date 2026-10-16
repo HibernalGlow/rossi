@@ -17,6 +17,8 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_editoria
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_size_settings.dart';
 
+part 'package:zephyr/workspace/widgets/library_view/editorial/library_canvas_viewport.dart';
+
 typedef LibraryLegacyFocusBuilder =
     Widget Function(
       BuildContext,
@@ -56,7 +58,9 @@ class LibraryEditorialCanvas extends StatefulWidget {
     this.gapWidgets,
     this.onReachEnd,
     this.footerBuilder,
+    this.scrollController,
   });
+  final ScrollController? scrollController;
   final LibraryPresentation initialPresentation;
   final List<LibraryWeightSignal> weightSignals;
 
@@ -91,7 +95,7 @@ class LibraryEditorialCanvas extends StatefulWidget {
 
 class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
   LibraryPresentation _presentation = const LibraryPresentation();
-  final _scroll = ScrollController();
+  late final _scroll = widget.scrollController ?? ScrollController();
   final _focus = FocusNode();
   final _expanded = <String, LibraryEntry>{};
   final _detailCache = <String, Widget>{};
@@ -109,38 +113,6 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
 
   final Map<String, double> _entryOffsets = {};
   final Map<String, double> _entryHeights = {};
-
-  /// 变高展墙的阅读跟随：先定位远处页，再按实际渲染框居中。
-  void revealEntry(String key) {
-    var remaining = 5;
-    void position(Duration _) {
-      if (!mounted || !_scroll.hasClients || remaining-- <= 0) return;
-      final anchor = _anchors['tile:$key']?.currentContext;
-      if (anchor != null) {
-        Scrollable.ensureVisible(
-          anchor,
-          alignment: .5,
-          duration: ExpressiveMotion.duration(
-            context,
-            const Duration(milliseconds: 260),
-          ),
-        );
-        return;
-      }
-      final top = _entryOffsets[key];
-      if (top == null) return;
-      final offset =
-          top +
-          (_entryHeights[key] ?? 200) / 2 -
-          _scroll.position.viewportDimension / 2;
-      _scroll.jumpTo(offset.clamp(0.0, _scroll.position.maxScrollExtent));
-      WidgetsBinding.instance.addPostFrameCallback(position);
-      WidgetsBinding.instance.scheduleFrame();
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback(position);
-    WidgetsBinding.instance.scheduleFrame();
-  }
 
   ValueChanged<double> _ratioCallback(String key) =>
       _ratioCallbacks.putIfAbsent(
@@ -340,6 +312,11 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
         (slot, _) => !keys.contains(slot.substring(slot.indexOf(':') + 1)),
       );
       _ratioCallbacks.removeWhere((key, _) => !keys.contains(key));
+      _aspectRatios.removeWhere((key, _) => !keys.contains(key));
+      _pendingRatios.removeWhere((key, _) => !keys.contains(key));
+      _anchors.removeWhere(
+        (slot, _) => !keys.contains(slot.substring(slot.indexOf(':') + 1)),
+      );
     }
   }
 
@@ -435,7 +412,8 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
   @override
   void dispose() {
     unawaited(_preferenceSubscription?.cancel());
-    _scroll.dispose();
+    _scroll.removeListener(_onScroll);
+    if (widget.scrollController == null) _scroll.dispose();
     _focus.dispose();
     super.dispose();
   }

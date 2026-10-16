@@ -21,6 +21,7 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
     required this.fnPath,
     required this.coreBuilder,
     required this.externBuilder,
+    this.pageFetcher,
   }) : super(const PluginPagedComicListState());
 
   final String pluginId;
@@ -28,34 +29,84 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
   final PluginPageCoreBuilder coreBuilder;
   final PluginPageExternBuilder externBuilder;
 
-  Future<void> loadInitial() async {
+  /// 可注入请求消费者，分页策略测试不需要启动 QuickJS。
+  final Future<Map<String, dynamic>> Function(int page)? pageFetcher;
+  final _pageStarts = <int, int>{};
+  int _generation = 0;
+  int? totalPages;
+
+  int pageForIndex(int index) {
+    var page = _pageStarts.keys.firstOrNull ?? state.page;
+    for (final entry in _pageStarts.entries) {
+      if (index < entry.value) break;
+      page = entry.key;
+    }
+    return page;
+  }
+
+  /// 单次遍历生成条目所属页，避免累计多页后逐项重扫所有分页边界。
+  Map<String, int> get entryPages {
+    final starts = _pageStarts.entries.toList();
+    final pages = <String, int>{};
+    var boundary = 0;
+    for (var i = 0; i < state.list.length; i++) {
+      while (boundary + 1 < starts.length && starts[boundary + 1].value <= i) {
+        boundary++;
+      }
+      final item = state.list[i];
+      pages['${item.source.trim()}:${item.id}'] = starts.isEmpty
+          ? state.page
+          : starts[boundary].key;
+    }
+    return pages;
+  }
+
+  Future<void> loadInitial() => jumpToPage(1);
+
+  Future<void> jumpToPage(int page) async {
+    if (isClosed || page < 1 || (totalPages != null && page > totalPages!)) {
+      return;
+    }
+    final generation = ++_generation;
+    _pageStarts.clear();
+    totalPages = null;
     _safeEmit(
       state.copyWith(
         status: PluginPagedComicListStatus.initial,
         list: const <UnifiedComicListItem>[],
         hasReachedMax: false,
-        page: 1,
+        page: page,
         result: '',
       ),
     );
-    await _fetchPage(page: 1, append: false);
+    await _fetchPage(page: page, append: false, generation: generation);
   }
 
   Future<void> loadMore() async {
-    if (state.hasReachedMax ||
-        state.status == PluginPagedComicListStatus.loadingMore) {
+    if (isClosed ||
+        state.hasReachedMax ||
+        (state.status != PluginPagedComicListStatus.success &&
+            state.status != PluginPagedComicListStatus.loadingMoreFailure)) {
       return;
     }
 
     _safeEmit(state.copyWith(status: PluginPagedComicListStatus.loadingMore));
-    await _fetchPage(page: state.page + 1, append: true);
+    await _fetchPage(
+      page: state.page + 1,
+      append: true,
+      generation: _generation,
+    );
   }
 
   Future<void> retryLoadMore() async {
     await loadMore();
   }
 
-  Future<void> _fetchPage({required int page, required bool append}) async {
+  Future<void> _fetchPage({
+    required int page,
+    required bool append,
+    required int generation,
+  }) async {
     final currentList = append ? state.list : const <UnifiedComicListItem>[];
     final resolvedFnPath = fnPath.trim();
 
@@ -63,12 +114,15 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
       if (resolvedFnPath.isEmpty) {
         throw StateError('插件列表请求缺少 fnPath: pluginId=$pluginId');
       }
-      final pluginResponse = await callUnifiedComicPlugin(
-        pluginId: pluginId,
-        fnPath: resolvedFnPath,
-        core: coreBuilder(page),
-        extern: externBuilder(page),
-      );
+      final pluginResponse = pageFetcher != null
+          ? await pageFetcher!(page)
+          : await callUnifiedComicPlugin(
+              pluginId: pluginId,
+              fnPath: resolvedFnPath,
+              core: coreBuilder(page),
+              extern: externBuilder(page),
+            );
+      if (isClosed || generation != _generation) return;
       final envelope = UnifiedPluginEnvelope.fromMap(pluginResponse);
       final data = asJsonMap(envelope.data);
       final source = envelope.source.trim().isNotEmpty
@@ -100,7 +154,18 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
       }
 
       final mergedList = [...currentList, ...nextItems];
-      final hasReachedMax = data['hasReachedMax'] == true || nextItems.isEmpty;
+      final rawTotal =
+          data['totalPages'] ??
+          data['pageCount'] ??
+          raw['totalPages'] ??
+          raw['pageCount'];
+      final parsedTotal = int.tryParse(rawTotal?.toString() ?? '');
+      if (parsedTotal != null && parsedTotal > 0) totalPages = parsedTotal;
+      final hasReachedMax =
+          data['hasReachedMax'] == true ||
+          nextItems.isEmpty ||
+          (totalPages != null && page >= totalPages!);
+      _pageStarts[page] = currentList.length;
 
       _safeEmit(
         state.copyWith(
@@ -112,6 +177,7 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
         ),
       );
     } catch (e, stackTrace) {
+      if (isClosed || generation != _generation) return;
       logger.e(e, stackTrace: stackTrace);
 
       _safeEmit(
