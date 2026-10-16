@@ -1,6 +1,7 @@
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/workspace/method/file_manager_actions.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/file_manager_tab_session.dart';
+import 'package:zephyr/workspace/model/file_manager_tab_target.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
 import 'package:zephyr/workspace/service/file_manager_tab_bridge.dart';
 import 'package:zephyr/workspace/service/file_manager_tab_session_store.dart';
@@ -117,6 +119,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
   bool _editingPath = false;
   bool _searchExpanded = false;
   Timer? _searchDebounce;
+  BigInt? _liveSearchTabId;
+  Future<void>? _searchTabCreation;
+  String? _openingSearchQuery;
+  bool _commitOpeningSearch = false;
 
   /// 最近一次**发给**核心的搜索原文。用来区分「核心把我的输入回显了」和
   /// 「核心自己改了查询」（切页签、导航会清空）—— 前者不能覆盖输入框里的原始文本。
@@ -311,13 +317,10 @@ class _FileManagerCardState extends State<FileManagerCard> {
   // - **问用户要参数、把结果说给他听** —— `lib/workspace/method/file_manager_actions.dart`；
   // - **把动作发给核心** —— 只有这里知道会话 id、忙状态与请求序号，所以桥调用留在这一层。
 
-  /// 输入即搜：防抖到 [_searchDebounceDuration]，回车走 `_submitSearch` 立即提交。
+  /// 输入即搜：首次查询新开结果页签，后续输入在该页签内防抖更新。
   void _scheduleSearch(String query) {
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(
-      _searchDebounceDuration,
-      () => _submitSearch(query),
-    );
+    _searchDebounce = Timer(_searchDebounceDuration, () => _searchInTab(query));
   }
 
   @override

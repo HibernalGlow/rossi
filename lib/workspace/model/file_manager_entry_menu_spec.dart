@@ -23,7 +23,7 @@ enum FileManagerEntryAction {
   /// 打开：目录进入、归档/图片交给 Reader。
   open,
 
-  /// 在新页签打开（目录才有意义）。
+  /// 在新页签打开：目录打开自身，文件定位到所在目录。
   openInNewTab,
 
   /// 在**系统**文件管理器里显示这一项（访达 / 资源管理器 / 打开所在目录）。
@@ -162,7 +162,7 @@ List<FileManagerEntryMenuItemSpec> buildFileManagerEntryMenuItems(
     ),
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.openInNewTab,
-      enabled: !batch && input.isDirectory,
+      enabled: !batch,
     ),
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.revealInFileManager,

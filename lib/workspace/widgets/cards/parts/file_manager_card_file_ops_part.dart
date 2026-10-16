@@ -209,7 +209,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
         await _openEntry(entry);
         return true;
       case FileManagerEntryAction.openInNewTab:
-        await _openPathInNewTab(entry.path);
+        await _openPathInNewTab(entry.path, isDirectory: entry.isDir);
         return true;
       case FileManagerEntryAction.copyPath:
         await copyFileManagerPathsToClipboard(context, paths: targets);

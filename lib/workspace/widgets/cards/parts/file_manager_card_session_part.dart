@@ -234,18 +234,60 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
   ///
   /// 失败时由**这里**弹具体错误（只有这一层知道异常是什么），并回
   /// [FileManagerTabOpenOutcome.failed] 让调用方别再补一句笼统的失败提示。
-  Future<FileManagerTabOpenOutcome> _openPathInNewTab(String path) async {
+  Future<FileManagerTabOpenOutcome> _openPathInNewTab(
+    String path, {
+    bool? isDirectory,
+  }) async {
     final id = _sessionId;
     if (id == null || _disposed) return FileManagerTabOpenOutcome.noSession;
+    _cancelPendingSearch();
+    final serial = ++_requestSerial;
+    // ignore: invalid_use_of_protected_member
+    setState(() {
+      _busy = true;
+      _searchPending = false;
+      _error = null;
+    });
     try {
+      // 搜索命中已带文件类型；书签/历史只存路径，在动作发生时查一次即可。
+      final type = isDirectory == null
+          ? await FileSystemEntity.type(path)
+          : null;
+      final directory =
+          isDirectory ??
+          switch (type) {
+            FileSystemEntityType.directory => true,
+            FileSystemEntityType.file => false,
+            _ => null,
+          };
+      final target = resolveFileManagerTabPath(path, isDirectory: directory);
+      if (target == null) {
+        throw StateError(t.shelfMenu.fileManagerTabNoLocalPath);
+      }
       await _configureNewTabs(id);
-      final snapshot = await fileManagerNewTab(id: id, path: path);
-      if (!mounted || _disposed) return FileManagerTabOpenOutcome.failed;
+      final snapshot = await fileManagerNewTab(id: id, path: target);
+      if (!mounted || _disposed || serial != _requestSerial) {
+        return FileManagerTabOpenOutcome.failed;
+      }
       // ignore: invalid_use_of_protected_member
-      setState(() => _acceptSnapshot(snapshot));
+      setState(() {
+        _acceptSnapshot(snapshot);
+        _busy = false;
+      });
+      // 文件落到所在目录后保留准确定位；不使用旧搜索结果的下标。
+      if (target != path) {
+        final index = snapshot.entries.indexWhere(
+          (entry) => entry.path == path,
+        );
+        if (index >= 0) {
+          await _runOps(
+            (id) => fileOpsSelectSingle(id: id, path: path, index: index),
+          );
+        }
+      }
       return FileManagerTabOpenOutcome.opened;
     } catch (error) {
-      if (mounted) _showError(error);
+      if (mounted && serial == _requestSerial) _showError(error);
       return FileManagerTabOpenOutcome.failed;
     }
   }
@@ -319,8 +361,9 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
         _snapshot?.layoutMode != snapshot.layoutMode) {
       _previewPath = null;
       _previewAutoExpanded.clear();
-      if (snapshot.layoutMode == FileManagerLayoutMode.content)
+      if (snapshot.layoutMode == FileManagerLayoutMode.content) {
         _treePoll?.cancel();
+      }
     } else if (_snapshot?.generation != snapshot.generation) {
       _fileStatistics.invalidate();
     }
@@ -328,6 +371,11 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       _tree = null;
       _treeGeneration = null;
       _treeRevealedPath = null;
+    }
+    if (_liveSearchTabId != null &&
+        (snapshot.activeTabId != _liveSearchTabId ||
+            snapshot.searchQuery.isEmpty)) {
+      _liveSearchTabId = null;
     }
     _snapshot = snapshot;
     _rememberOpenTabs(snapshot);
@@ -377,6 +425,12 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
   /// 反之 —— 核心自己改了查询（切页签与导航会清空搜索）—— 必须盖回输入框，
   /// 否则框里留着一个已经不再生效的词。
   void _syncSearchField(FileManagerSnapshot snapshot) {
+    // 建页签期间可能又输入了新词；先保留输入，后续防抖会把它交给新页签。
+    if (_searchTabCreation != null &&
+        snapshot.activeTabId == _liveSearchTabId &&
+        _searchFocus.hasFocus) {
+      return;
+    }
     final server = snapshot.searchQuery;
     final asked = _pendingSearchQuery;
     if (_searchFocus.hasFocus && asked != null && server == asked.trim()) {
