@@ -15,7 +15,9 @@ class LibraryLegacyFocus extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.footer,
     this.physics,
+    this.controller,
   });
+  final ScrollController? controller;
   final int count;
   final int columns;
   final double? extent;
@@ -32,6 +34,7 @@ class LibraryLegacyFocus extends StatelessWidget {
       ?header,
       Expanded(
         child: ListView.builder(
+          controller: controller,
           primary: false,
           physics: physics,
           padding: padding,
