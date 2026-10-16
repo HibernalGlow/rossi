@@ -729,7 +729,10 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
           key: PageStorageKey('library-wall:${widget.scope}'),
           controller: _scroll,
           padding: widget.padding,
-          physics: const AlwaysScrollableScrollPhysics(),
+          physics: widget.shrinkWrap
+              ? const NeverScrollableScrollPhysics()
+              : const AlwaysScrollableScrollPhysics(),
+          shrinkWrap: widget.shrinkWrap,
           itemCount:
               rows.length +
               (heroVisible ? 1 : 0) +

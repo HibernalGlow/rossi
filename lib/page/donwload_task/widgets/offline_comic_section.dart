@@ -187,11 +187,6 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
         if (entities[entry.key] case final item?)
           _row(context, item, pluginNames),
     ];
-    final height = (MediaQuery.sizeOf(context).height * 0.55).clamp(
-      280.0,
-      620.0,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -218,50 +213,46 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
           },
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: height,
-          child: LibraryEntryList(
-            editorialKey: _canvasKey,
-            editorialScope: 'download-offline',
-            initialEditorial: false,
-            timeline: _timeline,
-            timelineTimeOf: (row) =>
-                (row.source! as UnifiedComicDownload).downloadedAt,
-            detailBuilder: (context, row, close) {
-              final item = row.source! as UnifiedComicDownload;
-              return LibraryBookDetails(
-                entry: row,
-                comicId: item.comicId,
-                from: item.source,
-                type: isLocalComicSource(item.source, item.comicId)
-                    ? ComicEntryType.history
-                    : ComicEntryType.download,
-                onClose: close,
-              );
-            },
-            tapOpensDetail: false,
-            mode: _viewMode,
-            entries: rows,
-            onTap: (row) => _open(context, row),
-            emptyText: t.reader.noMatchingOfflineComics,
-            standalone: true,
-            titleColumn: const LibraryColumn(
-              key: 'title',
-              label: '标题',
-              flex: LibraryViewLayout.detailsTitleFlex,
-            ),
-            columns: _columns,
-            sortKey: _sort.field.name,
-            sortAscending: _sort.ascending,
-            onSort: (key) {
-              setState(
-                () => _sort = _sort.toggled(
-                  ShelfSortField.values.byName(key),
-                ),
-              );
-              _rememberViewState();
-            },
+        LibraryEntryList(
+          editorialKey: _canvasKey,
+          editorialScope: 'download-offline',
+          initialEditorial: false,
+          shrinkWrap: true,
+          timeline: _timeline,
+          timelineTimeOf: (row) =>
+              (row.source! as UnifiedComicDownload).downloadedAt,
+          detailBuilder: (context, row, close) {
+            final item = row.source! as UnifiedComicDownload;
+            return LibraryBookDetails(
+              entry: row,
+              comicId: item.comicId,
+              from: item.source,
+              type: isLocalComicSource(item.source, item.comicId)
+                  ? ComicEntryType.history
+                  : ComicEntryType.download,
+              onClose: close,
+            );
+          },
+          tapOpensDetail: false,
+          mode: _viewMode,
+          entries: rows,
+          onTap: (row) => _open(context, row),
+          emptyText: t.reader.noMatchingOfflineComics,
+          standalone: true,
+          titleColumn: const LibraryColumn(
+            key: 'title',
+            label: '标题',
+            flex: LibraryViewLayout.detailsTitleFlex,
           ),
+          columns: _columns,
+          sortKey: _sort.field.name,
+          sortAscending: _sort.ascending,
+          onSort: (key) {
+            setState(
+              () => _sort = _sort.toggled(ShelfSortField.values.byName(key)),
+            );
+            _rememberViewState();
+          },
         ),
       ],
     );
