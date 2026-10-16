@@ -33,7 +33,7 @@ class DiscoverSchemeRenderer {
     ScrollPhysics? physics,
   }) {
     final body = asJsonMap(scheme['body']);
-    final content = _buildNode(
+    final content = _buildSlivers(
       context,
       node: body,
       data: data,
@@ -41,22 +41,26 @@ class DiscoverSchemeRenderer {
       onAction: onAction,
     );
 
-    final children = <Widget>[content];
+    final children = <Widget>[...content];
     if (isLoadingMore) {
       children.add(
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
         ),
       );
     } else if (showLoadMoreRetry) {
       children.add(
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: ElevatedButton(
-              onPressed: onRetryLoadMore,
-              child: Text(t.searchResult.retry),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: ElevatedButton(
+                onPressed: onRetryLoadMore,
+                child: Text(t.searchResult.retry),
+              ),
             ),
           ),
         ),
@@ -65,7 +69,9 @@ class DiscoverSchemeRenderer {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        if (notification.metrics.maxScrollExtent <= 0) {
+        if (notification.depth != 0 ||
+            notification.metrics.axis != Axis.vertical ||
+            notification.metrics.maxScrollExtent <= 0) {
           return false;
         }
         if (notification.metrics.pixels >=
@@ -74,64 +80,69 @@ class DiscoverSchemeRenderer {
         }
         return false;
       },
-      child: ListView(
+      child: CustomScrollView(
         physics: physics ?? const AlwaysScrollableScrollPhysics(),
         shrinkWrap: shrinkWrap,
-        children: children,
+        slivers: children,
       ),
     );
   }
 
-  Widget _buildNode(
+  // 所有纵向节点共用一个 viewport；不能在列表里嵌 shrinkWrap 网格，
+  // 否则分页累计的封面会全部创建、布局和订阅下载状态。
+  Iterable<Widget> _buildSlivers(
     BuildContext context, {
     required Map<String, dynamic> node,
     required Map<String, dynamic> data,
     required String from,
     required Future<void> Function(Map<String, dynamic> action) onAction,
-  }) {
-    final type = node['type']?.toString() ?? '';
-    switch (type) {
+  }) sync* {
+    switch (node['type']?.toString() ?? '') {
       case 'list':
-        final children = asJsonList(node['children'])
-            .map(
-              (item) => _buildNode(
-                context,
-                node: asJsonMap(item),
-                data: data,
-                from: from,
-                onAction: onAction,
-              ),
-            )
-            .toList();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        );
+        for (final item in asJsonList(node['children'])) {
+          yield* _buildSlivers(
+            context,
+            node: asJsonMap(item),
+            data: data,
+            from: from,
+            onAction: onAction,
+          );
+        }
       case 'chip-list':
-        return _buildChipList(context, _resolveItems(node, data), onAction);
+        yield SliverToBoxAdapter(
+          child: _buildChipList(context, _resolveItems(node, data), onAction),
+        );
       case 'action-grid':
-        return _buildActionGrid(
+        yield _buildActionGrid(
           context,
           _resolveItems(node, data),
           from,
           onAction,
         );
       case 'comic-section-list':
-        return _buildComicSectionList(
+        yield _buildComicSectionList(
           context,
           _resolveItems(node, data),
           from,
           onAction,
         );
       case 'comic-grid':
-        return _buildComicGrid(
-          _resolveItems(node, data),
-          title: node['title']?.toString() ?? '',
-          action: asJsonMap(node['action']),
-          onAction: onAction,
+        final items = _resolveItems(node, data);
+        if (items.isEmpty) return;
+        final title = node['title']?.toString() ?? '';
+        final action = asJsonMap(node['action']);
+        if (title.trim().isNotEmpty) {
+          yield SliverToBoxAdapter(
+            child: SectionHeader(
+              title: title.let(convertChineseForDisplay),
+              onTap: _isActionable(action) ? () => onAction(action) : null,
+            ),
+          );
+        }
+        yield BaseComicGridSliver(
+          entries: mapToUnifiedComicSimplifyEntryInfoList(items),
+          type: ComicEntryType.normal,
         );
-      default:
-        return const SizedBox.shrink();
     }
   }
 
@@ -179,62 +190,61 @@ class DiscoverSchemeRenderer {
     Future<void> Function(Map<String, dynamic> action) onAction,
   ) {
     if (items.isEmpty) {
-      return const SizedBox.shrink();
+      return const SliverToBoxAdapter();
     }
 
     const spacing = 12.0;
 
-    return GridView.builder(
+    return SliverPadding(
       padding: const EdgeInsets.all(spacing),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 150,
-        mainAxisSpacing: spacing,
-        crossAxisSpacing: spacing,
-        childAspectRatio: 0.8,
-      ),
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final title = item['title']?.toString() ?? '';
-        final cover = asJsonMap(item['cover']);
-        final coverUrl = cover['url']?.toString().trim() ?? '';
-        final coverPath = cover['path']?.toString().trim() ?? '';
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 150,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childAspectRatio: 0.8,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final item = items[index];
+          final title = item['title']?.toString() ?? '';
+          final cover = asJsonMap(item['cover']);
+          final coverUrl = cover['url']?.toString().trim() ?? '';
+          final coverPath = cover['path']?.toString().trim() ?? '';
 
-        return GestureDetector(
-          onTap: () => onAction(asJsonMap(item['action'])),
-          child: Column(
-            children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => CoverWidget(
-                      fileServer: coverUrl,
-                      path: coverPath,
-                      id: title,
-                      pictureType: PictureType.category,
-                      from: from,
-                      width: constraints.maxWidth,
-                      height: constraints.maxHeight,
+          return GestureDetector(
+            onTap: () => onAction(asJsonMap(item['action'])),
+            child: Column(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => CoverWidget(
+                        fileServer: coverUrl,
+                        path: coverPath,
+                        id: title,
+                        pictureType: PictureType.category,
+                        from: from,
+                        width: constraints.maxWidth,
+                        height: constraints.maxHeight,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                title.let(convertChineseForDisplay),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: context.textColor, fontSize: 14),
-              ),
-            ],
-          ),
-        );
-      },
+                const SizedBox(height: 5),
+                Text(
+                  title.let(convertChineseForDisplay),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: context.textColor, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }, childCount: items.length),
+      ),
     );
   }
 
@@ -245,11 +255,13 @@ class DiscoverSchemeRenderer {
     Future<void> Function(Map<String, dynamic> action) onAction,
   ) {
     if (sections.isEmpty) {
-      return const SizedBox.shrink();
+      return const SliverToBoxAdapter();
     }
 
-    return Column(
-      children: sections.map((section) {
+    return SliverList.builder(
+      itemCount: sections.length,
+      itemBuilder: (context, index) {
+        final section = sections[index];
         final title = section['title']?.toString() ?? '';
         final subtitle = section['subtitle']?.toString() ?? '';
         final items = asJsonList(
@@ -280,37 +292,7 @@ class DiscoverSchemeRenderer {
             ],
           ),
         );
-      }).toList(),
-    );
-  }
-
-  Widget _buildComicGrid(
-    List<Map<String, dynamic>> items, {
-    required String title,
-    required Map<String, dynamic> action,
-    required Future<void> Function(Map<String, dynamic> action) onAction,
-  }) {
-    if (items.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final entries = mapToUnifiedComicSimplifyEntryInfoList(items);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (title.trim().isNotEmpty)
-          SectionHeader(
-            title: title.let(convertChineseForDisplay),
-            onTap: _isActionable(action) ? () => onAction(action) : null,
-          ),
-        ComicSimplifyEntryGridView(
-          entries: entries,
-          type: ComicEntryType.normal,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(10),
-        ),
-      ],
+      },
     );
   }
 
