@@ -859,7 +859,7 @@ jobs:
           export PATH="$CARGO_HOME/bin:$PATH"
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
           export CARGO_TARGET_AARCH64_APPLE_IOS_LINKER="$(xcrun --sdk iphoneos --find clang)"
-          export IPHONEOS_DEPLOYMENT_TARGET="15.0"
+          export IPHONEOS_DEPLOYMENT_TARGET="16.0"
           export CFLAGS_aarch64_apple_ios="-miphoneos-version-min=$IPHONEOS_DEPLOYMENT_TARGET -isysroot $SDKROOT"
           export CXXFLAGS_aarch64_apple_ios="$CFLAGS_aarch64_apple_ios"
           export CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS="-C link-arg=-miphoneos-version-min=$IPHONEOS_DEPLOYMENT_TARGET"

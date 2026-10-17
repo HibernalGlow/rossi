@@ -19,11 +19,13 @@
   `macos/Flutter/ephemeral/Flutter{Inputs,Outputs}.xcfilelist` 这几份**生成物**里
   （受跟踪的 Podfile / pbxproj 一处都没有）。改前缀即可；**只把 `build/macos/Build` 移开不够**。
   详见 ADR-0018 实现记录那段。
-- **iOS 出包本机跑过一次，但断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
-  用了 `float16`（要 iOS 16），而工程 `ios/Runner.xcodeproj` 的 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`，
+- **iOS 出包本机跑过一次，但曾断在一处与 OCR 无关的地方**：`packages/coreml_upscale/ios/Classes/MultiArrayModel.swift`
+  用了 `float16`（要 iOS 16），而当时工程 `ios/Runner.xcodeproj` 的 `IPHONEOS_DEPLOYMENT_TARGET = 15.0`，
   于是 `pod install` 之后 xcodebuild 直接报四条 `'float16' is only available in iOS 16.0 or newer`。
   引入它的是 `d66ee508`（2026-09-25 的 CoreML 分块提交，未推送），**不是成品页链路**；
-  后果是 OCR 的 iOS **链接级**证据本机拿不到（`ocr_core` 的 iOS `cargo check` 是零告警过的）。
+  后果是 OCR 的 iOS **链接级**证据当时本机拿不到（`ocr_core` 的 iOS `cargo check` 是零告警过的）。
+  **2026-10-17 已按「抬最低系统版本」这条路解**：`ios/Podfile`、pbxproj 三处、`coreml_upscale.podspec`
+  与两条 workflow 的 `IPHONEOS_DEPLOYMENT_TARGET` 一起从 15.0 抬到 16.0（只改一处会被另一处拽回去）。
 - **Windows 侧仍未验**：`--ep auto` 的端到端与 scratch 目录清理压在那台离线机器上
   （Tailscale 报 `offline, last seen 2h ago`，不是网络或密钥问题）。
 - **端到端已经跑过一次真权重**：`test/ocr/completed_page_e2e_test.dart` 对
