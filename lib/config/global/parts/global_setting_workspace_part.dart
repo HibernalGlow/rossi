@@ -132,6 +132,10 @@ abstract class DiscoverSettingState with _$DiscoverSettingState {
     /// 双击标签直接关闭。默认开：用户明确要这条路径；开关挂在发现页标签条
     /// 的「显示选项」菜单里，随时可关（关掉后旁路观察器直接不注册，零开销）。
     @Default(true) bool tabDoubleClickClose,
+
+    /// 封面标签模式：常规标签以打开的漫画封面展示，特殊页面以特殊图标加第一张可用封面展示，
+    /// 标签信息叠在封面之上作为信息层。
+    @Default(false) bool tabCoverMode,
   }) = _DiscoverSettingState;
 
   factory DiscoverSettingState.fromJson(Map<String, dynamic> json) =>

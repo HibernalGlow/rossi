@@ -6,11 +6,11 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `coreml_cache_dir`, `ensure_session_sweeper`, `init_ort`, `model_kind_file`
+// These functions are ignored because they are not marked as `pub`: `coreml_cache_dir`, `decode_input`, `ensure_session_sweeper`, `init_ort`, `model_kind_file`, `model_output_scale`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `CachedSession`
 
-/// Run one mImage ONNX model and write a PNG. `model_path` must be a real
-/// ONNX file; Git-LFS pointer files are rejected before inference.
+/// Run one mImage ONNX model and write a PNG. Upscalers output 4x; RealPLKSR
+/// removes JPEG noise at 1x. Git-LFS pointer files are rejected before inference.
 Future<String> mimageOnnxUpscale({
   required String inputPath,
   required String outputPath,

@@ -231,6 +231,9 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 默认关：下载目录本来就是「hash 目录 + hash 文件名」，只有 ObjectBox 认得，
     // 多写两份 JSON 属于用户主动要的可移植性，不该默认改变磁盘内容。
     @Default(false) bool writeDownloadMetadataFile,
+    // 点击「下载」按钮时是否弹出下载选项（整本 / 最近 N 章 / 手动挑选）。
+    // 默认关（false）：点击直接下载全本；开启后多章节漫画会弹窗询问，单集漫画仍直接下载。
+    @Default(false) bool promptDownloadOptions,
     @Default(false) bool leftHandModeEnabled,
     @Default(false) bool clickCoverToStartReading,
     // 详情页「阅读」入口：桌面端放进操作行（「下载」旁边），并撤掉右下角的悬浮按钮。

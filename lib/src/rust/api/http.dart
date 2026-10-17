@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `apply_default_headers`, `apply_headers`, `create_reqwest_client`, `flatten_headers`, `resolve_url`
+// These functions are ignored because they are not marked as `pub`: `apply_default_headers`, `apply_headers`, `create_reqwest_client`, `error_chain`, `flatten_headers`, `resolve_url`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 快捷入口：每次新建客户端后 `fetch`。
