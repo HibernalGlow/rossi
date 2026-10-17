@@ -9,6 +9,7 @@ import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_info/models/go_to_comic_read.dart';
 import 'package:zephyr/page/comic_read/method/load_plugin_read_launch.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 import 'package:zephyr/service/download/models/download_task_json.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/path_util.dart';
@@ -36,6 +37,8 @@ Future<void> startComicQuickRead(
   BuildContext context, {
   required String comicId,
   required String from,
+  String? navigationToken,
+  bool replaceCurrent = false,
 }) async {
   final pluginId = from.trim();
   final id = comicId.trim();
@@ -54,6 +57,8 @@ Future<void> startComicQuickRead(
         context,
         id,
         hasHistory: _hasComicHistory('local', id),
+        navigationToken: navigationToken,
+        replaceCurrent: replaceCurrent,
       );
       _logQuickRead(startSw, '本地');
       return;
@@ -69,6 +74,8 @@ Future<void> startComicQuickRead(
         isDownload: true,
         hasHistory: _hasComicHistory(pluginId, id),
         stringSelectCubit: StringSelectCubit(),
+        navigationToken: navigationToken,
+        replaceCurrent: replaceCurrent,
       );
       _logQuickRead(startSw, '下载记录');
       return;
@@ -99,6 +106,8 @@ Future<void> startComicQuickRead(
         isDownload: false,
         hasHistory: _findHistory(pluginId, launch.comicId) != null,
         stringSelectCubit: StringSelectCubit(),
+        navigationToken: navigationToken,
+        replaceCurrent: replaceCurrent,
       );
       _logQuickRead(startSw, '快照起读', detailMs: launchSw.elapsedMilliseconds);
       return;
@@ -119,6 +128,8 @@ Future<void> startComicQuickRead(
       isDownload: false,
       hasHistory: _hasComicHistory(pluginId, readId),
       stringSelectCubit: StringSelectCubit(),
+      navigationToken: navigationToken,
+      replaceCurrent: replaceCurrent,
     );
     _logQuickRead(startSw, '退回整本详情', detailMs: detailSw.elapsedMilliseconds);
   } catch (e, s) {
@@ -180,16 +191,25 @@ void _pushLocalComicRead(
   BuildContext context,
   String comicId, {
   required bool hasHistory,
+  String? navigationToken,
+  bool replaceCurrent = false,
 }) {
-  context.pushRoute(
-    ComicReadRoute(
-      comicId: comicId,
-      order: 0,
-      from: 'local',
-      epsNumber: 1,
-      type: hasHistory ? ComicEntryType.history : ComicEntryType.normal,
-      comicInfo: comicId,
-      stringSelectCubit: StringSelectCubit(),
-    ),
+  final route = ComicReadRoute(
+    comicId: comicId,
+    order: 0,
+    from: 'local',
+    epsNumber: 1,
+    type: hasHistory ? ComicEntryType.history : ComicEntryType.normal,
+    comicInfo: comicId,
+    chapterExtern: {
+      if (navigationToken != null)
+        ShelfBookNavigationRegistry.contextKey: navigationToken,
+    },
+    stringSelectCubit: StringSelectCubit(),
   );
+  if (replaceCurrent) {
+    context.router.replace(route);
+  } else {
+    context.pushRoute(route);
+  }
 }
