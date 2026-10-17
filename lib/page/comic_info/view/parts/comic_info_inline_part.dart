@@ -50,15 +50,30 @@ extension _ComicInfoInlinePart on _ComicInfoState {
           _type != ComicEntryType.download && capability.enabled;
       final content = ComicInlineDetailsSurface(
         onClose: widget.onClose!,
-        operations: ComicOperationWidget(
-          key: ValueKey('inline-actions:${widget.from}:$_comicId'),
-          normalInfo: info,
-          from: widget.from,
-          comicInfo: comicInfoDyn,
-          collectionTargetId: widget.collectionTargetId,
-          collectionTargetName: widget.collectionTargetName,
-          inline: true,
-        ),
+        showTopClose: false,
+        operations: const SizedBox.shrink(),
+        bottomActions: [
+          FilledButton.tonalIcon(
+            onPressed: widget.onClose,
+            style: FilledButton.styleFrom(
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            icon: const GlyphIcon(AppGlyphs.chevronUp),
+            label: Text(t.comicInfo.collapseDetails),
+          ),
+          ComicOperationWidget(
+            key: ValueKey('inline-actions:${widget.from}:$_comicId'),
+            normalInfo: info,
+            from: widget.from,
+            comicInfo: comicInfoDyn,
+            collectionTargetId: widget.collectionTargetId,
+            collectionTargetName: widget.collectionTargetName,
+            inline: true,
+            onRead: () => _startReading(widget.type),
+            primaryActionsOnly: true,
+          ),
+        ],
         tools: Wrap(
           spacing: 8,
           runSpacing: 8,
