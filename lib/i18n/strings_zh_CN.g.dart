@@ -98,6 +98,9 @@ class Translations$workspace$zh_CN {
 	/// zh-CN: '$title (点击展开泳道)'
 	String laneTapExpandHint({required Object title}) => '${title} (点击展开泳道)';
 
+	/// zh-CN: '$title（点按收起泳道）'
+	String laneTapCollapseHint({required Object title}) => '${title}（点按收起泳道）';
+
 	/// zh-CN: '$title （按住可拖动重排泳道）'
 	String laneDragHint({required Object title}) => '${title} （按住可拖动重排泳道）';
 
@@ -850,6 +853,120 @@ class Translations$workspace$zh_CN {
 
 	/// zh-CN: '空隙填充'
 	String get gapFill => '空隙填充';
+
+	/// zh-CN: '空隙与组件'
+	String get gapComponentsTitle => '空隙与组件';
+
+	/// zh-CN: '随机图形与小组件同在一处调整：先选总口径，再逐项开关；每一项都能直接看到实际样子。'
+	String get gapComponentsDescription => '随机图形与小组件同在一处调整：先选总口径，再逐项开关；每一项都能直接看到实际样子。';
+
+	/// zh-CN: '预览'
+	String get gapPreviewLabel => '预览';
+
+	/// zh-CN: '全部开启'
+	String get gapEnableAll => '全部开启';
+
+	/// zh-CN: '全部关闭'
+	String get gapDisableAll => '全部关闭';
+
+	/// zh-CN: '随机图形'
+	String get gapShapesSection => '随机图形';
+
+	/// zh-CN: '小组件'
+	String get gapWidgetsSection => '小组件';
+
+	/// zh-CN: '有机团'
+	String get gapShapeBlob => '有机团';
+
+	/// zh-CN: '星芒'
+	String get gapShapeBurst => '星芒';
+
+	/// zh-CN: '四叶草'
+	String get gapShapeClover => '四叶草';
+
+	/// zh-CN: '宝石'
+	String get gapShapeGem => '宝石';
+
+	/// zh-CN: '拱门'
+	String get gapShapeArch => '拱门';
+
+	/// zh-CN: '花形'
+	String get gapShapeFlower => '花形';
+
+	/// zh-CN: '圆环'
+	String get gapShapeRing => '圆环';
+
+	/// zh-CN: '波纹'
+	String get gapShapeWave => '波纹';
+
+	/// zh-CN: '收官进度'
+	String get gapCompletion => '收官进度';
+
+	/// zh-CN: '阅读热力'
+	String get gapHeatmap => '阅读热力';
+
+	/// zh-CN: '星期节律'
+	String get gapWeekday => '星期节律';
+
+	/// zh-CN: '收藏跨度'
+	String get gapSpan => '收藏跨度';
+
+	/// zh-CN: '待读存量'
+	String get gapUnread => '待读存量';
+
+	/// zh-CN: '下一里程碑'
+	String get gapMilestone => '下一里程碑';
+
+	/// zh-CN: '平均进度'
+	String get gapAverageProgress => '平均进度';
+
+	/// zh-CN: '读完'
+	String get gapFinishedBooks => '读完';
+
+	/// zh-CN: '未读'
+	String get gapUnreadBooks => '未读';
+
+	/// zh-CN: '近 8 周'
+	String get gapHeatWindow => '近 8 周';
+
+	/// zh-CN: '星期分布'
+	String get gapWeekdayRhythm => '星期分布';
+
+	/// zh-CN: '天跨度'
+	String get gapSpanDaysLabel => '天跨度';
+
+	/// zh-CN: '最早'
+	String get gapSpanEarliest => '最早';
+
+	/// zh-CN: '待开始'
+	String get gapUnreadPool => '待开始';
+
+	/// zh-CN: '还差'
+	String get gapMilestoneHint => '还差';
+
+	/// zh-CN: '$on / $total 开启'
+	String gapComponentCount({required Object on, required Object total}) => '${on} / ${total} 开启';
+
+	/// zh-CN: '最小 $w × $h'
+	String gapMinSize({required Object w, required Object h}) => '最小 ${w} × ${h}';
+
+	/// zh-CN: '恢复默认'
+	String get gapResetDefaults => '恢复默认';
+
+	/// zh-CN: '尺寸'
+	String get wallTabSize => '尺寸';
+
+	/// zh-CN: '布局'
+	String get wallTabLayout => '布局';
+
+	/// zh-CN: '组件'
+	String get wallTabComponents => '组件';
+
+	/// zh-CN: '封面'
+	String get wallTabCover => '封面';
+
+	/// zh-CN: '权重'
+	String get wallTabWeights => '权重';
 
 	/// zh-CN: '空闲'
 	String get idleState => '空闲';
@@ -3748,6 +3865,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入'
 	String get writeDownloadMetadataFileSubtitle => '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入';
+
+	/// zh-CN: '下载时询问选项'
+	String get promptDownloadOptions => '下载时询问选项';
+
+	/// zh-CN: '点下载时先选「整本 / 最近章节 / 挑选章节」；关闭后直接下载全部章节'
+	String get promptDownloadOptionsSubtitle => '点下载时先选「整本 / 最近章节 / 挑选章节」；关闭后直接下载全部章节';
 
 	/// zh-CN: '左手优化'
 	String get leftHandMode => '左手优化';
@@ -9134,6 +9257,12 @@ class Translations$discover$zh_CN {
 	/// zh-CN: '双击关闭标签'
 	String get tabDoubleClickClose => '双击关闭标签';
 
+	/// zh-CN: '封面页签'
+	String get tabCoverMode => '封面页签';
+
+	/// zh-CN: '把页签显示成书封，并在封面上叠加信息'
+	String get tabCoverModeDesc => '把页签显示成书封，并在封面上叠加信息';
+
 	/// zh-CN: '网页'
 	String get webPage => '网页';
 
@@ -10731,6 +10860,7 @@ extension on Translations {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
 			'workspace.laneTapExpandHint' => ({required Object title}) => '${title} (点击展开泳道)',
+			'workspace.laneTapCollapseHint' => ({required Object title}) => '${title}（点按收起泳道）',
 			'workspace.laneDragHint' => ({required Object title}) => '${title} （按住可拖动重排泳道）',
 			'workspace.laneSortHint' => ({required Object title}) => '${title}（在泳道菜单中选择“编辑布局”可排序）',
 			'workspace.allowedRange' => ({required Object min, required Object max}) => '允许 ${min}–${max}',
@@ -10982,6 +11112,44 @@ extension on Translations {
 			'workspace.emphasiseRecent' => '突出最近使用的内容。',
 			'workspace.passthroughMode' => '穿透模式',
 			'workspace.gapFill' => '空隙填充',
+			'workspace.gapComponentsTitle' => '空隙与组件',
+			'workspace.gapComponentsDescription' => '随机图形与小组件同在一处调整：先选总口径，再逐项开关；每一项都能直接看到实际样子。',
+			'workspace.gapPreviewLabel' => '预览',
+			'workspace.gapEnableAll' => '全部开启',
+			'workspace.gapDisableAll' => '全部关闭',
+			'workspace.gapShapesSection' => '随机图形',
+			'workspace.gapWidgetsSection' => '小组件',
+			'workspace.gapShapeBlob' => '有机团',
+			'workspace.gapShapeBurst' => '星芒',
+			'workspace.gapShapeClover' => '四叶草',
+			'workspace.gapShapeGem' => '宝石',
+			'workspace.gapShapeArch' => '拱门',
+			'workspace.gapShapeFlower' => '花形',
+			'workspace.gapShapeRing' => '圆环',
+			'workspace.gapShapeWave' => '波纹',
+			'workspace.gapCompletion' => '收官进度',
+			'workspace.gapHeatmap' => '阅读热力',
+			'workspace.gapWeekday' => '星期节律',
+			'workspace.gapSpan' => '收藏跨度',
+			'workspace.gapUnread' => '待读存量',
+			'workspace.gapMilestone' => '下一里程碑',
+			'workspace.gapAverageProgress' => '平均进度',
+			'workspace.gapFinishedBooks' => '读完',
+			'workspace.gapUnreadBooks' => '未读',
+			'workspace.gapHeatWindow' => '近 8 周',
+			'workspace.gapWeekdayRhythm' => '星期分布',
+			'workspace.gapSpanDaysLabel' => '天跨度',
+			'workspace.gapSpanEarliest' => '最早',
+			'workspace.gapUnreadPool' => '待开始',
+			'workspace.gapMilestoneHint' => '还差',
+			'workspace.gapComponentCount' => ({required Object on, required Object total}) => '${on} / ${total} 开启',
+			'workspace.gapMinSize' => ({required Object w, required Object h}) => '最小 ${w} × ${h}',
+			'workspace.gapResetDefaults' => '恢复默认',
+			'workspace.wallTabSize' => '尺寸',
+			'workspace.wallTabLayout' => '布局',
+			'workspace.wallTabComponents' => '组件',
+			'workspace.wallTabCover' => '封面',
+			'workspace.wallTabWeights' => '权重',
 			'workspace.idleState' => '空闲',
 			'workspace.moveToTrashNoUndo' => '移到回收站（无法撤销）',
 			'workspace.moveToTrash' => '移到回收站',
@@ -11203,6 +11371,8 @@ extension on Translations {
 			'workspace.coverLabel' => '封面',
 			'workspace.exportAsJson' => '导出为 JSON',
 			'workspace.importExport' => '导入 / 导出',
+			_ => null,
+		} ?? switch (path) {
 			'workspace.cardWidthAutoColumns' => '宽度为目标尺寸，列数随面板可用空间自动调整。宽卡占两格，可与普通卡并排。',
 			'workspace.finishEditing' => '完成编辑',
 			'workspace.finishLayout' => '完成布局',
@@ -11242,8 +11412,6 @@ extension on Translations {
 			'workspace.imageProcessingStage' => '图像处理阶段',
 			'workspace.imageInformation' => '图像信息',
 			'workspace.pinTab' => '固定页签',
-			_ => null,
-		} ?? switch (path) {
 			'workspace.pinHere' => '固定到当前位置',
 			'workspace.backToFolder' => '回到目录',
 			'workspace.backHome' => '回到主页',
@@ -11717,6 +11885,8 @@ extension on Translations {
 			'settings.toastPositionSubtitle' => '提示条停靠在屏幕的哪个角',
 			'settings.toastPositionTopLeft' => '左上',
 			'settings.toastPositionTopCenter' => '顶部居中',
+			_ => null,
+		} ?? switch (path) {
 			'settings.toastPositionTopRight' => '右上',
 			'settings.toastPositionMiddleLeft' => '左侧居中',
 			'settings.toastPositionCenter' => '屏幕居中',
@@ -11756,8 +11926,6 @@ extension on Translations {
 			'settings.maskedKeywords' => '屏蔽关键词',
 			'settings.maskedKeywordsSubtitle' => '添加关键词，过滤不想看到的内容（仅搜索生效）',
 			'settings.maskedKeywordsEmpty' => '暂无屏蔽词',
-			_ => null,
-		} ?? switch (path) {
 			'settings.maskedKeywordsInputHint' => '输入新关键词...',
 			'settings.favoriteArtistHighlight' => '喜欢画师高亮',
 			'settings.favoriteArtistHighlightSubtitle' => '在漫画卡片和详情页醒目标记喜欢的画师',
@@ -11941,6 +12109,8 @@ extension on Translations {
 			'settings.autoFavoriteOnDownloadSubtitle' => '开启后下载漫画时将自动加入本地收藏',
 			'settings.writeDownloadMetadataFile' => '下载写入元数据文件',
 			'settings.writeDownloadMetadataFileSubtitle' => '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入',
+			'settings.promptDownloadOptions' => '下载时询问选项',
+			'settings.promptDownloadOptionsSubtitle' => '点下载时先选「整本 / 最近章节 / 挑选章节」；关闭后直接下载全部章节',
 			'settings.leftHandMode' => '左手优化',
 			'settings.leftHandModeSubtitle' => '开启后将悬浮按钮等操作按钮移到屏幕左侧',
 			'settings.clickCoverToStartReading' => '点击封面开始阅读',
@@ -12229,6 +12399,8 @@ extension on Translations {
 			'settings.revealFocusesLaneSubtitle' => '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。',
 			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
 			'settings.panelLaneHoverFocusSubtitle' => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。',
+			_ => null,
+		} ?? switch (path) {
 			'settings.delayRangeHint' => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。',
 			'settings.hoverRevealZones' => '悬停唤出区',
 			'settings.hoverRevealZonesSubtitle' => '在画布上拖出矩形，决定指针停在哪儿会把对应内容调出来。',
@@ -12270,8 +12442,6 @@ extension on Translations {
 			'settings.operationBindingRadialSlotsSubtitle' => '点击轮盘空槽或已有槽',
 			'settings.operationBindingRadialName' => '轮盘名',
 			'settings.operationBindingRadialSlotLabel' => ({required Object layer, required Object sector}) => '第 ${layer} 层 · 第 ${sector} 格',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialEmptySlot' => '空槽',
 			'settings.operationBindingRadialUnbindSlot' => '解绑这一格',
 			'settings.operationBindingRadialMaxMenus' => ({required Object max}) => '最多 ${max} 个轮盘',
@@ -12743,6 +12913,8 @@ extension on Translations {
 			'reader.onlyThisComicUpscaleOwn' => '只影响当前漫画；超分由它自己的开关决定',
 			'reader.twoPagesIndependent' => '双页独立',
 			'reader.twoPageModeTap' => '双页模式（点击切为单页）',
+			_ => null,
+		} ?? switch (path) {
 			'reader.twoPages' => '双页',
 			'reader.originalSize' => '原始大小',
 			'reader.comparingOriginal' => '原图对比中',
@@ -12784,8 +12956,6 @@ extension on Translations {
 			'reader.deleteDownload' => '删除下载',
 			'reader.retryFailedParts' => '重试失败部分',
 			'reader.retryFailedPartsSubtitle' => '仅重新下载未完成或失败的章节与图片',
-			_ => null,
-		} ?? switch (path) {
 			'reader.restartDownloadSmart' => '增量补全（推荐）',
 			'reader.restartDownloadSmartDesc' => '检测本地已下载内容，仅下载缺失或失败的图片',
 			'reader.restartDownloadFull' => '全量重下',
@@ -13257,6 +13427,8 @@ extension on Translations {
 			'ocr.glossarySubtitle' => '每行一条「原文=译文」；改动会让已生成的成品页重译',
 			'ocr.glossaryHint' => 'トカゲ=石龙子',
 			'ocr.saved' => '已保存',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.notConfigured' => '还缺接口地址或模型名',
 			'ocr.epSection' => '推理后端',
 			'ocr.ep' => '推理后端',
@@ -13298,8 +13470,6 @@ extension on Translations {
 			'ocr.failedShort' => '译文失败',
 			'ocr.busyToast' => '这一页正在生成译文，稍等',
 			'ocr.needWeights' => '权重还没下全，去设置里下载',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.engine' => '译文引擎',
 			'ocr.engineSubtitle' => '选「API 端点」按 token 计费/要网络；选「Apple 系统翻译」走端侧，免费离线',
 			'ocr.autoTranslatePage' => '翻到新的一页自动译',
@@ -13691,6 +13861,8 @@ extension on Translations {
 			'discover.tabShowIcon' => '显示插件图标',
 			'discover.tabShowPluginShort' => '显示插件名缩写',
 			'discover.tabDoubleClickClose' => '双击关闭标签',
+			'discover.tabCoverMode' => '封面页签',
+			'discover.tabCoverModeDesc' => '把页签显示成书封，并在封面上叠加信息',
 			'discover.webPage' => '网页',
 			'discover.comicDetail' => '详情',
 			'searchResult.enterPageNumber' => '输入页数',
@@ -13769,6 +13941,8 @@ extension on Translations {
 			'comicFollow.newChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话，共 ${total} 话',
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话未阅读，共 ${total} 话',
 			'comicFollow.latestCount' => ({required Object count}) => '最新 ${count} 话',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.fetchFailed' => '获取失败',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '新增 ${diff} 话',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',
@@ -13825,8 +13999,6 @@ extension on Translations {
 			'login.invalidCredentials' => '用户名或密码错误，请重新输入',
 			'login.configNotReady' => '登录配置未就绪，请稍后重试',
 			'login.loggingIn' => '正在登录，请耐心等待...',
-			_ => null,
-		} ?? switch (path) {
 			'login.loginSuccess' => '登录成功',
 			'login.loginFailed' => '登录失败',
 			'login.loginButton' => '登录',

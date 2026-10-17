@@ -84,17 +84,22 @@ class _FavoriteArtistMatching {
       circleTags,
       artistPosition: false,
     );
-    final creatorNames = [?FavoriteArtistMatcher._name(creator)];
-    final titleArtists = [?FavoriteArtistMatcher._name(block?.artist)];
-    final titleCircles = [?FavoriteArtistMatcher._name(block?.circle)];
-    final titleBares = [?FavoriteArtistMatcher._name(block?.bare)];
+    final creatorNames = FavoriteArtistMatcher._nameWithSplits(creator);
+    final titleArtists = FavoriteArtistMatcher._nameWithSplits(block?.artist);
+    final titleCircles = FavoriteArtistMatcher._nameWithSplits(block?.circle);
+    final titleBares = FavoriteArtistMatcher._nameWithSplits(block?.bare);
 
     FavoriteArtistMatchResult firstHit(
       Iterable<_Name> names,
       FavoriteArtistEvidence evidence, {
       required bool circleSide,
     }) {
-      final candidates = names.where((name) => name.key.isNotEmpty).toList();
+      final candidates = names
+          .where(
+            (name) =>
+                name.key.isNotEmpty && !FavoriteArtistMatcher.isNoise(name.key),
+          )
+          .toList();
       if (candidates.isEmpty) return FavoriteArtistMatchResult.notMatched;
       final index = circleSide ? _circleIndex : _artistIndex;
       ({String raw, int rank})? best;
@@ -197,14 +202,18 @@ class _FavoriteArtistMatching {
       for (final entry in entries) {
         for (final key in entry.artistKeys) {
           // `社团 (画师)` 这种复合键不可能作为独立词出现，跳过。
-          if (key.contains('(') || key.contains('（')) {
+          if (key.contains('(') ||
+              key.contains('（') ||
+              FavoriteArtistMatcher.isNoise(key)) {
             continue;
           }
           tokenKeys.add((key: key, raw: entry.raw));
         }
         if (circleMode == FavoriteArtistCircleMode.independent) {
           for (final key in entry.circleKeys) {
-            if (key.contains('(') || key.contains('（')) {
+            if (key.contains('(') ||
+                key.contains('（') ||
+                FavoriteArtistMatcher.isNoise(key)) {
               continue;
             }
             tokenKeys.add((key: key, raw: entry.raw));

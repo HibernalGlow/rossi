@@ -108,10 +108,14 @@ class _FavoriteEntry {
   final Set<String> artistKeys;
   final Set<String> circleKeys;
 
+  /// 用户添加的原始项是否为裸名称（未带 `(画师)` 伴随结构）。
+  final bool isBare;
+
   const _FavoriteEntry({
     required this.raw,
     required this.artistKeys,
     required this.circleKeys,
+    this.isBare = false,
   });
 }
 
@@ -195,6 +199,10 @@ class FavoriteArtistMatcher {
     '校對',
     '翻译',
     '翻譯',
+    '中翻',
+    '中国語',
+    '中国翻訳',
+    '中文',
     '压制',
     '样本',
     '樣本',
@@ -214,6 +222,62 @@ class FavoriteArtistMatcher {
     '彩頁',
     '完结',
     '完結',
+    '無修正',
+    '修正',
+    '脱色',
+    '去码',
+    '重嵌',
+    '別スキャン',
+    '新刊',
+    '既刊',
+    '単行本',
+    '単行本未収録',
+    '同人セレクション',
+    'DL版',
+    'よろず',
+    'オリジナル',
+    '二次創作',
+    '二次创作',
+    '合同',
+    '合同誌',
+    '合同志',
+    'アンソロジー',
+    '総集編',
+    '総集',
+    '总集篇',
+    '再録',
+    '再录',
+    'まとめ',
+    'コミティア',
+    'comitia',
+    'サンクリ',
+    '例大祭',
+    '红楼梦',
+    '同人',
+    '同人誌',
+    '同人志',
+    '成年コミック',
+    '个人汉化',
+    '個人漢化',
+    '个人翻译',
+    '個人翻譯',
+    '个人',
+    '個人',
+    '汉化组',
+    '漢化組',
+    '翻译组',
+    '翻譯組',
+    '烤肉组',
+    '烤肉組',
+    '补汉',
+    '補漢',
+    '汉化社',
+    '漢化社',
+    'AI翻译',
+    'AI翻訳',
+    'AI Generated',
+    'AI生成',
+    '生肉',
   ];
 
   static const _noiseWords = <String>[
@@ -228,6 +292,16 @@ class FavoriteArtistMatcher {
     'chinese',
     'japanese',
     'ocr',
+    'original',
+    'anthology',
+    'fanbox',
+    'pixiv',
+    'fantia',
+    'patreon',
+    'twitter',
+    'dl版',
+    'dl',
+    'dlsite',
   ];
 
   static const _noiseLanguageCodes = <String>{
@@ -321,9 +395,9 @@ class FavoriteArtistMatcher {
 
   /// 单个标签值要不要按「喜欢画师」点亮（详情页 chip 用）。
   ///
-  /// 命名空间明写着画师/社团的，按拆出来的候选名比 —— 这样喜欢项存成
-  /// `[社团 (画师)]` 时，画师那颗 chip 也会亮。命名空间与画师无关时退回整条等值，
-  /// 保证用户在任意 chip 上「设为喜欢画师」之后，那颗 chip 自己会亮。
+  /// 命名空间明写着画师的，按拆出来的画师名比；
+  /// 社团命名空间仅在开启独立社团命中（independent）或单独收藏社团（isBare）时才点亮；
+  /// 无关命名空间（普通标签）仅比对纯画师名（绝不匹配社团名），且排除噪声与短词。
   static bool chipIsFavorite({
     required String label,
     required String namespaceType,
@@ -332,41 +406,55 @@ class FavoriteArtistMatcher {
     FavoriteArtistCircleMode circleMode = FavoriteArtistCircleMode.fallbackOnly,
   }) {
     final key = normalizeArtist(label);
-    if (key.isEmpty) return false;
+    if (key.isEmpty || isNoise(key)) return false;
     final relevance = classifyNamespace(namespaceType, namespaceName);
     _favoriteArtistMatching.prepare(favoriteArtists);
     switch (relevance) {
       case FavoriteArtistRelevance.artist:
-        return _favoriteArtistMatching.contains(key, circleSide: false);
+        return _favoriteArtistMatching.contains(key, circleSide: false) &&
+            !key.contains('(') &&
+            !key.contains('（');
       case FavoriteArtistRelevance.circle:
         return circleMode != FavoriteArtistCircleMode.off &&
-            _favoriteArtistMatching.contains(key, circleSide: true);
+            _favoriteArtistMatching.contains(key, circleSide: true) &&
+            !key.contains('(') &&
+            !key.contains('（');
       case FavoriteArtistRelevance.irrelevant:
-        return _favoriteArtistMatching.contains(key, circleSide: false) ||
-            _favoriteArtistMatching.contains(key, circleSide: true);
+        // 无关命名空间（普通标签/角色等）：
+        // 绝对不能拿社团名匹配！仅匹配纯画师名，且要求 key 不含括号且长度 >= 2
+        return _favoriteArtistMatching.contains(key, circleSide: false) &&
+            !key.contains('(') &&
+            !key.contains('（') &&
+            key.length >= 2;
     }
   }
 
-  /// 从标题解析画师块；没有非噪声方括号块时返回 null（此时只剩兜底一档）。
+  /// 从标题解析画师块；优先选取具有 `[社团 (画师)]` 结构的方括号块，无则退回首个非噪声方括号。
   static _AuthorBlock? _parseAuthorBlock(String title) {
+    _AuthorBlock? firstBare;
     for (final match in _squareGroupRegex.allMatches(title)) {
       final content = (match.group(1) ?? match.group(2) ?? '').trim();
-      if (content.isEmpty || _looksLikeNoise(content)) continue;
+      if (content.isEmpty || isNoise(content)) continue;
       final inner = _circleArtistRegex.firstMatch(content);
       if (inner != null) {
         final circle = inner.group(1)?.trim() ?? '';
         final artist = inner.group(2)?.trim() ?? '';
-        if (artist.isEmpty) continue;
-        return _AuthorBlock(
-          artist: artist,
-          circle: circle.isEmpty ? null : circle,
-          start: match.start,
-          end: match.end,
-        );
+        if (artist.isNotEmpty && !isNoise(artist)) {
+          return _AuthorBlock(
+            artist: artist,
+            circle: circle.isEmpty || isNoise(circle) ? null : circle,
+            start: match.start,
+            end: match.end,
+          );
+        }
       }
-      return _AuthorBlock(bare: content, start: match.start, end: match.end);
+      firstBare ??= _AuthorBlock(
+        bare: content,
+        start: match.start,
+        end: match.end,
+      );
     }
-    return null;
+    return firstBare;
   }
 
   /// 一条喜欢项拆成画师候选与社团候选。
@@ -374,30 +462,37 @@ class FavoriteArtistMatcher {
     final artistKeys = <String>{};
     final circleKeys = <String>{};
     final text = raw.trim();
-    final inner = text.isEmpty
-        ? null
-        : _circleArtistRegex.firstMatch(_stripBrackets(text));
+    final stripped = _stripBrackets(text);
+    final inner = text.isEmpty ? null : _circleArtistRegex.firstMatch(stripped);
     if (inner != null) {
       final circle = normalizeArtist(inner.group(1));
       final artist = normalizeArtist(inner.group(2));
-      if (artist.isNotEmpty) artistKeys.add(artist);
-      if (circle.isNotEmpty) {
+      if (artist.isNotEmpty && !isNoise(artist)) {
+        artistKeys.add(artist);
+        artistKeys.addAll(splitNames(artist));
+      }
+      if (circle.isNotEmpty && !isNoise(circle)) {
         circleKeys.add(circle);
-        // `社团 (画师)` 整块也是画师证据：它唯一指向这一家。
-        artistKeys.add(normalizeArtist('$circle ($artist)'));
+        circleKeys.addAll(splitNames(circle));
+        if (artist.isNotEmpty && !isNoise(artist)) {
+          // `社团 (画师)` 整块也是画师证据：它唯一指向这一家。
+          artistKeys.add(normalizeArtist('$circle ($artist)'));
+        }
       }
     } else {
       final bare = normalizeArtist(text);
-      if (bare.isNotEmpty) {
-        // 裸名字无从判断是社团还是画师，两边都收；社团那一侧仍受 circleMode 约束。
+      if (bare.isNotEmpty && !isNoise(bare)) {
         artistKeys.add(bare);
         circleKeys.add(bare);
+        artistKeys.addAll(splitNames(bare));
+        circleKeys.addAll(splitNames(bare));
       }
     }
     return _FavoriteEntry(
       raw: raw,
       artistKeys: artistKeys,
       circleKeys: circleKeys,
+      isBare: inner == null,
     );
   }
 
@@ -428,10 +523,29 @@ class FavoriteArtistMatcher {
 
   static _Name? _name(String? raw) {
     final text = raw?.trim() ?? '';
-    if (text.isEmpty) return null;
+    if (text.isEmpty || isNoise(text)) return null;
     final key = normalizeArtist(text);
-    if (key.isEmpty) return null;
+    if (key.isEmpty || isNoise(key)) return null;
     return _Name(key, text);
+  }
+
+  static List<_Name> _nameWithSplits(String? raw) {
+    if (raw == null) return const [];
+    final text = raw.trim();
+    if (text.isEmpty || isNoise(text)) return const [];
+    final list = <_Name>[];
+    final seen = <String>{};
+    final key = normalizeArtist(text);
+    if (key.isNotEmpty && !isNoise(key) && seen.add(key)) {
+      list.add(_Name(key, text));
+    }
+    for (final s in splitNames(text)) {
+      final sKey = normalizeArtist(s);
+      if (sKey.isNotEmpty && !isNoise(sKey) && seen.add(sKey)) {
+        list.add(_Name(sKey, s));
+      }
+    }
+    return list;
   }
 
   /// 标签值 → 候选名字。
@@ -445,13 +559,23 @@ class FavoriteArtistMatcher {
     final names = <_Name>[];
     final seen = <String>{};
     void add(_Name? name) {
-      if (name == null || name.key.isEmpty || !seen.add(name.key)) return;
+      if (name == null ||
+          name.key.isEmpty ||
+          isNoise(name.key) ||
+          !seen.add(name.key))
+        return;
       names.add(name);
+      for (final split in splitNames(name.display)) {
+        final splitKey = normalizeArtist(split);
+        if (splitKey.isNotEmpty && !isNoise(splitKey) && seen.add(splitKey)) {
+          names.add(_Name(splitKey, split));
+        }
+      }
     }
 
     for (final tag in tags) {
       final text = tag.trim();
-      if (text.isEmpty) continue;
+      if (text.isEmpty || isNoise(text)) continue;
       var value = text;
       final prefix = _tagPrefixRegex.firstMatch(text);
       if (prefix != null) {
@@ -465,7 +589,7 @@ class FavoriteArtistMatcher {
         if (relevance != wanted) continue;
         value = text.substring(prefix.start + prefix.group(0)!.length).trim();
       }
-      if (value.isEmpty) continue;
+      if (value.isEmpty || isNoise(value)) continue;
       final inner = _circleArtistRegex.firstMatch(_stripBrackets(value));
       if (inner == null) {
         add(_name(value));
@@ -499,20 +623,41 @@ class FavoriteArtistMatcher {
     return text;
   }
 
+  static final _nameSplitRegex = RegExp(r'[\s,、&+/／]+');
+
+  /// 把多作者/多社团字符串拆分为单独的名字。
+  static List<String> splitNames(String? raw) {
+    if (raw == null) return const [];
+    final text = raw.trim();
+    if (text.isEmpty) return const [];
+    final names = <String>[];
+    for (final part in text.split(_nameSplitRegex)) {
+      final key = normalizeArtist(part);
+      if (key.isNotEmpty && !isNoise(key)) {
+        names.add(key);
+      }
+    }
+    return names;
+  }
+
   static final _noiseWordRegex = RegExp(
     '(?:^\$|[^a-z0-9])(?:${_noiseWords.map(RegExp.escape).join('|')})(?:\$|[^a-z0-9])',
   );
 
-  static bool _looksLikeNoise(String content) {
+  /// 判定一段文本是否为结构噪声、刊物标签或非画师标记。
+  static bool isNoise(String? content) {
+    if (content == null) return true;
     final normalized = normalizeArtist(content);
     if (normalized.isEmpty) return true;
     if (_noiseLanguageCodes.contains(normalized)) return true;
     if (_structuralNoise.hasMatch(normalized)) return true;
     for (final word in _noiseCjk) {
-      if (normalized.contains(word)) return true;
+      if (normalized.contains(word.toLowerCase())) return true;
     }
     return _noiseWordRegex.hasMatch(' $normalized ');
   }
+
+  static bool _looksLikeNoise(String content) => isNoise(content);
 
   /// 兜底搜索区：整串转小写，噪声括号与画师块整段换成空格。
   static String _noiseMaskedTitle(

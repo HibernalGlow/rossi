@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_presenta
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -163,17 +164,27 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      Future<void> openTab(String label) async {
+        final dock = find.byKey(const ValueKey('wall-settings-tabs'));
+        await tester.ensureVisible(dock);
+        await tester.pumpAndSettle();
+        await tester.tap(find.descendant(of: dock, matching: find.text(label)));
+        await tester.pumpAndSettle();
+      }
+
       expect(find.text('不对称'), findsNothing);
       await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
       await tester.pumpAndSettle();
+      await openTab(t.workspace.wallTabLayout);
       expect(find.text('不对称'), findsOneWidget);
       expect(find.byType(DropdownButtonFormField<LibraryWeight>), findsNothing);
+      await openTab(t.workspace.wallTabSize);
       final slider = tester.widget<M3ESlider>(
         find.byKey(const ValueKey('library-slider-卡片宽度')),
       );
       slider.onChanged!(240);
       await tester.pump();
-      await tester.tap(find.text('应用'));
+      await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
       await tester.pumpAndSettle();
       expect(find.text('不对称'), findsNothing);
       final prefs = await SharedPreferences.getInstance();
@@ -212,6 +223,14 @@ void main() {
     await tester.tap(find.text('3 格'));
     await tester.pumpAndSettle();
     expect(find.text('当前每行 3 格'), findsOneWidget);
+    // 面积依据在「布局」页签。
+    final dock = find.byKey(const ValueKey('wall-settings-tabs'));
+    await tester.ensureVisible(dock);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: dock, matching: find.text(t.workspace.wallTabLayout)),
+    );
+    await tester.pumpAndSettle();
     final selector = find.byKey(const ValueKey('library-weight-selector'));
     await tester.ensureVisible(selector);
     await tester.tap(selector);
@@ -221,7 +240,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('原图比例'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('应用'));
+    await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
     await tester.pumpAndSettle();
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('rossi.library.presentation.density')!;
@@ -231,7 +250,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('4 格'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('取消'));
+    await tester.tap(find.byKey(const ValueKey('wall-settings-cancel')));
     await tester.pumpAndSettle();
     expect(prefs.getString('rossi.library.presentation.density'), saved);
     expect(tester.takeException(), isNull);

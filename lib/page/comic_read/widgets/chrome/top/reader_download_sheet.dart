@@ -569,10 +569,7 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
     );
   }
 
-  Widget _buildSettingsSwitches(
-    BuildContext context,
-    ColorScheme colorScheme,
-  ) {
+  Widget _buildSettingsSwitches(BuildContext context, ColorScheme colorScheme) {
     final globalState = context.watch<GlobalSettingCubit>().state;
     final cubit = context.read<GlobalSettingCubit>();
 
@@ -616,6 +613,16 @@ class _ReaderDownloadSheetState extends State<_ReaderDownloadSheet> {
             value: globalState.autoFavoriteOnDownload,
             onChanged: (val) {
               cubit.updateState((s) => s.copyWith(autoFavoriteOnDownload: val));
+            },
+          ),
+          SettingGroup.switchTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const GlyphIcon(AppGlyphs.download),
+            title: Text(t.settings.promptDownloadOptions),
+            subtitle: Text(t.settings.promptDownloadOptionsSubtitle),
+            value: globalState.promptDownloadOptions,
+            onChanged: (val) {
+              cubit.updateState((s) => s.copyWith(promptDownloadOptions: val));
             },
           ),
         ],

@@ -38,7 +38,7 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_book_det
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_chip.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_rail.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
-import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 
 /// 书签面板（库里叫收藏）。
 ///
@@ -235,9 +235,24 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     );
     // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
     final pluginNames = pluginDisplayNames();
+    final navigationEntries = [
+      for (final entry in visible)
+        if (entities[entry.key] case final item?)
+          ShelfBookNavigationEntry(
+            key: shelfBookNavigationIdentity(item.source, item.comicId),
+            comicId: item.comicId,
+            from: item.source,
+            type: ComicEntryType.normal,
+          ),
+    ];
+    final navigationToken = ShelfBookNavigationRegistry.instance.register(
+      scope: 'bookmarks:$_selectedList',
+      entries: navigationEntries,
+    );
     final rows = [
       for (final entry in visible)
-        if (entities[entry.key] case final item?) _row(item, pluginNames),
+        if (entities[entry.key] case final item?)
+          _row(item, pluginNames, navigationToken),
     ];
 
     return Column(
@@ -246,10 +261,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         _buildListRail(context),
         const SizedBox(height: 6),
         ShelfListToolbar(
-          presentationButton: LibraryPresentationButton(
-            canvasKey: _canvasKey,
-            enabled: !_timeline,
-          ),
+          presentationButton: LibraryPresentationButton(canvasKey: _canvasKey),
           viewMode: _viewMode,
           onViewMode: (mode) {
             _canvasKey.currentState?.showLegacyView();
@@ -277,9 +289,17 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
         ),
         const SizedBox(height: 6),
         if (widget.isStandalone)
-          Expanded(child: _buildList(context, rows, all.isEmpty, menuEnabled))
+          Expanded(
+            child: _buildList(
+              context,
+              rows,
+              all.isEmpty,
+              menuEnabled,
+              navigationToken,
+            ),
+          )
         else
-          _buildList(context, rows, all.isEmpty, menuEnabled),
+          _buildList(context, rows, all.isEmpty, menuEnabled, navigationToken),
       ],
     );
   }
@@ -289,19 +309,20 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     List<LibraryEntry> rows,
     bool libraryEmpty,
     bool menuEnabled,
+    String navigationToken,
   ) {
-    if (_timeline) {
-      return _buildTimeline(context, rows, libraryEmpty, menuEnabled);
-    }
     return LibraryEntryList(
       editorialKey: _canvasKey,
       editorialScope: 'bookmarks',
+      timeline: _timeline,
+      timelineTimeOf: (row) => (row.source! as UnifiedComicFavorite).updatedAt,
       detailBuilder: (context, row, close) {
         final item = row.source! as UnifiedComicFavorite;
         return LibraryBookDetails(
           entry: row,
           comicId: item.comicId,
           from: item.source,
+          extern: {ShelfBookNavigationRegistry.contextKey: navigationToken},
           onClose: close,
         );
       },
@@ -314,7 +335,8 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
           : _keyword.trim().isNotEmpty
           ? t.workspace.noMatchingBookmarks
           : t.workspace.listHasNoBookmarks,
-      onTap: (row) => _open(context, row.source! as UnifiedComicFavorite),
+      onTap: (row) =>
+          _open(context, row.source! as UnifiedComicFavorite, navigationToken),
       titleColumn: LibraryColumn(
         key: 'title',
         label: t.workspace.titleLabel,
@@ -337,8 +359,12 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
         enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicFavorite),
-        onAction: (context, action) =>
-            _onMenuAction(context, row.source! as UnifiedComicFavorite, action),
+        onAction: (context, action) => _onMenuAction(
+          context,
+          row.source! as UnifiedComicFavorite,
+          action,
+          navigationToken,
+        ),
         child: child,
       ),
     );
@@ -486,6 +512,7 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
   LibraryEntry _row(
     UnifiedComicFavorite item,
     Map<String, String> pluginNames,
+    String navigationToken,
   ) {
     final theme = Theme.of(context);
     final comic = unifiedComicFromUnifiedFavorite(item);
@@ -532,18 +559,32 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
       // 书签一共就几百条，每一档都值得画封面；文件管理器不这么想。
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [author.isEmpty ? '—' : author, source, time],
-      onRead: () => _read(item),
+      onRead: () => _read(item, navigationToken),
     );
   }
 
   /// 封面那颗「直接阅读」：不进详情页，直接起读（语义见 [startComicQuickRead]）。
-  Future<void> _read(UnifiedComicFavorite item) =>
-      startComicQuickRead(context, comicId: item.comicId, from: item.source);
+  Future<void> _read(UnifiedComicFavorite item, String navigationToken) =>
+      startComicQuickRead(
+        context,
+        comicId: item.comicId,
+        from: item.source,
+        navigationToken: navigationToken,
+      );
 
-  void _open(BuildContext context, UnifiedComicFavorite item) {
+  void _open(
+    BuildContext context,
+    UnifiedComicFavorite item,
+    String navigationToken,
+  ) {
     // 本地来源与插件来源的分岔在 openComicItem 里统一处理 —— 这里曾经
     // 无条件推详情页，本地漫画会被当成「插件 id = local」而加载失败。
-    openComicItem(context, comicId: item.comicId, from: item.source);
+    openComicItem(
+      context,
+      comicId: item.comicId,
+      from: item.source,
+      navigationToken: navigationToken,
+    );
   }
 
   ShelfEntryMenuInput _menuInput(UnifiedComicFavorite item) {
@@ -557,10 +598,11 @@ class _FavoriteShelfCardState extends State<FavoriteShelfCard> {
     BuildContext context,
     UnifiedComicFavorite item,
     ShelfEntryAction action,
+    String navigationToken,
   ) {
     switch (action) {
       case ShelfEntryAction.open:
-        _open(context, item);
+        _open(context, item, navigationToken);
       case ShelfEntryAction.openInFileManagerTab:
         openShelfEntryInFileManagerTab(context, comicId: item.comicId);
       case ShelfEntryAction.copyTitle:

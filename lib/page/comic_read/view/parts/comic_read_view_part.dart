@@ -49,6 +49,9 @@ extension _ComicReadViewPart on _ComicReadPageState {
       onToggleAutoRead: _toggleAutoReadPaused,
       isAutoReadPaused: () => _autoReadController.isPaused,
       onToggleSlideshowPaused: _toggleSlideshowPaused,
+      onSwitchBook: _shelfBookNavigation?.switchBook,
+      canSwitchToPreviousBook: _shelfBookNavigation?.canGoPrevious ?? false,
+      canSwitchToNextBook: _shelfBookNavigation?.canGoNext ?? false,
     );
   }
 

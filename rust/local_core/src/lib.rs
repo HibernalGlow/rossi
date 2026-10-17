@@ -50,9 +50,9 @@ pub mod folder_source;
 // 文件浏览器混合使用上游源码与 Rossi 适配；具体复用范围及缺口
 // 以 docs/mimageviewer-reuse-inventory.json 为准，同名不代表完整复用。
 pub mod activity_gate;
+pub mod adjustment;
 pub mod ai_size_limit;
 pub mod ai_tiles;
-pub mod adjustment;
 pub mod animation;
 pub mod archive_converter;
 pub mod auto_aspect;
@@ -76,8 +76,8 @@ pub mod zip_loader;
 pub mod final_pipeline;
 #[cfg(any(feature = "jxl-rs-mt", feature = "jxl-rs-1t", feature = "jxl-oxide"))]
 pub mod jxl_backend;
-pub mod margin_fit;
 pub mod local_adjust;
+pub mod margin_fit;
 pub mod media_formats;
 pub mod operation_binding;
 pub mod page_load_scheduler;

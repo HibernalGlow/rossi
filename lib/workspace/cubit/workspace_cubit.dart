@@ -326,9 +326,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
   void resetSwimlaneAndPanelLayout() {
     emit(
       state.copyWith(
-        layout: state.layout.copyWith(
-          laneOrder: LaneId.defaultOrder,
-        ),
+        layout: state.layout.copyWith(laneOrder: LaneId.defaultOrder),
         board: state.board.resetPanels(),
         activePanel: const <String, String>{},
       ),
@@ -519,6 +517,32 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
       rightLane,
       rightWidth - applied,
       viewportWidth,
+    );
+    emit(state.copyWith(layout: state.layout.copyWith(lanes: updated)));
+  }
+
+  /// 拖拽最右侧泳道的右边缘：把该泳道加宽 [delta]（向右延伸）或收窄。
+  ///
+  /// 与 [dragLanePair] 的区别：那条是「两条之间挪距离」，两侧都得让得动；
+  /// 本条直接调整最右侧泳道自身：在设计上条带向右无限延伸，
+  /// 右侧没有相邻泳道需要让位，因此直接修改该泳道自身的宽度。
+  ///
+  /// [viewportWidth] 与 [dragLanePair] 同一个含义：阅读器泳道记的是视口比例，
+  /// 只有拿到视口宽才能把「用户拖拽的像素」换算回比例。
+  void dragLaneRightEdge(String laneId, double delta, double viewportWidth) {
+    final lane = state.layout.lanes[laneId];
+    if (lane == null) return;
+
+    final currentWidth = lane.resolveWidth(viewportWidth);
+    final targetWidth = (currentWidth + delta)
+        .clamp(lane.minWidth, lane.maxWidth)
+        .toDouble();
+
+    if (targetWidth == currentWidth) return;
+
+    final updated = _replaceLane(
+      laneId,
+      _withWidth(lane, targetWidth, viewportWidth),
     );
     emit(state.copyWith(layout: state.layout.copyWith(lanes: updated)));
   }

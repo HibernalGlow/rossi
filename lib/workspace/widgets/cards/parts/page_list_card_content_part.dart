@@ -2,27 +2,36 @@ part of '../page_list_card.dart';
 
 extension _PageListContentPart on _PageListCardState {
   /// 构建中间展示区的列表/网格/展墙主体。
+  ///
+  /// 始终挂载 [LibraryEditorialCanvas]（即使尚未打开书本或搜索无匹配项，也经由
+  /// `legacyBuilder` 呈现空态），确保顶部「搜索栏」小组件中的 [LibraryPresentationButton]
+  /// 随时都能通过 `_ctrl.canvasKey.currentState` 呼出展墙设置或长按切换展墙模式。
   Widget _buildViewportList({
     required ReaderSessionCoordinator coordinator,
     required int currentSlot,
     required int totalSlots,
+    bool hasSession = true,
   }) {
     final theme = Theme.of(context);
     // 格子里的页序要跟阅读画面上的一致：阅读器开了页面排序时，
     // 按页表下标取会让「第 N 格」显示成另一页，点下去跳过去的却是画面那一页。
-    final docs = coordinator.orderedDocs;
+    final docs = hasSession ? coordinator.orderedDocs : const <Doc>[];
     final query = _ctrl.searchQuery;
 
     // 过滤页面列表
     final List<int> filteredIndices = [];
-    for (int i = 0; i < totalSlots; i++) {
-      if (query.isEmpty) {
-        filteredIndices.add(i);
-      } else {
-        final pageNumStr = '${i + 1}';
-        final name = i < docs.length ? docs[i].originalName.toLowerCase() : '';
-        if (pageNumStr.contains(query) || name.contains(query)) {
+    if (hasSession) {
+      for (int i = 0; i < totalSlots; i++) {
+        if (query.isEmpty) {
           filteredIndices.add(i);
+        } else {
+          final pageNumStr = '${i + 1}';
+          final name = i < docs.length
+              ? docs[i].originalName.toLowerCase()
+              : '';
+          if (pageNumStr.contains(query) || name.contains(query)) {
+            filteredIndices.add(i);
+          }
         }
       }
     }

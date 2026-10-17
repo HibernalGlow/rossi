@@ -117,6 +117,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
                 _writeDownloadMetadataFile(state, cubit),
               ),
               settingEntry(
+                'behavior.promptDownloadOptions',
+                _promptDownloadOptions(state, cubit),
+              ),
+              settingEntry(
                 'behavior.leftHandMode',
                 _leftHandMode(state, cubit),
               ),
@@ -213,26 +217,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(workspaceSleepCoveredUi: value),
-        );
-        showSuccessToast(t.common.settingSaved);
-      },
-    );
-  }
-
-  /// 泳道面板栏上的那颗面板图标要不要吃右键（触摸端长按）= 收起这块面板。
-  /// 消费点在 `PanelTabStrip` / `WorkspacePanelTabs`：关掉时连手势都不挂。
-  Widget _panelTabRightClickHide(
-    GlobalSettingState state,
-    GlobalSettingCubit cubit,
-  ) {
-    return SettingGroup.switchTile(
-      leading: const GlyphIcon(AppGlyphs.eyeOff),
-      title: Text(t.settings.panelTabRightClickHide),
-      subtitle: Text(t.settings.panelTabRightClickHideSubtitle),
-      value: state.panelTabRightClickHide,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(panelTabRightClickHide: value),
         );
         showSuccessToast(t.common.settingSaved);
       },
@@ -337,6 +321,24 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(writeDownloadMetadataFile: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  Widget _promptDownloadOptions(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.download),
+      title: Text(t.settings.promptDownloadOptions),
+      subtitle: Text(t.settings.promptDownloadOptionsSubtitle),
+      value: state.promptDownloadOptions,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(promptDownloadOptions: value),
         );
         showSuccessToast(t.common.settingSaved);
       },

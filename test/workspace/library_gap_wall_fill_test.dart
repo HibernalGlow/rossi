@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_shape.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 
@@ -55,6 +56,11 @@ void main() {
               gapShapes: shapes,
               gapWidgets: widgetToggles,
             ),
+            // 这一份判据只关心「某一档怎么画」；套件锁定成唯一一款
+            // 无数据门槛的组件，新增组件不会把这里的期望数改来改去。
+            gapWidgets: defaultLibraryGapWidgets()
+                .where((spec) => spec.id == 'gap_count')
+                .toList(),
             onTap: (_) {},
             legacyBuilder: (_) => const SizedBox(),
           ),

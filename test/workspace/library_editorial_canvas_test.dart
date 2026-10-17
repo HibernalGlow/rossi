@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 List<LibraryEntry> entries(int count) => List.generate(
   count,
@@ -214,9 +215,24 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    Future<void> openLayoutTab() async {
+      final dock = find.byKey(const ValueKey('wall-settings-tabs'));
+      await tester.ensureVisible(dock);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: dock,
+          matching: find.text(t.workspace.wallTabLayout),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
     expect(find.byType(FilterChip), findsNothing);
     await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
     await tester.pumpAndSettle();
+    // 组合开关收进「布局」页签，先切过去。
+    await openLayoutTab();
     await tester.ensureVisible(find.widgetWithText(FilterChip, '内容分区'));
     await tester.tap(find.widgetWithText(FilterChip, '内容分区'));
     await tester.pumpAndSettle();
@@ -232,7 +248,7 @@ void main() {
           .selected,
       isTrue,
     );
-    await tester.tap(find.text('应用'));
+    await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('文件').first);
     expect(opened, 1);
@@ -243,9 +259,10 @@ void main() {
     expect(find.text('文件信息'), findsOneWidget);
     await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
     await tester.pumpAndSettle();
+    await openLayoutTab();
     await tester.ensureVisible(find.widgetWithText(FilterChip, '主视觉'));
     await tester.tap(find.widgetWithText(FilterChip, '主视觉'));
-    await tester.tap(find.text('应用'));
+    await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
     await tester.pumpAndSettle();
     expect(find.text('文件'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -287,4 +304,74 @@ void main() {
       );
     });
   }
+
+  testWidgets('时间线在展墙模式下覆盖当前分组，关闭后恢复原有分组', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'rossi.library.presentation.timeline-wall': jsonEncode(
+        const LibraryPresentation(
+          editorial: true,
+          sections: true,
+          hero: false,
+          asymmetric: false,
+          // 这一段只核对分组：空隙小组件会拿条目分区名当文案，掺进来
+          // 「插件甲」就不再是段头独有的字样了。
+          gapFill: LibraryGapFill.off,
+        ).toJson(),
+      ),
+    });
+    final now = DateTime(2026, 4, 21, 14, 0);
+    final times = <String, DateTime>{
+      'a': DateTime(2026, 4, 21, 10, 0),
+      'b': DateTime(2026, 4, 21, 9, 0),
+      'c': DateTime(2026, 4, 20, 18, 0),
+    };
+    final data = [
+      LibraryEntry(key: 'a', title: '作品 A', section: '插件甲'),
+      LibraryEntry(key: 'b', title: '作品 B', section: '插件乙'),
+      LibraryEntry(key: 'c', title: '作品 C', section: '插件甲'),
+    ];
+
+    Widget buildWall({required bool timeline}) {
+      return MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 500,
+            child: LibraryEditorialCanvas(
+              scope: 'timeline-wall',
+              entries: data,
+              timeline: timeline,
+              timelineTimeOf: (entry) => times[entry.key],
+              now: now,
+              standalone: true,
+              onTap: (_) {},
+              legacyBuilder: (_) => const Text('传统视图'),
+              detailBuilder: (_, entry, close) => Text('详情 ${entry.key}'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildWall(timeline: false));
+    await tester.pumpAndSettle();
+    expect(find.text('插件甲'), findsWidgets);
+    expect(find.text('插件乙'), findsOneWidget);
+    expect(find.text('今天'), findsNothing);
+    expect(find.text('昨天'), findsNothing);
+
+    await tester.pumpWidget(buildWall(timeline: true));
+    await tester.pumpAndSettle();
+    expect(find.text('今天'), findsOneWidget);
+    expect(find.text('昨天'), findsOneWidget);
+    expect(find.text('插件甲'), findsNothing);
+    expect(find.text('插件乙'), findsNothing);
+
+    await tester.pumpWidget(buildWall(timeline: false));
+    await tester.pumpAndSettle();
+    expect(find.text('插件甲'), findsWidgets);
+    expect(find.text('插件乙'), findsOneWidget);
+    expect(find.text('今天'), findsNothing);
+    expect(find.text('昨天'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

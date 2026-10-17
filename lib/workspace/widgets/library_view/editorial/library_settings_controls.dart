@@ -77,10 +77,14 @@ class LibrarySettingsSlider extends StatelessWidget {
     required this.onChanged,
     this.percent = false,
     this.unit = '',
+    this.dense = false,
   });
   final String label, unit;
   final double value, min, max;
   final bool percent;
+
+  /// 紧凑档：外框由 [LibrarySettingsMetricTile] 提供时不再重复留白。
+  final bool dense;
   final ValueChanged<double> onChanged;
 
   @override
@@ -90,7 +94,9 @@ class LibrarySettingsSlider extends StatelessWidget {
         ? '${(value * 100).round()}%'
         : '${value.round()}$unit';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      padding: dense
+          ? const EdgeInsets.fromLTRB(8, 6, 8, 0)
+          : const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -178,6 +184,57 @@ class LibrarySettingsToggle extends StatelessWidget {
           onChanged(next);
         },
       ),
+    );
+  }
+}
+
+/// 尺寸类滑块的「度量卡」网格。
+///
+/// MD3 的滑块是单个控件；把四五个一路纵向平铺，面板就变成一条长卷，而用户看到的
+/// 只是五根长得一模一样的条。宽面板里两列并排、各自一张卡，「卡片宽度 / 高度」
+/// 「间距 / 图片尺寸」这种成对的量才读得出来；窄屏自动退回单列。
+class LibrarySettingsMetricGrid extends StatelessWidget {
+  const LibrarySettingsMetricGrid({
+    super.key,
+    required this.children,
+    this.spacing = 8,
+  });
+
+  final List<Widget> children;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final columns = constraints.maxWidth >= 420 ? 2 : 1;
+      final width = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+      return Wrap(
+        spacing: spacing,
+        runSpacing: spacing,
+        children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ],
+      );
+    },
+  );
+}
+
+/// 一张度量卡：比分组底色高一档的圆角容器，里面放一颗紧凑滑块。
+class LibrarySettingsMetricTile extends StatelessWidget {
+  const LibrarySettingsMetricTile({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
+      ),
+      padding: const EdgeInsets.only(bottom: 6),
+      child: child,
     );
   }
 }

@@ -117,11 +117,12 @@ List<Rect> _rowRects(WidgetTester tester, Finder row) {
     of: row,
     matching: find.byType(ReaderToolbarIconButton),
   );
-  final rects = <Rect>[
-    for (var i = 0; i < icons.evaluate().length; i++)
-      tester.getRect(icons.at(i)),
-  ].where((r) => r.width > 0).toList()
-    ..sort((a, b) => a.left.compareTo(b.left));
+  final rects =
+      <Rect>[
+          for (var i = 0; i < icons.evaluate().length; i++)
+            tester.getRect(icons.at(i)),
+        ].where((r) => r.width > 0).toList()
+        ..sort((a, b) => a.left.compareTo(b.left));
   return rects;
 }
 
@@ -144,11 +145,7 @@ void main() {
       // 这五颗是夹具这个配置下唯一可能出现的：超分（`from` 留空 ⇒ 没有呈现器，
       // 走在线简版那颗）+ 全屏 + 钉住 + 更多 + 设置；本地译文与在线译文两颗
       // 在这个配置下**不画**，它们占的位正是下面几条要钉的东西。
-      expect(
-        rects.length,
-        5,
-        reason: '图标带画出的件数变了，先弄清是不是隐藏件又开始占位了',
-      );
+      expect(rects.length, 5, reason: '图标带画出的件数变了，先弄清是不是隐藏件又开始占位了');
       // 阳性对照之二：这一档**确实有隐藏件**。本地译文与在线译文两颗都不画 ——
       // 要是它们其实画出来了，「全都差 4」对改造前的写法也成立，这条就是假绿。
       for (final chipType in [
@@ -204,7 +201,8 @@ void main() {
             matching: find.byType(ReaderToolbarGroup),
           )
           .first;
-      final gap = tester.getRect(group).left - tester.getRect(layoutGroup).right;
+      final gap =
+          tester.getRect(group).left - tester.getRect(layoutGroup).right;
       expect(
         gap,
         closeTo(ReaderToolbarMetrics.gapBetweenGroups, 0.01),

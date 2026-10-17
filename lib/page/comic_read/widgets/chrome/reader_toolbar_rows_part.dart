@@ -38,6 +38,22 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                   tooltip: t.common.back,
                   onPressed: () => Navigator.maybePop(context),
                 ),
+                if (widget.onSwitchBook != null) ...[
+                  ReaderToolbarIconButton(
+                    icon: AppGlyphs.skipPrevious,
+                    tooltip: t.workspace.back,
+                    onPressed: widget.canSwitchToPreviousBook
+                        ? () => widget.onSwitchBook!(false)
+                        : null,
+                  ),
+                  ReaderToolbarIconButton(
+                    icon: AppGlyphs.skipNext,
+                    tooltip: t.workspace.forward,
+                    onPressed: widget.canSwitchToNextBook
+                        ? () => widget.onSwitchBook!(true)
+                        : null,
+                  ),
+                ],
                 const SizedBox(width: 8),
                 Expanded(child: _buildTitle(context, bookTitle: bookTitle)),
                 ReaderToolbarIconButton(
@@ -92,7 +108,8 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
                           selected: _expandedPanel == panel,
                           onPressed: () => _togglePanel(panel),
                         ),
-                      if (showDownloadEntry) _buildDownloadEntry(bookTitle),
+                      if (showDownloadEntry)
+                        ReaderDownloadButton(onDownload: _downloadComic),
                     ],
                   ),
                 _buildLayoutGroup(
@@ -144,6 +161,23 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
               tooltip: t.common.back,
               onPressed: () => Navigator.maybePop(context),
             ),
+            if (widget.onSwitchBook != null) ...[
+              const SizedBox(width: ReaderToolbarMetrics.gapWithinGroup),
+              ReaderToolbarIconButton(
+                icon: AppGlyphs.skipPrevious,
+                tooltip: t.workspace.back,
+                onPressed: widget.canSwitchToPreviousBook
+                    ? () => widget.onSwitchBook!(false)
+                    : null,
+              ),
+              ReaderToolbarIconButton(
+                icon: AppGlyphs.skipNext,
+                tooltip: t.workspace.forward,
+                onPressed: widget.canSwitchToNextBook
+                    ? () => widget.onSwitchBook!(true)
+                    : null,
+              ),
+            ],
             const SizedBox(width: 8),
 
             // 标题：这一行唯一的弹性项，所以「谁先让位」的答案就是它先省略到 0。
@@ -184,7 +218,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
             ReaderToolbarGroup(
               children: [
                 if (showDownloadEntry && inlineView)
-                  _buildDownloadEntry(bookTitle),
+                  ReaderDownloadButton(onDownload: _downloadComic),
                 // 这三颗自己决定画不画（画不画取决于当前图源/呈现器，父层判不了），
                 // 所以套 [ReaderToolbarOptionalSlot]：不画的时候连组内那 4 一起归零，
                 // 这一段才是**每两颗都只差 4** 的图标带。
@@ -297,7 +331,7 @@ extension _ReaderToolbarRows on _ComicReadAppBarState {
             onPressed: () => _togglePanel(panel),
           ),
       if (!tier.keepsViewControlsInline && showDownloadEntry)
-        _buildDownloadEntry(bookTitle),
+        ReaderDownloadButton(onDownload: _downloadComic),
       // 让位的第二批：全屏 + 钉住。
       if (!tier.keepsWindowControlsInline && widget.onToggleFullscreen != null)
         ReaderToolbarIconButton(

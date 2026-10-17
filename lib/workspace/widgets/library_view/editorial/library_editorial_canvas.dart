@@ -7,10 +7,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/workspace/model/library_presentation_preferences.dart';
+import 'package:zephyr/workspace/model/shelf_timeline.dart';
 import 'package:zephyr/workspace/service/library_presentation_store.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
+import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_fill.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_shape.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_inline_expansion.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_tile.dart';
@@ -59,8 +62,28 @@ class LibraryEditorialCanvas extends StatefulWidget {
     this.onReachEnd,
     this.footerBuilder,
     this.scrollController,
+    this.shrinkWrap = false,
+    this.timeline = false,
+    this.timelineTimeOf,
+    this.now,
   });
   final ScrollController? scrollController;
+  final bool shrinkWrap;
+
+  /// 时间线开关。开着时**当前这一面墙按本地日历日重新分组**（段头换成
+  /// 「今天 / 昨天 / 3月5日」），普通视图则整段换成 `ShelfTimelineView` 的行式。
+  ///
+  /// 时间线不是第七种视图模式（见 `model/shelf_timeline.dart` 的库注释），
+  /// 它只覆盖分组，不改卡片尺寸、分区、空隙组件这些展墙偏好。
+  final bool timeline;
+
+  /// 时间线取哪个时间：书签是收藏时间，历史是最后阅读，离线是下载完成时间。
+  /// 返回 null 表示这条没有可用的时间 —— 不猜一个「今天」把它塞进第一段。
+  final DateTime? Function(LibraryEntry entry)? timelineTimeOf;
+
+  /// 段头文案里的「今天」以哪一刻为准；判据传固定时刻，正常运行不传。
+  final DateTime? now;
+
   final LibraryPresentation initialPresentation;
   final List<LibraryWeightSignal> weightSignals;
 
@@ -422,6 +445,8 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
   Widget build(BuildContext context) {
     final body = _presentation.editorial
         ? _wall(context)
+        : widget.timeline
+        ? _timelineView(context)
         : widget.legacyFocusBuilder?.call(
                 context,
                 {
@@ -584,6 +609,42 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
     );
   }
 
+  /// 时间线开启时，普通视图整段换成按天分段的行式列表。
+  ///
+  /// 行内容仍然交回 `LibraryEntrySurface`（固定用封面列表那一档），这里只负责
+  /// 「哪些条目属于同一天」与左轨 —— 与 `ShelfTimelineView` 的分工一致。
+  Widget _timelineView(BuildContext context) => ShelfTimelineView(
+    entries: widget.entries,
+    timeOf: (entry) =>
+        widget.timelineTimeOf?.call(entry) ??
+        entry.timestamp ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    onTap: widget.onTap,
+    wrapRow: widget.wrapCard,
+    enabled: widget.enabled,
+    standalone: widget.standalone,
+    shrinkWrap: widget.shrinkWrap,
+    detailBuilder: widget.detailBuilder,
+  );
+
+  /// 展墙上的时间线：把段头从「分区」换成「本地日历日」。
+  ///
+  /// 只覆盖分组，不动卡片尺寸、分区与空隙组件这些偏好。返回 null 表示时间线
+  /// 没开，`libraryCanvasRows` 继续用条目自带的分区。段头文案用宿主注入的
+  /// [LibraryEditorialCanvas.now] 作「今天」的判据，判据里才不会跨午夜漂。
+  Map<String, String>? _timelineSections() {
+    if (!widget.timeline) return null;
+    final now = widget.now ?? DateTime.now();
+    final labels = <String, String>{};
+    for (final entry in widget.entries) {
+      final time = widget.timelineTimeOf?.call(entry) ?? entry.timestamp;
+      // 没有时间就没有段：不猜一个「今天」把它塞进第一段。
+      if (time == null) continue;
+      labels[entry.key] = shelfTimelineDayLabel(time, now: now);
+    }
+    return labels;
+  }
+
   Widget _wall(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final width = math.max(
@@ -595,8 +656,11 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
       final entriesSignature = _entriesSignature ??= widget.entries
           .map((e) => '${e.key}:${e.section}:${jsonEncode(e.weightSignals)}')
           .join('|');
+      final timelineSections = _timelineSections();
       final signature =
-          '$columns:${jsonEncode(_presentation.toJson())}:$entriesSignature';
+          '$columns:${jsonEncode(_presentation.toJson())}:'
+          '${timelineSections == null ? '' : jsonEncode(timelineSections)}:'
+          '$entriesSignature';
       // 后台统计完成时，已经滚动的画布保持原有几何；下次改变展示设置才重算。
       if (_planSignature != signature || _plan == null) {
         _plan = libraryCanvasRows(
@@ -604,6 +668,9 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
           columns: columns,
           presentation: _presentation,
           aspectRatios: _aspectRatios,
+          sectionOf: timelineSections == null
+              ? null
+              : (entry) => timelineSections[entry.key],
         );
         _planSignature = signature;
       }
@@ -696,6 +763,7 @@ class LibraryEditorialCanvasState extends State<LibraryEditorialCanvas> {
         widgets: gapKit,
         entries: widget.entries,
         scope: widget.scope,
+        shapes: libraryGapShapeStylesFromToggles(_presentation.gapShapeStyles),
       );
       final gapById = {for (final slot in gapSlots) slot.id: slot};
       ({Widget widget, double height})? gapFiller(String id) {

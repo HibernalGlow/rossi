@@ -109,6 +109,10 @@ abstract final class LibraryPresentationPreferences {
         key: presentation.signalWeights[key]!,
     };
     // 单项开关的 Map 同样按 id 排序，插入顺序不能影响合并结果。
+    json['gapShapeStyles'] = {
+      for (final key in presentation.gapShapeStyles.keys.toList()..sort())
+        key: presentation.gapShapeStyles[key]!,
+    };
     json['gapWidgets'] = {
       for (final key in presentation.gapWidgets.keys.toList()..sort())
         key: presentation.gapWidgets[key]!,

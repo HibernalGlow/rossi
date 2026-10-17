@@ -94,7 +94,7 @@ void main() {
       await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
       await tester.pumpAndSettle();
       expect(find.text('卡片宽度'), findsOneWidget);
-      expect(find.text('应用'), findsOneWidget);
+      expect(find.byKey(const ValueKey('wall-settings-apply')), findsOneWidget);
       expect(tester.takeException(), isNull);
       final output = Platform.environment['ROSSI_LIBRARY_PREVIEW_OUTPUT'];
       if (output != null) {

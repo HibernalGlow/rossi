@@ -42,6 +42,12 @@ class CollapsibleCard extends StatelessWidget {
   final Widget child;
   final bool expressive;
 
+  /// 无常驻标题栏模式：日常态不画标题行，通过右键/长按菜单触发折叠与进入编辑模式。
+  final bool headerless;
+
+  /// [headerless] 折叠态下的自定义摘要组件（为 null 时显示 [title] 与 [trailing]）。
+  final Widget? collapsedChild;
+
   /// 由内容自己适配有界槽位（分段、紧凑图表），不再套滚动视图。
   final bool scrollContent;
   final EdgeInsetsGeometry? margin;
@@ -71,6 +77,8 @@ class CollapsibleCard extends StatelessWidget {
     this.trailing,
     required this.child,
     this.expressive = false,
+    this.headerless = false,
+    this.collapsedChild,
     this.scrollContent = true,
     this.margin,
     this.contentPadding,
@@ -115,10 +123,24 @@ class CollapsibleCard extends StatelessWidget {
     final cardSeed = expressiveBlobSeed(cardId);
     final headerShape = _headerShapeForCard(cardId, cardSeed);
     final headerTone = _headerToneForCard(cardId, cardSeed);
+    final defaultPadding = headerless
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+        : const EdgeInsets.fromLTRB(12, 0, 12, 12);
     final content = Padding(
-      padding: contentPadding ?? const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: contentPadding ?? defaultPadding,
       child: applyCardGate(child, disabledHint: disabledHint),
     );
+
+    if (headerless) {
+      return _buildHeaderlessCard(
+        context: context,
+        theme: theme,
+        layout: layout,
+        radius: radius,
+        showLayoutControls: showLayoutControls,
+        content: content,
+      );
+    }
 
     // 卡片可直接挂在泳道/抽屉里，由自身提供与应用同库的 Material。
     // 用 Material 绘制背景并裁剪，保证标题栏和内容的墨水反馈也在圆角内。
@@ -878,6 +900,73 @@ class CollapsibleCard extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// 保证无标题栏组件在任何内部子控件（缩略图、输入框、滑块、展墙）上右键或长按都能可靠弹出菜单。
+///
+/// 原因：内部 `TextField`、`InkWell` 或滚动视图在手势竞技场中可能赢走次键点击，
+/// 导致外层 `GestureDetector.onSecondaryTapUp` 不触发。这里用 `Listener` 直接观测
+/// 鼠标右键按下与抬起（位移除小于触控阈值即判定为右键点击），并配合长按手势与去重保护。
+class _HeaderlessContextMenuRegion extends StatefulWidget {
+  final Widget child;
+  final bool enableLongPress;
+  final ValueChanged<Offset> onOpenMenu;
+
+  const _HeaderlessContextMenuRegion({
+    required this.child,
+    required this.enableLongPress,
+    required this.onOpenMenu,
+  });
+
+  @override
+  State<_HeaderlessContextMenuRegion> createState() =>
+      _HeaderlessContextMenuRegionState();
+}
+
+class _HeaderlessContextMenuRegionState
+    extends State<_HeaderlessContextMenuRegion> {
+  Offset? _secondaryDownPosition;
+  DateTime? _lastOpenedAt;
+
+  void _trigger(Offset globalPosition) {
+    final now = DateTime.now();
+    if (_lastOpenedAt != null &&
+        now.difference(_lastOpenedAt!) < const Duration(milliseconds: 120)) {
+      return;
+    }
+    _lastOpenedAt = now;
+    widget.onOpenMenu(globalPosition);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) {
+        if (event.buttons == kSecondaryMouseButton) {
+          _secondaryDownPosition = event.position;
+        } else {
+          _secondaryDownPosition = null;
+        }
+      },
+      onPointerUp: (event) {
+        final down = _secondaryDownPosition;
+        _secondaryDownPosition = null;
+        if (down != null && (event.position - down).distance <= kTouchSlop) {
+          _trigger(event.position);
+        }
+      },
+      onPointerCancel: (_) => _secondaryDownPosition = null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onSecondaryTapUp: (details) => _trigger(details.globalPosition),
+        onLongPressStart: widget.enableLongPress
+            ? (details) => _trigger(details.globalPosition)
+            : null,
+        child: widget.child,
+      ),
     );
   }
 }

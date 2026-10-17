@@ -90,6 +90,7 @@ class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
 
 	// Translations
 	@override String laneTapExpandHint({required Object title}) => '${title} (tap to expand the lane)';
+	@override String laneTapCollapseHint({required Object title}) => '${title} (tap to collapse the lane)';
 	@override String laneDragHint({required Object title}) => '${title} — press and hold to drag lanes into a new order';
 	@override String laneSortHint({required Object title}) => '${title} (pick “Edit layout” in the lane menu to reorder)';
 	@override String allowedRange({required Object min, required Object max}) => 'Allowed ${min}–${max}';
@@ -341,6 +342,44 @@ class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
 	@override String get emphasiseRecent => 'Emphasises recently used content.';
 	@override String get passthroughMode => 'Passthrough mode';
 	@override String get gapFill => 'Gap fill';
+	@override String get gapComponentsTitle => 'Gaps & components';
+	@override String get gapComponentsDescription => 'Random shapes and mini widgets in one place: pick an overall mode, then toggle each item — every item previews what it looks like.';
+	@override String get gapPreviewLabel => 'Preview';
+	@override String get gapEnableAll => 'Enable all';
+	@override String get gapDisableAll => 'Disable all';
+	@override String get gapShapesSection => 'Random shapes';
+	@override String get gapWidgetsSection => 'Mini widgets';
+	@override String get gapShapeBlob => 'Blob';
+	@override String get gapShapeBurst => 'Burst';
+	@override String get gapShapeClover => 'Clover';
+	@override String get gapShapeGem => 'Gem';
+	@override String get gapShapeArch => 'Arch';
+	@override String get gapShapeFlower => 'Flower';
+	@override String get gapShapeRing => 'Ring';
+	@override String get gapShapeWave => 'Wave';
+	@override String get gapCompletion => 'Completion';
+	@override String get gapHeatmap => 'Reading heat';
+	@override String get gapWeekday => 'Weekday rhythm';
+	@override String get gapSpan => 'Collection span';
+	@override String get gapUnread => 'Unread pool';
+	@override String get gapMilestone => 'Next milestone';
+	@override String get gapAverageProgress => 'average progress';
+	@override String get gapFinishedBooks => 'finished';
+	@override String get gapUnreadBooks => 'unread';
+	@override String get gapHeatWindow => 'Last 8 weeks';
+	@override String get gapWeekdayRhythm => 'Weekday split';
+	@override String get gapSpanDaysLabel => 'days span';
+	@override String get gapSpanEarliest => 'since';
+	@override String get gapUnreadPool => 'not started';
+	@override String get gapMilestoneHint => 'to go';
+	@override String gapComponentCount({required Object on, required Object total}) => '${on} / ${total} on';
+	@override String gapMinSize({required Object w, required Object h}) => 'min ${w} × ${h}';
+	@override String get gapResetDefaults => 'Reset to defaults';
+	@override String get wallTabSize => 'Size';
+	@override String get wallTabLayout => 'Layout';
+	@override String get wallTabComponents => 'Components';
+	@override String get wallTabCover => 'Cover';
+	@override String get wallTabWeights => 'Weights';
 	@override String get idleState => 'Idle';
 	@override String get moveToTrashNoUndo => 'Move to trash (can\'t be undone)';
 	@override String get moveToTrash => 'Move to trash';
@@ -1331,6 +1370,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get autoFavoriteOnDownloadSubtitle => 'Automatically add comics to favorites when downloading';
 	@override String get writeDownloadMetadataFile => 'Write metadata file on download';
 	@override String get writeDownloadMetadataFileSubtitle => 'After a download finishes, write original_comic_info.json and processed_comic_info.json into the comic folder so other tools can read or re-import it';
+	@override String get promptDownloadOptions => 'Prompt for download options';
+	@override String get promptDownloadOptionsSubtitle => 'Show options (whole book / latest chapters / picker) when clicking download; when disabled, downloads all chapters directly';
 	@override String get leftHandMode => 'Left-hand mode';
 	@override String get leftHandModeSubtitle => 'Move floating action buttons and other controls to the left side';
 	@override String get clickCoverToStartReading => 'Tap cover to start reading';
@@ -3228,6 +3269,8 @@ class _Translations$discover$en_US extends Translations$discover$zh_CN {
 	@override String get tabShowIcon => 'Show plugin icon';
 	@override String get tabShowPluginShort => 'Show plugin short name';
 	@override String get tabDoubleClickClose => 'Double-click to close tab';
+	@override String get tabCoverMode => 'Cover tab mode';
+	@override String get tabCoverModeDesc => 'Display tabs as book covers with information overlay';
 	@override String get webPage => 'Web page';
 	@override String get comicDetail => 'Details';
 }
@@ -3876,6 +3919,7 @@ extension on TranslationsEnUs {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
 			'workspace.laneTapExpandHint' => ({required Object title}) => '${title} (tap to expand the lane)',
+			'workspace.laneTapCollapseHint' => ({required Object title}) => '${title} (tap to collapse the lane)',
 			'workspace.laneDragHint' => ({required Object title}) => '${title} — press and hold to drag lanes into a new order',
 			'workspace.laneSortHint' => ({required Object title}) => '${title} (pick “Edit layout” in the lane menu to reorder)',
 			'workspace.allowedRange' => ({required Object min, required Object max}) => 'Allowed ${min}–${max}',
@@ -4127,6 +4171,44 @@ extension on TranslationsEnUs {
 			'workspace.emphasiseRecent' => 'Emphasises recently used content.',
 			'workspace.passthroughMode' => 'Passthrough mode',
 			'workspace.gapFill' => 'Gap fill',
+			'workspace.gapComponentsTitle' => 'Gaps & components',
+			'workspace.gapComponentsDescription' => 'Random shapes and mini widgets in one place: pick an overall mode, then toggle each item — every item previews what it looks like.',
+			'workspace.gapPreviewLabel' => 'Preview',
+			'workspace.gapEnableAll' => 'Enable all',
+			'workspace.gapDisableAll' => 'Disable all',
+			'workspace.gapShapesSection' => 'Random shapes',
+			'workspace.gapWidgetsSection' => 'Mini widgets',
+			'workspace.gapShapeBlob' => 'Blob',
+			'workspace.gapShapeBurst' => 'Burst',
+			'workspace.gapShapeClover' => 'Clover',
+			'workspace.gapShapeGem' => 'Gem',
+			'workspace.gapShapeArch' => 'Arch',
+			'workspace.gapShapeFlower' => 'Flower',
+			'workspace.gapShapeRing' => 'Ring',
+			'workspace.gapShapeWave' => 'Wave',
+			'workspace.gapCompletion' => 'Completion',
+			'workspace.gapHeatmap' => 'Reading heat',
+			'workspace.gapWeekday' => 'Weekday rhythm',
+			'workspace.gapSpan' => 'Collection span',
+			'workspace.gapUnread' => 'Unread pool',
+			'workspace.gapMilestone' => 'Next milestone',
+			'workspace.gapAverageProgress' => 'average progress',
+			'workspace.gapFinishedBooks' => 'finished',
+			'workspace.gapUnreadBooks' => 'unread',
+			'workspace.gapHeatWindow' => 'Last 8 weeks',
+			'workspace.gapWeekdayRhythm' => 'Weekday split',
+			'workspace.gapSpanDaysLabel' => 'days span',
+			'workspace.gapSpanEarliest' => 'since',
+			'workspace.gapUnreadPool' => 'not started',
+			'workspace.gapMilestoneHint' => 'to go',
+			'workspace.gapComponentCount' => ({required Object on, required Object total}) => '${on} / ${total} on',
+			'workspace.gapMinSize' => ({required Object w, required Object h}) => 'min ${w} × ${h}',
+			'workspace.gapResetDefaults' => 'Reset to defaults',
+			'workspace.wallTabSize' => 'Size',
+			'workspace.wallTabLayout' => 'Layout',
+			'workspace.wallTabComponents' => 'Components',
+			'workspace.wallTabCover' => 'Cover',
+			'workspace.wallTabWeights' => 'Weights',
 			'workspace.idleState' => 'Idle',
 			'workspace.moveToTrashNoUndo' => 'Move to trash (can\'t be undone)',
 			'workspace.moveToTrash' => 'Move to trash',
@@ -4348,6 +4430,8 @@ extension on TranslationsEnUs {
 			'workspace.coverLabel' => 'Cover',
 			'workspace.exportAsJson' => 'Export as JSON',
 			'workspace.importExport' => 'Import / export',
+			_ => null,
+		} ?? switch (path) {
 			'workspace.cardWidthAutoColumns' => 'Width is the target size; the column count adapts to the panel. Wide cards take two slots and can sit beside normal ones.',
 			'workspace.finishEditing' => 'Finish editing',
 			'workspace.finishLayout' => 'Finish layout',
@@ -4387,8 +4471,6 @@ extension on TranslationsEnUs {
 			'workspace.imageProcessingStage' => 'Image processing stage',
 			'workspace.imageInformation' => 'Image information',
 			'workspace.pinTab' => 'Pin tab',
-			_ => null,
-		} ?? switch (path) {
 			'workspace.pinHere' => 'Pin here',
 			'workspace.backToFolder' => 'Back to the folder',
 			'workspace.backHome' => 'Back home',
@@ -4862,6 +4944,8 @@ extension on TranslationsEnUs {
 			'settings.toastPositionSubtitle' => 'Which corner the toast sticks to',
 			'settings.toastPositionTopLeft' => 'Top left',
 			'settings.toastPositionTopCenter' => 'Top center',
+			_ => null,
+		} ?? switch (path) {
 			'settings.toastPositionTopRight' => 'Top right',
 			'settings.toastPositionMiddleLeft' => 'Middle left',
 			'settings.toastPositionCenter' => 'Center',
@@ -4901,8 +4985,6 @@ extension on TranslationsEnUs {
 			'settings.maskedKeywords' => 'Masked keywords',
 			'settings.maskedKeywordsSubtitle' => 'Add keywords to filter unwanted content (search only)',
 			'settings.maskedKeywordsEmpty' => 'No masked keywords',
-			_ => null,
-		} ?? switch (path) {
 			'settings.maskedKeywordsInputHint' => 'Enter new keyword...',
 			'settings.favoriteArtistHighlight' => 'Highlight Favorite Artists',
 			'settings.favoriteArtistHighlightSubtitle' => 'Highlight comics by preferred artists on cards and detail page',
@@ -5086,6 +5168,8 @@ extension on TranslationsEnUs {
 			'settings.autoFavoriteOnDownloadSubtitle' => 'Automatically add comics to favorites when downloading',
 			'settings.writeDownloadMetadataFile' => 'Write metadata file on download',
 			'settings.writeDownloadMetadataFileSubtitle' => 'After a download finishes, write original_comic_info.json and processed_comic_info.json into the comic folder so other tools can read or re-import it',
+			'settings.promptDownloadOptions' => 'Prompt for download options',
+			'settings.promptDownloadOptionsSubtitle' => 'Show options (whole book / latest chapters / picker) when clicking download; when disabled, downloads all chapters directly',
 			'settings.leftHandMode' => 'Left-hand mode',
 			'settings.leftHandModeSubtitle' => 'Move floating action buttons and other controls to the left side',
 			'settings.clickCoverToStartReading' => 'Tap cover to start reading',
@@ -5374,6 +5458,8 @@ extension on TranslationsEnUs {
 			'settings.revealFocusesLaneSubtitle' => 'Once the pointer has dwelled at the left or right edge long enough, the revealed lane also takes over interaction — no extra click. Reader keeps a narrow sliver, so one click returns to solo. When off, a reveal is only a peek and folds back to Reader after a while.',
 			'settings.panelLaneHoverFocus' => 'Hover focus for panel lanes',
 			'settings.panelLaneHoverFocusSubtitle' => 'Dwelling inside the left or right lane activates it too, sharing the delay above. Lanes collapsed to a rail are excluded, so brushing past them while reading won\'t steal focus.',
+			_ => null,
+		} ?? switch (path) {
 			'settings.delayRangeHint' => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.',
 			'settings.hoverRevealZones' => 'Hover reveal zones',
 			'settings.hoverRevealZonesSubtitle' => 'Drag rectangles on the canvas to decide where the pointer brings content up.',
@@ -5415,8 +5501,6 @@ extension on TranslationsEnUs {
 			'settings.operationBindingRadialSlotsSubtitle' => 'Tap an empty or filled slot on the wheel',
 			'settings.operationBindingRadialName' => 'Wheel name',
 			'settings.operationBindingRadialSlotLabel' => ({required Object layer, required Object sector}) => 'Layer ${layer} · slot ${sector}',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingRadialEmptySlot' => 'Empty slot',
 			'settings.operationBindingRadialUnbindSlot' => 'Unbind this slot',
 			'settings.operationBindingRadialMaxMenus' => ({required Object max}) => 'Up to ${max} wheels',
@@ -5888,6 +5972,8 @@ extension on TranslationsEnUs {
 			'reader.onlyThisComicUpscaleOwn' => 'Affects this comic only; upscaling has its own switch',
 			'reader.twoPagesIndependent' => 'Two pages independent',
 			'reader.twoPageModeTap' => 'Two-page mode (tap for single page)',
+			_ => null,
+		} ?? switch (path) {
 			'reader.twoPages' => 'Two pages',
 			'reader.originalSize' => 'Original size',
 			'reader.comparingOriginal' => 'Comparing with the original',
@@ -5929,8 +6015,6 @@ extension on TranslationsEnUs {
 			'reader.deleteDownload' => 'Delete Download',
 			'reader.retryFailedParts' => 'Retry Failed Parts',
 			'reader.retryFailedPartsSubtitle' => 'Only redownload incomplete or failed chapters and images',
-			_ => null,
-		} ?? switch (path) {
 			'reader.restartDownloadSmart' => 'Incremental (Recommended)',
 			'reader.restartDownloadSmartDesc' => 'Check local downloaded files and only download missing or failed images',
 			'reader.restartDownloadFull' => 'Full Redownload',
@@ -6402,6 +6486,8 @@ extension on TranslationsEnUs {
 			'ocr.glossarySubtitle' => 'One per line: source=target; changing it re-translates finished pages',
 			'ocr.glossaryHint' => 'トカゲ=stone skink',
 			'ocr.saved' => 'Saved',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.notConfigured' => 'Base URL or model name is missing',
 			'ocr.epSection' => 'Inference backend',
 			'ocr.ep' => 'Inference backend',
@@ -6443,8 +6529,6 @@ extension on TranslationsEnUs {
 			'ocr.failedShort' => 'Failed',
 			'ocr.busyToast' => 'This page is still being translated',
 			'ocr.needWeights' => 'Weights are incomplete; download them in Settings',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.engine' => 'Translation engine',
 			'ocr.engineSubtitle' => 'API endpoint bills per token and needs network; Apple system translation runs on-device, free and offline',
 			'ocr.autoTranslatePage' => 'Auto-translate each new page',
@@ -6836,6 +6920,8 @@ extension on TranslationsEnUs {
 			'discover.tabShowIcon' => 'Show plugin icon',
 			'discover.tabShowPluginShort' => 'Show plugin short name',
 			'discover.tabDoubleClickClose' => 'Double-click to close tab',
+			'discover.tabCoverMode' => 'Cover tab mode',
+			'discover.tabCoverModeDesc' => 'Display tabs as book covers with information overlay',
 			'discover.webPage' => 'Web page',
 			'discover.comicDetail' => 'Details',
 			'searchResult.enterPageNumber' => 'Enter page number',
@@ -6914,6 +7000,8 @@ extension on TranslationsEnUs {
 			'comicFollow.newChapters' => ({required Object diff, required Object total}) => '${diff} new chapters, ${total} total',
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '${diff} new unread chapters, ${total} total',
 			'comicFollow.latestCount' => ({required Object count}) => 'Latest ${count} chapters',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.fetchFailed' => 'Fetch failed',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '${diff} new',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',
@@ -6970,8 +7058,6 @@ extension on TranslationsEnUs {
 			'login.invalidCredentials' => 'Invalid username or password, please try again',
 			'login.configNotReady' => 'Login config not ready, please retry later',
 			'login.loggingIn' => 'Logging in, please wait...',
-			_ => null,
-		} ?? switch (path) {
 			'login.loginSuccess' => 'Login successful',
 			'login.loginFailed' => 'Login failed',
 			'login.loginButton' => 'Login',
