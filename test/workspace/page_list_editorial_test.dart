@@ -9,6 +9,7 @@ import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/workspace/widgets/cards/page_list_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 
 void main() {
   setUp(() {
@@ -35,7 +36,7 @@ void main() {
       canvas.entries.map((entry) => entry.source),
       orderedEquals(List.generate(300, (index) => index)),
     );
-    expect(find.byTooltip('展墙设置'), findsOneWidget);
+    expect(find.byTooltip(LibraryPresentationButton.tooltip), findsOneWidget);
     expect(find.text('不对称'), findsNothing);
 
     ReaderSessionCoordinator.instance.updateProgress(

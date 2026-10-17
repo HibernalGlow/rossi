@@ -81,12 +81,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('章节 35'), findsOneWidget);
       expect(find.text('章节 36'), findsNothing);
-      await tester.ensureVisible(find.byTooltip('收起详情'));
-      await tester.tap(find.byTooltip('收起详情'));
+      final bottomCollapse = find.widgetWithText(FilledButton, '收起详情');
+      expect(bottomCollapse, findsOneWidget);
+      await tester.ensureVisible(bottomCollapse);
+      await tester.tap(bottomCollapse);
       expect(closed, 1);
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('ComicInlineDetailsSurface 底部收回控件在无详情时隐藏，有详情时显示并可点击收回', (
+    tester,
+  ) async {
+    var closed = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ComicInlineDetailsSurface(
+            onClose: () => closed++,
+            operations: const Text('操作栏'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, '收起详情'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ComicInlineDetailsSurface(
+            onClose: () => closed++,
+            operations: const Text('操作栏'),
+            description: const Text('漫画描述'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, '收起详情'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '收起详情'));
+    expect(closed, 1);
+  });
 
   testWidgets('原图比例保持页序，横竖图改变形状，远处页可定位', (tester) async {
     SharedPreferences.setMockInitialValues({});
