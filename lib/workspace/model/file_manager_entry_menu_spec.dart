@@ -126,6 +126,17 @@ class FileManagerEntryMenuInput {
   /// 也不要画成能点、点下去什么都不知道。
   final bool canReveal;
 
+  /// 「文件操作」那颗**写操作总开关**（设置页 `fileManagerSetting.fileOperations`）。
+  ///
+  /// 它只关**会动盘**的项：剪切 / 粘贴 / 重命名 / 新建文件夹 / 回收站 / 永久删除。
+  /// 读取项（打开、在新页签打开、在访达里显示、复制、复制路径）照旧可用 ——
+  /// 「不想误删」不该变成「连复制路径都点不出来」。
+  ///
+  /// 这一项存在的理由就是一次真实故障：从前开关一关，卡片干脆**不给行挂菜单宿主**，
+  /// 于是右键整个没反应，而界面上没有任何地方说明为什么（判据里用的是默认的
+  /// 「开」，所以一直全绿）。口径见本文件顶部：不可用项**置灰不隐藏**。
+  final bool canWrite;
+
   const FileManagerEntryMenuInput({
     required this.isDirectory,
     this.selectionCount = 0,
@@ -135,6 +146,7 @@ class FileManagerEntryMenuInput {
     this.canPaste = false,
     this.trashRestoreSupported = false,
     this.canReveal = false,
+    this.canWrite = true,
   });
 
   /// 这一批操作到底作用在几项上。
@@ -171,37 +183,49 @@ List<FileManagerEntryMenuItemSpec> buildFileManagerEntryMenuItems(
     ),
 
     // ── 剪贴板 ──
+    // 「复制」只是把这一项的内部引用放进剪贴板，不动盘；真正会写的是粘贴，
+    // 而粘贴已经跟着 canWrite 灰掉了 ⇒ 复制保持可用，与「复制路径」同一档。
     const FileManagerEntryMenuItemSpec(action: FileManagerEntryAction.copy),
-    const FileManagerEntryMenuItemSpec(action: FileManagerEntryAction.cut),
+    FileManagerEntryMenuItemSpec(
+      action: FileManagerEntryAction.cut,
+      // 剪切是移动的前半步：粘出去就是写盘，所以它属于写。
+      enabled: input.canWrite,
+    ),
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.paste,
       // 粘贴必须落到一个目录上；落在文件上没有定义。
-      enabled: input.canPaste && !batch && input.isDirectory,
+      enabled: input.canWrite && input.canPaste && !batch && input.isDirectory,
     ),
 
     // ── 编辑 ──
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.rename,
       // 批量改名没有定义（重名怎么办、按什么规则），置灰。
-      enabled: !batch,
+      enabled: input.canWrite && !batch,
     ),
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.createFolder,
       // 只有目录里能新建；也只在单选时有意义（多选时它属于「哪一项」不清楚）。
-      enabled: !batch && input.isDirectory && input.canCreateFolder,
+      enabled:
+          input.canWrite &&
+          !batch &&
+          input.isDirectory &&
+          input.canCreateFolder,
     ),
     const FileManagerEntryMenuItemSpec(action: FileManagerEntryAction.copyPath),
 
     // ── 危险 ──
     FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.trash,
+      enabled: input.canWrite,
       dangerous: true,
       // 不弹确认：它可撤销，保护由撤销提示条承担（对齐 neoview 的默认配置）。
       // 平台不支持撤销时（macOS）由文案层提示「无法恢复」，**不**在这里改成确认 ——
       // 那会让同一个菜单项在不同平台上语义不同，判据也就没法写。
     ),
-    const FileManagerEntryMenuItemSpec(
+    FileManagerEntryMenuItemSpec(
       action: FileManagerEntryAction.deletePermanently,
+      enabled: input.canWrite,
       destructive: true,
       dangerous: true,
     ),

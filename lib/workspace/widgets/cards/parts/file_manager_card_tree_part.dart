@@ -133,7 +133,9 @@ extension _FileManagerCardTreePart on _FileManagerCardState {
                     : _openArchive(entry)
               : null,
         );
-        if (_fileOpsEnabled) surface = _wrapEntryRow(context, row, surface);
+        // 与主列表同一口径：「文件操作」总开关只灰菜单里会动盘的那几项，
+        // 不摘右键宿主（灰哪几项看 `FileManagerEntryMenuInput.canWrite`）。
+        surface = _wrapEntryRow(context, row, surface);
         return surface;
       },
     );

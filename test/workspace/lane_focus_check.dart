@@ -134,7 +134,7 @@ void _offsetsStayInRange() {
       );
     }
   }
-  check('内容比视口宽时上限为正', limit == 260.0, '$limit');
+  check('内容比视口宽时上限为正', limit == 270.0, '$limit');
 }
 
 /// 条带装得下 ⇒ 没有可滚的余地 ⇒ 任何选址都是 0。

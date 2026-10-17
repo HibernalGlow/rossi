@@ -49,6 +49,7 @@ void main() {
   _collapsedSoloLaneDoesNotRailOthers();
   _activationNeverChangesWidths();
   _activeLaneIsNeverARail();
+  _trailingEdgeResizerAllowsRightExtension();
   print('strip_metrics_check: $_passed checks passed');
 }
 
@@ -155,10 +156,11 @@ void _wideWindowGivesSpareToReader() {
   );
   check('左泳道保持绝对宽 380', _laneWidth(m, LaneId.left) == 380.0);
   check('右泳道保持绝对宽 360', _laneWidth(m, LaneId.right) == 360.0);
-  // 阅读器标称 = 1625 × 0.5 = 812.5；再吃掉富余 1609 − 1572.5 = 36.5
+  // 阅读器标称 = 1625 × 0.5 = 812.5；
+  // 3个手柄 = 30px；再吃掉富余 1609 − (380 + 812.5 + 360 + 30) = 26.5
   check(
-    '富余全部给阅读器（812.5 + 36.5 = 849）',
-    _laneWidth(m, LaneId.reader) == 849.0,
+    '富余全部给阅读器（812.5 + 26.5 = 839）',
+    _laneWidth(m, LaneId.reader) == 839.0,
     '实际 ${_laneWidth(m, LaneId.reader)}',
   );
   _invariants('宽窗口', m, available);
@@ -196,9 +198,10 @@ void _panelLanesAreAbsolute() {
   check('窗口 2400 时右泳道仍是 360', _laneWidth(wide, LaneId.right) == 360.0);
 
   // 阅读器是比例：1625×0.5=812.5 / 2400×0.5=1200，都被夹在 [400, 2000] 内
+  // 窗口 2400 可用宽 2384；380 + 1200 + 360 + 30 = 1970；富余 414
   check(
-    '窗口 2400 时阅读器标称 1200 + 富余 424',
-    _laneWidth(wide, LaneId.reader) == 1624.0,
+    '窗口 2400 时阅读器标称 1200 + 富余 414',
+    _laneWidth(wide, LaneId.reader) == 1614.0,
   );
   _invariants('窗口 1200', narrow, _available(1200));
   _invariants('窗口 2400', wide, _available(2400));
@@ -217,7 +220,7 @@ void _narrowWindowScrollsWithoutSquashingLanes() {
     '阅读器停在标称 450（450 < 窗口一半才会用 minWidth）',
     _laneWidth(m, LaneId.reader) == 450.0,
   );
-  check('contentWidth = 380+450+360+20', m.contentWidth == 1210.0);
+  check('contentWidth = 380+450+360+30', m.contentWidth == 1220.0);
   check('可用宽只有 884', available == 884.0);
   _invariants('窄窗口', m, available);
 }
@@ -273,8 +276,8 @@ void _noLaneIsWiderThanTheViewport() {
 
 /// 亚像素差：只多 0.3px 也要从阅读器身上抹平，**不能留着让 Flutter 画斜纹**。
 void _subPixelDeficitIsAbsorbed() {
-  // 760 + vw/2 − (vw − 16) = −0.3  ⇒  vw = 1551.4
-  const vw = 1551.4;
+  // 770 + vw/2 − (vw − 16) = −0.3  ⇒  vw = 1571.4
+  const vw = 1571.4;
   final m = _resolve(vw);
   final available = _available(vw);
 
@@ -285,58 +288,57 @@ void _subPixelDeficitIsAbsorbed() {
     '${m.contentWidth} vs $available',
   );
   check(
-    '阅读器 = 775.7 − 0.3 = 775.4',
-    (_laneWidth(m, LaneId.reader)! - 775.4).abs() < 1e-6,
+    '阅读器 = 785.7 − 0.3 = 785.4',
+    (_laneWidth(m, LaneId.reader)! - 785.4).abs() < 1e-6,
     '实际 ${_laneWidth(m, LaneId.reader)}',
   );
   _invariants('亚像素差', m, available);
 
   // 但差到 1px 就不再抹平：宁可横向滚动，也不接受一条 1px 的斜纹。
-  // 760 + vw/2 − (vw − 16) = −1  ⇒  vw = 1550
-  final borderline = _resolve(1550.0);
+  // 770 + vw/2 − (vw − 16) = −1  ⇒  vw = 1570.0
+  final borderline = _resolve(1570.0);
   check('差 1px 就走滚动，不容忍', borderline.needsScroll);
-  _invariants('1px 差', borderline, _available(1550.0));
+  _invariants('1px 差', borderline, _available(1570.0));
 }
 
-/// 折叠泳道夹在中间：两侧都是折叠轨的邻居，**一个手柄都不该有**。
+/// 折叠泳道夹在中间：中间两侧都不放手柄，最右侧未折叠泳道保留其右侧手柄。
 void _collapsedMiddleLaneDropsBothHandles() {
   final layout = _withLane(LaneId.reader, collapsed: true);
 
   final m = _resolve(1625.0, layout: layout);
   check('折叠的阅读器只占 44dp', _laneWidth(m, LaneId.reader) == 44.0);
   check('折叠轨标记为 collapsed', m.slots[1].collapsed);
-  check('左右两条被折叠轨隔开，没有手柄', _resizers(m).isEmpty, '${_resizers(m)}');
-  check('contentWidth = 380+44+360', m.contentWidth == 784.0);
+  check('中间不放手柄，最右侧放手柄', _resizers(m).length == 1, '${_resizers(m)}');
+  check('最右侧手柄是 right 边缘手柄', _resizers(m).single.isEdgeResizer);
+  check('contentWidth = 380+44+360+10', m.contentWidth == 794.0);
   _invariants('折叠中间泳道', m, _available(1625.0));
 
-  // 关键：可用宽正好 784 时不该滚动。
-  // 「手柄数 = 可见泳道数 − 1」会多算一个 10px 手柄（那条手柄根本画不出来），
-  // 于是 794 > 784，条带在还放得下的时候就横向滚起来。
-  final tight = _resolve(800.0, layout: layout);
-  check('可用宽 784 时恰好放下，不滚动', !tight.needsScroll);
+  final tight = _resolve(810.0, layout: layout);
+  check('可用宽 794 时恰好放下，不滚动', !tight.needsScroll);
   check(
-    '此时 contentWidth 等于可用宽（794 是错的）',
-    tight.contentWidth == 784.0,
+    '此时 contentWidth 等于可用宽',
+    tight.contentWidth == 794.0,
     '${tight.contentWidth}',
   );
-  _invariants('折叠中间泳道（紧凑）', tight, _available(800.0));
+  _invariants('折叠中间泳道（紧凑）', tight, _available(810.0));
 }
 
-/// 折叠最左侧：它和阅读器之间不放手柄，但阅读器与右泳道之间要放。
+/// 折叠最左侧：它和阅读器之间不放手柄，但阅读器与右泳道之间以及右泳道右侧要放。
 void _collapsedEdgeLaneKeepsTheRemainingHandle() {
   final layout = _withLane(LaneId.left, collapsed: true);
   final m = _resolve(1625.0, layout: layout);
   final available = _available(1625.0);
 
   check('左侧折叠轨 44dp', _laneWidth(m, LaneId.left) == 44.0);
-  check('只剩一个手柄', _resizers(m).length == 1, '${_resizers(m)}');
+  check('剩下两个手柄', _resizers(m).length == 2, '${_resizers(m)}');
   check(
-    '手柄分开的是 reader→right',
-    _resizers(m).single.beforeLaneId == LaneId.reader &&
-        _resizers(m).single.afterLaneId == LaneId.right,
+    '手柄分开的是 reader→right 与 right 边缘',
+    _resizers(m).first.beforeLaneId == LaneId.reader &&
+        _resizers(m).first.afterLaneId == LaneId.right &&
+        _resizers(m).last.isEdgeResizer,
   );
-  // 44 + 812.5 + 360 + 10 = 1226.5；富余 1609 − 1226.5 = 382.5 给阅读器
-  check('阅读器吃掉富余 → 1195', _laneWidth(m, LaneId.reader) == 1195.0);
+  // 44 + 812.5 + 360 + 20 = 1236.5；富余 1609 − 1236.5 = 372.5 给阅读器
+  check('阅读器吃掉富余 → 1185', _laneWidth(m, LaneId.reader) == 1185.0);
   check('条带仍精确填满', (m.contentWidth - available).abs() < _eps);
   _invariants('折叠最左', m, available);
 }
@@ -346,17 +348,17 @@ void _resizerSlotsCarryTheirPair() {
   final m = _resolve(1625.0);
   final shape = m.slots.map((s) => s.laneId ?? '|').join(',');
   check(
-    '槽位顺序 = left,|,reader,|,right',
-    shape == 'left,|,reader,|,right',
+    '槽位顺序 = left,|,reader,|,right,|',
+    shape == 'left,|,reader,|,right,|',
     shape,
   );
 
   final pairs = _resizers(
     m,
-  ).map((s) => '${s.beforeLaneId}→${s.afterLaneId}').toList();
+  ).map((s) => '${s.beforeLaneId}→${s.afterLaneId ?? 'edge'}').toList();
   check(
-    '两个手柄分别配对 left→reader 与 reader→right',
-    pairs.join(' , ') == 'left→reader , reader→right',
+    '三个手柄分别配对 left→reader、reader→right 与 right→edge',
+    pairs.join(' , ') == 'left→reader , reader→right , right→edge',
     pairs.join(' , '),
   );
 }
@@ -370,8 +372,13 @@ void _missingReaderLaneLeavesSlack() {
   final m = _resolve(1625.0, layout: layout);
 
   check('没有弹性泳道时不滚动', !m.needsScroll);
-  check('contentWidth = 380+360+10（富余留在右侧，不硬塞）', m.contentWidth == 750.0);
-  check('两条面板泳道之间仍有一个手柄', _resizers(m).single.beforeLaneId == LaneId.left);
+  check('contentWidth = 380+360+20（富余留在右侧，不硬塞）', m.contentWidth == 760.0);
+  check('两条面板泳道之间有手柄，最右侧也有手柄', _resizers(m).length == 2);
+  check(
+    '手柄分开 left→right 与 right 边缘',
+    _resizers(m).first.beforeLaneId == LaneId.left &&
+        _resizers(m).last.isEdgeResizer,
+  );
   _invariants('无阅读器泳道', m, _available(1625.0));
 }
 
@@ -469,7 +476,12 @@ void _widthsStableAcrossActivations(String label, String? soloLaneId) {
   const lanes = <String>[LaneId.left, LaneId.reader, LaneId.right];
   final baseline = _resolve(viewport, soloLaneId: soloLaneId);
 
-  for (final active in <String?>[null, LaneId.left, LaneId.reader, LaneId.right]) {
+  for (final active in <String?>[
+    null,
+    LaneId.left,
+    LaneId.reader,
+    LaneId.right,
+  ]) {
     final m = _resolve(viewport, soloLaneId: soloLaneId, activeLaneId: active);
     for (final laneId in lanes) {
       check(
@@ -520,7 +532,44 @@ void _activeLaneIsNeverARail() {
   check('激活回到 Reader：左又收成轨', _laneWidth(backToReader, LaneId.left) == rail);
   check(
     '激活回到 Reader：两条都收成轨 ⇒ Reader 比左被激活那次少一条轨宽',
-    _laneWidth(m, LaneId.reader)! - _laneWidth(backToReader, LaneId.reader)! == rail,
+    _laneWidth(m, LaneId.reader)! - _laneWidth(backToReader, LaneId.reader)! ==
+        rail,
     '${_laneWidth(m, LaneId.reader)} vs ${_laneWidth(backToReader, LaneId.reader)}',
   );
+}
+
+/// 最右侧泳道的右边存在边缘手柄，可以向右延伸扩展宽度。
+void _trailingEdgeResizerAllowsRightExtension() {
+  final defaults = WorkspaceLayoutConfig.defaults();
+  final m = _resolve(1625.0, layout: defaults);
+
+  check('最右侧泳道是 right', defaults.laneOrder.last == LaneId.right);
+  final lastSlot = m.slots.last;
+  check('条带最后一个槽位是手柄', lastSlot.isResizer);
+  check('该手柄是边缘手柄', lastSlot.isEdgeResizer);
+  check('手柄绑定的泳道是 right', lastSlot.beforeLaneId == LaneId.right);
+  check('手柄右侧没有泳道', lastSlot.afterLaneId == null);
+
+  // 当最右侧泳道加宽时，条带向右延伸，contentWidth 增加
+  final extendedLayout = defaults.copyWith(
+    lanes: {
+      ...defaults.lanes,
+      LaneId.right: defaults.lanes[LaneId.right]!.copyWith(width: 500.0),
+    },
+  );
+  final extended = _resolve(1625.0, layout: extendedLayout);
+  check('加宽后右泳道是 500', _laneWidth(extended, LaneId.right) == 500.0);
+  check('最后一个槽位依然是手柄', extended.slots.last.isEdgeResizer);
+  _invariants('最右侧泳道向右延伸', extended, _available(1625.0));
+
+  // 最右侧泳道折叠时，边缘手柄消失
+  final collapsedLayout = defaults.copyWith(
+    lanes: {
+      ...defaults.lanes,
+      LaneId.right: defaults.lanes[LaneId.right]!.copyWith(collapsed: true),
+    },
+  );
+  final collapsedMetrics = _resolve(1625.0, layout: collapsedLayout);
+  check('折叠后条带最后一个槽位是折叠轨，不再有手柄', !collapsedMetrics.slots.last.isResizer);
+  check('折叠轨是 right', collapsedMetrics.slots.last.laneId == LaneId.right);
 }

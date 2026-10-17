@@ -544,11 +544,12 @@ class _FileManagerCardState extends State<FileManagerCard> {
       busy: _busy,
       standalone: standalone ?? widget.isStandalone,
       wrapTitle: wrapTitle,
-      // 关掉「文件操作」时整块不挂：连右键手势都没有，列表回到纯浏览。
+      // 「文件操作」关掉时**仍然挂菜单宿主**：那颗开关管的是会不会动盘，
+      // 摘掉整个宿主等于把「打开 / 复制 / 复制路径」这些只读项一起变没，
+      // 而右键落在行上一点反应都没有 —— 界面上没有任何地方解释为什么。
+      // 灰哪几项由 `FileManagerEntryMenuInput.canWrite` 判（口径：置灰不隐藏）。
       wrapRow: (context, row, child) {
-        final surface = _fileOpsEnabled
-            ? _wrapEntryRow(context, row, child)
-            : child;
+        final surface = _wrapEntryRow(context, row, child);
         return decorateRow?.call(context, row, surface) ?? surface;
       },
       onTap: (row) =>

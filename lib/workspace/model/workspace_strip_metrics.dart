@@ -32,17 +32,20 @@ class WorkspaceStripSlot {
   const WorkspaceStripSlot.resizer(
     this.width, {
     required String before,
-    required String after,
+    String? after,
   }) : laneId = null,
        collapsed = false,
        beforeLaneId = before,
        afterLaneId = after;
 
   bool get isResizer => laneId == null;
+  bool get isEdgeResizer => isResizer && afterLaneId == null;
 
   @override
   String toString() => isResizer
-      ? 'resizer(${width}px, $beforeLaneId→$afterLaneId)'
+      ? (afterLaneId != null
+            ? 'resizer(${width}px, $beforeLaneId→$afterLaneId)'
+            : 'resizer(${width}px, $beforeLaneId→edge)')
       : '$laneId(${width}px${collapsed ? ', collapsed' : ''})';
 }
 
@@ -223,6 +226,8 @@ class WorkspaceStripMetrics {
     //     但「可见泳道数 − 1」会算出 1。多算的这一份会把 `contentWidth` 报大、
     //     让条带在还放得下的时候就横向滚动（更糟的是它与槽位之和不再相等，
     //     而槽位之和才是真正的占位宽度）。
+    //     最右侧泳道未折叠（且不是 solo 独占视口）时，右边也放置手柄，
+    //     因为在设计上条带向右无限延伸，最右侧泳道可以向右拉伸调整。
     var resizerCount = 0;
     String? previousLane;
     for (final laneId in layout.laneOrder) {
@@ -234,6 +239,13 @@ class WorkspaceStripMetrics {
         resizerCount++;
       }
       previousLane = laneId;
+    }
+    final hasTrailingEdgeResizer =
+        previousLane != null &&
+        collapsed[previousLane] == false &&
+        previousLane != solo;
+    if (hasTrailingEdgeResizer) {
+      resizerCount++;
     }
 
     var contentWidth = resizerWidth * resizerCount;
@@ -262,7 +274,7 @@ class WorkspaceStripMetrics {
     //    不滚动 ⇒ 槽位之和 ≤ 可用宽 ⇒ `Row` 不可能溢出。
     final needsScroll = contentWidth > availableWidth;
 
-    // 4. 按顺序拼装：泳道 + 相邻泳道之间的分隔手柄。
+    // 4. 按顺序拼装：泳道 + 相邻泳道之间的分隔手柄 + 最右侧边缘手柄。
     //    柄的判定与 1b 必须**逐字同源**，否则 `contentWidth` 与槽位之和会分叉。
     final slots = <WorkspaceStripSlot>[];
     String? previous;
@@ -281,6 +293,9 @@ class WorkspaceStripMetrics {
       }
       slots.add(WorkspaceStripSlot.lane(laneId, width, collapsed: isCollapsed));
       previous = laneId;
+    }
+    if (previous != null && collapsed[previous] == false && previous != solo) {
+      slots.add(WorkspaceStripSlot.resizer(resizerWidth, before: previous));
     }
 
     return WorkspaceStripMetrics(

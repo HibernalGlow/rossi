@@ -12,6 +12,7 @@ class WorkspacePanelTabs extends StatelessWidget {
     required this.onSelected,
     required this.onHide,
     this.vertical = false,
+    this.canRightClickHide = true,
   });
 
   final List<WorkspacePanelDefinition> panels;
@@ -19,6 +20,13 @@ class WorkspacePanelTabs extends StatelessWidget {
   final ValueChanged<WorkspacePanelDefinition> onSelected;
   final ValueChanged<WorkspacePanelDefinition> onHide;
   final bool vertical;
+
+  /// 「右键图标 = 收起这块面板」要不要生效（见
+  /// `WorkspaceInteractionSettings.panelTabRightClickHide`，设置页那颗开关）。
+  ///
+  /// 关掉时**手势不挂**、tooltip 也不提「右键收起」：留着一句做不到的承诺，
+  /// 比不写更难解释 —— 用户会以为是自己点歪了。
+  final bool canRightClickHide;
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +44,10 @@ class WorkspacePanelTabs extends StatelessWidget {
             tooltip:
                 '${panel.title}'
                 '${panel.canMove ? '（编辑布局后长按排序 / 换泳道）' : ''}'
-                '${panel.canHide ? '　右键收起' : ''}',
-            onSecondaryTap: panel.canHide ? () => onHide(panel) : null,
+                '${panel.canHide && canRightClickHide ? '　右键收起' : ''}',
+            onSecondaryTap: panel.canHide && canRightClickHide
+                ? () => onHide(panel)
+                : null,
             child: SizedBox(
               width: PanelSwitcherTabs.iconSize,
               height: PanelSwitcherTabs.iconSize,
