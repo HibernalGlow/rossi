@@ -60,6 +60,7 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   autoFavoriteOnDownload: json['autoFavoriteOnDownload'] as bool? ?? false,
   writeDownloadMetadataFile:
       json['writeDownloadMetadataFile'] as bool? ?? false,
+  promptDownloadOptions: json['promptDownloadOptions'] as bool? ?? false,
   leftHandModeEnabled: json['leftHandModeEnabled'] as bool? ?? false,
   clickCoverToStartReading: json['clickCoverToStartReading'] as bool? ?? false,
   comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
@@ -203,6 +204,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'autoFollowOnCollect': instance.autoFollowOnCollect,
       'autoFavoriteOnDownload': instance.autoFavoriteOnDownload,
       'writeDownloadMetadataFile': instance.writeDownloadMetadataFile,
+      'promptDownloadOptions': instance.promptDownloadOptions,
       'leftHandModeEnabled': instance.leftHandModeEnabled,
       'clickCoverToStartReading': instance.clickCoverToStartReading,
       'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
@@ -968,6 +970,7 @@ _DiscoverSettingState _$DiscoverSettingStateFromJson(
       DiscoverTabBarSide.top,
   tabRailWidth: (json['tabRailWidth'] as num?)?.toDouble() ?? 132.0,
   tabDoubleClickClose: json['tabDoubleClickClose'] as bool? ?? true,
+  tabCoverMode: json['tabCoverMode'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$DiscoverSettingStateToJson(
@@ -978,6 +981,7 @@ Map<String, dynamic> _$DiscoverSettingStateToJson(
   'tabSide': _$DiscoverTabBarSideEnumMap[instance.tabSide]!,
   'tabRailWidth': instance.tabRailWidth,
   'tabDoubleClickClose': instance.tabDoubleClickClose,
+  'tabCoverMode': instance.tabCoverMode,
 };
 
 const _$DiscoverTabBarSideEnumMap = {

@@ -60,6 +60,7 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'downloadAutoRetryCount',
     'autoFavoriteOnDownload',
     'writeDownloadMetadataFile',
+    'promptDownloadOptions',
     // 导出带不带封面：和上一条同属「落到磁盘上的东西长什么样」的偏好，
     // 不是本机事实（不同于同页的 customExportPath），所以两台机器一起走。
     'exportIncludeCover',
