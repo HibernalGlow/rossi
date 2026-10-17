@@ -5,12 +5,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
-import 'package:zephyr/page/comic_list/view/plugin_comic_grid_sliver.dart';
+import 'package:zephyr/page/search_result/view/search_result_library_view.dart';
+import 'package:zephyr/page/discover/service/discover_tab_toolbar.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/search_result/search_result.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/search/model/plugin_search_history_store.dart';
 
@@ -60,6 +62,8 @@ class _SearchResultPageState extends State<_SearchResultPage>
     with SingleTickerProviderStateMixin {
   late SearchEvent searchEvent;
   final _scrollController = ScrollController();
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
+  DiscoverTabToolbarController? _tabToolbar;
   int pagesCount = 0;
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
@@ -86,7 +90,7 @@ class _SearchResultPageState extends State<_SearchResultPage>
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final keyword = widget.searchEvent.searchStates.searchKeyword.trim();
-      if (keyword.isEmpty) return;
+      if (keyword.isEmpty || !mounted) return;
       final historyItem = _buildHistoryItem(widget.searchEvent);
       final settingCubit = context.read<GlobalSettingCubit>();
       await PluginSearchHistoryStore(
@@ -97,7 +101,25 @@ class _SearchResultPageState extends State<_SearchResultPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final toolbar = DiscoverTabToolbarScope.maybeOf(context);
+    if (identical(toolbar, _tabToolbar)) return;
+    _tabToolbar?.unregister(this);
+    _tabToolbar = toolbar;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(toolbar, _tabToolbar)) {
+        toolbar?.register(
+          this,
+          (anchor) async => _canvasKey.currentState?.openSettings(anchor),
+        );
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _tabToolbar?.unregister(this);
     _animationController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -111,7 +133,9 @@ class _SearchResultPageState extends State<_SearchResultPage>
       appBar: SearchResultBar(searchEvent: searchEvent),
       body: _bloc(),
       floatingActionButtonLocation:
-          context.watch<GlobalSettingCubit>().state.leftHandModeEnabled
+          context.select(
+            (GlobalSettingCubit cubit) => cubit.state.leftHandModeEnabled,
+          )
           ? FloatingActionButtonLocation.startFloat
           : FloatingActionButtonLocation.endFloat,
       floatingActionButton: SlideTransition(
@@ -131,6 +155,13 @@ class _SearchResultPageState extends State<_SearchResultPage>
           spaceBetweenChildren: 8,
           children: [
             SpeedDialChild(
+              child: const GlyphIcon(AppGlyphs.gradient),
+              label: LibraryPresentationButton.tooltip,
+              backgroundColor: colorScheme.secondaryContainer,
+              foregroundColor: colorScheme.onSecondaryContainer,
+              onTap: () => _canvasKey.currentState?.openSettings(context),
+            ),
+            SpeedDialChild(
               child: const GlyphIcon(AppGlyphs.vAlignTop),
               label: t.searchResult.returnToTop,
               shape: RoundedRectangleBorder(
@@ -139,6 +170,7 @@ class _SearchResultPageState extends State<_SearchResultPage>
               backgroundColor: colorScheme.secondaryContainer,
               foregroundColor: colorScheme.onSecondaryContainer,
               onTap: () {
+                if (!_scrollController.hasClients) return;
                 _scrollController.animateTo(
                   0,
                   duration: const Duration(milliseconds: 500),
@@ -239,18 +271,12 @@ class _SearchResultPageState extends State<_SearchResultPage>
       }
     }
 
-    final list = mapToUnifiedComicSimplifyEntryInfoList(
-      state.comics.map((item) => item.comic),
-    );
-
-    return PluginComicGridSliver(
+    return SearchResultLibraryView(
+      state: state,
+      canvasKey: _canvasKey,
+      source: searchEvent.searchStates.from,
       controller: _scrollController,
-      entries: list,
-      hasReachedMax:
-          state.hasReachedMax && state.status == SearchStatus.success,
-      isLoadingMore: state.status == SearchStatus.loadingMore,
-      loadMoreFailed: state.status == SearchStatus.getMoreFailure,
-      onRetryLoadMore: () => _refresh(SearchStatus.loadingMore),
+      onRetryLoadMore: () => _fetchSearchResult(retry: true),
       onLoadMore: _fetchSearchResult,
     );
   }
@@ -260,7 +286,13 @@ class _SearchResultPageState extends State<_SearchResultPage>
     context.read<SearchBloc>().add(searchEvent.copyWith(status: status));
   }
 
-  void _fetchSearchResult() {
+  void _fetchSearchResult({bool retry = false}) {
+    final state = context.read<SearchBloc>().state;
+    if (state.hasReachedMax ||
+        (state.status != SearchStatus.success &&
+            !(retry && state.status == SearchStatus.getMoreFailure))) {
+      return;
+    }
     context.read<SearchBloc>().add(
       searchEvent.copyWith(
         page: searchEvent.page + 1,

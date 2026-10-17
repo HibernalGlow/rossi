@@ -119,7 +119,28 @@ class _SearchAggregateResultPageState
         children: [
           const _FilterChipsRow(),
           Expanded(
-            child: BlocBuilder<AggregateSearchCubit, AggregateSearchState>(
+            child: BlocConsumer<AggregateSearchCubit, AggregateSearchState>(
+              listener: (context, state) {
+                if (state.results.isNotEmpty) {
+                  for (final items in state.results.values) {
+                    if (items.isNotEmpty) {
+                      final list = mapToUnifiedComicSimplifyEntryInfoList(
+                        items,
+                      );
+                      final first = list.firstOrNull;
+                      if (first != null && first.fileServer.isNotEmpty) {
+                        DiscoverTabScope.maybeOf(context)?.reportFirstCover(
+                          url: first.fileServer,
+                          path: first.path,
+                          from: first.from,
+                          cartoonId: first.id,
+                        );
+                        break;
+                      }
+                    }
+                  }
+                }
+              },
               builder: (context, state) {
                 final hasAnyResponse =
                     state.results.isNotEmpty || state.errors.isNotEmpty;

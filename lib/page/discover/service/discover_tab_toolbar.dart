@@ -6,14 +6,23 @@ typedef DiscoverToolbarAction = Future<void> Function(BuildContext anchor);
 class DiscoverTabToolbarController extends ChangeNotifier {
   Object? _owner;
   DiscoverToolbarAction? _presentation;
+  VoidCallback? _togglePresentation;
   bool _disposed = false;
 
   DiscoverToolbarAction? get presentation => _presentation;
 
-  void register(Object owner, DiscoverToolbarAction action) {
+  /// 长按那颗展墙键的快速开关；正文没登记就不挂手势。
+  VoidCallback? get togglePresentation => _togglePresentation;
+
+  void register(
+    Object owner,
+    DiscoverToolbarAction action, {
+    VoidCallback? togglePresentation,
+  }) {
     if (_disposed) return;
     _owner = owner;
     _presentation = action;
+    _togglePresentation = togglePresentation;
     notifyListeners();
   }
 
@@ -21,6 +30,7 @@ class DiscoverTabToolbarController extends ChangeNotifier {
     if (_disposed || !identical(_owner, owner)) return;
     _owner = null;
     _presentation = null;
+    _togglePresentation = null;
     // 正文可能在构建/卸载相离开，工具栏在下一帧更新。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_disposed) notifyListeners();
@@ -31,6 +41,7 @@ class DiscoverTabToolbarController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _presentation = null;
+    _togglePresentation = null;
     super.dispose();
   }
 }
