@@ -317,6 +317,20 @@ class _FocusAndSoloCard extends StatelessWidget {
           onChanged: (value) =>
               _patch((c) => c.copyWith(panelTabSortMode: value)),
         ),
+        // 面板图标右键收起：与上面那颗同一段，因为它问的也是「面板栏上右键 /
+        // 长按这一下算什么」。关掉后图标只剩「切换面板」一件事。
+        //
+        // 只在这里给入口：面板栏的**把手**那颗右键菜单管的是这一条栏怎么摆
+        // （钉住 / 悬浮 / 停靠 / 排序模式），收起动作挂在**页签图标**本身，
+        // 把手菜单够不着它。
+        SettingGroup.switchTile(
+          leading: const GlyphIcon(AppGlyphs.eyeOff),
+          title: Text(t.settings.panelTabRightClickHide),
+          subtitle: Text(t.settings.panelTabRightClickHideSubtitle),
+          value: interaction.panelTabRightClickHide,
+          onChanged: (value) =>
+              _patch((c) => c.copyWith(panelTabRightClickHide: value)),
+        ),
         _DelayTile(
           icon: AppGlyphs.speed,
           title: t.settings.edgeRevealDelay,

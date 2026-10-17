@@ -100,6 +100,21 @@ class AppearanceSettingPage extends StatelessWidget {
               cubit: cubit,
             ).skip(1).toList(),
           ),
+          SettingGroup(
+            title: t.discover.title,
+            icon: AppGlyphs.compass,
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.book),
+                title: Text(t.discover.tabCoverMode),
+                subtitle: Text(t.discover.tabCoverModeDesc),
+                value: state.discoverSetting.tabCoverMode,
+                onChanged: (value) => cubit.updateDiscoverSetting(
+                  (current) => current.copyWith(tabCoverMode: value),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 32),
         ],
       ),

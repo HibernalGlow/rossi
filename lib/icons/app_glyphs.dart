@@ -2171,35 +2171,16 @@ abstract final class AppGlyphs {
     GlyphLink(Offset(12, 8.5), Offset(16.75, 15.5), 1.4),
   ]);
 
-  /// 穿透（点按穿过卡片落到后面）：两层「墙」在正中留出通道，一支箭头从通道穿过去。
-  /// 墙原先是横贯整宽的实线，箭杆与箭头的倒刺都直接压在墙上（倒刺端点离墙 0.5，
-  /// 1.8 的描边下糊成一团）；断开之后箭杆与倒刺到最近墙端的净距 2.2 > 描边宽。
+  /// 穿透（点按穿过卡片落到后面）：一圈套一圈，正中那颗实心就是钻到底的那本书。
+  ///
+  /// 间距是照 18px 定的：外圈描边外沿 9.9、内圈 4.3~6.1、核心半径 2.0，两道净间隙
+  /// 各 2.0 / 2.3（描边 1.8），选中态描边涨到 2.2 也还留得住。核心刻意用 `solid`：
+  /// 那么小一颗若走 body 的「先描边后填充」，未选中时它会剩一个约 1px 的白点，
+  /// 看上去不是图标而是脏斑。
   static const passThrough = Glyph([
-    GlyphPolyline([
-      GlyphVertex(3.4, 7.2),
-      GlyphVertex(8.4, 7.2),
-    ], role: GlyphRole.line),
-    GlyphPolyline([
-      GlyphVertex(15.6, 7.2),
-      GlyphVertex(20.6, 7.2),
-    ], role: GlyphRole.line),
-    GlyphPolyline([
-      GlyphVertex(3.4, 16.8),
-      GlyphVertex(8.4, 16.8),
-    ], role: GlyphRole.line),
-    GlyphPolyline([
-      GlyphVertex(15.6, 16.8),
-      GlyphVertex(20.6, 16.8),
-    ], role: GlyphRole.line),
-    GlyphPolyline([
-      GlyphVertex(12, 3.4),
-      GlyphVertex(12, 20.6),
-    ], role: GlyphRole.line),
-    GlyphPolyline([
-      GlyphVertex(10.07, 18.3),
-      GlyphVertex(12, 20.6, 0.4),
-      GlyphVertex(13.93, 18.3),
-    ], role: GlyphRole.line),
+    GlyphCircle(12, 12, 9, role: GlyphRole.line),
+    GlyphCircle(12, 12, 5.2, role: GlyphRole.line),
+    GlyphCircle(12, 12, 2, role: GlyphRole.body, solid: true),
   ]);
 
   /// 折叠（上下两支箭头折向中线）。[unfold] 是它的反向。
