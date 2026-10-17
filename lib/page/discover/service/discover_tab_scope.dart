@@ -43,8 +43,18 @@ abstract class DiscoverTabActions {
     required String comicId,
     required String from,
     required String title,
+    String? coverUrl,
+    String? coverPath,
     String? collectionTargetId,
     String? collectionTargetName,
+  });
+
+  /// 正文上报第一张可用封面（排行榜、最新、搜索、分类等特殊页面，或详情页后置上报）
+  void reportFirstCover({
+    required String url,
+    String? path,
+    String? from,
+    String? cartoonId,
   });
 
   /// 「回到这一屏的搜索输入页」。

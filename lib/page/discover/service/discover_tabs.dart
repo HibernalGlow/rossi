@@ -6,17 +6,29 @@ import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/icons/icons.dart';
 
+import 'package:zephyr/page/discover/service/discover_cover_data.dart';
+import 'package:zephyr/page/discover/service/plugin_function_kind.dart';
+
+export 'package:zephyr/page/discover/service/discover_cover_data.dart';
+
 /// 一条标签的内容规格。塞进 `PlatLeaf.data`，`leafBuilder` 按它分发。
 @immutable
 class DiscoverLeafSpec {
-  const DiscoverLeafSpec({
+  DiscoverLeafSpec({
     required this.label,
     required this.source,
     required this.pluginName,
     required this.iconUrl,
     required this.content,
     this.icon,
-  });
+    this.comicId,
+    this.isComicInfo = false,
+    this.initialCover,
+    PluginFunctionKind? functionKind,
+    ValueNotifier<DiscoverCoverData?>? coverNotifier,
+  }) : functionKind = functionKind ?? _inferFunctionKind(label, isComicInfo),
+       coverNotifier =
+           coverNotifier ?? ValueNotifier<DiscoverCoverData?>(initialCover);
 
   /// 功能名（「排行」「搜索 2」「设置」）或漫画标题。已带序号。
   final String label;
@@ -32,15 +44,86 @@ class DiscoverLeafSpec {
 
   final WidgetBuilder content;
 
+  /// 关联的漫画 ID（针对漫画详情页）。
+  final String? comicId;
+
+  /// 是否是常规漫画详情页。
+  final bool isComicInfo;
+
+  /// 功能语义类别（排行榜、最新、搜索等）。
+  final PluginFunctionKind functionKind;
+
+  /// 初始封面（如果有）。
+  final DiscoverCoverData? initialCover;
+
+  /// 动态封面通知器，页面加载第一张封面后可通知更新。
+  final ValueNotifier<DiscoverCoverData?> coverNotifier;
+
+  /// 是否是发现首页标签。
+  bool get isHome =>
+      !isComicInfo &&
+      source.isEmpty &&
+      (icon == AppGlyphs.compass || label == '发现' || label == 'Discover');
+
+  /// 是否是特殊页面（排行榜、最新、发现、搜索等）。
+  bool get isSpecialPage =>
+      !isComicInfo &&
+      (source.isEmpty ||
+          functionKind == PluginFunctionKind.ranking ||
+          functionKind == PluginFunctionKind.latest ||
+          functionKind == PluginFunctionKind.search ||
+          functionKind == PluginFunctionKind.popular ||
+          functionKind == PluginFunctionKind.recommend ||
+          functionKind == PluginFunctionKind.category ||
+          functionKind == PluginFunctionKind.cloudFavorite ||
+          functionKind == PluginFunctionKind.favorite ||
+          icon == AppGlyphs.compass ||
+          icon == AppGlyphs.search);
+
+  /// 特殊页面的核心图标。
+  Glyph specialIcon({required String homeTitle, required String searchTitle}) {
+    if (icon == AppGlyphs.compass || (source.isEmpty && label == homeTitle)) {
+      return AppGlyphs.compass;
+    }
+    if (icon == AppGlyphs.search ||
+        functionKind == PluginFunctionKind.search ||
+        label.contains(searchTitle)) {
+      return AppGlyphs.search;
+    }
+    return switch (functionKind) {
+      PluginFunctionKind.ranking => AppGlyphs.trophy,
+      PluginFunctionKind.latest => AppGlyphs.clock,
+      PluginFunctionKind.popular => AppGlyphs.fire,
+      PluginFunctionKind.recommend => AppGlyphs.sparkle,
+      PluginFunctionKind.random => AppGlyphs.dice,
+      PluginFunctionKind.favorite => AppGlyphs.heart,
+      PluginFunctionKind.cloudFavorite => AppGlyphs.cloud,
+      PluginFunctionKind.history => AppGlyphs.history,
+      PluginFunctionKind.category => AppGlyphs.category,
+      _ => icon ?? AppGlyphs.apps,
+    };
+  }
+
+  static PluginFunctionKind _inferFunctionKind(String label, bool isComicInfo) {
+    if (isComicInfo) return PluginFunctionKind.unknown;
+    return classifyPluginFunction(id: '', title: label);
+  }
+
   /// 换标题用（复制成第二个窗格时标题要带新序号，其余一律照旧）。
-  DiscoverLeafSpec copyWith({String? label}) => DiscoverLeafSpec(
-    label: label ?? this.label,
-    source: source,
-    pluginName: pluginName,
-    iconUrl: iconUrl,
-    icon: icon,
-    content: content,
-  );
+  DiscoverLeafSpec copyWith({String? label, DiscoverCoverData? initialCover}) =>
+      DiscoverLeafSpec(
+        label: label ?? this.label,
+        source: source,
+        pluginName: pluginName,
+        iconUrl: iconUrl,
+        icon: icon,
+        comicId: comicId,
+        isComicInfo: isComicInfo,
+        functionKind: functionKind,
+        initialCover: initialCover ?? coverNotifier.value,
+        coverNotifier: coverNotifier,
+        content: content,
+      );
 }
 
 /// 发现页的标签：**一个 plat 的 `PlatTabGroup`**。
@@ -195,6 +278,10 @@ class DiscoverTabs {
     required String source,
     required WidgetBuilder content,
     Glyph? icon,
+    String? comicId,
+    bool isComicInfo = false,
+    DiscoverCoverData? cover,
+    PluginFunctionKind? functionKind,
   }) {
     final trimmed = label.trim();
     final (pluginName, iconUrl) = _pluginDisplay(source);
@@ -208,6 +295,10 @@ class DiscoverTabs {
       iconUrl: iconUrl,
       icon: icon,
       content: content,
+      comicId: comicId,
+      isComicInfo: isComicInfo,
+      initialCover: cover,
+      functionKind: functionKind,
     );
     controller.insertTab(
       tabGroupId: groupId,

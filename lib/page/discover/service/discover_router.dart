@@ -308,6 +308,14 @@ class DiscoverRouter {
       return;
     }
 
+    final coverUrl =
+        payload['coverUrl']?.toString().trim() ??
+        payload['cover']?.toString().trim() ??
+        payload['fileServer']?.toString().trim();
+    final coverPath =
+        payload['coverPath']?.toString().trim() ??
+        payload['path']?.toString().trim();
+
     if (!context.mounted) {
       return;
     }
@@ -317,6 +325,8 @@ class DiscoverRouter {
         comicId: comicId,
         from: source,
         title: payload['title']?.toString().trim() ?? '',
+        coverUrl: coverUrl?.isEmpty == true ? null : coverUrl,
+        coverPath: coverPath?.isEmpty == true ? null : coverPath,
       );
       return;
     }
@@ -335,12 +345,24 @@ class DiscoverRouter {
     required String comicId,
     required String from,
     required String title,
+    String? coverUrl,
+    String? coverPath,
     String? collectionTargetId,
     String? collectionTargetName,
   }) {
     tabs.open(
       label: title.isEmpty ? t.discover.comicDetail : title,
       source: from,
+      comicId: comicId,
+      isComicInfo: true,
+      cover: coverUrl != null && coverUrl.isNotEmpty
+          ? DiscoverCoverData(
+              url: coverUrl,
+              path: coverPath,
+              from: from,
+              cartoonId: comicId,
+            )
+          : null,
       content: (context) => ComicInfoPage(
         comicId: comicId,
         from: from,
