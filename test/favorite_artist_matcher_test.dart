@@ -347,5 +347,91 @@ void main() {
       expect(result.matchedArtist, isNull);
       expect(result.evidence, isNull);
     });
+
+    test('よろず与オリジナル等通用同人标记不当画师命中', () {
+      // 用户喜欢项里即便存有合集/原创项，也不会让其他包含 (よろず)/(オリジナル) 的本子乱匹
+      final yorozuResult = FavoriteArtistMatcher.match(
+        title: '[リビョウブ (よろず)] エジプト褐色ロリ合同',
+        favoriteArtists: ['[AliceFlag (よろず)]'],
+      );
+      expect(yorozuResult.isMatched, isFalse);
+
+      final originalResult = FavoriteArtistMatcher.match(
+        title: '[スタジオあるた (久水あるた)] 淫乱処女な女教師 (オリジナル) [中國翻訳]',
+        favoriteArtists: ['[オリジナル]', '[うすべに桜子 (オリジナル)]'],
+      );
+      expect(originalResult.isMatched, isFalse);
+
+      // 对应的 chip 也不会被错误点亮
+      expect(
+        FavoriteArtistMatcher.chipIsFavorite(
+          label: 'よろず',
+          namespaceType: 'tags',
+          namespaceName: '标签',
+          favoriteArtists: ['[AliceFlag (よろず)]'],
+        ),
+        isFalse,
+      );
+      expect(
+        FavoriteArtistMatcher.chipIsFavorite(
+          label: 'オリジナル',
+          namespaceType: 'tags',
+          namespaceName: '标签',
+          favoriteArtists: ['[オリジナル]'],
+        ),
+        isFalse,
+      );
+    });
+
+    test('无关/普通标签命名空间不会被社团名错误点亮', () {
+      // 用户的喜欢项是 [ビーメロクリシェ (サインこす)]
+      // 在普通标签分组（type=tags, name=标签）中，角色或社团 tag 绝不会被点亮为喜欢画师
+      expect(
+        FavoriteArtistMatcher.chipIsFavorite(
+          label: 'ビーメロクリシェ',
+          namespaceType: 'tags',
+          namespaceName: '标签',
+          favoriteArtists: ['[ビーメロクリシェ (サインこす)]'],
+        ),
+        isFalse,
+      );
+      expect(
+        FavoriteArtistMatcher.chipIsFavorite(
+          label: 'diletta',
+          namespaceType: 'tags',
+          namespaceName: '标签',
+          favoriteArtists: ['[diletta (へたれん)]'],
+        ),
+        isFalse,
+      );
+      // 但画师名本身在普通标签分组中仍可正常点亮
+      expect(
+        FavoriteArtistMatcher.chipIsFavorite(
+          label: 'サインこす',
+          namespaceType: 'tags',
+          namespaceName: '标签',
+          favoriteArtists: ['[ビーメロクリシェ (サインこす)]'],
+        ),
+        isTrue,
+      );
+    });
+
+    test('多画师拆分匹配正常命中', () {
+      final result = FavoriteArtistMatcher.match(
+        title: '[新生ロリショタ (shuffle、kozi)] 異世界オトコノコ',
+        favoriteArtists: ['shuffle'],
+      );
+      expect(result.isMatched, isTrue);
+      expect(result.evidence, FavoriteArtistEvidence.titleArtist);
+    });
+
+    test('平台前缀噪声能正确跳过并识别后续画师块', () {
+      final result = FavoriteArtistMatcher.match(
+        title: '[Fanbox(Normal) & Pixiv] [pazzimo] [ZZR个人汉化]',
+        favoriteArtists: ['pazzimo'],
+      );
+      expect(result.isMatched, isTrue);
+      expect(result.evidence, FavoriteArtistEvidence.titleAuthorBlock);
+    });
   });
 }
