@@ -8,6 +8,7 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_presenta
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 Future<T> finish<T>(WidgetTester tester, Future<T> operation) async {
   await tester.pump();
@@ -99,12 +100,20 @@ void main() {
     await tester.pumpWidget(page());
     await tester.pumpAndSettle();
     expect(find.text('传统视图'), findsOneWidget);
-    await tester.tap(find.byTooltip('展墙设置'));
+    await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
+    await tester.pumpAndSettle();
+    // 「展墙」开关在「布局」页签里（底部导航条）。
+    final dock = find.byKey(const ValueKey('wall-settings-tabs'));
+    await tester.ensureVisible(dock);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: dock, matching: find.text(t.workspace.wallTabLayout)),
+    );
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('展墙'));
     await tester.tap(find.text('展墙'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('应用'));
+    await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
     await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(page());
