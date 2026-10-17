@@ -47,6 +47,7 @@ class ComicOperationWidget extends StatefulWidget {
   final VoidCallback? onRead;
 
   final bool inline;
+  final bool primaryActionsOnly;
 
   const ComicOperationWidget({
     super.key,
@@ -58,6 +59,7 @@ class ComicOperationWidget extends StatefulWidget {
     this.hasHistory = false,
     this.onRead,
     this.inline = false,
+    this.primaryActionsOnly = false,
   });
 
   @override
@@ -195,6 +197,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
               ? t.comicInfo.continueRead
               : t.comicInfo.startRead,
           onTap: widget.onRead,
+          primary: true,
         ),
       _OperationItemData(
         kind: _OperationKind.download,
@@ -235,7 +238,13 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         spacing: 8,
         runSpacing: 8,
         children: [
-          for (final item in actions)
+          for (final item
+              in widget.primaryActionsOnly
+                  ? actions.where(
+                      (item) =>
+                          item.kind == _OperationKind.download || item.primary,
+                    )
+                  : actions)
             item.kind == _OperationKind.download
                 ? _DownloadOperationCard(
                     item: item,

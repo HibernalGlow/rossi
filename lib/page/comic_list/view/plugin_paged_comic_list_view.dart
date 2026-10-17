@@ -13,6 +13,7 @@ import 'package:zephyr/page/comic_list/cubit/plugin_paged_comic_list_state.dart'
 import 'package:zephyr/page/comic_list/view/plugin_comic_grid_sliver.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/widgets/error_view.dart';
 
 export 'package:zephyr/page/comic_list/cubit/plugin_paged_comic_list_cubit.dart';
@@ -124,7 +125,22 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
     super.build(context);
     final content = RefreshIndicator(
       onRefresh: () => context.read<PluginPagedComicListCubit>().loadInitial(),
-      child: BlocBuilder<PluginPagedComicListCubit, PluginPagedComicListState>(
+      child: BlocConsumer<PluginPagedComicListCubit, PluginPagedComicListState>(
+        listener: (context, state) {
+          if (state.list.isNotEmpty) {
+            final firstComic = mapToUnifiedComicSimplifyEntryInfoList(
+              state.list,
+            ).where((info) => info.title != '无数据').firstOrNull;
+            if (firstComic != null && firstComic.fileServer.isNotEmpty) {
+              DiscoverTabScope.maybeOf(context)?.reportFirstCover(
+                url: firstComic.fileServer,
+                path: firstComic.path,
+                from: firstComic.from,
+                cartoonId: firstComic.id,
+              );
+            }
+          }
+        },
         builder: (context, state) {
           if (widget.editorialKey != null && !widget.shrinkWrap) {
             final settings = context.watch<GlobalSettingCubit>().state;

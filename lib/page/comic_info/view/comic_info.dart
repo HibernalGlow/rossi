@@ -38,6 +38,7 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 part 'parts/comic_info_rossi_actions_part.dart';
 part 'parts/comic_info_chapter_groups_part.dart';
 part 'parts/comic_info_content_part.dart';
@@ -320,7 +321,20 @@ class _ComicInfoState extends State<_ComicInfo>
       body: _withActionRails(
         child: Stack(
           children: [
-            BlocBuilder<GetComicInfoBloc, GetComicInfoState>(
+            BlocConsumer<GetComicInfoBloc, GetComicInfoState>(
+              listener: (context, state) {
+                if (state.status == GetComicInfoStatus.success) {
+                  final cover = state.allInfo?.comicInfo.cover;
+                  if (cover != null && cover.url.isNotEmpty) {
+                    DiscoverTabScope.maybeOf(context)?.reportFirstCover(
+                      url: cover.url,
+                      path: cover.path,
+                      from: widget.from,
+                      cartoonId: widget.comicId,
+                    );
+                  }
+                }
+              },
               builder: (context, state) {
                 switch (state.status) {
                   case GetComicInfoStatus.initial:

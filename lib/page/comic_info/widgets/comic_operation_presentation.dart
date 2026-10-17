@@ -17,6 +17,7 @@ class _OperationItemData {
     this.fillsWhenHighlighted = false,
     this.accentColor,
     this.iconColor,
+    this.primary = false,
   });
 
   final Glyph icon;
@@ -39,6 +40,7 @@ class _OperationItemData {
 
   /// 覆盖图标颜色（用于下载状态的语义色）。
   final Color? iconColor;
+  final bool primary;
 }
 
 /// 下载卡片：跟着下载任务/下载记录切图标与文案，让「点一下会发生什么」可预期。

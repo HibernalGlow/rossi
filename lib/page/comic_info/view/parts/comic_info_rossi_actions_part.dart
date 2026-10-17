@@ -8,7 +8,14 @@ extension _ComicInfoRossiActionsPart on _ComicInfoState {
   /// 传 `_comicId`（解析后的 id）。类型上悬浮按钮用 [widget.type]、封面点击用
   /// `_type` —— 两者原本就不同，这里不顺手改口径，只保证「同一类入口同一份参数」。
   void _startReading(ComicEntryType entryType) {
-    goToComicRead(context, _comicId, entryType, comicInfoDyn, widget.from);
+    goToComicRead(
+      context,
+      _comicId,
+      entryType,
+      comicInfoDyn,
+      widget.from,
+      widget.extern?[ShelfBookNavigationRegistry.contextKey] as String?,
+    );
   }
 
   /// 有指针 ⇒ 正文左右各浮一颗胶囊；触摸端原样返回（底部条是车道 G）。
