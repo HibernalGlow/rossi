@@ -107,6 +107,8 @@ class ComicEntryWidget extends StatelessWidget {
             comicId: comic.id,
             from: comic.from,
             title: comic.title,
+            coverUrl: comic.cover.url,
+            coverPath: comic.cover.cachePath,
           );
           return;
         }

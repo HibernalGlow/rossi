@@ -143,7 +143,13 @@ class ComicFixedSizeHorizontalList extends StatelessWidget {
     // 其余场合（书架、收藏、历史……）`maybeOf` 返回 null，行为逐字不变。
     final tabs = DiscoverTabScope.maybeOf(context);
     if (tabs != null) {
-      tabs.openComicInfo(comicId: info.id, from: pluginId, title: info.title);
+      tabs.openComicInfo(
+        comicId: info.id,
+        from: pluginId,
+        title: info.title,
+        coverUrl: info.fileServer,
+        coverPath: info.path,
+      );
       return;
     }
     context.pushRoute(
@@ -323,6 +329,8 @@ class ComicSimplifyEntry extends StatelessWidget {
         comicId: info.id,
         from: pluginId,
         title: info.title,
+        coverUrl: info.fileServer,
+        coverPath: info.path,
         collectionTargetId: collectionTargetId,
         collectionTargetName: collectionTargetName,
       );

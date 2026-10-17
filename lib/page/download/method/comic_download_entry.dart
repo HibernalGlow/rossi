@@ -48,6 +48,22 @@ ComicDownloadEntryAction resolveComicDownloadEntryAction({
   return ComicDownloadEntryAction.downloadAll;
 }
 
+/// 判定是否需要弹出下载选项面板（整本 / 最近 N 章 / 手动挑选）。
+///
+/// 口径：
+/// 1. 设置未开启 [promptDownloadOptions] 时，一律不弹（直接整本下载）。
+/// 2. 章节数已知且 <= 1（单集/短篇）时，选项里的「最近 25 章」与「挑章节」毫无意义，
+///    因此哪怕开启了设置，也一律不弹（直接整本下载）。
+/// 3. 只有设置开启、且章节数 > 1 时，才弹出选项面板。
+bool shouldPromptComicDownloadOptions({
+  required bool promptDownloadOptions,
+  required int chapterCount,
+}) {
+  if (!promptDownloadOptions) return false;
+  if (chapterCount <= 1) return false;
+  return true;
+}
+
 /// 该漫画是否已有落盘记录（下载完成后写入 `unifiedDownloadBox`）。
 bool hasComicDownloadRecord({required String from, required String comicId}) {
   final key = buildDownloadTaskKey(from, comicId);

@@ -36,6 +36,8 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/service/reader/reader_session_coordinator.dart';
 import 'package:zephyr/service/reader/local_book_navigation_controller.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/workspace/model/workspace_reader_target.dart';
@@ -232,6 +234,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
   late final ReaderOrientationController _orientationController;
   late final ReaderInputController _inputController; // 输入控制器
   LocalBookNavigationController? _bookNavigation;
+  ShelfBookNavigationController? _shelfBookNavigation;
 
   /// 登记到 [ReaderInputBridge] 的按键处理器。留住**同一个 tear-off**，
   /// 注销时才能对上（`detach` 用 `identical` 判定）。
@@ -328,6 +331,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _einkRefreshSubscription?.cancel();
     _inputController.dispose();
     _bookNavigation?.dispose();
+    _shelfBookNavigation?.dispose();
     _imagePrefetchController.dispose();
     _volumeController.dispose();
     _slideshowController.dispose();

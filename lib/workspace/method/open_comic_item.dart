@@ -4,6 +4,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/path_util.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 
 /// 工作台里的卡片（收藏 / 历史 / 下载 / 本地）统一用它打开一本漫画。
 ///
@@ -23,6 +24,7 @@ void openComicItem(
   required String comicId,
   required String from,
   ComicEntryType type = ComicEntryType.normal,
+  String? navigationToken,
 }) {
   if (isLocalComicSource(from, comicId)) {
     context.pushRoute(
@@ -33,11 +35,25 @@ void openComicItem(
         epsNumber: 1,
         type: type,
         comicInfo: comicId,
+        chapterExtern: {
+          if (navigationToken != null)
+            ShelfBookNavigationRegistry.contextKey: navigationToken,
+        },
         stringSelectCubit: StringSelectCubit(),
       ),
     );
     return;
   }
 
-  context.pushRoute(ComicInfoRoute(comicId: comicId, from: from, type: type));
+  context.pushRoute(
+    ComicInfoRoute(
+      comicId: comicId,
+      from: from,
+      type: type,
+      extern: {
+        if (navigationToken != null)
+          ShelfBookNavigationRegistry.contextKey: navigationToken,
+      },
+    ),
+  );
 }
