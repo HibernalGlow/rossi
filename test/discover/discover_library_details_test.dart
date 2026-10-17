@@ -23,6 +23,8 @@ class _Tabs implements DiscoverTabActions {
     required String comicId,
     required String from,
     required String title,
+    String? coverUrl,
+    String? coverPath,
     String? collectionTargetId,
     String? collectionTargetName,
   }) {

@@ -61,13 +61,20 @@ void main() {
         home: Scaffold(
           body: PluginCard(
             pluginUuid: 'e-hentai',
-            pluginState: const PluginRuntimeState(
+            pluginState: PluginRuntimeState(
               uuid: 'e-hentai',
               version: '1.0.0',
+              originScript: '',
               isEnabled: true,
               isDeleted: false,
               debug: false,
               debugUrl: null,
+              lastLoadSuccess: true,
+              lastLoadError: null,
+              sortOrder: null,
+              insertedAt: DateTime(2026, 10, 13),
+              updatedAt: DateTime(2026, 10, 13),
+              deletedAt: null,
             ),
             infoState: const DiscoverPluginInfoState(
               loading: false,
