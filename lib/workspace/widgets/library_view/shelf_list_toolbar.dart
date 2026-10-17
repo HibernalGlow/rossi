@@ -80,7 +80,7 @@ class ShelfListToolbar extends StatefulWidget {
   ///
   /// 导入导出原先是两颗长得几乎一样的下载/上传箭头，20dp 下根本分不出谁是谁；
   /// 收进一颗带文字的菜单之后，方向写在项上，不再靠猜图标。
-  final String portLabel;
+  final String? portLabel;
 
   /// 有请求在飞（正在读写文件）：整组禁用，避免叠动作。
   final bool busy;
