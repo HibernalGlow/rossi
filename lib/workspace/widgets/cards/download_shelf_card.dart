@@ -4,6 +4,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
+import 'package:zephyr/page/donwload_task/view/download_task.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -31,6 +32,9 @@ class DownloadShelfCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 专属下载面板直接展示下载管理，跳过摘要入口。
+    if (isStandalone) return const DownloadTaskPage();
+
     final theme = Theme.of(context);
 
     // 查询已下载总数

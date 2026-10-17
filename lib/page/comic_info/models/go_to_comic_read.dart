@@ -14,6 +14,7 @@ import 'package:zephyr/service/download/download_task_repository.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/config/router/router.gr.dart' show ComicReadRoute;
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 
 import 'package:zephyr/page/comic_info/models/read_launch_adapter.dart';
 
@@ -28,8 +29,9 @@ void goToComicRead(
   String comicId,
   ComicEntryType type,
   dynamic allInfo,
-  String from,
-) {
+  String from, [
+  String? navigationToken,
+]) {
   pushComicReadRoute(
     context,
     allInfo: allInfo,
@@ -40,6 +42,7 @@ void goToComicRead(
         type == ComicEntryType.historyAndDownload,
     hasHistory: context.read<StringSelectCubit>().state.isNotEmpty,
     stringSelectCubit: context.read<StringSelectCubit>(),
+    navigationToken: navigationToken,
   );
 }
 
@@ -57,6 +60,8 @@ void pushComicReadRoute(
   required bool isDownload,
   required bool hasHistory,
   required StringSelectCubit stringSelectCubit,
+  String? navigationToken,
+  bool replaceCurrent = false,
 }) {
   final historyForChapter = objectbox.unifiedHistoryBox
       .query(UnifiedComicHistory_.uniqueKey.equals('$from:$comicId'))
@@ -108,24 +113,29 @@ void pushComicReadRoute(
       : (readIsDownload ? ComicEntryType.download : ComicEntryType.normal);
   final orderVal = readChapter?.order ?? _resolveInitialOrder(readInfo, from);
 
-  context.pushRoute(
-    ComicReadRoute(
-      comicId: readComicId,
-      order: orderVal,
-      chapterId: readChapter?.id ?? '',
-      requestId: readChapter?.effectiveRequestId ?? '',
-      storageChapterId: readChapter?.effectiveStorageId ?? '',
-      logicalKey: readChapter?.id ?? '',
-      chapterExtern: ChapterExtern.from(
-        readChapter?.extern ?? const <String, dynamic>{},
-      ),
-      epsNumber: readEpsCount,
-      from: from,
-      type: typeVal,
-      comicInfo: readInfo,
-      stringSelectCubit: stringSelectCubit,
-    ),
+  final route = ComicReadRoute(
+    comicId: readComicId,
+    order: orderVal,
+    chapterId: readChapter?.id ?? '',
+    requestId: readChapter?.effectiveRequestId ?? '',
+    storageChapterId: readChapter?.effectiveStorageId ?? '',
+    logicalKey: readChapter?.id ?? '',
+    chapterExtern: {
+      ...ChapterExtern.from(readChapter?.extern ?? const <String, dynamic>{}),
+      if (navigationToken != null)
+        ShelfBookNavigationRegistry.contextKey: navigationToken,
+    },
+    epsNumber: readEpsCount,
+    from: from,
+    type: typeVal,
+    comicInfo: readInfo,
+    stringSelectCubit: stringSelectCubit,
   );
+  if (replaceCurrent) {
+    context.router.replace(route);
+  } else {
+    context.pushRoute(route);
+  }
 }
 
 DownloadChapter? _resolveChapter(

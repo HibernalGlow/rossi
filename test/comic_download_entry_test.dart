@@ -39,6 +39,66 @@ void main() {
     });
   });
 
+  group('是否弹出下载选项面板判据', () {
+    test('默认关闭开关时：无论多少章都不弹窗，直接下载整本', () {
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: false,
+          chapterCount: 0,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: false,
+          chapterCount: 1,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: false,
+          chapterCount: 50,
+        ),
+        isFalse,
+      );
+    });
+
+    test('开启开关时：单集（<= 1 章）不弹窗，直接下载整本', () {
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: true,
+          chapterCount: 1,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: true,
+          chapterCount: 0,
+        ),
+        isFalse,
+      );
+    });
+
+    test('开启开关时：多集（> 1 章）弹出选项面板供用户挑选', () {
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: true,
+          chapterCount: 2,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldPromptComicDownloadOptions(
+          promptDownloadOptions: true,
+          chapterCount: 100,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('整本下载任务（单章节任务模型：一章一个任务）', () {
     const chapters = [
       DownloadChapter(
