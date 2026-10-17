@@ -52,7 +52,8 @@ class LibraryEntryList extends StatelessWidget {
   final bool fileStats;
   final bool? initialEditorial;
   final bool timeline;
-  final DateTime Function(LibraryEntry entry)? timelineTimeOf;
+  final DateTime? Function(LibraryEntry entry)? timelineTimeOf;
+  final bool shrinkWrap;
   final ValueChanged<LibraryEntry?>? onDetailChanged;
   final ValueChanged<LibraryPresentation>? onPresentationChanged;
   final LibraryViewMode mode;
@@ -94,11 +95,16 @@ class LibraryEntryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (editorialScope != null) {
+      // 空列表交给时间线自己出空态：画布那一层没有「没有匹配的…」这类
+      // 数据源专属文案，绕进去只会退回一句通用的「没有条目」。
+      if (timeline && entries.isEmpty) return _buildTimeline(context);
       return LibraryEditorialCanvas(
         key: editorialKey,
         scope: editorialScope!,
         initialPresentation: LibraryPresentation(
-          editorial: !fileStats,
+          // 数据源可以点名「先按普通视图开」，而不是一律先铺展墙；
+          // 这同时也决定没存过偏好的首屏长什么样。
+          editorial: initialEditorial ?? !fileStats,
           hero: !fileStats,
         ),
         entries: entries,
@@ -116,10 +122,34 @@ class LibraryEntryList extends StatelessWidget {
         fileStats: fileStats,
         onDetailChanged: onDetailChanged,
         onPresentationChanged: onPresentationChanged,
+        // 时间线交给画布托管：展墙模式按天重排分组，普通视图整段换成行式。
+        timeline: timeline,
+        timelineTimeOf: timelineTimeOf,
+        // 宿主把这一层塞进外层滚动视图（下载页的 CustomScrollView）时，
+        // 内层列表必须跟着收缩，否则会拿到无界高度直接断言失败。
+        shrinkWrap: shrinkWrap,
       );
     }
+    // 没有画布可托管的宿主（不挂展墙的旧调用）：时间线就是一档独立的行式列表。
+    if (timeline) return _buildTimeline(context);
     return _buildLegacy(context);
   }
+
+  Widget _buildTimeline(BuildContext context) => ShelfTimelineView(
+    entries: entries,
+    timeOf: (entry) =>
+        timelineTimeOf?.call(entry) ??
+        entry.timestamp ??
+        DateTime.fromMillisecondsSinceEpoch(0),
+    onTap: onTap,
+    emptyText: emptyText,
+    wrapRow: wrapRow,
+    enabled: enabled && !busy,
+    busy: busy,
+    standalone: standalone,
+    shrinkWrap: shrinkWrap,
+    detailBuilder: detailBuilder,
+  );
 
   Widget _buildInlineLegacy(
     BuildContext context,

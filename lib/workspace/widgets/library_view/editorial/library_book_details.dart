@@ -14,6 +14,7 @@ class LibraryBookDetails extends StatelessWidget {
     required this.from,
     required this.onClose,
     this.type = ComicEntryType.normal,
+    this.extern,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -21,6 +22,7 @@ class LibraryBookDetails extends StatelessWidget {
   final String comicId;
   final String from;
   final ComicEntryType type;
+  final Map<String, dynamic>? extern;
   final VoidCallback onClose;
   final String? collectionTargetId;
   final String? collectionTargetName;
@@ -39,6 +41,7 @@ class LibraryBookDetails extends StatelessWidget {
           from: from,
           type: type,
           onClose: onClose,
+          extern: extern,
           collectionTargetId: collectionTargetId,
           collectionTargetName: collectionTargetName,
         );

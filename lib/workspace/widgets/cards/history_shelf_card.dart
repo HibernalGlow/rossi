@@ -23,7 +23,6 @@ import 'package:zephyr/workspace/model/history_library_portable.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/model/shelf_view_state.dart';
-import 'package:zephyr/workspace/model/shelf_timeline.dart';
 import 'package:zephyr/workspace/registry/workspace_ids.dart';
 import 'package:zephyr/workspace/service/history_library_service.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
@@ -32,7 +31,7 @@ import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_book_details.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
-import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 import 'package:zephyr/icons/icons.dart';
 
 /// 阅读历史面板。视图部分与书签面板、文件管理器共用一套（`library_view`）。
@@ -199,19 +198,31 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     );
     // 插件 id 是一串 uuid，行上得换成插件自己报的名字（口径见 pluginDisplayNames）。
     final pluginNames = pluginDisplayNames();
+    final navigationEntries = [
+      for (final entry in visible)
+        if (entities[entry.key] case final item?)
+          ShelfBookNavigationEntry(
+            key: shelfBookNavigationIdentity(item.source, item.comicId),
+            comicId: item.comicId,
+            from: item.source,
+            type: ComicEntryType.history,
+          ),
+    ];
+    final navigationToken = ShelfBookNavigationRegistry.instance.register(
+      scope: 'reading-history',
+      entries: navigationEntries,
+    );
     final rows = [
       for (final entry in visible)
-        if (entities[entry.key] case final item?) _row(item, pluginNames),
+        if (entities[entry.key] case final item?)
+          _row(item, pluginNames, navigationToken),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ShelfListToolbar(
-          presentationButton: LibraryPresentationButton(
-            canvasKey: _canvasKey,
-            enabled: !_timeline,
-          ),
+          presentationButton: LibraryPresentationButton(canvasKey: _canvasKey),
           viewMode: _viewMode,
           onViewMode: (mode) {
             _canvasKey.currentState?.showLegacyView();
@@ -239,9 +250,11 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         ),
         const SizedBox(height: 6),
         if (widget.isStandalone)
-          Expanded(child: _buildList(context, rows, menuEnabled))
+          Expanded(
+            child: _buildList(context, rows, menuEnabled, navigationToken),
+          )
         else
-          _buildList(context, rows, menuEnabled),
+          _buildList(context, rows, menuEnabled, navigationToken),
       ],
     );
   }
@@ -250,17 +263,20 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     BuildContext context,
     List<LibraryEntry> rows,
     bool menuEnabled,
+    String navigationToken,
   ) {
-    if (_timeline) return _buildTimeline(context, rows, menuEnabled);
     return LibraryEntryList(
       editorialKey: _canvasKey,
       editorialScope: 'reading-history',
+      timeline: _timeline,
+      timelineTimeOf: (row) => (row.source! as UnifiedComicHistory).lastReadAt,
       detailBuilder: (context, row, close) {
         final item = row.source! as UnifiedComicHistory;
         return LibraryBookDetails(
           entry: row,
           comicId: item.comicId,
           from: item.source,
+          extern: {ShelfBookNavigationRegistry.contextKey: navigationToken},
           onClose: close,
         );
       },
@@ -270,7 +286,8 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       emptyText: rows.isEmpty && _keyword.trim().isNotEmpty
           ? t.workspace.noMatchingHistory
           : t.workspace.noReadingHistory,
-      onTap: (row) => _open(context, row.source! as UnifiedComicHistory),
+      onTap: (row) =>
+          _open(context, row.source! as UnifiedComicHistory, navigationToken),
       titleColumn: LibraryColumn(
         key: 'title',
         label: t.workspace.titleLabel,
@@ -293,8 +310,12 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       wrapRow: (context, row, child) => ShelfEntryContextMenuRegion(
         enabled: menuEnabled,
         inputBuilder: () => _menuInput(row.source! as UnifiedComicHistory),
-        onAction: (context, action) =>
-            _onMenuAction(context, row.source! as UnifiedComicHistory, action),
+        onAction: (context, action) => _onMenuAction(
+          context,
+          row.source! as UnifiedComicHistory,
+          action,
+          navigationToken,
+        ),
         child: child,
       ),
     );
@@ -370,7 +391,11 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     );
   }
 
-  LibraryEntry _row(UnifiedComicHistory item, Map<String, String> pluginNames) {
+  LibraryEntry _row(
+    UnifiedComicHistory item,
+    Map<String, String> pluginNames,
+    String navigationToken,
+  ) {
     final theme = Theme.of(context);
     final comic = unifiedComicFromUnifiedHistory(item);
     final cover = comic.cover;
@@ -392,7 +417,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       source: item,
       timestamp: item.lastReadAt,
       reading: true,
-      section: shelfTimelineDayLabel(item.lastReadAt, now: DateTime.now()),
+      section: source,
       subtitle: joinShelfMeta([source, chapter, 'P.${item.pageIndex + 1}']),
       tertiary: time,
       metaText: time,
@@ -419,7 +444,7 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
       badge: GlyphIcon(AppGlyphs.book, color: theme.colorScheme.primary),
       thumbModes: LibraryViewMode.values.toSet(),
       detailCells: [chapter.isEmpty ? '—' : chapter, source, time],
-      onRead: () => _read(item),
+      onRead: () => _read(item, navigationToken),
       // 行档图标钮：28 命中区 + 18 图标，与书签卡、文件管理器同一口径
       // （原来是 22，比工具栏那 20 还大，一行里最抢眼的成了次要动作）。
       trailing: IconButton(
@@ -431,19 +456,33 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
         constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
         // 这颗图标一直写的是「继续阅读」，但历史上它走 _open —— 插件来源其实
         // 跳的是详情页。封面按钮既然把「直接起读」做出来了，这里就接上真的。
-        onPressed: () => _read(item),
+        onPressed: () => _read(item, navigationToken),
       ),
     );
   }
 
   /// 直接起读，不进详情页（语义见 [startComicQuickRead]）。
-  Future<void> _read(UnifiedComicHistory item) =>
-      startComicQuickRead(context, comicId: item.comicId, from: item.source);
+  Future<void> _read(UnifiedComicHistory item, String navigationToken) =>
+      startComicQuickRead(
+        context,
+        comicId: item.comicId,
+        from: item.source,
+        navigationToken: navigationToken,
+      );
 
-  void _open(BuildContext context, UnifiedComicHistory item) {
+  void _open(
+    BuildContext context,
+    UnifiedComicHistory item,
+    String navigationToken,
+  ) {
     // 本地来源与插件来源的分岔在 openComicItem 里统一处理 —— 这里曾经
     // 无条件推详情页，本地漫画会被当成「插件 id = local」而加载失败。
-    openComicItem(context, comicId: item.comicId, from: item.source);
+    openComicItem(
+      context,
+      comicId: item.comicId,
+      from: item.source,
+      navigationToken: navigationToken,
+    );
   }
 
   ShelfEntryMenuInput _menuInput(UnifiedComicHistory item) {
@@ -458,10 +497,11 @@ class _HistoryShelfCardState extends State<HistoryShelfCard> {
     BuildContext context,
     UnifiedComicHistory item,
     ShelfEntryAction action,
+    String navigationToken,
   ) {
     switch (action) {
       case ShelfEntryAction.open:
-        _open(context, item);
+        _open(context, item, navigationToken);
       case ShelfEntryAction.openInFileManagerTab:
         openShelfEntryInFileManagerTab(context, comicId: item.comicId);
       case ShelfEntryAction.copyTitle:

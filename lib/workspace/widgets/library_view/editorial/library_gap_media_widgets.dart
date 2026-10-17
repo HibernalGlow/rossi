@@ -289,8 +289,9 @@ class GapContinueBody extends StatelessWidget {
         }
 
         final showThumb = media != null && w >= 104 && h >= 42;
-        final thumbWidth =
-            (h * 0.78).clamp(36.0, math.min(72.0, w * 0.34)).toDouble();
+        final thumbWidth = (h * 0.78)
+            .clamp(36.0, math.min(72.0, w * 0.34))
+            .toDouble();
         final showActionBadge = w >= 168 && h >= 52 && textScale <= 1.35;
         final showSubtitlePill = h >= 68 && textScale <= 1.3;
 
@@ -576,33 +577,39 @@ class GapReadingQueueBody extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${queue.length}',
-                            style: TextStyle(
-                              fontSize: textScale > 1.4 ? 18 : 22,
-                              height: 1.05,
-                              fontWeight: FontWeight.w900,
-                              color: scheme.onTertiaryContainer,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            t.workspace.booksQueued,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onTertiaryContainer.withValues(
-                                alpha: .82,
+                      // 2 倍字号下「数量 + 本待读」会比小槽位还宽：先让这一行
+                      // 按自己需要占宽，再交给外层 FittedBox 一起缩放。
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${queue.length}',
+                              style: TextStyle(
+                                fontSize: textScale > 1.4 ? 18 : 22,
+                                height: 1.05,
+                                fontWeight: FontWeight.w900,
+                                color: scheme.onTertiaryContainer,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              t.workspace.booksQueued,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onTertiaryContainer.withValues(
+                                  alpha: .82,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       if (h >= 50) ...[
                         const SizedBox(height: 3),

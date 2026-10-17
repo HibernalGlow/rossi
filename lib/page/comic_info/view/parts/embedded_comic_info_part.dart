@@ -8,6 +8,7 @@ class EmbeddedComicInfo extends StatelessWidget {
     required this.from,
     required this.type,
     required this.onClose,
+    this.extern,
     this.collectionTargetId,
     this.collectionTargetName,
   });
@@ -15,6 +16,7 @@ class EmbeddedComicInfo extends StatelessWidget {
   final String from;
   final ComicEntryType type;
   final VoidCallback onClose;
+  final Map<String, dynamic>? extern;
   final String? collectionTargetId;
   final String? collectionTargetName;
 
@@ -24,7 +26,12 @@ class EmbeddedComicInfo extends StatelessWidget {
       BlocProvider(
         create: (_) => GetComicInfoBloc()
           ..add(
-            GetComicInfoEvent(comicId: comicId, from: from.trim(), type: type),
+            GetComicInfoEvent(
+              comicId: comicId,
+              from: from.trim(),
+              type: type,
+              extern: extern,
+            ),
           ),
       ),
       BlocProvider(create: (_) => StringSelectCubit()),
@@ -34,6 +41,7 @@ class EmbeddedComicInfo extends StatelessWidget {
       type: type,
       from: from.trim(),
       onClose: onClose,
+      extern: extern,
       collectionTargetId: collectionTargetId,
       collectionTargetName: collectionTargetName,
     ),

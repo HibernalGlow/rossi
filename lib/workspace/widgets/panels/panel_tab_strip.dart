@@ -176,10 +176,15 @@ class PanelTabStrip extends StatefulWidget {
   State<PanelTabStrip> createState() => _PanelTabStripState();
 }
 
-String _tooltipFor(WorkspacePanelDefinition panel) =>
+/// 面板图标的 tooltip。`canHideByRightClick` = 「右键面板图标收起该面板」这个功能
+/// 当前生不生效（全局开关 `panelTabRightClickHide` 且这一块面板本身可隐藏）。
+///
+/// tooltip 必须跟着开关走：开着「右键隐藏」的字样、点下去什么都不发生，
+/// 比不写那句话更难解释 —— 用户会以为是自己点歪了。
+String _tooltipFor(WorkspacePanelDefinition panel, bool canHideByRightClick) =>
     '${panel.title}'
     '${panel.canMove ? '（编辑布局后长按排序 / 换泳道）' : ''}'
-    '${panel.canHide ? '　右键隐藏' : ''}';
+    '${canHideByRightClick ? '　右键隐藏' : ''}';
 
 class _PanelTabStripState extends State<PanelTabStrip> {
   String? _dragging;
@@ -210,13 +215,26 @@ class _PanelTabStripState extends State<PanelTabStrip> {
         state.activePanel[widget.side.laneId] ??
         (panels.isEmpty ? null : panels.first.id);
 
-    // 排序模式：拖排序 + 跨泳道搬运（`LongPressDraggable` 占住手势区）。
     final sortMode = state.interaction.panelTabSortMode;
+    // 「右键面板图标 = 收起该面板」的开关（与排序模式同一份交互配置）。
+    // 可隐藏性本身还要看这一块面板允不允许收起（`canHide`），两件事在
+    // `_buildTab` / `WorkspacePanelTabs` 里合成一处判断。
+    final rightClickHideEnabled = state.interaction.panelTabRightClickHide;
 
     final tabs = <Widget>[];
     for (var i = 0; i < panels.length; i++) {
       tabs.add(_buildDropSlot(i, theme));
-      tabs.add(_buildTab(panels[i], activeId, i, theme, cubit, sortMode));
+      tabs.add(
+        _buildTab(
+          panels[i],
+          activeId,
+          i,
+          theme,
+          cubit,
+          sortMode,
+          rightClickHideEnabled,
+        ),
+      );
     }
     tabs.add(_buildDropSlot(panels.length, theme));
 
@@ -251,6 +269,7 @@ class _PanelTabStripState extends State<PanelTabStrip> {
                 panels: panels,
                 activeId: activeId,
                 vertical: widget.vertical,
+                canRightClickHide: rightClickHideEnabled,
                 onSelected: (panel) =>
                     cubit.setActivePanel(widget.side.laneId, panel.id),
                 onHide: (panel) => _hide(cubit, panel),
@@ -637,9 +656,11 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     ThemeData theme,
     WorkspaceCubit cubit,
     bool sortMode,
+    bool rightClickHideEnabled,
   ) {
     final active = panel.id == activeId;
-    final tooltip = _tooltipFor(panel);
+    final canHideByRightClick = panel.canHide && rightClickHideEnabled;
+    final tooltip = _tooltipFor(panel, canHideByRightClick);
 
     final button = Tooltip(
       message: tooltip,
@@ -655,7 +676,9 @@ class _PanelTabStripState extends State<PanelTabStrip> {
           child: InkWell(
             borderRadius: BorderRadius.circular(6),
             onTap: () => cubit.setActivePanel(widget.side.laneId, panel.id),
-            onSecondaryTap: panel.canHide ? () => _hide(cubit, panel) : null,
+            onSecondaryTap: canHideByRightClick
+                ? () => _hide(cubit, panel)
+                : null,
             child: SizedBox(
               width: PanelTabStrip.tabSize,
               height: PanelTabStrip.tabSize,

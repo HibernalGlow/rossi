@@ -146,42 +146,47 @@ class GapTagsBody extends StatelessWidget {
                         horizontal: 8,
                         vertical: 3.5,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: math.max(
-                                52.0,
-                                constraints.maxWidth * 0.62,
+                      // 胶囊在最小槽位 + 2 倍字号下会超出自身宽度：
+                      // 先在胶囊内部等比缩到装得下，避免把结尾的计数挤掉。
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: math.max(
+                                  52.0,
+                                  constraints.maxWidth * 0.62,
+                                ),
+                              ),
+                              child: Text(
+                                shown[i].key,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: palette[i % palette.length].$2,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              shown[i].key,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 4),
+                            Text(
+                              '×${shown[i].value}',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: palette[i % palette.length].$2,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: palette[i % palette.length].$2
+                                    .withValues(alpha: .72),
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '×${shown[i].value}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: palette[i % palette.length].$2.withValues(
-                                alpha: .72,
-                              ),
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -233,43 +238,47 @@ class GapCreatorsBody extends StatelessWidget {
                         horizontal: 8,
                         vertical: 3.5,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: math.max(
-                                58.0,
-                                constraints.maxWidth * 0.68,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: math.max(
+                                  58.0,
+                                  constraints.maxWidth * 0.68,
+                                ),
+                              ),
+                              child: Text(
+                                top[i].key,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: i == 0
+                                      ? scheme.onTertiaryContainer
+                                      : scheme.onSurface,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              top[i].key,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 5),
+                            Text(
+                              t.workspace.worksCount(n: top[i].value),
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: i == 0
-                                    ? scheme.onTertiaryContainer
-                                    : scheme.onSurface,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color:
+                                    (i == 0
+                                            ? scheme.onTertiaryContainer
+                                            : scheme.onSurfaceVariant)
+                                        .withValues(alpha: .78),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            t.workspace.worksCount(n: top[i].value),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color:
-                                  (i == 0
-                                          ? scheme.onTertiaryContainer
-                                          : scheme.onSurfaceVariant)
-                                      .withValues(alpha: .78),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

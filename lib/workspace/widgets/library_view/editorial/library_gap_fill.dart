@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_shape.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 
@@ -103,18 +104,27 @@ class LibraryGapChoice {
     required this.kind,
     required this.seed,
     this.widgetId,
+    this.shapeStyle = LibraryGapShapeStyle.blob,
   });
 
-  LibraryGapChoice.shape(this.seed)
-    : kind = LibraryGapKind.shape,
-      widgetId = null;
+  LibraryGapChoice.shape(
+    this.seed, {
+    this.shapeStyle = LibraryGapShapeStyle.blob,
+  }) : kind = LibraryGapKind.shape,
+       widgetId = null;
 
-  LibraryGapChoice.widget(this.widgetId, this.seed)
-    : kind = LibraryGapKind.widget;
+  LibraryGapChoice.widget(
+    this.widgetId,
+    this.seed, {
+    this.shapeStyle = LibraryGapShapeStyle.blob,
+  }) : kind = LibraryGapKind.widget;
 
   final LibraryGapKind kind;
   final String? widgetId;
   final int seed;
+
+  /// 这一块如果退化成随机图形，用哪一款轮廓。
+  final LibraryGapShapeStyle shapeStyle;
 
   bool get isShape => kind == LibraryGapKind.shape;
 }
@@ -177,6 +187,7 @@ Map<String, LibraryGapChoice> libraryGapChoices({
   required List<LibraryGapWidgetSpec> widgets,
   required List<LibraryEntry> entries,
   required String scope,
+  List<LibraryGapShapeStyle> shapes = kLibraryGapShapeStyles,
 }) {
   if (mode == LibraryGapFill.off || slots.isEmpty) return const {};
   final result = <String, LibraryGapChoice>{};
@@ -187,8 +198,9 @@ Map<String, LibraryGapChoice> libraryGapChoices({
   final rank = {for (var i = 0; i < widgets.length; i++) widgets[i].id: i};
   for (final slot in slots) {
     final seed = expressiveBlobSeed('$scope|${slot.id}');
+    final shapeStyle = libraryGapShapeStyleFor(seed, shapes);
     if (mode == LibraryGapFill.shapes) {
-      result[slot.id] = LibraryGapChoice.shape(seed);
+      result[slot.id] = LibraryGapChoice.shape(seed, shapeStyle: shapeStyle);
       continue;
     }
     final sample = LibraryGapSample(entries: entries, slot: slot, seed: seed);
@@ -206,7 +218,7 @@ Map<String, LibraryGapChoice> libraryGapChoices({
     }
     final fresh = candidates.where((w) => !used.contains(w.id)).toList();
     if (fresh.isEmpty) {
-      result[slot.id] = LibraryGapChoice.shape(seed);
+      result[slot.id] = LibraryGapChoice.shape(seed, shapeStyle: shapeStyle);
       continue;
     }
     used.add(fresh.first.id);

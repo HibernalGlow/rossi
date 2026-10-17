@@ -126,10 +126,7 @@ class _SettingsChoiceChip extends StatelessWidget {
 /// 互斥选项共享 Dock 的惯性 lens；窄屏改为竖轨，避免文字被截断。
 /// 支持在宽度不足时自动隐藏文字，仅显示图标以保持单行横排。
 class _SettingsChoiceGroup extends StatelessWidget {
-  const _SettingsChoiceGroup({
-    required this.choices,
-    this.autoHideText,
-  });
+  const _SettingsChoiceGroup({required this.choices, this.autoHideText});
   final List<_SettingsChoiceChip> choices;
   final bool? autoHideText;
 

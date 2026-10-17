@@ -1,8 +1,8 @@
-import 'package:auto_route/auto_route.dart';
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_presentation_cubit.dart';
@@ -30,6 +30,7 @@ import 'package:zephyr/page/comic_read/widgets/chrome/reader_hover_reveal_layer.
 import 'package:zephyr/page/comic_read/widgets/chrome/reader_chrome_transition.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_button.dart';
+import 'package:zephyr/page/comic_read/widgets/chrome/top/reader_download_sheet.dart';
 import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
@@ -47,6 +48,9 @@ class ComicReadAppBar extends StatefulWidget {
   final ValueChanged<bool>? onLandscapeChanged;
   final VoidCallback? onToggleAutoRead;
   final ValueGetter<bool>? isAutoReadPaused;
+  final Future<void> Function(bool forward)? onSwitchBook;
+  final bool canSwitchToPreviousBook;
+  final bool canSwitchToNextBook;
 
   /// 幻灯片暂停/继续。与自动滚屏那颗分开：两者是两套计时器，暂停其中一个
   /// 不该让另一个换相（`onToggleAutoRead` 走的是 `_autoReadController`）。
@@ -56,6 +60,7 @@ class ComicReadAppBar extends StatefulWidget {
   final ComicEntryType type;
   final dynamic comicInfo;
   final List<UnifiedComicChapterRef>? chapterRefs;
+  final Future<void> Function()? onDownload;
 
   const ComicReadAppBar({
     super.key,
@@ -67,12 +72,16 @@ class ComicReadAppBar extends StatefulWidget {
     this.onLandscapeChanged,
     this.onToggleAutoRead,
     this.isAutoReadPaused,
+    this.onSwitchBook,
+    this.canSwitchToPreviousBook = false,
+    this.canSwitchToNextBook = false,
     this.onToggleSlideshowPaused,
     this.from = '',
     this.comicId = '',
     this.type = ComicEntryType.normal,
     this.comicInfo,
     this.chapterRefs,
+    this.onDownload,
   });
 
   @override
@@ -128,6 +137,25 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
   void _togglePanel(ReaderToolbarPanel panel) => setState(() {
     _expandedPanel = _expandedPanel == panel ? null : panel;
   });
+
+  Future<void> _downloadComic() async {
+    final callback = widget.onDownload;
+    if (callback != null) {
+      await callback();
+      return;
+    }
+    await startComicDownload(
+      context: context,
+      from: widget.from,
+      comicId: widget.comicId,
+      comicTitle:
+          widget.comicTitle ??
+              ReaderSessionCoordinator.instance.displayTitle ??
+              '',
+      comicInfo: widget.comicInfo,
+      chapterRefs: widget.chapterRefs,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -365,19 +393,6 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
 
   /// 「更多」菜单的项集：让位收进来的那些 + neo 有、本仓还没有的那五颗占位。
   ///
-  /// 下载快捷入口。主行与窄档的「更多」菜单共用这一份构造。
-  Widget _buildDownloadEntry(String? bookTitle) {
-    return ReaderDownloadButton(
-      from: widget.from,
-      comicId: widget.comicId,
-      comicTitle: bookTitle ?? widget.title,
-      comicInfo: widget.comicInfo,
-      chapterRefs: widget.chapterRefs,
-    );
-  }
-
-  /// 「更多」菜单的项集：让位收进来的那些 + neo 有、本仓还没有的那五颗占位。
-  ///
   /// 让位项**只在没有常驻第二行时**才进菜单（[secondaryRow]）：有了第二行还列
   /// 一遍，就是同一颗控件两个入口、两个选中态，改一处另一处不动。
   List<Widget> _buildOverflowItems(
@@ -426,13 +441,11 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       // 老写法把整段圈进 `if (!inlineView && !secondaryRow)`，宽档（`inlineView` 为真）
       // 时菜单里一颗都不列 —— 那等于把页面排序/幻灯片/放大镜做成没有入口的功能。
       // 已经摆在行上的那三颗不重复列，否则同一件事会有两处入口、选中态还各画各的。
-      for (
-        final panel in ReaderToolbarPanel.values.where(
-          (panel) =>
-              !kReaderPrimaryToolbarPanels.contains(panel) ||
-              (!inlineView && !secondaryRow),
-        )
-      )
+      for (final panel in ReaderToolbarPanel.values.where(
+        (panel) =>
+            !kReaderPrimaryToolbarPanels.contains(panel) ||
+            (!inlineView && !secondaryRow),
+      ))
         MenuItemButton(
           leadingIcon: GlyphIcon(_readerPanelIcon(panel, fitMode)),
           trailingIcon: _expandedPanel == panel
@@ -442,20 +455,13 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
           child: Text(_readerPanelLabel(panel, fitMode)),
         ),
       if (!inlineView && !secondaryRow) ...[
-        // 让位的第一批：下载（整本下载是低频动作）。
+        // 让位的第一批：整本下载入口。
         // 超分芯片不参与让位 —— 用户口径是它最常用，必须留在第一行。
         if (showDownloadEntry)
           MenuItemButton(
             leadingIcon: const GlyphIcon(AppGlyphs.download),
-            onPressed: () => showReaderDownloadSheet(
-              context,
-              from: widget.from,
-              comicId: widget.comicId,
-              comicTitle: bookTitle ?? widget.title,
-              comicInfo: widget.comicInfo,
-              chapterRefs: widget.chapterRefs,
-            ),
-            child: Text(t.reader.downloadManage),
+            onPressed: () => unawaited(_downloadComic()),
+            child: Text(t.comicInfo.download),
           ),
         const _ReaderMenuDivider(),
       ],

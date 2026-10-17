@@ -33,6 +33,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_fill.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_extra_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_media_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_rhythm_widgets.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_shape.dart';
@@ -400,6 +401,9 @@ final List<LibraryGapWidgetSpec> _builtin = [
       );
     },
   ),
+  // 第二批：完成率 / 阅读热力 / 星期节律 / 收藏跨度 / 待读存量 / 里程碑。
+  // 数据面更偏「这一墙的读法」，排在第一批的汇总面之后。
+  ...extraLibraryGapWidgets(),
 ];
 
 /// `1.2 MB`。这里自己写一份而不复用 `info_card_kit` 的同名函数：那份在
@@ -433,9 +437,13 @@ class LibraryGapFiller extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (choice.isShape) return LibraryGapShape(seed: choice.seed);
+    if (choice.isShape) {
+      return LibraryGapShape(seed: choice.seed, style: choice.shapeStyle);
+    }
     final spec = widgets.where((w) => w.id == choice.widgetId).firstOrNull;
-    if (spec == null) return LibraryGapShape(seed: choice.seed);
+    if (spec == null) {
+      return LibraryGapShape(seed: choice.seed, style: choice.shapeStyle);
+    }
     return IgnorePointer(
       child: Semantics(label: spec.label, child: spec.builder(context, sample)),
     );

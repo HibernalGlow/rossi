@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/workspace/model/library_presentation_preferences.dart';
 import 'package:zephyr/workspace/service/library_presentation_store.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_gap_fill.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_tile.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry_list.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view_mode.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 
 const _entry = LibraryEntry(key: 'book', title: '作品封面');
 
@@ -146,6 +148,19 @@ void main() {
       );
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
+      Future<void> openCoverTab() async {
+        final dock = find.byKey(const ValueKey('wall-settings-tabs'));
+        await tester.ensureVisible(dock);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: dock,
+            matching: find.text(t.workspace.wallTabCover),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
       Future<void> choose(String label) async {
         await tester.ensureVisible(find.text(label));
         await tester.pumpAndSettle();
@@ -155,6 +170,8 @@ void main() {
 
       await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
       await tester.pumpAndSettle();
+      // 封面向导已经收进「封面」页签，先切过去再断言。
+      await openCoverTab();
       expect(
         tester
             .widget<ChoiceChip>(
@@ -164,7 +181,7 @@ void main() {
         isTrue,
       );
       await choose('向下展开详情');
-      await tester.tap(find.text('应用'));
+      await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
       await tester.pumpAndSettle();
       expect(
         (await LibraryPresentationStore.instance.read(
@@ -185,8 +202,9 @@ void main() {
       expect(opened, 0);
       await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
       await tester.pumpAndSettle();
+      await openCoverTab();
       await choose('打开详情页');
-      await tester.tap(find.text('取消'));
+      await tester.tap(find.byKey(const ValueKey('wall-settings-cancel')));
       await tester.pumpAndSettle();
       expect(
         (await LibraryPresentationStore.instance.read(
@@ -196,9 +214,10 @@ void main() {
       );
       await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('恢复默认'));
+      await openCoverTab();
+      await tester.tap(find.byKey(const ValueKey('wall-settings-reset')));
       await tester.pump();
-      await tester.tap(find.text('应用'));
+      await tester.tap(find.byKey(const ValueKey('wall-settings-apply')));
       await tester.pumpAndSettle();
       await _tapCover(tester);
       await tester.pumpAndSettle();
@@ -248,12 +267,24 @@ void main() {
             onTap: (_) => opened++,
             legacyBuilder: (_) => const SizedBox(),
             detailBuilder: (_, entry, close) => const Text('原位详情'),
+            // 这条判据只关心「内层封面手势是不是同一套设置」；关掉空隙填充，
+            // 免得拼贴小组件把那同一份封面素材铺满空隙、让 finder 命中 13 次。
+            initialPresentation: const LibraryPresentation(
+              hero: false,
+              gapFill: LibraryGapFill.off,
+            ),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('nested-cover')));
+    // 空隙小组件会拿同一份封面素材铺满空隙，同一把 key 会出现多次；
+    // 这条判据要的是墙上那张卡里的内层手势，所以限定在卡片子树里找。
+    Finder nestedCover() => find.descendant(
+      of: find.byType(LibraryEditorialTile),
+      matching: find.byKey(const ValueKey('nested-cover')),
+    );
+    await tester.tap(nestedCover());
     await tester.pumpAndSettle();
     expect(opened, 1);
     expect(find.text('原位详情'), findsNothing);
@@ -261,11 +292,12 @@ void main() {
       'custom',
       const LibraryPresentation(
         hero: false,
+        gapFill: LibraryGapFill.off,
         coverTapAction: LibraryCoverTapAction.expandDetails,
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('nested-cover')));
+    await tester.tap(nestedCover());
     await tester.pumpAndSettle();
     expect(opened, 1);
     expect(find.text('原位详情'), findsOneWidget);

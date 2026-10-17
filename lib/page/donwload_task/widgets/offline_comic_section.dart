@@ -18,10 +18,13 @@ import 'package:zephyr/util/path_util.dart';
 import 'package:zephyr/workspace/model/shelf_library_query.dart';
 import 'package:zephyr/workspace/model/shelf_view_state.dart';
 import 'package:zephyr/workspace/service/shelf_view_state_store.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_book_details.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_view.dart';
 import 'package:zephyr/workspace/widgets/library_view/shelf_list_toolbar.dart';
-import 'package:zephyr/workspace/widgets/library_view/shelf_timeline_view.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 
 /// 已离线（有下载记录）的漫画，按最近下载排序。
 Stream<List<UnifiedComicDownload>> watchOfflineComics() {
@@ -182,17 +185,35 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
       sort: _timeline ? const ShelfSort(field: ShelfSortField.time) : _sort,
     );
     final pluginNames = pluginDisplayNames();
+    final navigationEntries = [
+      for (final entry in visible)
+        if (entities[entry.key] case final item?)
+          ShelfBookNavigationEntry(
+            key: shelfBookNavigationIdentity(item.source, item.comicId),
+            comicId: item.comicId,
+            from: item.source,
+            type: isLocalComicSource(item.source, item.comicId)
+                ? ComicEntryType.history
+                : ComicEntryType.download,
+          ),
+    ];
+    final navigationToken = ShelfBookNavigationRegistry.instance.register(
+      scope: 'download-offline',
+      entries: navigationEntries,
+    );
     final rows = [
       for (final entry in visible)
         if (entities[entry.key] case final item?)
-          _row(context, item, pluginNames),
+          _row(context, item, pluginNames, navigationToken),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ShelfListToolbar(
+          presentationButton: LibraryPresentationButton(canvasKey: _canvasKey),
           viewMode: _viewMode,
           onViewMode: (mode) {
+            _canvasKey.currentState?.showLegacyView();
             setState(() => _viewMode = mode);
             _rememberViewState();
           },
@@ -227,6 +248,7 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
               entry: row,
               comicId: item.comicId,
               from: item.source,
+              extern: {ShelfBookNavigationRegistry.contextKey: navigationToken},
               type: isLocalComicSource(item.source, item.comicId)
                   ? ComicEntryType.history
                   : ComicEntryType.download,
@@ -236,7 +258,7 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
           tapOpensDetail: false,
           mode: _viewMode,
           entries: rows,
-          onTap: (row) => _open(context, row),
+          onTap: (row) => _open(context, row, navigationToken),
           emptyText: t.reader.noMatchingOfflineComics,
           standalone: true,
           titleColumn: const LibraryColumn(
@@ -262,6 +284,7 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
     BuildContext context,
     UnifiedComicDownload item,
     Map<String, String> pluginNames,
+    String navigationToken,
   ) {
     final comic = unifiedComicFromUnifiedDownload(item);
     final cover = comic.cover;
@@ -313,6 +336,7 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
         context,
         comicId: item.comicId,
         from: item.source,
+        navigationToken: navigationToken,
       ),
       onLongPress: () => _confirmDelete(context, item),
     );
@@ -350,12 +374,13 @@ class _OfflineComicLibraryState extends State<OfflineComicLibrary> {
     );
   }
 
-  void _open(BuildContext context, LibraryEntry row) {
+  void _open(BuildContext context, LibraryEntry row, String navigationToken) {
     final item = row.source! as UnifiedComicDownload;
     openComicItem(
       context,
       comicId: item.comicId,
       from: item.source,
+      navigationToken: navigationToken,
       type: isLocalComicSource(item.source, item.comicId)
           ? ComicEntryType.history
           : ComicEntryType.download,

@@ -490,9 +490,10 @@ class SwimlaneColumn extends StatelessWidget {
 
   /// 栏头最左侧的泳道把手。
   ///
-  /// 平时就是这条泳道的图标；**按住**才变成可拖动的把手 ——
-  /// 于是「重排泳道」不需要额外占位，也不会误触（拖动与点击是两个手势）。
+  /// 点击即可折叠本泳道为紧凑轨；**按住**才变成可拖动的把手 ——
+  /// 于是「折叠泳道」与「重排泳道」不需要额外占位，也不会误触（拖动与点击是两个手势）。
   Widget _buildLaneHandle(BuildContext context, ThemeData theme) {
+    final title = titleOverride ?? config.title;
     final icon = GlyphIcon(
       laneGlyph(laneId),
       size: 18,
@@ -504,15 +505,27 @@ class SwimlaneColumn extends StatelessWidget {
         .state
         .interaction
         .panelTabSortMode;
-    if (isSolo || !editing) {
-      return Tooltip(
-        message: t.workspace.laneSortHint(title: titleOverride ?? config.title),
+    final canDrag = !isSolo && editing;
+
+    final handleWidget = InkResponse(
+      onTap: onToggleCollapse,
+      radius: 14,
+      child: MouseRegion(
+        cursor: canDrag ? SystemMouseCursors.grab : SystemMouseCursors.click,
         child: icon,
-      );
+      ),
+    );
+
+    final tooltipMessage = canDrag
+        ? t.workspace.laneDragHint(title: title)
+        : t.workspace.laneTapCollapseHint(title: title);
+
+    if (!canDrag) {
+      return Tooltip(message: tooltipMessage, child: handleWidget);
     }
 
     return Tooltip(
-      message: t.workspace.laneDragHint(title: titleOverride ?? config.title),
+      message: tooltipMessage,
       waitDuration: const Duration(milliseconds: 500),
       child: LongPressDraggable<String>(
         data: laneId,
@@ -541,7 +554,7 @@ class SwimlaneColumn extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  titleOverride ?? config.title,
+                  title,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.bold,
@@ -551,7 +564,7 @@ class SwimlaneColumn extends StatelessWidget {
             ),
           ),
         ),
-        child: MouseRegion(cursor: SystemMouseCursors.grab, child: icon),
+        child: handleWidget,
       ),
     );
   }

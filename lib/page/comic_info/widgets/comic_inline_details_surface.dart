@@ -14,6 +14,9 @@ class ComicInlineDetailsSurface extends StatelessWidget {
     this.chapters,
     this.preview,
     this.tools,
+    this.showBottomCollapse,
+    this.bottomActions,
+    this.showTopClose = true,
   });
 
   final VoidCallback onClose;
@@ -23,10 +26,19 @@ class ComicInlineDetailsSurface extends StatelessWidget {
   final Widget? chapters;
   final Widget? preview;
   final Widget? tools;
+  final bool? showBottomCollapse;
+  final List<Widget>? bottomActions;
+  final bool showTopClose;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final hasDetails =
+        metadata != null ||
+        description != null ||
+        preview != null ||
+        chapters != null;
+    final displayBottomCollapse = showBottomCollapse ?? hasDetails;
     return Material(
       color: colors.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(28),
@@ -44,15 +56,16 @@ class ComicInlineDetailsSurface extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                IconButton(
-                  tooltip: t.comicInfo.collapseDetails,
-                  constraints: const BoxConstraints(
-                    minWidth: 48,
-                    minHeight: 48,
+                if (showTopClose)
+                  IconButton(
+                    tooltip: t.comicInfo.collapseDetails,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    onPressed: onClose,
+                    icon: const GlyphIcon(AppGlyphs.close),
                   ),
-                  onPressed: onClose,
-                  icon: const GlyphIcon(AppGlyphs.close),
-                ),
               ],
             ),
             operations,
@@ -98,6 +111,30 @@ class ComicInlineDetailsSurface extends StatelessWidget {
               ),
             ],
             if (chapters != null) ...[const SizedBox(height: 20), chapters!],
+            if (displayBottomCollapse || bottomActions != null) ...[
+              const SizedBox(height: 20),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    bottomActions ??
+                    [
+                      FilledButton.tonalIcon(
+                        onPressed: onClose,
+                        style: FilledButton.styleFrom(
+                          shape: const StadiumBorder(),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        icon: const GlyphIcon(AppGlyphs.chevronUp),
+                        label: Text(t.comicInfo.collapseDetails),
+                      ),
+                    ],
+              ),
+            ],
           ],
         ),
       ),

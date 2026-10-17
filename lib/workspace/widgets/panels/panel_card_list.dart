@@ -131,13 +131,20 @@ class PanelCardList extends StatelessWidget {
         const crossAxisSpacing = 8.0;
 
         // 先识别哪些卡片处于「自动撑满剩余可视高度」状态（默认全宽且用户未手动指定固定 heightSpan）。
+        final isLegacyPreSplitSnapshot =
+            board.cardLayout(WorkspaceCardRegistry.pageListSearch) == null &&
+            board.cardLayout(WorkspaceCardRegistry.pageListJump) == null;
         final fillingCardIds = <String>{};
         for (final card in cards) {
           final rawLayout = board.cardLayout(card.id);
           final layout = registry.effectiveLayout(card, board);
+          final legacyDefaultHeight =
+              isLegacyPreSplitSnapshot &&
+              card.id == WorkspaceCardRegistry.pageList &&
+              rawLayout?.heightSpan == 2;
           if (card.fillRemainingHeight &&
               layout.expanded &&
-              rawLayout?.heightSpan == null) {
+              (rawLayout?.heightSpan == null || legacyDefaultHeight)) {
             fillingCardIds.add(card.id);
           }
         }

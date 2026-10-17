@@ -1,8 +1,11 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/page/download/method/comic_download_entry.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 
 /// 首次点「下载」时要哪一批章节。
@@ -30,9 +33,8 @@ class ComicDownloadOptionsResult {
 
 /// 问清楚「这次要下什么」再动手，并把选中的方式执行掉。
 ///
-/// 旧行为是：新漫画第一次点下载 = 立刻把整本塞进队列，想挑章节得长按才能找到
-/// 入口。100+ 章的本被误点一下就是 100 个任务，所以这里改成显式三选，
-/// 详情页与列表卡片两个入口共用同一份。
+/// 默认行为：若未开启 [promptDownloadOptions] 或总章节数 <= 1（单集），直接下载整本。
+/// 开启后且为多章节漫画时，弹窗提供三选（整本 / 最近 N 章 / 手动挑选）。
 Future<void> promptAndRunComicDownload(
   BuildContext context, {
   required String from,
@@ -42,9 +44,60 @@ Future<void> promptAndRunComicDownload(
   int chapterCount = 0,
   required VoidCallback onOpenChapterPicker,
 }) async {
+  final promptSetting = globalSetting.promptDownloadOptions;
+
+  // 1. 如果总开关未开启，或者已明确为单集（chapterCount == 1），直接整本下载，不打扰用户
+  if (!shouldPromptComicDownloadOptions(
+    promptDownloadOptions: promptSetting,
+    chapterCount: chapterCount,
+  )) {
+    if (!promptSetting || chapterCount == 1) {
+      await startComicDownloadAll(
+        context: context,
+        from: from,
+        comicId: comicId,
+        comicName: comicName,
+        comicInfo: comicInfo,
+      );
+      return;
+    }
+  }
+
+  // 2. 此时总开关已开启，但如果外部没有传入 chapterCount（例如卡片上的角标，chapterCount <= 0），
+  // 需要先解析章节确认是否真的有多话。如果实际只有单集（<= 1），依然直接整本下载不弹窗。
+  List<UnifiedComicChapterRef>? resolvedRefs;
+  var effectiveCount = chapterCount;
+  if (effectiveCount <= 0) {
+    resolvedRefs = await resolveDownloadChapterRefs(
+      from: from,
+      comicId: comicId,
+      comicInfo: comicInfo,
+    );
+    if (!context.mounted) return;
+    if (resolvedRefs.isEmpty) {
+      showErrorToast(t.error.operationFailed);
+      return;
+    }
+    effectiveCount = resolvedRefs.length;
+    if (!shouldPromptComicDownloadOptions(
+      promptDownloadOptions: promptSetting,
+      chapterCount: effectiveCount,
+    )) {
+      await startComicDownloadAll(
+        context: context,
+        from: from,
+        comicId: comicId,
+        comicName: comicName,
+        comicInfo: comicInfo,
+        chapterRefs: resolvedRefs,
+      );
+      return;
+    }
+  }
+
   final result = await showComicDownloadOptions(
     context,
-    chapterCount: chapterCount,
+    chapterCount: effectiveCount,
   );
   if (result == null || !context.mounted) return;
 
@@ -56,6 +109,7 @@ Future<void> promptAndRunComicDownload(
         comicId: comicId,
         comicName: comicName,
         comicInfo: comicInfo,
+        chapterRefs: resolvedRefs,
       );
     case ComicDownloadChoice.latest:
       await startComicDownloadLatest(
@@ -64,6 +118,7 @@ Future<void> promptAndRunComicDownload(
         comicId: comicId,
         comicName: comicName,
         comicInfo: comicInfo,
+        chapterRefs: resolvedRefs,
         count: result.latestCount,
       );
     case ComicDownloadChoice.picker:

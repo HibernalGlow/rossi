@@ -110,21 +110,28 @@ class PageListJumpToolbar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-              ),
-              child: Slider(
-                value: clampedValue,
-                min: 0,
-                max: maxSlot,
-                onChanged: enabled
-                    ? (value) {
-                        coordinator.jumpTo(value.round());
-                      }
-                    : null,
+            child: SizedBox(
+              height: 30,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 10,
+                  ),
+                ),
+                child: Slider(
+                  value: clampedValue,
+                  min: 0,
+                  max: maxSlot,
+                  onChanged: enabled
+                      ? (value) {
+                          coordinator.jumpTo(value.round());
+                        }
+                      : null,
+                ),
               ),
             ),
           ),
@@ -150,15 +157,20 @@ class PageListJumpToolbar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          FilledButton.tonal(
-            onPressed: enabled
-                ? () => controller.jumpToPageInput(context)
-                : null,
-            style: FilledButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+          SizedBox(
+            height: 28,
+            child: FilledButton.tonal(
+              onPressed: enabled
+                  ? () => controller.jumpToPageInput(context)
+                  : null,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(44, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: const Text('跳转', style: TextStyle(fontSize: 11)),
             ),
-            child: const Text('跳转', style: TextStyle(fontSize: 11)),
           ),
         ],
       ),

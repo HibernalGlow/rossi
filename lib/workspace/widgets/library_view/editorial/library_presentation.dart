@@ -84,6 +84,7 @@ class LibraryPresentation {
     this.imageScale = 1,
     this.gapFill = LibraryGapFill.both,
     this.gapShapes = true,
+    this.gapShapeStyles = const {},
     this.gapWidgets = const {},
     this.signalWeights = const {},
     this.coverTapAction,
@@ -104,6 +105,10 @@ class LibraryPresentation {
   /// 随机图形单独开关：关掉之后 shapes 档等于不填，both 档只剩小组件
   /// （装不下的位置留空）。与 [gapFill] 是「总口径 / 单项开关」的关系。
   final bool gapShapes;
+
+  /// 每一款随机图形样式的单独开关；缺键 = 开（新样式默认可见，不必迁移）。
+  /// 键是 `LibraryGapShapeStyle.name`，全部关掉时退回有机团那一款。
+  final Map<String, bool> gapShapeStyles;
 
   /// 每一款空隙小组件的单独开关；缺键 = 开（新组件默认可见，不必迁移）。
   final Map<String, bool> gapWidgets;
@@ -130,6 +135,7 @@ class LibraryPresentation {
     double? imageScale,
     LibraryGapFill? gapFill,
     bool? gapShapes,
+    Map<String, bool>? gapShapeStyles,
     Map<String, bool>? gapWidgets,
     Map<String, double>? signalWeights,
     LibraryCoverTapAction? coverTapAction,
@@ -147,6 +153,7 @@ class LibraryPresentation {
     imageScale: imageScale ?? this.imageScale,
     gapFill: gapFill ?? this.gapFill,
     gapShapes: gapShapes ?? this.gapShapes,
+    gapShapeStyles: gapShapeStyles ?? this.gapShapeStyles,
     gapWidgets: gapWidgets ?? this.gapWidgets,
     signalWeights: signalWeights ?? this.signalWeights,
     coverTapAction: coverTapAction ?? this.coverTapAction,
@@ -166,6 +173,7 @@ class LibraryPresentation {
     'imageScale': imageScale,
     'gapFill': gapFill.name,
     'gapShapes': gapShapes,
+    'gapShapeStyles': gapShapeStyles,
     'gapWidgets': gapWidgets,
     'signalWeights': signalWeights,
     if (coverTapAction != null) 'coverTapAction': coverTapAction!.name,
@@ -203,6 +211,12 @@ class LibraryPresentation {
               .firstOrNull ??
           LibraryGapFill.both,
       gapShapes: flag('gapShapes', true),
+      gapShapeStyles: {
+        if (json['gapShapeStyles'] is Map)
+          for (final entry in (json['gapShapeStyles'] as Map).entries)
+            if (entry.key is String && entry.value is bool)
+              entry.key as String: entry.value as bool,
+      },
       gapWidgets: {
         if (json['gapWidgets'] is Map)
           for (final entry in (json['gapWidgets'] as Map).entries)
@@ -325,6 +339,7 @@ List<LibraryCanvasRow> libraryCanvasRows({
   required int columns,
   required LibraryPresentation presentation,
   Map<String, double> aspectRatios = const {},
+  String? Function(LibraryEntry entry)? sectionOf,
 }) {
   final weights = libraryWeights(
     entries,
@@ -357,7 +372,9 @@ List<LibraryCanvasRow> libraryCanvasRows({
   }
 
   for (var i = 0; i < entries.length; i++) {
-    final nextSection = presentation.sections ? entries[i].section : null;
+    final nextSection = sectionOf != null
+        ? sectionOf(entries[i])
+        : (presentation.sections ? entries[i].section : null);
     if (nextSection != section) {
       flush();
       section = nextSection;

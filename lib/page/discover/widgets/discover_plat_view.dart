@@ -11,6 +11,7 @@ import 'package:zephyr/page/discover/service/discover_tabs.dart';
 import 'package:zephyr/page/discover/service/discover_tab_toolbar.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_pane_probe.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_tab_chip.dart';
+import 'package:zephyr/page/discover/widgets/discover_cover_tab_chip.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
 import 'package:zephyr/widgets/plat/rossi_plat_theme.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
@@ -376,26 +377,31 @@ class _DiscoverPlatViewState extends State<DiscoverPlatView> {
       // 结构恒定的 rossi chip（见 RossiPlatTabChip 类注释）：plat 自带的
       // PlatTabChip 会在按下/悬停时翻转 foregroundDecoration，导致内容子树
       // 在按住期间重挂 —— 触摸上点 × 十次九空就是它。
-      child: RossiPlatTabChip(
-        states: tab.states,
-        side: tabs.side,
-        leading: setting.tabIconEnabled ? _chipLeading(context, leaf) : null,
-        gap: _vertical ? 4 : 8,
-        // 这里**不放 Tooltip**：它是这条标签条里唯一会在 hover 回调里往 Overlay
-        // 插东西的东西，而「hover 时改命中树」正是 `!_debugDuringDeviceUpdate`
-        // 那条断言唯一需要的燃料（上游 flutter/flutter#107063 至今没修）。
-        label: labelWidget,
-        // 首页那条是 locked 的：它关不掉，plat 只会把那颗钮画成灰的（禁用态），
-        // 于是白占 22 宽摆着一个永远点不动的 ×。不给 trailing 才是「没有这个操作」。
-        // 横向档把命中区从 16 提到 20：修复重挂之后这是第二道保险 —— 触摸目标
-        // 本来也该比 16 大；竖向轨每一像素都从内容区扣，维持原尺寸。
-        trailing: tab.snapshot.locked
-            ? null
-            : PlatTabCloseButton(
-                size: _vertical ? 16 : 20,
-                iconSize: _vertical ? 12 : 13,
-              ),
-      ),
+      child: setting.tabCoverMode
+          ? DiscoverCoverTabChip(
+              leaf: leaf,
+              states: tab.states,
+              side: tabs.side,
+              showPluginShort: setting.tabPluginShortEnabled,
+              onClose: tab.snapshot.locked
+                  ? null
+                  : () => tabs.close(tab.snapshot.id),
+            )
+          : RossiPlatTabChip(
+              states: tab.states,
+              side: tabs.side,
+              leading: setting.tabIconEnabled
+                  ? _chipLeading(context, leaf)
+                  : null,
+              gap: _vertical ? 4 : 8,
+              label: labelWidget,
+              trailing: tab.snapshot.locked
+                  ? null
+                  : PlatTabCloseButton(
+                      size: _vertical ? 16 : 20,
+                      iconSize: _vertical ? 12 : 13,
+                    ),
+            ),
     );
   }
 
@@ -574,6 +580,15 @@ class _DisplayOptionsButton extends StatelessWidget {
               ),
             ),
           ),
+          CommonPopupMenuItem(
+            label: t.discover.tabCoverMode,
+            glyph: AppGlyphs.book,
+            checked: setting.tabCoverMode,
+            onPressed: () => cubit.updateDiscoverSetting(
+              (current) =>
+                  current.copyWith(tabCoverMode: !current.tabCoverMode),
+            ),
+          ),
           const CommonPopupMenuItem.divider(),
           for (final side in DiscoverTabBarSide.values)
             CommonPopupMenuItem(
@@ -611,6 +626,8 @@ class _LeafActions implements DiscoverTabActions {
     required String comicId,
     required String from,
     required String title,
+    String? coverUrl,
+    String? coverPath,
     String? collectionTargetId,
     String? collectionTargetName,
   }) {
@@ -619,8 +636,28 @@ class _LeafActions implements DiscoverTabActions {
       comicId: comicId,
       from: from,
       title: title,
+      coverUrl: coverUrl,
+      coverPath: coverPath,
       collectionTargetId: collectionTargetId,
       collectionTargetName: collectionTargetName,
+    );
+  }
+
+  @override
+  void reportFirstCover({
+    required String url,
+    String? path,
+    String? from,
+    String? cartoonId,
+  }) {
+    final spec = tabs.specOf(leafId);
+    if (spec == null) return;
+    if (spec.coverNotifier.value?.url == url) return;
+    spec.coverNotifier.value = DiscoverCoverData(
+      url: url,
+      path: path,
+      from: from ?? spec.source,
+      cartoonId: cartoonId ?? spec.comicId,
     );
   }
 

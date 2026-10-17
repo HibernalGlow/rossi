@@ -51,7 +51,14 @@ class MarginFitCache {
     final options = AutoTrimSettings.options.value;
     tolerance ??= options.tolerance;
     final String key = _keyFor(source, pageIndex, width, height, tolerance);
-    return _bboxFor(key, source, rgba, width, height, tolerance).then(options.protect);
+    return _bboxFor(
+      key,
+      source,
+      rgba,
+      width,
+      height,
+      tolerance,
+    ).then(options.protect);
   }
 
   /// 文件页按路径和文件版本缓存；同一路径被翻译或超分结果覆盖后会重新检测。
@@ -69,7 +76,14 @@ class MarginFitCache {
     final key =
         'file|$path|$revision|$byteLength|'
         '${modified.microsecondsSinceEpoch}|$width x $height|${options.cacheKey}';
-    return _bboxFor(key, path, rgba, width, height, options.tolerance).then(options.protect);
+    return _bboxFor(
+      key,
+      path,
+      rgba,
+      width,
+      height,
+      options.tolerance,
+    ).then(options.protect);
   }
 
   Future<Rect?> _bboxFor(
