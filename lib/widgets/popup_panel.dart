@@ -148,11 +148,16 @@ class PopupPanel extends StatelessWidget {
     this.actions,
     this.actionsAlignment = MainAxisAlignment.end,
     this.scrollable = false,
+    this.maxWidth,
   });
 
   final Widget? title;
   final Widget? content;
   final List<Widget>? actions;
+
+  /// 内容确实需要更宽时（例如带预览网格的设置面板）才传；
+  /// 不传沿用 [cardMaxWidth] 的确认框档位。
+  final double? maxWidth;
 
   /// 动作条的对齐。与 `AlertDialog.actionsAlignment` 同义。
   final MainAxisAlignment actionsAlignment;
@@ -174,9 +179,9 @@ class PopupPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final content = this.content;
     return ConstrainedBox(
-      constraints: const BoxConstraints(
+      constraints: BoxConstraints(
         minWidth: cardMinWidth,
-        maxWidth: cardMaxWidth,
+        maxWidth: maxWidth ?? cardMaxWidth,
       ),
       child: CommonPopupSurface(
         // 表面是 `CommonPopupSurface` 管的（底色 / 圆角 / 阴影与托盘同源），
