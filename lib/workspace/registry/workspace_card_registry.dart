@@ -693,6 +693,16 @@ class WorkspaceCardRegistry {
     return null;
   }
 
+  String _fallbackPanelFor(
+    WorkspaceCardDefinition card,
+    WorkspaceBoardLayout board,
+  ) {
+    if (card.id == pageListSearch || card.id == pageListJump) {
+      return board.cardLayout(pageList)?.panelId ?? card.defaultPanelId;
+    }
+    return card.defaultPanelId;
+  }
+
   /// 某个面板当前应当显示的卡片（已按 order 排序、已滤掉隐藏项）。
   List<WorkspaceCardDefinition> cardsForPanel(
     String panelId,
@@ -701,7 +711,7 @@ class WorkspaceCardRegistry {
     final visible = <String>[];
     for (final card in cards) {
       final layout = board.cardLayout(card.id);
-      final effectivePanel = layout?.panelId ?? card.defaultPanelId;
+      final effectivePanel = layout?.panelId ?? _fallbackPanelFor(card, board);
       final isVisible = layout?.visible ?? card.defaultVisible;
       if (effectivePanel == panelId && isVisible) visible.add(card.id);
     }
@@ -728,7 +738,7 @@ class WorkspaceCardRegistry {
       );
     }
     return CardLayout(
-      panelId: card.defaultPanelId,
+      panelId: _fallbackPanelFor(card, board),
       visible: card.defaultVisible,
       order: card.defaultOrder,
       expanded: card.defaultExpanded,

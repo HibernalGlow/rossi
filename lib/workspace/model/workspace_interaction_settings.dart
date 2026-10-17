@@ -179,6 +179,18 @@ class WorkspaceInteractionSettings {
   /// 打架（谁先认领落点）。
   final bool panelTabSortMode;
 
+  /// 面板栏上那颗**面板图标**要不要吃右键（触摸端长按）= 收起这块面板。默认开。
+  ///
+  /// 关掉它的理由是这条动作**没有回执也没有回头路**：面板收起后图标直接从面板栏
+  /// 移除（见 `PanelTabStrip.titleMountedWidth` 那段口径），而面板栏上没有
+  /// 「已隐藏 N」的恢复入口 —— 误触一下等于把这块面板从界面上变没，只能回
+  /// 「工作台布局」设置页才找得回来。
+  ///
+  /// 与 [panelTabSortMode] 分开放：那一档换的是**整套手势**（横移 vs 长按拖动），
+  /// 这一颗只管右键那一下要不要收起，两档可以任意组合。
+  /// 只管面板图标；文件条目、收藏 / 历史卡片、小组件的右键菜单不受它影响。
+  final bool panelTabRightClickHide;
+
   /// 按泳道 ID 保存的交互覆盖值；没有记录时沿用旧类别的自动定位开关。
   /// 这份配置只选择输入泳道，不保存快捷键或 contexts 映射。
   final Map<String, WorkspaceLaneInteraction> laneInteractions;
@@ -212,6 +224,7 @@ class WorkspaceInteractionSettings {
     this.showLaneWidthBadge = false,
     this.revealZones = WorkspaceRevealZones.defaults,
     this.panelTabSortMode = false,
+    this.panelTabRightClickHide = true,
     this.laneInteractions = const {},
   });
 
@@ -232,6 +245,7 @@ class WorkspaceInteractionSettings {
     bool? showLaneWidthBadge,
     WorkspaceRevealZones? revealZones,
     bool? panelTabSortMode,
+    bool? panelTabRightClickHide,
     Map<String, WorkspaceLaneInteraction>? laneInteractions,
   }) {
     return WorkspaceInteractionSettings(
@@ -257,6 +271,8 @@ class WorkspaceInteractionSettings {
       showLaneWidthBadge: showLaneWidthBadge ?? this.showLaneWidthBadge,
       revealZones: revealZones ?? this.revealZones,
       panelTabSortMode: panelTabSortMode ?? this.panelTabSortMode,
+      panelTabRightClickHide:
+          panelTabRightClickHide ?? this.panelTabRightClickHide,
       laneInteractions: laneInteractions ?? this.laneInteractions,
     );
   }
@@ -278,6 +294,7 @@ class WorkspaceInteractionSettings {
     'showLaneWidthBadge': showLaneWidthBadge,
     'revealZones': revealZones.toJson(),
     'panelTabSortMode': panelTabSortMode,
+    'panelTabRightClickHide': panelTabRightClickHide,
     'laneInteractions': {
       for (final entry in laneInteractions.entries)
         entry.key: entry.value.toJson(),
@@ -367,6 +384,10 @@ class WorkspaceInteractionSettings {
       panelTabSortMode: json['panelTabSortMode'] is bool
           ? json['panelTabSortMode']! as bool
           : fallback.panelTabSortMode,
+      // 老快照没有这个键 ⇒ 保持改造前的行为（右键图标照旧收起面板）。
+      panelTabRightClickHide: json['panelTabRightClickHide'] is bool
+          ? json['panelTabRightClickHide']! as bool
+          : fallback.panelTabRightClickHide,
       laneInteractions: Map.unmodifiable(laneInteractions),
     );
   }
@@ -398,6 +419,7 @@ class WorkspaceInteractionSettings {
       other.showLaneWidthBadge == showLaneWidthBadge &&
       other.revealZones == revealZones &&
       other.panelTabSortMode == panelTabSortMode &&
+      other.panelTabRightClickHide == panelTabRightClickHide &&
       other.laneInteractions.length == laneInteractions.length &&
       laneInteractions.entries.every(
         (entry) => other.laneInteractions[entry.key] == entry.value,
@@ -421,6 +443,7 @@ class WorkspaceInteractionSettings {
     showLaneWidthBadge,
     revealZones,
     panelTabSortMode,
+    panelTabRightClickHide,
     Object.hashAllUnordered(
       laneInteractions.entries.map(
         (entry) => Object.hash(entry.key, entry.value),

@@ -61,6 +61,12 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
 
   /// 关掉时整块直通 —— 连手势都不挂（挂着手势会让长按变得「有反应」，
   /// 而它明明什么都不该发生）。
+  ///
+  /// 这一颗只给**「此刻这行根本不该有交互」**用（卡片正在忙）。它**不是**
+  /// 「文件操作」那颗写操作总开关的落点：那顆关掉只该把写的项灰掉，
+  /// 菜单本身照旧要弹（口径见 `file_manager_entry_menu_spec.dart` 的
+  /// 「不可用项置灰不隐藏」）。拿它当写开关的入口，等于让「不想误删」
+  /// 变成「连复制路径都点不出来」。
   final bool enabled;
 
   void _openAt(BuildContext context, Offset globalPosition) {

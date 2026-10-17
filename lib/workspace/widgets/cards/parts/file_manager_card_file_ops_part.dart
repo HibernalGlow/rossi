@@ -158,6 +158,11 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       // 「在访达/资源管理器里显示」要请外部程序做事：桌面三家有，移动端没有。
       // 读的是 `Platform` 的常量，不发 I/O，符合上面那条「必须 O(1)」。
       canReveal: currentRevealHost() != RevealHost.unsupported,
+      // 「文件操作」那颗写总开关只灰项、不摘宿主：关掉之后右键照旧弹菜单，
+      // 打开 / 复制 / 复制路径仍然点得动，会动盘的那几项画成灰的。
+      // 从前是在外层干脆不挂手势，于是开关一关「右键没反应」（真机撞过），
+      // 而「看不见」比「看得见但点不动」更难解释。
+      canWrite: _fileOpsEnabled,
     );
   }
 

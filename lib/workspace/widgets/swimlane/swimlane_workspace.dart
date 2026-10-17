@@ -256,14 +256,36 @@ class _SwimlaneWorkspaceState extends State<SwimlaneWorkspace>
       final laneId = slot.laneId;
       if (laneId == null) {
         final before = slot.beforeLaneId!;
-        final after = slot.afterLaneId!;
-        children.add(
-          LaneResizer(
-            onDragDelta: (delta) =>
-                cubit.dragLanePair(before, after, delta, viewportWidth),
-            onDoubleTapReset: () => cubit.resetLanePair(before, after),
-          ),
-        );
+        final after = slot.afterLaneId;
+        if (after == null) {
+          children.add(
+            LaneResizer(
+              onDragDelta: (delta) {
+                cubit.dragLaneRightEdge(before, delta, viewportWidth);
+                if (_scroll.hasClients) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!_scroll.hasClients) return;
+                    final max = _scroll.position.maxScrollExtent;
+                    if (delta > 0 && max > 0 && _scroll.offset < max) {
+                      _scroll.jumpTo(max);
+                    } else if (delta < 0 && _scroll.offset > max) {
+                      _scroll.jumpTo(max);
+                    }
+                  });
+                }
+              },
+              onDoubleTapReset: () => cubit.resetLaneWidth(before),
+            ),
+          );
+        } else {
+          children.add(
+            LaneResizer(
+              onDragDelta: (delta) =>
+                  cubit.dragLanePair(before, after, delta, viewportWidth),
+              onDoubleTapReset: () => cubit.resetLanePair(before, after),
+            ),
+          );
+        }
         continue;
       }
 
