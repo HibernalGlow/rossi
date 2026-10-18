@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <b>中文</b> · <a href="#english">English</a>
+  <b>中文</b> · <a href="./README.en.md">English</a>
 </p>
 
 ## Rossi 是什么
@@ -15,7 +15,7 @@
 
 它自己**不带任何漫画内容**。书从哪来，全靠**插件**：一个 JS 文件描述清楚「列表怎么取、搜索怎么发、图片怎么还原」，Rust 侧的 QuickJS 沙箱负责把它跑起来。装什么插件，就读什么源；不装，它就是个读本地 CBZ 的干净书架。
 
-内置哔咔与禁漫两个插件，编译时打包进二进制，开箱即用。
+内置哔咔与禁漫两个插件，编译时打包进二进制，开箱即用。界面上跑的是 **Material 3 Expressive**：非对称圆角、弹簧驱动的数值、容器色分层，而不是一堆细边框。
 
 ---
 
@@ -32,15 +32,21 @@
 
 - 六种读法：从右到左（日漫原样）、从左到右、条漫纵向、双页并排（可无缝拼接、可首页错版）、横长页自动分割、自动滚动。
 - **每一本都能单独覆盖设置**，不动全局那一份。
-- 墨水屏优化、音量键翻页、左右手模式、环境色背景、缩略图快速跳转、操作栏常驻。
-- 桌面端键位全可自定义：键盘、鼠标、鼠标侧键、滚轮、手柄、触屏、区域手势，分「全局」与「阅读器」两套上下文。
+- 页面放大镜、手动页序重排、幻灯片自动翻页、章节已读标记；墨水屏优化、音量键翻页、左右手模式、环境色背景、缩略图快速跳转、操作栏常驻。
+- 桌面端键位全可自定义：键盘、鼠标、鼠标侧键、滚轮、手柄、触屏、区域手势，分「全局」与「阅读器」两套上下文；阅读时还有一个蜂窝排布的**径向轮盘**。
+
+### 工作台
+
+- 桌面端把应用做成**泳道 → 面板 → 卡片**：左泳道书架（收藏 / 历史 / 下载 / 洞察），中央阅读器，右泳道发现（文件管理器 / 页内目录 / 图源 / 控制 / 信息 / 工具）。
+- 中央那条**可以一键独占整条可用宽**；泳道能折叠、能重排，鼠标在哪条泳道，键位就归哪条。
+- 卡片按跨度自选档位：同一张卡在窄槽位和全宽里都不会溢出，量不到的数字画「—」而不是 0。
 
 ### 书架与下载
 
-- 收藏分**本地**与**云端**两种，收藏夹可分组。
-- 追更页专门列出「更新了但还没看」的。
-- 自研下载队列：任务管理器、失败增量重试、边下边读，可导出 ZIP / 相册 / 文件夹，也能重新导入。
-- **WebDAV 与 S3 同步**（含 path-style 开关），支持手动触发上传下载。
+- 收藏分**本地**与**云端**两种，收藏夹可分组；书架支持「展墙」式排布（主视觉、内容分区、不对称），也能一键退回普通列表。
+- 追更页专门列出「更新了但还没看」的，章节带已读标记与追更统计。
+- 自研下载队列：优先级与批量操作、失败增量重试、边下边读、章节闸门、存储统计；可导出 ZIP / 相册 / 文件夹，也能重新导入。
+- **WebDAV 与 S3 同步**（含 path-style 开关），按块做 LWW 合并——只同步「用户偏好」，不会把你另一台机器的事实覆盖过来。
 
 ### 画面增强
 
@@ -55,11 +61,28 @@
 - 术语表每行一条「原文=译文」，专名可以自己钉。
 - 目前只做 Windows / Linux / macOS，详见[这一节](#ocr-details)。
 
-### 其他
+### 数据与同步
 
-- 应用内检查更新与更新日志；20 档预设主题色（默认那档就是图标上的「面具红」）+ 跟随系统深浅色 + 动态取色。
-- 自定义阅读字体；数据备份导入导出；缓存管理；GitHub / jsdelivr 加速代理；手势与 PIN 应用锁。
+- 本地备份编解码与整库导入导出；绑定包可以单独导出成 JSON，换机和分享都靠它。
+- 缓存可单独清理，不会动原图；导出到磁盘的备份文件不随卸载被删。
+- 应用内检查更新与更新日志；20 档预设主题色（默认那档就是图标上的「面具红」）+ 跟随系统深浅色 + 动态取色 + 可导入的 tweakcn / shadcn 主题。
+- 自定义阅读字体；GitHub / jsdelivr 加速代理；手势与 PIN 应用锁；通知逐事项开关。
 - macOS / Linux 系统托盘。
+
+---
+
+## 界面
+
+真实运行时的两屏（由 Flutter 自己渲染，见 [`tool/readme_shots`](./tool/readme_shots)）：
+
+<p align="center">
+  <img src="./assets/readme/shots/settings-appearance.png" width="60%"
+       alt="外观与显示设置页：主题模式三选一（跟随系统 / 浅色 / 深色）带预览卡，下面是动态取色、主题颜色、异形屏适配、纯黑模式等分组开关。">
+  <img src="./assets/readme/shots/processing-trim.png" width="33%"
+       alt="裁边预览：展开后并排显示原图与被自动裁掉白边的结果。">
+</p>
+
+设置页从外壳到分组卡都是同一套语言：`SettingGroup` 承载分组表面，行与行之间没有 Divider，开关自己带勾选态。图像处理的对照预览用的是随包样图，而不是运行时的截图。
 
 ---
 
@@ -67,7 +90,7 @@
 
 <p align="center">
   <img src="./assets/readme/plugin-architecture.svg" width="100%"
-       alt="流程图：第三方图源（内置哔咔、禁漫、自定义 JS）交给 Rust 侧 windcore 沙箱，由 QuickJS 执行插件、reqwest 发请求、负责解码与反混淆和压缩包处理，再经 flutter_rust_bridge 交给 Flutter 界面层的发现、聚合搜索、书架与阅读器。">
+       alt="流程图：第三方图源（内置哔咔、禁漫、自定义 JS）交给 Rust 侧 windcore，由 QuickJS 沙箱执行插件、reqwest 发请求、负责解码与反混淆、归档与视频，再经 flutter_rust_bridge 交给 Flutter 界面层的工作台、发现、阅读器、书架与设置。">
 </p>
 
 链路是 `Dart → Flutter Rust Bridge → Rust → QuickJS`。插件代码不在 Dart 里跑，也不碰平台 API：它只能描述「发什么请求、怎么解析、图片怎么还原」，网络和文件能力由宿主按 feature 授予。
@@ -80,14 +103,53 @@
 
 ---
 
+## 工作台：泳道 → 面板 → 卡片
+
+<p align="center">
+  <img src="./assets/readme/workbench.svg" width="100%"
+       alt="三列示意：左泳道是书架、收藏、历史、下载与洞察卡片；中央是阅读器泳道，可一键独占整条可用宽；右泳道是发现、文件管理器、页序、插件、控制与信息面板。底部说明鼠标在哪条泳道键位就归哪条。">
+</p>
+
+三块泳道各自拥有一串面板，面板里住卡片。同一张卡在窄槽位和全宽里都能用，是因为每张卡自己在 `LayoutBuilder` 里选档，而不是由外层强行缩放。
+
+「输入归属」和「画面定位」是两件事：键位立刻属于指针所在的泳道，不必等从屏幕边缘拉回的那段动画播完；画面该不该完整显示，是另一条独立的判断。
+
+---
+
+## 操作绑定：一套动作，七类输入
+
+<p align="center">
+  <img src="./assets/readme/operation-binding.svg" width="100%"
+       alt="左列七类输入（键盘、鼠标、侧键、滚轮、手柄、触屏、区域手势）映射到中间带上下文的绑定，再指向右侧动作注册表里的稳定 id；底部三条纪律：冲突阻止保存、绑定包可导出导入、低优先级上下文可被隔离。">
+</p>
+
+动作不是 controller 里的私有方法，而是注册表里的一行（id + 显示名 + 分类 + 上下文）。绑定是「输入描述 → 动作 id」的映射，冲突**阻止保存**而不是弹个警告——用户没有能力判断哪一条该让路。
+
+绑定包是带 `format` 与 `format_version` 的 JSON，换机、备份、分享都走它。这也是「高自定义」不至于变成不可迁移的配置垃圾的前提。
+
+---
+
+## 同一套 Material 3 Expressive 语言
+
+<p align="center">
+  <img src="./assets/readme/expressive-design.svg" width="100%"
+       alt="五格展示设计语言：非对称圆角 22/22/6/22、cookie 形图标座、弹簧驱动的数值、容器色分层而非描边投影、胶囊状态；覆盖工作台、设置页、阅读轮盘与提示条。">
+</p>
+
+这套语言在工作台、设置页、阅读轮盘和提示条上是同一份实现：圆角用的是同一组数字，数值动画共用一根弹簧，分层靠 `ColorScheme` 的 container 对而不是描边和投影。
+
+墨水屏与「减少动态效果」下弹簧直接落位——动画是加分项，不是可用性前提。
+
+---
+
 ## 六种读法
 
 <p align="center">
   <img src="./assets/readme/reading-experience.svg" width="100%"
-       alt="六格示意图：从右到左、从左到右、条漫连读、双页无缝、横长页分割、自动滚动。每一项都能只对当前这本生效。">
+       alt="六格示意图：从右到左、从左到右、条漫连读、双页无缝、横长页分割、自动滚动。底部补充放大镜、手动页序、幻灯片、章节已读与径向轮盘。">
 </p>
 
-方向、翻页、双页配对、自动滚动间隔这些都不止一个开关，所以做成了「全局一份 + 每本单独覆盖一份」。桌面端还有一套完整的按键绑定编辑器，键盘、鼠标、侧键、滚轮、手柄、触屏、区域手势都能重映射。
+方向、翻页、双页配对、自动滚动间隔这些都不止一个开关，所以做成了「全局一份 + 每本单独覆盖一份」。桌面端还有一套完整的按键绑定编辑器。
 
 ---
 
@@ -95,10 +157,23 @@
 
 <p align="center">
   <img src="./assets/readme/super-resolution.svg" width="100%"
-       alt="上方是网点糊块经超分恢复为清晰网点的示意图与四条策略；下方是引擎与平台的对应矩阵：Rossi 原生 CoreML 支持 iOS 与 macOS，mImage ONNX 支持 iOS、Windows、macOS、Linux，桌面 NCNN 支持 Windows 与 Linux，内置 waifu2x CLI 只在 Android 上自动使用。">
+       alt="左侧是网点糊块经超分恢复为清晰网点的示意图；右侧列出四条路线与引擎、平台的对应矩阵：Rossi 原生 CoreML 支持 iOS 与 macOS，mImage ONNX 支持 iOS、Windows、macOS、Linux，桌面 NCNN 支持 Windows 与 Linux，内置 waifu2x CLI 只在 Android 上自动使用。">
 </p>
 
 矩阵里打勾的是**这条路线在这个平台上真的能跑**。选引擎时不用记这张表——默认值就是本平台可用档里的推荐项，但如果你从别的平台同步过来一个本平台跑不了的设置，它会落回默认而不是报错。
+
+---
+
+## 非破坏式显示处理层
+
+<p align="center">
+  <img src="./assets/readme/display-pipeline.svg" width="100%"
+       alt="七个阶段横向排列：解码原图、裁边、降噪、调色、超分、翻译、上屏。下方说明每一步都产出可失效的派生位图，原图永远是真相；缓存键把内容与参数版本一起编进去。">
+</p>
+
+裁边、降噪、调色、超分、翻译**都不改原文件**，每一步产出的都是一张派生位图。派生位图缺失或被清掉时静默回落原图，不会阻塞翻页；换模型、换倍率、换字体之后是重算缓存，而不是继续给你看上一次的结果。
+
+缓存键必须把影响产物的每一项都编进去——译文语言、模型、倍率、字体、参数版本，少一项就是那种「换了模型页面还是旧的」的静默错误。
 
 ---
 
@@ -121,6 +196,17 @@
 - 端点当时不可用会**降级**：那一页只做擦字与原文回填，不会卡住整本。
 - 成品页有缓存，换模型或换字体后可以一键清空（不会动原图）。
 - 每一页的六道关都记一行日志，出问题在设置页里能直接看到是哪一步。
+
+---
+
+## 数据怎么进出这台机器
+
+<p align="center">
+  <img src="./assets/readme/data-flow.svg" width="100%"
+       alt="三列：下载队列（优先级、失败重试、边下边读、章节闸门、导出）、云同步（块级 LWW、WebDAV / S3）、本地备份；底部是导出格式与存储统计。">
+</p>
+
+同步只搬「用户偏好」，不搬「这台机器的事实 / 这一秒的画面」。这条界线就是块表的存在理由：`workspace` 块直接读磁盘上的布局文件，所以新增一个布局开关不用改同步代码。
 
 ---
 
@@ -283,309 +369,26 @@ flutter pub get
 dart ./script/code_generate.dart
 ```
 
-### 4. 平台特定说明
+### 4. 文档与插图
+
+README 里的 SVG 由脚本生成，中英各一份，不要手改产物：
+
+```bash
+python3 script/build_readme_svgs.py          # 重写 assets/readme/*.svg
+python3 script/build_readme_svgs.py --check  # 只校验是否过期
+```
+
+截图同理，用 Flutter 自己渲染真页面，不需要额外截图软件：
+
+```bash
+flutter test --update-goldens tool/readme_shots/readme_shots_test.dart
+```
+
+### 5. 平台特定说明
 
 - **Android**：确保 `local.properties` 指向正确的 SDK 路径。
 - **Windows / Linux**：确保安装了 Visual Studio (C++) 或相应的 GCC 工具链，以支持 Rust 的本地编译。
 - **仓库结构、构建脚本与约定**：见 [`AGENTS.md`](./AGENTS.md) 与 [`docs/`](./docs/)。
-
----
-
-<a id="english"></a>
-
-## Rossi in English
-
-<p align="center">
-  <a href="#top">中文</a> · <b>English</b>
-</p>
-
-A cross-platform manga reader written in **Flutter + Rust**.
-
-It ships **no comic content at all** — where the comics come from is entirely up to **plugins**. One JS file describes how to list, how to search and how to restore the images; a QuickJS sandbox on the Rust side runs it. Install a plugin and that source becomes readable; install none and it stays a clean bookshelf for local CBZ files.
-
-Two plugins, Bika and JM, are built in: `rust/build.rs` downloads their bundles at compile time, so the first run already works.
-
-### Capabilities
-
-#### Sources and search
-
-- Bika and JM built in; install your own `.js` / `.cjs` / `.br` plugins, or pull them from the [plugin list](https://github.com/deretame/Breeze-plugin-list) — one-tap download, manual update, drag to reorder.
-- **Aggregate search** asks several sources in one go. Tag syntax and excluded terms are supported, and searches are kept in history.
-- The EHentai tag dictionary ships with the app, bilingual, so you don't have to guess tag names.
-- Local CBZ / ZIP archives read directly, with no extraction step.
-
-#### Reading
-
-- Six modes: right to left (Japanese order, unmirrored), left to right, webtoon top to bottom, double page (seamless, optional leading blank), split landscape pages, auto read.
-- **Every comic can override the settings** without touching the global set.
-- E-ink tuning, volume-key page turns, left/right hand mode, ambient background colour, thumbnail scrubbing, persistent control bar.
-- Desktop bindings are fully editable: keyboard, mouse, side buttons, wheel, gamepad, touch and region gestures, in separate global and reader contexts.
-
-#### Bookshelf and downloads
-
-- Favorites come in **local** and **cloud** kinds, and can be grouped.
-- The follow tab lists exactly what updated but has not been read yet.
-- A custom download queue: task manager, incremental retry of failures, read while downloading, export to ZIP / gallery / folder, and re-import.
-- **WebDAV and S3 sync** (with a path-style toggle), plus manual upload and download.
-
-#### Picture quality
-
-- Four super-resolution routes, and the app picks a working one per platform: Rossi native CoreML (ANE / GPU), mImage ONNX (DirectML / CoreML EP / CPU), desktop NCNN (waifu2x, Real-CUGAN), and the bundled waifu2x CLI on Android.
-- Only runs below a resolution you set, prefetches pages on both sides of the current one, and recomputes the cache when you change model or scale instead of keeping the old result on screen.
-- Weights are not bundled; they download on first use.
-
-#### Manga translation (finished pages)
-
-- Detect → recognize → erase → translate → re-typeset, producing a **redrawn page**, not subtitles laid over the original.
-- Three translation engines to choose from: an API endpoint (cloud, or local Ollama / Foundry Local), local Hunyuan Hy-MT2, and Apple's system translation (on-device, offline, free).
-- Glossary: one `source=target` per line, so proper nouns stay where you put them.
-- Windows / Linux / macOS only for now — see [this section](#translation-details).
-
-#### Elsewhere
-
-- In-app update check and changelog; 20 preset theme colours (the default one is the mask red from the icon), light/dark following the system, and dynamic colour.
-- Custom reading font; data backup import and export; cache management; GitHub / jsdelivr acceleration proxies; gesture and PIN app lock.
-- System tray on macOS and Linux.
-
----
-
-### How it runs
-
-<p align="center">
-  <img src="./assets/readme/plugin-architecture.en.svg" width="100%"
-       alt="Flow diagram: comic sources (built-in Bika and JM, plus custom JS plugins) feed into the Rust-side windcore sandbox, where QuickJS executes plugin code, reqwest performs requests, and decoding, de-obfuscation and archive handling happen; flutter_rust_bridge then hands everything to the Flutter UI layer — discovery, aggregate search, bookshelf and reader.">
-</p>
-
-The chain is `Dart → Flutter Rust Bridge → Rust → QuickJS`. Plugin code never runs inside Dart and never touches platform APIs: it can only describe which request to send, how to parse the answer and how to restore the image. Network and file capabilities are granted per feature by the host.
-
-> ⚠️ **Plugins are still beta** — the API may change substantially, and today it suits learning better than shipping.
-> But remember: inside the sandbox a plugin can still make network requests and read or write files. **Installing a plugin means trusting the code it contains.**
-
-- Plugin development docs: <https://deretame.github.io/plugin-dev-docs/>
-- Plugin list: <https://github.com/deretame/Breeze-plugin-list>
-
----
-
-### Six ways to read
-
-<p align="center">
-  <img src="./assets/readme/reading-experience.en.svg" width="100%"
-       alt="Six cells: right to left, left to right, webtoon top to bottom, seamless double page, split landscape pages, auto read. Each one can apply to the current comic only.">
-</p>
-
-Direction, page turning, double-page pairing and auto-scroll intervals each have more than one switch, so the model is one global set plus a per-comic override. Desktop adds a complete binding editor where keyboard, mouse, side buttons, wheel, gamepad, touch and region gestures can all be remapped.
-
----
-
-### Four super-resolution routes
-
-<p align="center">
-  <img src="./assets/readme/super-resolution.en.svg" width="100%"
-       alt="Top: a smeared screentone patch restored to clean dots by super-resolution, with four policies. Bottom: the engine and platform matrix — Rossi native CoreML on iOS and macOS, mImage ONNX on iOS, Windows, macOS and Linux, desktop NCNN on Windows and Linux, and the bundled waifu2x CLI used automatically on Android only.">
-</p>
-
-A tick means **this route actually runs on this platform**. You don't have to memorise the table to pick an engine: the default is the recommended option among the ones your platform supports. If a setting synced in from another platform names an engine that cannot run here, it falls back to the default instead of erroring.
-
-| Engine | Backends | Where it runs |
-| :--- | :--- | :--- |
-| Rossi native CoreML | ANE / GPU | iOS, macOS |
-| mImage ONNX | DirectML · CoreML EP · CPU | iOS, Windows, macOS, Linux |
-| Desktop NCNN | waifu2x · Real-CUGAN | Windows, Linux |
-| Bundled waifu2x CLI | no engine choice, auto-selected | Android |
-
----
-
-<a id="translation-details"></a>
-
-### Manga translation (finished pages)
-
-<p align="center">
-  <img src="./assets/readme/ocr-translate.en.svg" width="100%"
-       alt="Six-step pipeline: 01 detect text boxes with PP-OCRv4 det, 02 recognize speech with manga-ocr, 03 erase the original text with LaMa, 04 translate with one of three engines, 05 re-typeset with LXGW WenKai, 06 finished page, toggled per page in the reader. Below, the three translation engines, and a note that this is Windows, Linux and macOS only.">
-</p>
-
-Unlike overlaying a translation, this path **erases the original text from the image** and re-typesets the translation into the shape of the bubble, so what you get is a page you can simply read. In the reader toolbar, tap Translate to switch the current page only.
-
-Limits worth knowing:
-
-- **Desktop only.** Android and iOS are excluded on purpose, not left on a backlog: this repo's ONNX Runtime registers no accelerator EP for the linux/android sections, and the recognizer is an fp32 ViT + BERT — making it usable on mobile needs an int8 re-export first. So the entry point is not drawn at all on mobile, rather than drawn and then erroring.
-- Weights are not bundled: about **660 MB**, downloaded from the settings page on first use (PP-OCRv4 det + manga-ocr recognition + LaMa erase).
-- Each engine trades something off: the API endpoint needs network or a local service and supports the glossary; Hunyuan Hy-MT2 needs you to start `llama-server` yourself; Apple system translation is on-device, offline and free, but **exposes no glossary API**, so on that route proper nouns get the generic translation.
-- If the endpoint is unavailable at that moment the page **degrades**: it is erased and re-typeset with the source text instead of stalling the whole chapter.
-- Finished pages are cached, and there is a one-tap clear after changing model or font (your originals are never touched).
-- All six stages write one log line per page, so when something goes wrong the settings page shows you which stage.
-
----
-
-### Download and install
-
-Go to the [Releases page](https://github.com/deretame/Breeze/releases) and pick your platform:
-
-| Platform | File | Install |
-| :--- | :--- | :--- |
-| Android / HarmonyOS | `app-arm64-v8a-release.apk` | Install directly |
-| Windows | `windows-installer.exe` | Double-click |
-| macOS | `Breeze-macOS.dmg` or Homebrew | `brew install --cask breeze` |
-| Linux | `breeze.flatpak` or `breeze_*.deb` | Flatpak / apt |
-| iOS / iPadOS | `Breeze-iOS.ipa` | Sideload and re-sign yourself |
-
-<details>
-<summary><b>Android / HarmonyOS</b></summary>
-
-Download `app-arm64-v8a-release.apk` and install it directly.
-
-> **Note**: in mainland China an unreviewed app may refuse to install. [GBox](https://gboxlab.com/i18n/zh-Hant/), [出境易](https://www.chujingapp.com/) or [GSpace](https://gspaceteam.com/) (all available in the HarmonyOS app store) work around the system installer.
-
-</details>
-
-<details>
-<summary><b>Windows</b></summary>
-
-Download `windows-installer.exe` and run it to install.
-
-Running the Rust-compiled parts locally needs Visual Studio (C++) or an equivalent GCC toolchain.
-
-</details>
-
-<details>
-<summary><b>macOS</b></summary>
-
-**Option 1: Homebrew (recommended)**
-
-```bash
-brew tap deretame/breeze
-brew install --cask breeze
-
-# upgrade
-brew upgrade breeze
-
-# remove completely, including database, cache and configuration
-# note: files you exported by hand are kept, but in-app data is wiped
-brew uninstall --zap breeze
-```
-
-**Option 2: install the DMG manually**
-
-1. Download the latest `Breeze-macOS.dmg`.
-2. Open it and drag `Breeze.app` into `Applications`.
-
-> ⚠️ **First launch (Gatekeeper)**
-> This is free open-source software and carries no Apple developer signature. If macOS says the app is **damaged** or **cannot be verified**, run this in Terminal and it will open normally:
->
-> ```bash
-> xattr -cr /Applications/Breeze.app
-> ```
->
-> Alternative: in the Applications folder, hold `Control` and click the app icon, then choose Open from the context menu.
-
-</details>
-
-<details>
-<summary><b>Linux</b></summary>
-
-Both Flatpak and DEB packages are published.
-
-**Option 1: DEB** (Debian/Ubuntu and derivatives)
-
-Current releases publish `amd64` DEB only.
-
-```shell
-# if the downloaded DEB is the only one in this directory, a glob works
-sudo apt install ./breeze_*.deb
-
-breeze                    # start
-sudo apt remove breeze    # remove
-```
-
-`apt` resolves the system dependencies for you. Afterwards start **Breeze** from the application menu, or run `breeze` in a terminal.
-
-> **Note**: the DEB is not guaranteed to work on every Debian/Ubuntu derivative. If install or startup misbehaves, use the Flatpak build.
-
-**Option 2: Flatpak**
-
-1. If Flatpak is not set up yet, see the [Flathub quick setup guide](https://flathub.org/zh-Hans/setup).
-   From mainland China, the [CERNET mirror](https://help.mirrors.cernet.edu.cn/flathub/) is considerably faster.
-2. This project builds against the GNOME 50 runtime, so install that first:
-
-   ```shell
-   flatpak install flathub org.gnome.Platform//50
-   ```
-
-3. Download `breeze.flatpak` from the release and install it:
-
-   ```shell
-   flatpak install --user breeze.flatpak
-   ```
-
-4. Run it:
-
-   ```shell
-   flatpak run io.github.windy.breeze
-   ```
-
-</details>
-
-<details>
-<summary><b>iOS / iPadOS</b></summary>
-
-iOS is closed: anything not from the App Store has to be **sideloaded and re-signed by you**. Download the unsigned `Breeze-iOS.ipa`, then install it with one of the tools below.
-
-**Recommended: AltStore** — currently the most stable and the friendliest to newcomers, and it re-signs automatically over the local network from a computer.
-
-- Site: <https://altstore.io/>
-- [Official AltStore walkthrough](https://faq.altstore.io/)
-- [知乎: AltStore-based self-signing tutorial (Chinese)](https://zhuanlan.zhihu.com/p/143936759)
-- [哔哩哔哩: unlimited self-signed IPA on iOS (Chinese)](https://b23.tv/UbuuJTZ)
-
-**Other self-signing / no-sign options**
-
-- **Sideloadly**: no jailbreak, desktop self-signing tool for Windows and macOS. [Site and guide](https://sideloadly.io/)
-- **TrollStore**: if your iOS version is within the exploit's range, **strongly recommended** — permanent unsigned installs that never drop their signature. [Supported versions and install guide](https://ios.cfw.guide/installing-trollstore/)
-
-</details>
-
----
-
-### Building from source
-
-> For anyone changing the code. If you only want to read, you can stop above.
-
-#### 1. Core toolchain
-
-- **Flutter SDK**: must pass `flutter doctor`.
-- **Rust toolchain**: install via `rustup` and add the cross-compilation targets you need (for example `aarch64-linux-android`).
-- **LLVM / Clang**: libraries such as `rustqjs` parse C headers, so LLVM is required (on Windows, `choco install llvm` or the upstream installer), with `LIBCLANG_PATH` configured.
-
-#### 2. Environment variables
-
-| Variable | Why | Example path |
-| :--- | :--- | :--- |
-| **JAVA_HOME** | Required to build Android, Windows and Linux | `C:\Program Files\Android\Android Studio\jbr` |
-| **ANDROID_NDK_HOME** | Required to cross-compile the Rust library for Android | `...\AppData\Local\Android\Sdk\ndk\29.0.14206865` |
-| **LIBCLANG_PATH** | Used by `bindgen` (Rust) to generate FFI bindings | `C:\Program Files\LLVM\bin` |
-
-> Make sure `javac` and `clang` are both on `PATH`.
-
-#### 3. Dependencies and code generation
-
-```bash
-# root project Flutter dependencies
-flutter pub get
-
-# required again after touching auto_route / freezed / json_serializable / objectbox / FRB
-dart ./script/code_generate.dart
-```
-
-#### 4. Platform notes
-
-- **Android**: point `local.properties` at the right SDK path.
-- **Windows / Linux**: install Visual Studio (C++) or an equivalent GCC toolchain so the Rust parts can compile locally.
-- **Repository layout, build scripts and conventions**: see [`AGENTS.md`](./AGENTS.md) and [`docs/`](./docs/).
-
----
-
-> A short English summary of the disclaimer below, for convenience. **The Chinese text is the authoritative version.**
-> The app is provided as-is with no warranty of any kind; the developer is not liable for any damage from using, modifying or redistributing it. You are responsible for checking that your use is lawful where you are, and for the content any third-party plugin fetches — the app itself ships none. External contributions represent their authors only. Keep working on a plugin's source before installing it: it runs code you did not write.
 
 ---
 

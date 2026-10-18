@@ -1,110 +1,67 @@
-<!-- mirror of reading-experience.svg — same geometry and palette, English copy only. Keep in sync. -->
 <svg xmlns="http://www.w3.org/2000/svg"
-     width="1200" height="560" viewBox="0 0 1200 560"
+     width="1200" height="640" viewBox="0 0 1200 640"
      role="img" aria-labelledby="title desc">
-  <title id="title">Rossi reading modes</title>
-  <desc id="desc">Six cells: right to left, left to right, webtoon top to bottom, seamless double page,
-  split landscape pages, and auto read scrolling. A footer notes every mode can be overridden per comic,
-  and that desktop keys, mouse, wheel, gamepad and touch bindings are all remappable.</desc>
+  <title id="title">Six ways to read, one set of gestures</title>
+  <desc id="desc">Six cells: right to left, left to right, webtoon top to bottom, seamless double page, split landscape pages, auto read. A bottom strip adds the magnifier, manual page order, slideshow, chapter read marks and the radial menu.</desc>
 
   <defs>
     <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#F5F1EA"/>
       <stop offset="1" stop-color="#E7DFD3"/>
     </linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
     </marker>
   </defs>
 
-  <rect width="1200" height="560" rx="26" fill="url(#paper)"/>
+  <rect width="1200" height="640" rx="26" fill="url(#paper)"/>
 
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
-    <text x="64" y="78" font-size="34" font-weight="700" fill="#2A2320">Six ways to read, one gesture set</text>
-    <text x="1136" y="78" font-size="19" text-anchor="end" fill="#8A7A66"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">reading direction</text>
-    <rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
-
-    <!-- 1 right to left -->
-    <g id="m-rtl" transform="translate(64 146)">
-      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-      <g transform="translate(26 24)">
-        <rect x="0" y="18" width="36" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
-        <rect x="46" y="18" width="36" height="48" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
-        <line x1="70" y1="6" x2="16" y2="6" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-      </g>
-      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">Right to left</text>
-      <text x="26" y="126" font-size="18" fill="#8A7A66">Japanese order, no mirroring</text>
-    </g>
-
-    <!-- 2 left to right -->
-    <g id="m-ltr" transform="translate(432 146)">
-      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-      <g transform="translate(26 24)">
-        <rect x="0" y="18" width="36" height="48" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
-        <rect x="46" y="18" width="36" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
-        <line x1="16" y1="6" x2="70" y2="6" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-      </g>
-      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">Left to right</text>
-      <text x="26" y="126" font-size="18" fill="#8A7A66">CN comics and translations</text>
-    </g>
-
-    <!-- 3 webtoon -->
-    <g id="m-webtoon" transform="translate(800 146)">
-      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-      <g transform="translate(26 16)">
-        <rect x="14" y="0" width="44" height="76" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
-        <line x1="14" y1="26" x2="58" y2="26" stroke="#CFC5B7" stroke-width="1.5"/>
-        <line x1="14" y1="52" x2="58" y2="52" stroke="#CFC5B7" stroke-width="1.5"/>
-        <line x1="74" y1="8" x2="74" y2="66" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-      </g>
-      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">Webtoon</text>
-      <text x="26" y="126" font-size="18" fill="#8A7A66">Scroll down, or tap to page</text>
-    </g>
-
-    <!-- 4 seamless double page -->
-    <g id="m-double" transform="translate(64 320)">
-      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-      <g transform="translate(26 24)">
-        <rect x="0" y="18" width="41" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
-        <rect x="41" y="18" width="41" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#9C4B5E" stroke-width="1.5"/>
-        <line x1="41" y1="12" x2="41" y2="72" stroke="#762D3F" stroke-width="1.5" stroke-dasharray="4 3"/>
-      </g>
-      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">Double page</text>
-      <text x="26" y="126" font-size="18" fill="#8A7A66">Seamless spread, seam removed</text>
-    </g>
-
-    <!-- 5 split landscape -->
-    <g id="m-split" transform="translate(432 320)">
-      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-      <g transform="translate(26 30)">
-        <rect x="0" y="14" width="86" height="40" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
-        <line x1="43" y1="8" x2="43" y2="60" stroke="#9C4B5E" stroke-width="1.5" stroke-dasharray="5 4"/>
-        <line x1="38" y1="-2" x2="12" y2="-2" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-        <line x1="48" y1="-2" x2="74" y2="-2" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-      </g>
-      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">Split landscape</text>
-      <text x="26" y="126" font-size="18" fill="#8A7A66">Wide spreads cut in two</text>
-    </g>
-
-    <!-- 6 auto read -->
-    <g id="m-auto" transform="translate(800 320)">
-      <rect width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-      <g transform="translate(26 16)">
-        <rect x="14" y="0" width="44" height="76" rx="4" fill="#FFFFFF" stroke="#CFC5B7" stroke-width="1.5"/>
-        <g stroke="#9C4B5E" stroke-width="2">
-          <line x1="20" y1="14" x2="52" y2="14"/>
-          <line x1="20" y1="38" x2="52" y2="38"/>
-          <line x1="20" y1="62" x2="52" y2="62"/>
-        </g>
-        <line x1="74" y1="8" x2="74" y2="66" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-      </g>
-      <text x="132" y="64" font-size="23" font-weight="600" fill="#2A2320">Auto read</text>
-      <text x="26" y="126" font-size="18" fill="#8A7A66">Interval &amp; distance, e-ink</text>
-    </g>
-
-    <line x1="64" y1="500" x2="1136" y2="500" stroke="#CFC5B7" stroke-width="1.5"/>
-    <text x="64" y="534" font-size="19" fill="#8A7A66">Every mode can override per comic; desktop keys, mouse, wheel, gamepad and touch bindings are all remappable.</text>
-  </g>
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">Six ways to read, one set of gestures</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">reading direction</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="146" width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="90" y="188" width="36" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#CFC5B7" stroke-width="1.4"/><line x1="96" y1="212" x2="120" y2="212" stroke="#CFC5B7" stroke-width="1.4"/>
+  <rect x="136" y="188" width="36" height="48" rx="4" fill="#FFFFFF" fill-opacity="0.9" stroke="#CFC5B7" stroke-width="1.4"/><line x1="142" y1="212" x2="166" y2="212" stroke="#CFC5B7" stroke-width="1.4"/>
+  <line x1="160" y1="176" x2="106" y2="176" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="196" y="208" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#2A2320">Right to left</text>
+  <text x="90" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">Japanese order, unmirrored</text>
+  <rect x="432" y="146" width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="458" y="188" width="36" height="48" rx="4" fill="#FFFFFF" fill-opacity="0.9" stroke="#CFC5B7" stroke-width="1.4"/><line x1="464" y1="212" x2="488" y2="212" stroke="#CFC5B7" stroke-width="1.4"/>
+  <rect x="504" y="188" width="36" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#CFC5B7" stroke-width="1.4"/><line x1="510" y1="212" x2="534" y2="212" stroke="#CFC5B7" stroke-width="1.4"/>
+  <line x1="474" y1="176" x2="528" y2="176" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="564" y="208" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#2A2320">Left to right</text>
+  <text x="458" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">domestic and translated editions</text>
+  <rect x="800" y="146" width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="840" y="170" width="44" height="76" rx="4" fill="#FFFFFF" fill-opacity="0.9" stroke="#CFC5B7" stroke-width="1.4"/><line x1="846" y1="189" x2="878" y2="189" stroke="#CFC5B7" stroke-width="1.4"/><line x1="846" y1="208" x2="878" y2="208" stroke="#CFC5B7" stroke-width="1.4"/><line x1="846" y1="227" x2="878" y2="227" stroke="#CFC5B7" stroke-width="1.4"/>
+  <line x1="900" y1="178" x2="900" y2="236" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="932" y="208" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#2A2320">Webtoon</text>
+  <text x="826" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">scroll down, tap to turn too</text>
+  <rect x="64" y="320" width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="90" y="362" width="41" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#CFC5B7" stroke-width="1.4"/><line x1="96" y1="386" x2="125" y2="386" stroke="#CFC5B7" stroke-width="1.4"/>
+  <rect x="131" y="362" width="41" height="48" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#CFC5B7" stroke-width="1.4"/><line x1="137" y1="386" x2="166" y2="386" stroke="#CFC5B7" stroke-width="1.4"/>
+  <line x1="131" y1="356" x2="131" y2="416" stroke="#762D3F" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="196" y="382" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#2A2320">Double page</text>
+  <text x="90" y="446" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">halves joined, no gutter gap</text>
+  <rect x="432" y="320" width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="458" y="358" width="86" height="40" rx="4" fill="#FFFFFF" fill-opacity="0.9" stroke="#CFC5B7" stroke-width="1.4"/>
+  <line x1="501" y1="352" x2="501" y2="404" stroke="#9C4B5E" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <line x1="496" y1="342" x2="470" y2="342" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <line x1="506" y1="342" x2="532" y2="342" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="564" y="382" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#2A2320">Split landscape</text>
+  <text x="458" y="446" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">wide spreads split in two</text>
+  <rect x="800" y="320" width="336" height="150" rx="18" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="840" y="344" width="44" height="76" rx="4" fill="#FFFFFF" fill-opacity="0.9" stroke="#CFC5B7" stroke-width="1.4"/><line x1="846" y1="363" x2="878" y2="363" stroke="#CFC5B7" stroke-width="1.4"/><line x1="846" y1="382" x2="878" y2="382" stroke="#CFC5B7" stroke-width="1.4"/><line x1="846" y1="401" x2="878" y2="401" stroke="#CFC5B7" stroke-width="1.4"/>
+  <line x1="846" y1="358" x2="878" y2="358" stroke="#9C4B5E" stroke-width="2"/>
+  <line x1="846" y1="382" x2="878" y2="382" stroke="#9C4B5E" stroke-width="2"/>
+  <line x1="846" y1="406" x2="878" y2="406" stroke="#9C4B5E" stroke-width="2"/>
+  <line x1="900" y1="352" x2="900" y2="410" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="932" y="382" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#2A2320">Auto read</text>
+  <text x="826" y="446" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">interval and distance tunable</text>
+  <line x1="64" y1="512" x2="1136" y2="512" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="64" y="544" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">ALSO IN THE READER</text>
+  <rect x="64" y="558" width="98.96" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="113.48" y="578.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Magnifier</text>
+  <rect x="170.96" y="558" width="170" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="255.96" y="578.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Manual page order</text>
+  <rect x="348.96" y="558" width="98.96" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="398.44" y="578.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Slideshow</text>
+  <rect x="455.92" y="558" width="182.8" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="547.32" y="578.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Chapter read marks</text>
+  <rect x="646.72" y="558" width="114.64" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="704.04" y="578.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Radial menu</text>
+  <text x="64" y="618" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#8A7A66">Each of these can apply to the current comic only; desktop bindings for keys, mouse, wheel, gamepad and touch are all editable.</text>
 </svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="410" viewBox="0 0 1200 410"
+     role="img" aria-labelledby="title desc">
+  <title id="title">One Material 3 Expressive language</title>
+  <desc id="desc">Five tiles showing the design language: asymmetric radii, cookie-shaped icon seats, spring-driven numbers, container layering instead of borders, and pill status; used across workspace, settings, the radial menu and toasts.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="410" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">One Material 3 Expressive language</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">material 3 expressive</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="158" width="201.6" height="170" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <path d="M150.8,182 H178.8 A28,28 0 0 1 206.8,210 V242 A4,4 0 0 1 202.8,246 H150.8 A28,28 0 0 1 122.8,218 V210 A28,28 0 0 1 150.8,182 Z" fill="#9C4B5E" fill-opacity="0.16" stroke="#9C4B5E" stroke-width="1.4"/>
+  <text x="164.8" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" text-anchor="middle" fill="#2A2320">Asymmetric radii</text>
+  <text x="164.8" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#8A7A66">22 / 22 / 6 / 22</text>
+  <rect x="281.6" y="158" width="201.6" height="170" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <path d="M348.4,214 Q363.7,168.1 382.4,180 Q428.3,195.3 416.4,214 Q401.1,259.9 382.4,248 Q336.5,232.7 348.4,214 Z" fill="#9C4B5E" fill-opacity="0.16"/>
+  <circle cx="382.4" cy="214" r="6" fill="#762D3F"/>
+  <text x="382.4" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" text-anchor="middle" fill="#2A2320">Cookie icon seat</text>
+  <text x="382.4" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#8A7A66">icon sits in a notch</text>
+  <rect x="499.2" y="158" width="201.6" height="170" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <path d="M556.0,232 C580.0,178 606.0,254 644.0,198" fill="none" stroke="#9C4B5E" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="600" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" text-anchor="middle" fill="#2A2320">Spring values</text>
+  <text x="600" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#8A7A66">spatial spring, no fixed ms</text>
+  <rect x="716.8" y="158" width="201.6" height="170" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="783.5999999999999" y="188" width="58" height="34" rx="8" fill="#9C4B5E" fill-opacity="0.06"/>
+  <rect x="791.5999999999999" y="198" width="58" height="34" rx="8" fill="#9C4B5E" fill-opacity="0.11"/>
+  <rect x="799.5999999999999" y="208" width="58" height="34" rx="8" fill="#9C4B5E" fill-opacity="0.16"/>
+  <text x="817.6" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" text-anchor="middle" fill="#2A2320">Container layering</text>
+  <text x="817.6" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#8A7A66">no borders, no shadows</text>
+  <rect x="934.4" y="158" width="201.6" height="170" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="993.2" y="202" width="68" height="32" rx="16" fill="#9C4B5E" fill-opacity="0.1"/><text x="1027.2" y="223.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#762D3F">ready</text>
+  <text x="1035.2" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" text-anchor="middle" fill="#2A2320">Status pills</text>
+  <text x="1035.2" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#8A7A66">one dot, one word</text>
+  <text x="64" y="372" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#8A7A66">Springs land instantly on e-ink and with reduced motion; unmeasured numbers render as — , never 0.</text>
+</svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="640" viewBox="0 0 1200 640"
+     role="img" aria-labelledby="title desc">
+  <title id="title">操作绑定：输入 → 动作</title>
+  <desc id="desc">左侧七类输入（键盘、鼠标、侧键、滚轮、手柄、触屏、区域手势）映射到中间带上下文的绑定，再指向右侧动作注册表里的稳定 id；底部三条纪律：冲突阻止保存、绑定包可导出导入、低优先级上下文可被隔离。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="640" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">操作绑定：输入 → 动作</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">adr-0009 · 0015</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <text x="64" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">INPUT</text>
+  <rect x="64" y="172" width="58" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="93" y="193.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">键盘</text>
+  <rect x="186" y="172" width="58" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="215" y="193.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">鼠标</text>
+  <rect x="64" y="216" width="90" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="109" y="237.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">鼠标侧键</text>
+  <rect x="186" y="216" width="58" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="215" y="237.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">滚轮</text>
+  <rect x="64" y="260" width="58" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="93" y="281.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">手柄</text>
+  <rect x="186" y="260" width="58" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="215" y="281.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">触屏</text>
+  <rect x="64" y="304" width="90" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="109" y="325.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">区域手势</text>
+  <line x1="310" y1="300" x2="352" y2="300" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="360" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">BINDING</text>
+  <rect x="360" y="176" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="203" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">Space · 滚轮↓</text>
+  <rect x="757" y="186" width="57" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="785.5" y="201.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">阅读器</text>
+  <text x="378" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ reader.next-page</text>
+  <rect x="360" y="246" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="273" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">键盘 ←→</text>
+  <rect x="757" y="256" width="57" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="785.5" y="271.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">阅读器</text>
+  <text x="378" y="298" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ reader.page-turn</text>
+  <rect x="360" y="316" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="343" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">侧键 X1</text>
+  <rect x="770" y="326" width="44" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="792" y="341.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">全局</text>
+  <text x="378" y="368" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ shelf.open-selected</text>
+  <rect x="360" y="386" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="413" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">长按画面</text>
+  <rect x="757" y="396" width="57" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="785.5" y="411.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">阅读器</text>
+  <text x="378" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ reader.loupe</text>
+  <line x1="846" y1="300" x2="886" y2="300" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="894" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">ACTION</text>
+  <rect x="894" y="176" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="198" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="196" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">reader.next-page</text>
+  <text x="922" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">下一页</text>
+  <rect x="894" y="228" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="250" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="248" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">reader.page-turn</text>
+  <text x="922" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">按读法翻页</text>
+  <rect x="894" y="280" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="302" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="300" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">reader.loupe</text>
+  <text x="922" y="316" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">页面放大镜</text>
+  <rect x="894" y="332" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="354" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="352" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">shelf.open-selected</text>
+  <text x="922" y="368" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">打开选中</text>
+  <rect x="64" y="476" width="1072" height="96" rx="16" fill="#9C4B5E" fill-opacity="0.06" stroke="#9C4B5E" stroke-width="1.5"/>
+  <path d="M85,506 l5,6 l10,-13" fill="none" stroke="#762D3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="511" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#2A2320">同一上下文里两条绑定撞同一个输入 → 阻止保存，不是警告。</text>
+  <path d="M85,534 l5,6 l10,-13" fill="none" stroke="#762D3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="539" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#2A2320">绑定包是 JSON（format + format_version），换机与分享都靠它。</text>
+  <path d="M85,562 l5,6 l10,-13" fill="none" stroke="#762D3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="567" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#2A2320">上下文有优先级，低优先级可在高优先级下被隔离。</text>
+  <text x="64" y="610" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">动作必须由注册表声明（id + 显示名 + 分类 + 上下文），不能藏在 controller 私有方法里。</text>
+</svg>

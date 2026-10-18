@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="640" viewBox="0 0 1200 640"
+     role="img" aria-labelledby="title desc">
+  <title id="title">How data moves on and off the machine</title>
+  <desc id="desc">Three columns: the download queue (priority, retry, read-while-downloading, export), cloud sync (block-level LWW, WebDAV / S3) and local backup; export formats and storage stats below.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="640" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">How data moves on and off the machine</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">download · sync · backup</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="158" width="344" height="300" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="82" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">Download queue</text>
+  <rect x="82" y="202" width="40" height="4" rx="2" fill="#762D3F"/>
+  <circle cx="88" cy="229" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="234" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Priority and batch actions</text>
+  <circle cx="88" cy="259" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Incremental retry</text>
+  <circle cx="88" cy="289" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="294" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Read while downloading</text>
+  <circle cx="88" cy="319" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Chapter gate and storage stats</text>
+  <circle cx="88" cy="349" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Export ZIP / gallery / folder</text>
+  <text x="82" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">our own queue, not the system downloader</text>
+  <rect x="428" y="158" width="344" height="300" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="446" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">Cloud sync</text>
+  <rect x="446" y="202" width="40" height="4" rx="2" fill="#762D3F"/>
+  <circle cx="452" cy="229" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="234" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Block-level LWW</text>
+  <circle cx="452" cy="259" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">WebDAV (path-style toggle)</text>
+  <circle cx="452" cy="289" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="294" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">S3 and compatible stores</text>
+  <circle cx="452" cy="319" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Preferences only, not machine facts</text>
+  <circle cx="452" cy="349" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Manual upload and download</text>
+  <text x="446" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">the workspace block reads the on-disk layout</text>
+  <rect x="792" y="158" width="344" height="300" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="810" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">Local backup</text>
+  <rect x="810" y="202" width="40" height="4" rx="2" fill="#762D3F"/>
+  <circle cx="816" cy="229" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="234" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Backup codec and controls</text>
+  <circle cx="816" cy="259" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Whole-library import and export</text>
+  <circle cx="816" cy="289" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="294" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Move to a new machine</text>
+  <circle cx="816" cy="319" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Binding bundles exported separately</text>
+  <circle cx="816" cy="349" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">Caches cleared on their own</text>
+  <text x="810" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">exported files survive an uninstall</text>
+  <line x1="64" y1="496" x2="1136" y2="496" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="64" y="530" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8A7A66">EXPORT</text>
+  <rect x="64" y="544" width="47.6" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="87.8" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">ZIP</text>
+  <rect x="119.6" y="544" width="77.6" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="158.4" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">Gallery</text>
+  <rect x="205.2" y="544" width="72.8" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="241.6" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">Folder</text>
+  <rect x="286" y="544" width="117.5" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="344.75" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">Binding JSON</text>
+  <rect x="411.5" y="544" width="109.1" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="466.05" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">Backup file</text>
+  <text x="64" y="608" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">Sync moves user preferences, never this machine's facts or this second's screen.</text>
+</svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="640" viewBox="0 0 1200 640"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Operation bindings: input → action</title>
+  <desc id="desc">Seven input classes on the left map to contextual bindings in the middle, which point at stable action ids in the registry on the right. Three rules underneath: conflicts block saving, bundles export and import, lower contexts can be isolated.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="640" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">Operation bindings: input → action</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">adr-0009 · 0015</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <text x="64" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">INPUT</text>
+  <rect x="64" y="172" width="97.68" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="112.84" y="193.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Keyboard</text>
+  <rect x="186" y="172" width="70.8" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="221.4" y="193.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Mouse</text>
+  <rect x="64" y="216" width="127.44" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="127.72" y="237.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Side buttons</text>
+  <rect x="186" y="216" width="66.96" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="219.48" y="237.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Wheel</text>
+  <rect x="64" y="260" width="88.72" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="108.36" y="281.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Gamepad</text>
+  <rect x="186" y="260" width="70.8" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="221.4" y="281.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Touch</text>
+  <rect x="64" y="304" width="154.32" height="32" rx="16" fill="#2A2320" fill-opacity="0.05"/><text x="141.16" y="325.76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#2A2320">Region gestures</text>
+  <line x1="310" y1="300" x2="352" y2="300" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="360" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">BINDING</text>
+  <rect x="360" y="176" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="203" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">Space · wheel↓</text>
+  <rect x="752.32" y="186" width="61.68" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="783.16" y="201.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">Reader</text>
+  <text x="378" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ reader.next-page</text>
+  <rect x="360" y="246" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="273" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">Arrows ←→</text>
+  <rect x="752.32" y="256" width="61.68" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="783.16" y="271.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">Reader</text>
+  <text x="378" y="298" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ reader.page-turn</text>
+  <rect x="360" y="316" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="343" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">Side X1</text>
+  <rect x="758.56" y="326" width="55.44" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="786.28" y="341.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">Global</text>
+  <text x="378" y="368" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ shelf.open-selected</text>
+  <rect x="360" y="386" width="470" height="66" rx="12" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="378" y="413" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#2A2320">Long press</text>
+  <rect x="752.32" y="396" width="61.68" height="22" rx="11" fill="#9C4B5E" fill-opacity="0.1"/><text x="783.16" y="411.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">Reader</text>
+  <text x="378" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#762D3F">→ reader.loupe</text>
+  <line x1="846" y1="300" x2="886" y2="300" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <text x="894" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">ACTION</text>
+  <rect x="894" y="176" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="198" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="196" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">reader.next-page</text>
+  <text x="922" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">next page</text>
+  <rect x="894" y="228" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="250" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="248" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">reader.page-turn</text>
+  <text x="922" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">turn by direction</text>
+  <rect x="894" y="280" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="302" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="300" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">reader.loupe</text>
+  <text x="922" y="316" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">page magnifier</text>
+  <rect x="894" y="332" width="242" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="910" cy="354" r="3.5" fill="#9C4B5E"/>
+  <text x="922" y="352" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#2A2320">shelf.open-selected</text>
+  <text x="922" y="368" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">open selection</text>
+  <rect x="64" y="476" width="1072" height="96" rx="16" fill="#9C4B5E" fill-opacity="0.06" stroke="#9C4B5E" stroke-width="1.5"/>
+  <path d="M85,506 l5,6 l10,-13" fill="none" stroke="#762D3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="511" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#2A2320">Two bindings on one input in the same context block saving — not a warning.</text>
+  <path d="M85,534 l5,6 l10,-13" fill="none" stroke="#762D3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="539" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#2A2320">A bundle is JSON (format + format_version) for moving machines and sharing.</text>
+  <path d="M85,562 l5,6 l10,-13" fill="none" stroke="#762D3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="567" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#2A2320">Contexts have priority, and lower ones can be isolated under higher ones.</text>
+  <text x="64" y="610" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">Actions must be declared in a registry (id + label + category + context), never as private controller methods.</text>
+</svg>

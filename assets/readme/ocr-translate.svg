@@ -1,103 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-     width="1200" height="520" viewBox="0 0 1200 520"
+     width="1200" height="600" viewBox="0 0 1200 600"
      role="img" aria-labelledby="title desc">
-  <title id="title">Rossi 的漫画翻译成品页流水线</title>
-  <desc id="desc">六步流程：检测文字框用 PP-OCRv4 det，识别台词用 manga-ocr，擦掉原文用 LaMa，
-  翻译可选 API 端点、本机混元 Hy-MT2 或 Apple 系统翻译三档，然后用霞鹜文楷按气泡回填排版，
-  最后产出成品页，在阅读器里按「译」只切换当前这一页。底部注明目前只做 Windows、Linux 与 macOS。</desc>
+  <title id="title">漫画翻译：产出一张能直接看的成品页</title>
+  <desc id="desc">六步流水线：检测文字框、识别台词、擦掉原文、翻译、回填排版、成品页；下方是三档译文引擎与桌面端限制说明。</desc>
 
   <defs>
     <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#F5F1EA"/>
       <stop offset="1" stop-color="#E7DFD3"/>
     </linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
     </marker>
   </defs>
 
-  <rect width="1200" height="520" rx="26" fill="url(#paper)"/>
+  <rect width="1200" height="600" rx="26" fill="url(#paper)"/>
 
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
-    <text x="64" y="78" font-size="34" font-weight="700" fill="#2A2320">不是字幕，是重画一页</text>
-    <text x="1136" y="78" font-size="19" text-anchor="end" fill="#8A7A66"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">finished page</text>
-    <rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
-
-    <!-- 六步 -->
-    <g id="steps">
-      <g transform="translate(64 140)">
-        <rect width="156" height="110" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="16" y="30" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">01</text>
-        <text x="16" y="62" font-size="21" fill="#2A2320">检测文字框</text>
-        <text x="16" y="88" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">PP-OCRv4 det</text>
-      </g>
-      <line x1="224" y1="195" x2="238" y2="195" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-
-      <g transform="translate(244 140)">
-        <rect width="156" height="110" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="16" y="30" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">02</text>
-        <text x="16" y="62" font-size="21" fill="#2A2320">识别台词</text>
-        <text x="16" y="88" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">manga-ocr</text>
-      </g>
-      <line x1="404" y1="195" x2="418" y2="195" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-
-      <g transform="translate(424 140)">
-        <rect width="156" height="110" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="16" y="30" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">03</text>
-        <text x="16" y="62" font-size="21" fill="#2A2320">擦掉原文</text>
-        <text x="16" y="88" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">LaMa</text>
-      </g>
-      <line x1="584" y1="195" x2="598" y2="195" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-
-      <g transform="translate(604 140)">
-        <rect width="156" height="110" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="16" y="30" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">04</text>
-        <text x="16" y="62" font-size="21" fill="#2A2320">翻译</text>
-        <text x="16" y="88" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">三档可选</text>
-      </g>
-      <line x1="764" y1="195" x2="778" y2="195" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-
-      <g transform="translate(784 140)">
-        <rect width="156" height="110" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="16" y="30" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">05</text>
-        <text x="16" y="62" font-size="21" fill="#2A2320">回填排版</text>
-        <text x="16" y="88" font-size="15" fill="#8A7A66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">霞鹜文楷</text>
-      </g>
-      <line x1="944" y1="195" x2="958" y2="195" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrow)"/>
-
-      <g transform="translate(964 140)">
-        <rect width="156" height="110" rx="14" fill="#9C4B5E" fill-opacity="0.1" stroke="#9C4B5E" stroke-width="1.5"/>
-        <text x="16" y="30" font-size="15" fill="#762D3F" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">06</text>
-        <text x="16" y="62" font-size="21" font-weight="600" fill="#762D3F">成品页</text>
-        <text x="16" y="88" font-size="15" fill="#762D3F" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">按「译」切换</text>
-      </g>
-    </g>
-
-    <line x1="64" y1="282" x2="1136" y2="282" stroke="#CFC5B7" stroke-width="1.5"/>
-    <text x="64" y="314" font-size="19" fill="#8A7A66"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">译文从哪来 · 用户自己选</text>
-
-    <g id="engines">
-      <g transform="translate(64 328)">
-        <rect width="340" height="66" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="18" y="28" font-size="21" fill="#2A2320">API 端点</text>
-        <text x="18" y="52" font-size="16" fill="#8A7A66">云端或本机 Ollama · 支持术语表</text>
-      </g>
-      <g transform="translate(430 328)">
-        <rect width="340" height="66" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="18" y="28" font-size="21" fill="#2A2320">混元 Hy-MT2</text>
-        <text x="18" y="52" font-size="16" fill="#8A7A66">本机 llama-server · 走原生术语接口</text>
-      </g>
-      <g transform="translate(796 328)">
-        <rect width="340" height="66" rx="14" fill="#FFFFFF" fill-opacity="0.42" stroke="#CFC5B7" stroke-width="1.5"/>
-        <text x="18" y="28" font-size="21" fill="#2A2320">Apple 系统翻译</text>
-        <text x="18" y="52" font-size="16" fill="#8A7A66">端侧离线免费 · 这一档没有术语表</text>
-      </g>
-    </g>
-
-    <text x="64" y="440" font-size="19" fill="#2A2320">目前只做 Windows / Linux / macOS。</text>
-    <text x="64" y="472" font-size="19" fill="#8A7A66">Android 与 iOS 是有意排除的，不是待办：识别模型是 fp32 的 ViT + BERT。</text>
-  </g>
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">漫画翻译：产出一张能直接看的成品页</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">finished page</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="158" width="167" height="104" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="78" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#762D3F">01</text>
+  <text x="78" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">检测</text>
+  <text x="78" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8A7A66">PP-OCRv4 det</text>
+  <line x1="233" y1="210" x2="241" y2="210" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="245" y="158" width="167" height="104" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="259" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#762D3F">02</text>
+  <text x="259" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">识别</text>
+  <text x="259" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8A7A66">manga-ocr</text>
+  <line x1="414" y1="210" x2="422" y2="210" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="426" y="158" width="167" height="104" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="440" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#762D3F">03</text>
+  <text x="440" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">擦字</text>
+  <text x="440" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8A7A66">LaMa</text>
+  <line x1="595" y1="210" x2="603" y2="210" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="607" y="158" width="167" height="104" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="621" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#762D3F">04</text>
+  <text x="621" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">翻译</text>
+  <text x="621" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8A7A66">三档可选</text>
+  <line x1="776" y1="210" x2="784" y2="210" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="788" y="158" width="167" height="104" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="802" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#762D3F">05</text>
+  <text x="802" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">回填</text>
+  <text x="802" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8A7A66">霞鹜文楷</text>
+  <line x1="957" y1="210" x2="965" y2="210" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="969" y="158" width="167" height="104" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="983" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700" fill="#762D3F">06</text>
+  <text x="983" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">成品页</text>
+  <text x="983" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8A7A66">按页切换</text>
+  <text x="64" y="288" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#8A7A66">TRANSLATION ENGINES</text>
+  <path d="M86,300 H386 A22,22 0 0 1 408,322 V370 A6,6 0 0 1 402,376 H86 A22,22 0 0 1 64,354 V322 A22,22 0 0 1 86,300 Z" fill="#9C4B5E" fill-opacity="0.07" stroke="#9C4B5E" stroke-width="1.5"/>
+  <text x="80" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">API 端点</text>
+  <text x="80" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">云端，或本机 Ollama / Foundry Local</text>
+  <path d="M450,300 H750 A22,22 0 0 1 772,322 V370 A6,6 0 0 1 766,376 H450 A22,22 0 0 1 428,354 V322 A22,22 0 0 1 450,300 Z" fill="#9C4B5E" fill-opacity="0.07" stroke="#9C4B5E" stroke-width="1.5"/>
+  <text x="444" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">混元 Hy-MT2</text>
+  <text x="444" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">本机 llama-server</text>
+  <path d="M814,300 H1114 A22,22 0 0 1 1136,322 V370 A6,6 0 0 1 1130,376 H814 A22,22 0 0 1 792,354 V322 A22,22 0 0 1 814,300 Z" fill="#9C4B5E" fill-opacity="0.07" stroke="#9C4B5E" stroke-width="1.5"/>
+  <text x="808" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">Apple 系统翻译</text>
+  <text x="808" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">端侧离线免费，无术语表</text>
+  <rect x="64" y="410" width="1072" height="128" rx="16" fill="#2A2320" fill-opacity="0.03" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="88" cy="440" r="3.5" fill="#9C4B5E"/>
+  <text x="102" y="445" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">只有 Windows / Linux / macOS：移动端是刻意排除，不是待办。</text>
+  <circle cx="88" cy="470" r="3.5" fill="#9C4B5E"/>
+  <text x="102" y="475" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">权重约 660 MB，首次使用时在设置页下载。</text>
+  <circle cx="88" cy="500" r="3.5" fill="#9C4B5E"/>
+  <text x="102" y="505" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">端点不可用时降级为擦字 + 原文回填，不会卡住整本。</text>
+  <text x="64" y="578" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">每一页的六道关都记一行日志，出问题在设置页里能直接看到是哪一步。</text>
 </svg>

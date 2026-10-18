@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="640" viewBox="0 0 1200 640"
+     role="img" aria-labelledby="title desc">
+  <title id="title">数据怎么进出这台机器</title>
+  <desc id="desc">三列：下载队列（优先级、失败重试、边下边读、导出）、云同步（块级 LWW、WebDAV / S3）、本地备份；底部是导出格式与存储统计。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="640" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">数据怎么进出这台机器</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">download · sync · backup</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="158" width="344" height="300" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="82" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">下载队列</text>
+  <rect x="82" y="202" width="40" height="4" rx="2" fill="#762D3F"/>
+  <circle cx="88" cy="229" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="234" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">优先级与批量操作</text>
+  <circle cx="88" cy="259" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">失败增量重试</text>
+  <circle cx="88" cy="289" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="294" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">边下边读</text>
+  <circle cx="88" cy="319" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">章节闸门与存储统计</text>
+  <circle cx="88" cy="349" r="3.4" fill="#9C4B5E"/>
+  <text x="102" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">导出 ZIP / 相册 / 文件夹</text>
+  <text x="82" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">自研队列，不走系统下载器</text>
+  <rect x="428" y="158" width="344" height="300" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="446" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">云同步</text>
+  <rect x="446" y="202" width="40" height="4" rx="2" fill="#762D3F"/>
+  <circle cx="452" cy="229" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="234" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">块级 LWW</text>
+  <circle cx="452" cy="259" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">WebDAV（含 path-style）</text>
+  <circle cx="452" cy="289" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="294" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">S3 / 兼容对象存储</text>
+  <circle cx="452" cy="319" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">只同步偏好，不同步本机事实</text>
+  <circle cx="452" cy="349" r="3.4" fill="#9C4B5E"/>
+  <text x="466" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">手动触发上传下载</text>
+  <text x="446" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">workspace 块直接读磁盘布局</text>
+  <rect x="792" y="158" width="344" height="300" rx="18" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="810" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">本地备份</text>
+  <rect x="810" y="202" width="40" height="4" rx="2" fill="#762D3F"/>
+  <circle cx="816" cy="229" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="234" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">备份编解码与控件</text>
+  <circle cx="816" cy="259" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="264" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">整库导入导出</text>
+  <circle cx="816" cy="289" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="294" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">换机迁移</text>
+  <circle cx="816" cy="319" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">绑定包单独导出</text>
+  <circle cx="816" cy="349" r="3.4" fill="#9C4B5E"/>
+  <text x="830" y="354" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill-opacity="0.86" fill="#2A2320">缓存可单独清理</text>
+  <text x="810" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">导出文件不随卸载被清</text>
+  <line x1="64" y1="496" x2="1136" y2="496" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="64" y="530" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8A7A66">EXPORT</text>
+  <rect x="64" y="544" width="47.6" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="87.8" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">ZIP</text>
+  <rect x="119.6" y="544" width="56" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="147.6" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">相册</text>
+  <rect x="183.6" y="544" width="71" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="219.1" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">文件夹</text>
+  <rect x="262.6" y="544" width="110.9" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="318.05" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">绑定包 JSON</text>
+  <rect x="381.5" y="544" width="86" height="30" rx="15" fill="#2A2320" fill-opacity="0.06"/><text x="424.5" y="564.4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" text-anchor="middle" fill="#2A2320">备份文件</text>
+  <text x="64" y="608" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">同步只搬「用户偏好」，不搬「这台机器的事实 / 这一秒的画面」。</text>
+</svg>

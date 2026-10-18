@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="600" viewBox="0 0 1200 600"
+     role="img" aria-labelledby="title desc">
+  <title id="title">非破坏式显示处理层</title>
+  <desc id="desc">七个阶段横向排列：解码原图、裁边、降噪、调色、超分、翻译、上屏。下方说明每一步都产出可失效的派生位图，原图永远是真相；缓存键把内容与参数版本一起编进去。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="600" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">非破坏式显示处理层</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">render pipeline</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="168" width="139.429" height="92" rx="14" fill="#9C4B5E" fill-opacity="0.12" stroke="#9C4B5E" stroke-width="1.5"/>
+  <text x="78" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">01</text>
+  <text x="78" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">解码原图</text>
+  <text x="78" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">降采样在出口</text>
+  <line x1="205.429" y1="214" x2="215.429" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="219.429" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="233.429" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">02</text>
+  <text x="233.429" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">裁边</text>
+  <text x="233.429" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">自动去白边</text>
+  <line x1="360.857" y1="214" x2="370.857" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="374.857" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="388.857" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">03</text>
+  <text x="388.857" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">降噪</text>
+  <text x="388.857" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">JPEG / AI</text>
+  <line x1="516.286" y1="214" x2="526.286" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="530.286" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="544.286" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">04</text>
+  <text x="544.286" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">调色</text>
+  <text x="544.286" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">色调补正</text>
+  <line x1="671.714" y1="214" x2="681.714" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="685.714" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="699.714" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">05</text>
+  <text x="699.714" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">超分</text>
+  <text x="699.714" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">按需 · 预取两侧</text>
+  <line x1="827.143" y1="214" x2="837.143" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="841.143" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="855.143" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">06</text>
+  <text x="855.143" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">翻译</text>
+  <text x="855.143" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">成品页</text>
+  <line x1="982.571" y1="214" x2="992.571" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="996.571" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="1010.57" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">07</text>
+  <text x="1010.57" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">上屏</text>
+  <text x="1010.57" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">GPU 纹理</text>
+  <path d="M64,322 V306 H1136,V322" fill="none" stroke="#9C4B5E" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="600" y="346" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#762D3F">以上每一步都不改原文件，只产出派生位图</text>
+  <rect x="64" y="356" width="344" height="96" rx="14" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="80" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#762D3F">原图是唯一真相</text>
+  <text x="80" y="412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">派生位图缺失或被清掉</text>
+  <text x="80" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">时静默回落，不阻塞翻页。</text>
+  <rect x="428" y="356" width="344" height="96" rx="14" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="444" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#762D3F">缓存键编全输入</text>
+  <text x="444" y="412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">译文语言、模型、倍率、字体、</text>
+  <text x="444" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">参数版本，少一项就是静默错误。</text>
+  <rect x="792" y="356" width="344" height="96" rx="14" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="808" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#762D3F">换参数就重算</text>
+  <text x="808" y="412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">换模型或换倍率不会继续</text>
+  <text x="808" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">显示旧结果，而是重算缓存。</text>
+  <rect x="64" y="486" width="94" height="34" rx="17" fill="#9C4B5E" fill-opacity="0.1"/><text x="111" y="509.12" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" text-anchor="middle" fill="#762D3F">对比原图</text>
+  <text x="196" y="510" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">按住即看原图，松手回到处理后的画面。</text>
+  <text x="64" y="574" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">本层不改 PageSource 的形状：一页还是一张图，只是这张图的来源可以被替换。</text>
+</svg>

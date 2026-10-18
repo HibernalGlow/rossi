@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="690" viewBox="0 0 1200 690"
+     role="img" aria-labelledby="title desc">
+  <title id="title">工作台：泳道 → 面板 → 卡片</title>
+  <desc id="desc">三列示意：左泳道是书架、收藏、历史、下载与洞察卡片；中央是阅读器泳道，可一键独占整条可用宽；右泳道是发现、文件管理器、页序、插件、控制与信息面板。底部说明鼠标在哪条泳道键位就归哪条、面板可折叠重排。</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="690" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">工作台：泳道 → 面板 → 卡片</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">workspace</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="132" width="1072" height="430" rx="20" fill="#FFFFFF" fill-opacity="0.30" stroke="#CFC5B7" stroke-width="1.5"/>
+  <rect x="80" y="148" width="258" height="398" rx="16" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="96" y="178" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">书架</text>
+  <rect x="96" y="190" width="44" height="24" rx="12" fill="#9C4B5E" fill-opacity="0.1"/><text x="118" y="206.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">收藏</text>
+  <rect x="145" y="190" width="44" height="24" rx="12" fill="#9C4B5E" fill-opacity="0.1"/><text x="167" y="206.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">历史</text>
+  <rect x="194" y="190" width="44" height="24" rx="12" fill="#9C4B5E" fill-opacity="0.1"/><text x="216" y="206.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#762D3F">下载</text>
+  <path d="M118,226 H300 A22,22 0 0 1 322,248 V282 A6,6 0 0 1 316,288 H118 A22,22 0 0 1 96,266 V248 A22,22 0 0 1 118,226 Z" fill="#9C4B5E" fill-opacity="0.12" stroke="#9C4B5E" stroke-width="1.5"/>
+  <path d="M108,255 Q114.75,234.75 123,240 Q143.25,246.75 138,255 Q131.25,275.25 123,270 Q102.75,263.25 108,255 Z" fill="#9C4B5E" fill-opacity="0.18"/>
+  <text x="148" y="254" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">我的收藏</text>
+  <text x="148" y="274" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">本地 · 云端 · 分组</text>
+  <path d="M118,296 H300 A22,22 0 0 1 322,318 V352 A6,6 0 0 1 316,358 H118 A22,22 0 0 1 96,336 V318 A22,22 0 0 1 118,296 Z" fill="#9C4B5E" fill-opacity="0.06" stroke="#9C4B5E" stroke-width="1.5"/>
+  <path d="M108,325 Q114.75,304.75 123,310 Q143.25,316.75 138,325 Q131.25,345.25 123,340 Q102.75,333.25 108,325 Z" fill="#9C4B5E" fill-opacity="0.1"/>
+  <text x="148" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">阅读历史</text>
+  <text x="148" y="344" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">最近在读</text>
+  <path d="M118,366 H300 A22,22 0 0 1 322,388 V422 A6,6 0 0 1 316,428 H118 A22,22 0 0 1 96,406 V388 A22,22 0 0 1 118,366 Z" fill="#9C4B5E" fill-opacity="0.06" stroke="#9C4B5E" stroke-width="1.5"/>
+  <path d="M108,395 Q114.75,374.75 123,380 Q143.25,386.75 138,395 Q131.25,415.25 123,410 Q102.75,403.25 108,395 Z" fill="#9C4B5E" fill-opacity="0.1"/>
+  <text x="148" y="394" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">下载与离线</text>
+  <text x="148" y="414" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">队列 · 存储统计</text>
+  <text x="96" y="448" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#8A7A66">INSIGHTS · 近 7 日</text>
+  <rect x="96" y="480" width="14" height="10" rx="4" fill="#9C4B5E" fill-opacity="0.18"/>
+  <rect x="122" y="472" width="14" height="18" rx="4" fill="#9C4B5E" fill-opacity="0.23"/>
+  <rect x="148" y="478" width="14" height="12" rx="4" fill="#9C4B5E" fill-opacity="0.28"/>
+  <rect x="174" y="466" width="14" height="24" rx="4" fill="#9C4B5E" fill-opacity="0.33"/>
+  <rect x="200" y="474" width="14" height="16" rx="4" fill="#9C4B5E" fill-opacity="0.38"/>
+  <rect x="226" y="481" width="14" height="9" rx="4" fill="#9C4B5E" fill-opacity="0.43"/>
+  <rect x="252" y="470" width="14" height="20" rx="4" fill="#9C4B5E" fill-opacity="0.48"/>
+  <text x="96" y="524" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" fill="#8A7A66">连续阅读 · 热力 · 来源拆分</text>
+  <rect x="354" y="148" width="492" height="398" rx="16" fill="#2A2320" fill-opacity="0.04" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="370" y="178" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">阅读器</text>
+  <g stroke="#762D3F" stroke-width="2" fill="none" stroke-linecap="round"><path d="M796,172 v-6 h6"/><path d="M824,166 h6 v6"/><path d="M796,178 v6 h6"/><path d="M830,178 v6 h-6"/></g>
+  <rect x="408" y="200" width="150" height="268" rx="4" fill="#FFFFFF" fill-opacity="0.9" stroke="#CFC5B7" stroke-width="1.4"/><line x1="414" y1="253.6" x2="552" y2="253.6" stroke="#CFC5B7" stroke-width="1.4"/><line x1="414" y1="307.2" x2="552" y2="307.2" stroke="#CFC5B7" stroke-width="1.4"/><line x1="414" y1="360.8" x2="552" y2="360.8" stroke="#CFC5B7" stroke-width="1.4"/><line x1="414" y1="414.4" x2="552" y2="414.4" stroke="#CFC5B7" stroke-width="1.4"/>
+  <rect x="566" y="200" width="150" height="268" rx="4" fill="#9C4B5E" fill-opacity="0.14" stroke="#CFC5B7" stroke-width="1.4"/><line x1="572" y1="253.6" x2="710" y2="253.6" stroke="#CFC5B7" stroke-width="1.4"/><line x1="572" y1="307.2" x2="710" y2="307.2" stroke="#CFC5B7" stroke-width="1.4"/><line x1="572" y1="360.8" x2="710" y2="360.8" stroke="#CFC5B7" stroke-width="1.4"/><line x1="572" y1="414.4" x2="710" y2="414.4" stroke="#CFC5B7" stroke-width="1.4"/>
+  <text x="483" y="496" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" text-anchor="middle" fill="#8A7A66">左：当前页</text>
+  <text x="641" y="496" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="14" text-anchor="middle" fill="#8A7A66">右：预取的下一页</text>
+  <rect x="370" y="512" width="460" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.8" stroke="#CFC5B7" stroke-width="1.5"/>
+  <circle cx="392" cy="525" r="4" fill="#9C4B5E"/>
+  <circle cx="418" cy="525" r="4" fill="#9C4B5E"/>
+  <circle cx="444" cy="525" r="4" fill="#9C4B5E"/>
+  <circle cx="470" cy="525" r="4" fill="#762D3F"/>
+  <circle cx="496" cy="525" r="4" fill="#9C4B5E"/>
+  <circle cx="522" cy="525" r="4" fill="#9C4B5E"/>
+  <text x="822" y="528" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="12" text-anchor="end" fill="#8A7A66">读法 · 裁边 · 超分 · 译</text>
+  <rect x="862" y="148" width="258" height="398" rx="16" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="878" y="178" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="700" fill="#2A2320">发现</text>
+  <rect x="878" y="190" width="44" height="24" rx="12" fill="#2A2320" fill-opacity="0.06"/><text x="900" y="206.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#2A2320">文件</text>
+  <rect x="927" y="190" width="44" height="24" rx="12" fill="#2A2320" fill-opacity="0.06"/><text x="949" y="206.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#2A2320">页序</text>
+  <rect x="976" y="190" width="44" height="24" rx="12" fill="#2A2320" fill-opacity="0.06"/><text x="998" y="206.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#2A2320">插件</text>
+  <rect x="878" y="220" width="44" height="24" rx="12" fill="#2A2320" fill-opacity="0.06"/><text x="900" y="236.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#2A2320">控制</text>
+  <rect x="927" y="220" width="44" height="24" rx="12" fill="#2A2320" fill-opacity="0.06"/><text x="949" y="236.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#2A2320">信息</text>
+  <rect x="976" y="220" width="44" height="24" rx="12" fill="#2A2320" fill-opacity="0.06"/><text x="998" y="236.68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" text-anchor="middle" fill="#2A2320">工具</text>
+  <rect x="878" y="262" width="226" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.7" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="892" y="285" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#2A2320">文件管理器</text>
+  <text x="892" y="304" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">标签页 · 多选 · 回收站</text>
+  <rect x="878" y="320" width="226" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.7" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="892" y="343" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#2A2320">页内目录</text>
+  <text x="892" y="362" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">跳页 · 搜索 · 面板控制</text>
+  <rect x="878" y="378" width="226" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.7" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="892" y="401" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#2A2320">图源与扩展</text>
+  <text x="892" y="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">插件状态卡</text>
+  <circle cx="70" cy="587" r="3.5" fill="#9C4B5E"/>
+  <text x="84" y="592" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#8A7A66">泳道可折叠、可重排；中央那条可以独占整条可用宽。</text>
+  <circle cx="70" cy="617" r="3.5" fill="#9C4B5E"/>
+  <text x="84" y="622" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#8A7A66">鼠标在哪条泳道，键位就归哪条——输入即时归属，不必先等动画停稳。</text>
+  <circle cx="70" cy="647" r="3.5" fill="#9C4B5E"/>
+  <text x="84" y="652" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" fill="#8A7A66">每张卡片按跨度自选档位，窄槽位与全宽都不溢出。</text>
+</svg>

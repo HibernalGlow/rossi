@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="600" viewBox="0 0 1200 600"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Non-destructive display pipeline</title>
+  <desc id="desc">Seven stages left to right: decode, trim, denoise, colour adjust, upscale, translate, present. The bracket explains that every stage produces an invalidatable derivative and the source image stays the only truth.</desc>
+
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1EA"/>
+      <stop offset="1" stop-color="#E7DFD3"/>
+    </linearGradient>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9C4B5E"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="600" rx="26" fill="url(#paper)"/>
+
+<text x="64" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="34" font-weight="700" fill="#2A2320">Non-destructive display pipeline</text><text x="1136" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" text-anchor="end" fill="#8A7A66">render pipeline</text><rect x="64" y="94" width="56" height="5" rx="2.5" fill="#762D3F"/>
+  <rect x="64" y="168" width="139.429" height="92" rx="14" fill="#9C4B5E" fill-opacity="0.12" stroke="#9C4B5E" stroke-width="1.5"/>
+  <text x="78" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">01</text>
+  <text x="78" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">Decode</text>
+  <text x="78" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">downscale at exit</text>
+  <line x1="205.429" y1="214" x2="215.429" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="219.429" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="233.429" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">02</text>
+  <text x="233.429" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#2A2320">Trim</text>
+  <text x="233.429" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">auto white borders</text>
+  <line x1="360.857" y1="214" x2="370.857" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="374.857" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="388.857" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">03</text>
+  <text x="388.857" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">Denoise</text>
+  <text x="388.857" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">JPEG / AI</text>
+  <line x1="516.286" y1="214" x2="526.286" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="530.286" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="544.286" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">04</text>
+  <text x="544.286" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#2A2320">Colour</text>
+  <text x="544.286" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">tone correction</text>
+  <line x1="671.714" y1="214" x2="681.714" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="685.714" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="699.714" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">05</text>
+  <text x="699.714" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">Upscale</text>
+  <text x="699.714" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">on demand · prefetch</text>
+  <line x1="827.143" y1="214" x2="837.143" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="841.143" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="855.143" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">06</text>
+  <text x="855.143" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="600" fill="#2A2320">Translate</text>
+  <text x="855.143" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">finished page</text>
+  <line x1="982.571" y1="214" x2="992.571" y2="214" stroke="#9C4B5E" stroke-width="2" marker-end="url(#arrowhead)" stroke-linecap="round"/>
+  <rect x="996.571" y="168" width="139.429" height="92" rx="14" fill="#FFFFFF" fill-opacity="0.55" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="1010.57" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" fill="#8A7A66">07</text>
+  <text x="1010.57" y="226" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" font-weight="600" fill="#2A2320">Present</text>
+  <text x="1010.57" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="13" fill="#8A7A66">GPU texture</text>
+  <path d="M64,322 V306 H1136,V322" fill="none" stroke="#9C4B5E" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="600" y="346" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" text-anchor="middle" fill="#762D3F">none of these rewrite the file — each emits a derivative bitmap</text>
+  <rect x="64" y="356" width="344" height="96" rx="14" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="80" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#762D3F">The source is the truth</text>
+  <text x="80" y="412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">A missing derivative silently</text>
+  <text x="80" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">falls back; pages never stall.</text>
+  <rect x="428" y="356" width="344" height="96" rx="14" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="444" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#762D3F">Cache keys include everything</text>
+  <text x="444" y="412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">Language, model, scale, font,</text>
+  <text x="444" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">parameter version — all of it.</text>
+  <rect x="792" y="356" width="344" height="96" rx="14" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
+  <text x="808" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#762D3F">Changing a parameter recomputes</text>
+  <text x="808" y="412" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">A new model or scale recomputes</text>
+  <text x="808" y="434" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="15" fill="#8A7A66">instead of showing the old page.</text>
+  <rect x="64" y="486" width="163.7" height="34" rx="17" fill="#9C4B5E" fill-opacity="0.1"/><text x="145.85" y="509.12" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="17" text-anchor="middle" fill="#762D3F">Compare original</text>
+  <text x="196" y="510" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">Hold to see the source, release to return to the processed page.</text>
+  <text x="64" y="574" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" fill="#8A7A66">PageSource keeps its shape: a page is still one image, only where that image comes from can be replaced.</text>
+</svg>
