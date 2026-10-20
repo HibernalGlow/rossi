@@ -143,7 +143,7 @@ class ComicInlineDetailsSurface extends StatelessWidget {
 }
 
 /// 固定高度的预览轨道与外层纵向滚动互不争抢；图片由加载器保留原比例。
-class ComicInlinePreviewGallery extends StatelessWidget {
+class ComicInlinePreviewGallery extends StatefulWidget {
   const ComicInlinePreviewGallery({
     super.key,
     required this.count,
@@ -161,51 +161,187 @@ class ComicInlinePreviewGallery extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              t.comicInfo.imagePreview,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+  State<ComicInlinePreviewGallery> createState() =>
+      _ComicInlinePreviewGalleryState();
+}
+
+class _ComicInlinePreviewGalleryState extends State<ComicInlinePreviewGallery> {
+  /// 预览轨道不参与 `PageStorage` 的滚动位置恢复。
+  ///
+  /// 原位详情挂在展墙的 `ListView(PageStorageKey(...))` 下面，而这条横向轨道
+  /// 自己没有 key —— 于是它和展墙共用同一个恢复标识，初始偏移会读到外层的
+  /// 纵向位置并被钳到本轨道的末尾，看起来就是「一开始停在本子最后几页」。
+  /// 预览每次展开都应该从第 1 页开始，所以关掉恢复即可；「加载更多」时
+  /// 轨道本身不会被重建，已滚到的位置仍然保留。
+  final ScrollController _controller = ScrollController(
+    keepScrollOffset: false,
+  );
+
+  /// 单页宽度 + 间隔，箭头按「一屏三页」翻动。
+  static const double _pageExtent = 132 + 8;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAfterLayout();
+  }
+
+  @override
+  void didUpdateWidget(covariant ComicInlinePreviewGallery oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.count != widget.count) {
+      _refreshAfterLayout();
+    }
+  }
+
+  /// 首次布局后轨道才有 `maxScrollExtent`，补一帧让箭头/进度条拿到真实范围。
+  void _refreshAfterLayout() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scrollBy(double delta) {
+    if (!_controller.hasClients) {
+      return;
+    }
+    final position = _controller.position;
+    _controller.animateTo(
+      (position.pixels + delta).clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rail = SizedBox(
+      height: 184,
+      child: ListView.separated(
+        controller: _controller,
+        primary: false,
+        scrollDirection: Axis.horizontal,
+        itemCount: widget.count,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) => ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 132,
+            child: widget.itemBuilder(context, index),
           ),
-          if (onMore != null)
-            TextButton(onPressed: onMore, child: const Text('加载更多')),
-        ],
+        ),
       ),
-      const SizedBox(height: 8),
-      if (count > 0)
-        SizedBox(
-          height: 184,
-          child: ListView.separated(
-            primary: false,
-            scrollDirection: Axis.horizontal,
-            itemCount: count,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) => ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(width: 132, child: itemBuilder(context, index)),
-            ),
-          ),
-        ),
-      if (loading)
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: LinearProgressIndicator(),
-        ),
-      if (error != null)
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            Text(error!, maxLines: 3, overflow: TextOverflow.ellipsis),
-            if (onRetry != null)
-              TextButton(onPressed: onRetry, child: const Text('重试')),
+            Expanded(
+              child: Text(
+                t.comicInfo.imagePreview,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            if (widget.onMore != null)
+              TextButton(onPressed: widget.onMore, child: const Text('加载更多')),
           ],
         ),
-    ],
+        const SizedBox(height: 8),
+        if (widget.count > 0)
+          AnimatedBuilder(
+            animation: _controller,
+            child: rail,
+            builder: (context, child) {
+              final position = _controller.hasClients
+                  ? _controller.position
+                  : null;
+              final pixels = position?.pixels ?? 0;
+              final max = position?.maxScrollExtent ?? 0;
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      _ArrowButton(
+                        glyph: AppGlyphs.chevronBack,
+                        onPressed: pixels > 0.5
+                            ? () => _scrollBy(-3 * _pageExtent)
+                            : null,
+                      ),
+                      Expanded(child: child!),
+                      _ArrowButton(
+                        glyph: AppGlyphs.chevronForward,
+                        onPressed: pixels < max - 0.5
+                            ? () => _scrollBy(3 * _pageExtent)
+                            : null,
+                      ),
+                    ],
+                  ),
+                  if (max > 0)
+                    SizedBox(
+                      height: 28,
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 3,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 5,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 10,
+                          ),
+                          showValueIndicator: ShowValueIndicator.never,
+                        ),
+                        child: Slider(
+                          value: pixels.clamp(0.0, max),
+                          max: max,
+                          onChanged: (value) => _controller.jumpTo(value),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        if (widget.loading)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: LinearProgressIndicator(),
+          ),
+        if (widget.error != null)
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(widget.error!, maxLines: 3, overflow: TextOverflow.ellipsis),
+              if (widget.onRetry != null)
+                TextButton(onPressed: widget.onRetry, child: const Text('重试')),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _ArrowButton extends StatelessWidget {
+  const _ArrowButton({required this.glyph, this.onPressed});
+
+  final Glyph glyph;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    onPressed: onPressed,
+    icon: GlyphIcon(glyph, size: 18),
+    visualDensity: VisualDensity.compact,
+    constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+    padding: EdgeInsets.zero,
   );
 }
 

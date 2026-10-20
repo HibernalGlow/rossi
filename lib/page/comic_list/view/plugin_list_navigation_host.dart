@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/main.dart';
@@ -43,6 +44,14 @@ class _PluginListNavigationHostState extends State<PluginListNavigationHost> {
   bool _didBrowse = false;
   bool _reportScheduled = false;
   final _pages = <String, int>{};
+
+  /// 到顶后继续上滚多少逻辑像素才翻到上一页。滚轮/触控板的单帧增量很小，
+  /// 累加而不是一次触发，免得轻轻碰一下轨道就跳页。
+  static const double _topPageTurnExtent = 48;
+  static const int _topPageTurnCooldownMs = 600;
+  double _topOverscroll = 0;
+  DateTime? _lastTopPageTurnAt;
+
   PluginPagedComicListCubit get _cubit =>
       context.read<PluginPagedComicListCubit>();
   PluginListPositionStore get _positions =>
@@ -52,10 +61,36 @@ class _PluginListNavigationHostState extends State<PluginListNavigationHost> {
   void initState() {
     super.initState();
     widget.navigation.attach(this, jump: _jump, restore: _restore);
+    // 页码不靠 ScrollNotification：`Plat` 的页签内容、嵌套滚动都会改 depth，
+    // 而滚轮在顶部干脆不发滚动通知（Scrollable 认为目标位置没变，直接不处理）。
+    // 直接听控制器是唯一不受这两件事影响的来源。
+    widget.scroll.addListener(_onScrollOffset);
     unawaited(_readResume());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _onState(_cubit.state);
     });
+  }
+
+  @override
+  void didUpdateWidget(PluginListNavigationHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scroll != widget.scroll) {
+      oldWidget.scroll.removeListener(_onScrollOffset);
+      widget.scroll.addListener(_onScrollOffset);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scroll.removeListener(_onScrollOffset);
+    _save(publish: false);
+    widget.navigation.detach(this);
+    super.dispose();
+  }
+
+  void _onScrollOffset() {
+    if (!mounted || _navigating) return;
+    _reportAfterLayout();
   }
 
   Future<void> _readResume() async {
@@ -101,11 +136,16 @@ class _PluginListNavigationHostState extends State<PluginListNavigationHost> {
   void _reportVisible() {
     if (_navigating) return;
     final anchor = widget.viewport.firstVisible();
-    final page = anchor == null ? null : _pages[anchor.key];
+    if (anchor == null) return;
+    // 有下标就按下标算页：key 在「同一本漫画出现在相邻两页」时会重复，
+    // 反查一个 `Map<String,int>` 只会一直读到后一页（页码看着不跟手）。
+    final page = anchor.index == null
+        ? _pages[anchor.key]
+        : _cubit.pageForIndex(anchor.index!);
     if (page == null) return;
     _current = PluginListPosition(
       page: page,
-      entryKey: anchor!.key,
+      entryKey: anchor.key,
       offset: anchor.offset,
     );
     _publish();
@@ -151,6 +191,7 @@ class _PluginListNavigationHostState extends State<PluginListNavigationHost> {
 
   Future<void> _navigate(int page, PluginListPosition? saved) async {
     if (_navigating) return;
+    _topOverscroll = 0;
     final total = _cubit.totalPages;
     if (total != null && page > total) page = total;
     _save();
@@ -219,35 +260,76 @@ class _PluginListNavigationHostState extends State<PluginListNavigationHost> {
     }
   }
 
-  @override
-  void dispose() {
-    _save(publish: false);
-    widget.navigation.detach(this);
-    super.dispose();
+  /// 列表已经在顶部时，滚轮/触控板继续向上滚不会产生任何滚动通知
+  /// （`Scrollable` 发现目标位置没变就不处理这次信号），所以只能自己接。
+  /// 累加到阈值再翻页，连续的高频增量不会一次跳好几页。
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is PointerScrollEvent) {
+      _accumulateTopScroll(event.scrollDelta.dy);
+    }
+  }
+
+  void _onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    _accumulateTopScroll(event.panDelta.dy);
+  }
+
+  void _accumulateTopScroll(double dy) {
+    if (_navigating) return;
+    if (!widget.scroll.hasClients) return;
+    final position = widget.scroll.position;
+    final atTop = position.pixels <= position.minScrollExtent + 0.5;
+    if (!atTop || dy >= 0) {
+      _topOverscroll = 0;
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastTopPageTurnAt;
+    if (last != null &&
+        now.difference(last) <
+            const Duration(milliseconds: _topPageTurnCooldownMs)) {
+      return;
+    }
+    _topOverscroll += -dy;
+    if (_topOverscroll < _topPageTurnExtent) return;
+    _topOverscroll = 0;
+    _lastTopPageTurnAt = now;
+    _turnToPreviousPage();
+  }
+
+  /// 顶部继续上滚 = 回到上一页。跳页后列表里只有目标页，向上没有内容可滚，
+  /// 这条手势就是「跳过去之后怎么退回前一页」的入口。
+  void _turnToPreviousPage() {
+    if (_navigating) return;
+    final current = _current?.page ?? _cubit.state.page;
+    if (current <= 1) return;
+    unawaited(_navigate(current - 1, null));
   }
 
   @override
-  Widget build(BuildContext context) =>
-      BlocListener<PluginPagedComicListCubit, PluginPagedComicListState>(
-        listener: (_, state) => _onState(state),
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification.depth != 0 ||
-                notification.metrics.axis != Axis.vertical ||
-                _navigating) {
-              return false;
-            }
-            if (notification is ScrollUpdateNotification) {
-              _didBrowse = true;
-              _reportAfterLayout();
-              _saveTimer?.cancel();
-              _saveTimer = Timer(const Duration(milliseconds: 500), _save);
-            } else if (notification is ScrollEndNotification) {
-              _reportAfterLayout(save: true);
-            }
+  Widget build(BuildContext context) => Listener(
+    onPointerSignal: _onPointerSignal,
+    onPointerPanZoomUpdate: _onPointerPanZoomUpdate,
+    child: BlocListener<PluginPagedComicListCubit, PluginPagedComicListState>(
+      listener: (_, state) => _onState(state),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.depth != 0 ||
+              notification.metrics.axis != Axis.vertical ||
+              _navigating) {
             return false;
-          },
-          child: widget.child,
-        ),
-      );
+          }
+          if (notification is ScrollUpdateNotification) {
+            _didBrowse = true;
+            _reportAfterLayout();
+            _saveTimer?.cancel();
+            _saveTimer = Timer(const Duration(milliseconds: 500), _save);
+          } else if (notification is ScrollEndNotification) {
+            _reportAfterLayout(save: true);
+          }
+          return false;
+        },
+        child: widget.child,
+      ),
+    ),
+  );
 }
