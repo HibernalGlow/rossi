@@ -21,7 +21,7 @@ Two example source plugins ship built in: `rust/build.rs` downloads their bundle
 
 #### Sources and search
 
-- Two example source plugins are built in; install your own `.js` / `.cjs` / `.br` plugins, or pull them from the [plugin list](https://github.com/deretame/Breeze-plugin-list) — one-tap download, manual update, drag to reorder.
+- Two example source plugins are built in; install your own `.js` / `.cjs` / `.br` plugins, with one-tap download, manual update and drag-to-reorder.
 - **Aggregate search** asks several sources in one go. Tag syntax and excluded terms are supported, and searches are kept in history.
 - Local CBZ / ZIP archives read directly, with no extraction step.
 
@@ -41,9 +41,7 @@ Two example source plugins ship built in: `rust/build.rs` downloads their bundle
 
 #### Picture quality
 
-- Four super-resolution routes, and the app picks a working one per platform: Rossi native CoreML (ANE / GPU), mImage ONNX (DirectML / CoreML EP / CPU), desktop NCNN (waifu2x, Real-CUGAN), and the bundled waifu2x CLI on Android.
-- Only runs below a resolution you set, prefetches pages on both sides of the current one, and recomputes the cache when you change model or scale instead of keeping the old result on screen.
-- Weights are not bundled; they download on first use.
+- Picks a working super-resolution backend per platform, runs only below the resolution you set, and downloads weights on first use.
 
 #### Manga translation (finished pages)
 
@@ -60,6 +58,40 @@ Two example source plugins ship built in: `rust/build.rs` downloads their bundle
 
 ---
 
+### Screens
+
+<table>
+  <tr>
+    <th align="left" width="18%">Screen</th>
+    <th align="left" width="48%">Desktop</th>
+    <th align="left" width="34%">Mobile</th>
+  </tr>
+  <tr>
+    <td>Shelf & layout</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/shelf-desktop.webp" width="460" alt="Desktop shelf and gallery layout: a card grid with the gallery customisation panel open."></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/shelf-mobile.webp" width="220" alt="Mobile shelf: continue-reading and currently-reading cards."></td>
+  </tr>
+  <tr>
+    <td>Reader settings (light)</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-desktop-light.webp" width="460" alt="Desktop reader settings: reading mode, double-page reading, system theme and reading background."></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-mobile-light.webp" width="220" alt="Mobile reader settings: bottom navigation and vertically stacked options."></td>
+  </tr>
+  <tr>
+    <td>Reader settings (dark)</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-desktop-dark.webp" width="460" alt="Desktop dark reader settings: the same reading mode and background options."></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-mobile-dark.webp" width="220" alt="Mobile dark reader settings: bottom navigation and vertically stacked options."></td>
+  </tr>
+  <tr>
+    <td>Info panel</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/info-desktop.webp" width="460" alt="Desktop info panel: book, image, storage and preload state."></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/info-mobile.webp" width="220" alt="Narrow info panel: book, image and storage sections stacked vertically."></td>
+  </tr>
+</table>
+
+These are in-app screens; titles and covers in the shots are sample data, with no third-party comic content.
+
+---
+
 ### How it runs
 
 <p align="center">
@@ -72,9 +104,6 @@ The chain is `Dart → Flutter Rust Bridge → Rust → QuickJS`. Plugin code ne
 > ⚠️ **Plugins are still beta** — the API may change substantially, and today it suits learning better than shipping.
 > But remember: inside the sandbox a plugin can still make network requests and read or write files. **Installing a plugin means trusting the code it contains.**
 
-- Plugin development docs: <https://deretame.github.io/plugin-dev-docs/>
-- Plugin list: <https://github.com/deretame/Breeze-plugin-list>
-
 ---
 
 ### Six ways to read
@@ -85,24 +114,6 @@ The chain is `Dart → Flutter Rust Bridge → Rust → QuickJS`. Plugin code ne
 </p>
 
 Direction, page turning, double-page pairing and auto-scroll intervals each have more than one switch, so the model is one global set plus a per-comic override. Desktop adds a complete binding editor where keyboard, mouse, side buttons, wheel, gamepad, touch and region gestures can all be remapped.
-
----
-
-### Four super-resolution routes
-
-<p align="center">
-  <img src="./assets/readme/super-resolution.en.svg" width="100%"
-       alt="Top: a smeared screentone patch restored to clean dots by super-resolution, with four policies. Bottom: the engine and platform matrix — Rossi native CoreML on iOS and macOS, mImage ONNX on iOS, Windows, macOS and Linux, desktop NCNN on Windows and Linux, and the bundled waifu2x CLI used automatically on Android only.">
-</p>
-
-A tick means **this route actually runs on this platform**. You don't have to memorise the table to pick an engine: the default is the recommended option among the ones your platform supports. If a setting synced in from another platform names an engine that cannot run here, it falls back to the default instead of erroring.
-
-| Engine | Backends | Where it runs |
-| :--- | :--- | :--- |
-| Rossi native CoreML | ANE / GPU | iOS, macOS |
-| mImage ONNX | DirectML · CoreML EP · CPU | iOS, Windows, macOS, Linux |
-| Desktop NCNN | waifu2x · Real-CUGAN | Windows, Linux |
-| Bundled waifu2x CLI | no engine choice, auto-selected | Android |
 
 ---
 
@@ -130,130 +141,7 @@ Limits worth knowing:
 
 ### Download and install
 
-Go to the [Releases page](https://github.com/deretame/Breeze/releases) and pick your platform:
-
-| Platform | File | Install |
-| :--- | :--- | :--- |
-| Android / HarmonyOS | `app-arm64-v8a-release.apk` | Install directly |
-| Windows | `windows-installer.exe` | Double-click |
-| macOS | `Breeze-macOS.dmg` or Homebrew | `brew install --cask breeze` |
-| Linux | `breeze.flatpak` or `breeze_*.deb` | Flatpak / apt |
-| iOS / iPadOS | `Breeze-iOS.ipa` | Sideload and re-sign yourself |
-
-<details>
-<summary><b>Android / HarmonyOS</b></summary>
-
-Download `app-arm64-v8a-release.apk` and install it directly.
-
-> **Note**: in mainland China an unreviewed app may refuse to install. [GBox](https://gboxlab.com/i18n/zh-Hant/), [出境易](https://www.chujingapp.com/) or [GSpace](https://gspaceteam.com/) (all available in the HarmonyOS app store) work around the system installer.
-
-</details>
-
-<details>
-<summary><b>Windows</b></summary>
-
-Download `windows-installer.exe` and run it to install.
-
-Running the Rust-compiled parts locally needs Visual Studio (C++) or an equivalent GCC toolchain.
-
-</details>
-
-<details>
-<summary><b>macOS</b></summary>
-
-**Option 1: Homebrew (recommended)**
-
-```bash
-brew tap deretame/breeze
-brew install --cask breeze
-
-# upgrade
-brew upgrade breeze
-
-# remove completely, including database, cache and configuration
-# note: files you exported by hand are kept, but in-app data is wiped
-brew uninstall --zap breeze
-```
-
-**Option 2: install the DMG manually**
-
-1. Download the latest `Breeze-macOS.dmg`.
-2. Open it and drag `Breeze.app` into `Applications`.
-
-> ⚠️ **First launch (Gatekeeper)**
-> This is free open-source software and carries no Apple developer signature. If macOS says the app is **damaged** or **cannot be verified**, run this in Terminal and it will open normally:
->
-> ```bash
-> xattr -cr /Applications/Breeze.app
-> ```
->
-> Alternative: in the Applications folder, hold `Control` and click the app icon, then choose Open from the context menu.
-
-</details>
-
-<details>
-<summary><b>Linux</b></summary>
-
-Both Flatpak and DEB packages are published.
-
-**Option 1: DEB** (Debian/Ubuntu and derivatives)
-
-Current releases publish `amd64` DEB only.
-
-```shell
-# if the downloaded DEB is the only one in this directory, a glob works
-sudo apt install ./breeze_*.deb
-
-breeze                    # start
-sudo apt remove breeze    # remove
-```
-
-`apt` resolves the system dependencies for you. Afterwards start **Breeze** from the application menu, or run `breeze` in a terminal.
-
-> **Note**: the DEB is not guaranteed to work on every Debian/Ubuntu derivative. If install or startup misbehaves, use the Flatpak build.
-
-**Option 2: Flatpak**
-
-1. If Flatpak is not set up yet, see the [Flathub quick setup guide](https://flathub.org/zh-Hans/setup).
-   From mainland China, the [CERNET mirror](https://help.mirrors.cernet.edu.cn/flathub/) is considerably faster.
-2. This project builds against the GNOME 50 runtime, so install that first:
-
-   ```shell
-   flatpak install flathub org.gnome.Platform//50
-   ```
-
-3. Download `breeze.flatpak` from the release and install it:
-
-   ```shell
-   flatpak install --user breeze.flatpak
-   ```
-
-4. Run it:
-
-   ```shell
-   flatpak run io.github.windy.breeze
-   ```
-
-</details>
-
-<details>
-<summary><b>iOS / iPadOS</b></summary>
-
-iOS is closed: anything not from the App Store has to be **sideloaded and re-signed by you**. Download the unsigned `Breeze-iOS.ipa`, then install it with one of the tools below.
-
-**Recommended: AltStore** — currently the most stable and the friendliest to newcomers, and it re-signs automatically over the local network from a computer.
-
-- Site: <https://altstore.io/>
-- [Official AltStore walkthrough](https://faq.altstore.io/)
-- [知乎: AltStore-based self-signing tutorial (Chinese)](https://zhuanlan.zhihu.com/p/143936759)
-- [哔哩哔哩: unlimited self-signed IPA on iOS (Chinese)](https://b23.tv/UbuuJTZ)
-
-**Other self-signing / no-sign options**
-
-- **Sideloadly**: no jailbreak, desktop self-signing tool for Windows and macOS. [Site and guide](https://sideloadly.io/)
-- **TrollStore**: if your iOS version is within the exploit's range, **strongly recommended** — permanent unsigned installs that never drop their signature. [Supported versions and install guide](https://ios.cfw.guide/installing-trollstore/)
-
-</details>
+Get the installer for your platform from [Rossi Releases](https://github.com/HibernalGlow/rossi/releases).
 
 ---
 
@@ -265,19 +153,9 @@ iOS is closed: anything not from the App Store has to be **sideloaded and re-sig
 
 - **Flutter SDK**: must pass `flutter doctor`.
 - **Rust toolchain**: install via `rustup` and add the cross-compilation targets you need (for example `aarch64-linux-android`).
-- **LLVM / Clang**: libraries such as `rustqjs` parse C headers, so LLVM is required (on Windows, `choco install llvm` or the upstream installer), with `LIBCLANG_PATH` configured.
+- **LLVM / Clang**: libraries such as `rustqjs` parse C headers, so LLVM is required (on Windows, `choco install llvm` or the upstream installer).
 
-#### 2. Environment variables
-
-| Variable | Why | Example path |
-| :--- | :--- | :--- |
-| **JAVA_HOME** | Required to build Android, Windows and Linux | `C:\Program Files\Android\Android Studio\jbr` |
-| **ANDROID_NDK_HOME** | Required to cross-compile the Rust library for Android | `...\AppData\Local\Android\Sdk\ndk\29.0.14206865` |
-| **LIBCLANG_PATH** | Used by `bindgen` (Rust) to generate FFI bindings | `C:\Program Files\LLVM\bin` |
-
-> Make sure `javac` and `clang` are both on `PATH`.
-
-#### 3. Dependencies and code generation
+#### 2. Dependencies and code generation
 
 ```bash
 # root project Flutter dependencies
@@ -287,7 +165,7 @@ flutter pub get
 dart ./script/code_generate.dart
 ```
 
-#### 4. Platform notes
+#### 3. Platform notes
 
 - **Android**: point `local.properties` at the right SDK path.
 - **Windows / Linux**: install Visual Studio (C++) or an equivalent GCC toolchain so the Rust parts can compile locally.
@@ -317,16 +195,6 @@ The app ships no comic content; everything is fetched by third-party plugins fro
 
 ---
 
-**Developer**
+**Repository**
 
-- Developer: **[windy](https://github.com/deretame)**
-- Upstream repository: **[Breeze](https://github.com/deretame/Breeze)**
-- Contact: **[Telegram](https://t.me/breeze_zh_cn)**
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=deretame/Breeze&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=deretame/Breeze&type=Date" />
-    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=deretame/Breeze&type=Date" />
-  </picture>
-</p>
+- [HibernalGlow/rossi](https://github.com/HibernalGlow/rossi)

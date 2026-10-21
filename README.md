@@ -23,7 +23,7 @@
 
 ### 图源与搜索
 
-- 内置两个示例源插件，用于验证插件 ABI；也可自行安装 `.js` / `.cjs` / `.br` 插件，或从[插件列表](https://github.com/deretame/Breeze-plugin-list)一键下载、手动更新、拖拽排序。
+- 内置两个示例源插件，用于验证插件 ABI；也可自行安装 `.js` / `.cjs` / `.br` 插件，支持一键下载、手动更新、拖拽排序。
 - **聚合搜索**：一次向多个源发问。搜索支持标签语法与排除词，并带搜索历史。
 - 本地 CBZ / ZIP 与压缩包直接读，不需要先解压。
 
@@ -43,9 +43,7 @@
 
 ### 画面增强
 
-- 四条超分路线，按平台自动挑可用的一档：Rossi 原生 CoreML（ANE / GPU）、mImage ONNX（DirectML / CoreML EP / CPU）、桌面 NCNN（waifu2x、Real-CUGAN）、Android 内置 waifu2x CLI。
-- 只在低于设定分辨率时才跑，前后各预取若干页，换模型或换倍率会重算缓存而不是继续显示旧的。
-- 超分权重不随包，首次使用时下载。
+- 按平台自动选择可用的超分后端，只在低于设定分辨率时运行；权重首次使用时下载。
 
 ### 漫画翻译（成品页）
 
@@ -62,6 +60,40 @@
 
 ---
 
+## 界面
+
+<table>
+  <tr>
+    <th align="left" width="18%">界面</th>
+    <th align="left" width="48%">桌面端</th>
+    <th align="left" width="34%">移动端</th>
+  </tr>
+  <tr>
+    <td>书架与展墙</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/shelf-desktop.webp" width="460" alt="桌面端书架与展墙布局：卡片网格与展墙自定义面板。"></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/shelf-mobile.webp" width="220" alt="移动端书架：继续阅读与正在阅读的卡片列表。"></td>
+  </tr>
+  <tr>
+    <td>阅读设置（浅色）</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-desktop-light.webp" width="460" alt="桌面端阅读设置：阅读模式、双页阅读、系统模式和阅读背景。"></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-mobile-light.webp" width="220" alt="移动端阅读设置：底部导航与纵向排列的阅读选项。"></td>
+  </tr>
+  <tr>
+    <td>阅读设置（深色）</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-desktop-dark.webp" width="460" alt="桌面端深色阅读设置：同一组阅读模式与背景选项。"></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-mobile-dark.webp" width="220" alt="移动端深色阅读设置：底部导航与纵向排列的阅读选项。"></td>
+  </tr>
+  <tr>
+    <td>信息面板</td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/info-desktop.webp" width="460" alt="桌面端信息面板：书籍、图像、存储和预加载状态。"></td>
+    <td align="center" valign="top"><img src="./assets/readme/screenshots/info-mobile.webp" width="220" alt="窄屏信息面板：纵向堆叠的书籍、图像与存储信息。"></td>
+  </tr>
+</table>
+
+截图来自应用内界面；书名与封面为示例数据，不含任何第三方漫画内容。
+
+---
+
 ## 它是怎么跑起来的
 
 <p align="center">
@@ -74,9 +106,6 @@
 > ⚠️ **插件仍是 beta 阶段**，API 可能有较大改动，目前更适合学习而非正式开发。
 > 但请记住：插件在沙箱内依然能发网络请求、读写文件——**装一个插件，等于信任它写的那段代码。**
 
-- 插件开发文档：<https://deretame.github.io/plugin-dev-docs/>
-- 插件列表：<https://github.com/deretame/Breeze-plugin-list>
-
 ---
 
 ## 六种读法
@@ -87,17 +116,6 @@
 </p>
 
 方向、翻页、双页配对、自动滚动间隔这些都不止一个开关，所以做成了「全局一份 + 每本单独覆盖一份」。桌面端还有一套完整的按键绑定编辑器，键盘、鼠标、侧键、滚轮、手柄、触屏、区域手势都能重映射。
-
----
-
-## 四条超分路线
-
-<p align="center">
-  <img src="./assets/readme/super-resolution.svg" width="100%"
-       alt="上方是网点糊块经超分恢复为清晰网点的示意图与四条策略；下方是引擎与平台的对应矩阵：Rossi 原生 CoreML 支持 iOS 与 macOS，mImage ONNX 支持 iOS、Windows、macOS、Linux，桌面 NCNN 支持 Windows 与 Linux，内置 waifu2x CLI 只在 Android 上自动使用。">
-</p>
-
-矩阵里打勾的是**这条路线在这个平台上真的能跑**。选引擎时不用记这张表——默认值就是本平台可用档里的推荐项，但如果你从别的平台同步过来一个本平台跑不了的设置，它会落回默认而不是报错。
 
 ---
 
@@ -125,130 +143,7 @@
 
 ## 下载与安装
 
-前往 [Releases 页面](https://github.com/deretame/Breeze/releases) 选择对应平台的文件：
-
-| 平台 | 文件 | 安装方式 |
-| :--- | :--- | :--- |
-| Android / 鸿蒙 | `app-arm64-v8a-release.apk` | 直接安装 |
-| Windows | `windows-installer.exe` | 双击运行 |
-| macOS | `Breeze-macOS.dmg` 或 Homebrew | `brew install --cask breeze` |
-| Linux | `breeze.flatpak` 或 `breeze_*.deb` | Flatpak / apt |
-| iOS / iPadOS | `Breeze-iOS.ipa` | 侧载并自行签名 |
-
-<details>
-<summary><b>Android / 鸿蒙</b></summary>
-
-下载 `app-arm64-v8a-release.apk` 直接安装。
-
-> **注意**：中国大陆内因未经审核应用可能无法安装，可以使用 [GBox](https://gboxlab.com/i18n/zh-Hant/)、[出境易](https://www.chujingapp.com/) 或 [GSpace](https://gspaceteam.com/)（鸿蒙系统可通过应用商店下载）的方式绕过系统安装器，以安装应用。
-
-</details>
-
-<details>
-<summary><b>Windows</b></summary>
-
-下载 `windows-installer.exe` 后直接运行即可完成安装。
-
-需要 Visual Studio (C++) 或相应的 GCC 工具链支持 Rust 的本地编译产物运行。
-
-</details>
-
-<details>
-<summary><b>macOS</b></summary>
-
-**方法 1：Homebrew（推荐）**
-
-```bash
-brew tap deretame/breeze
-brew install --cask breeze
-
-# 升级
-brew upgrade breeze
-
-# 彻底卸载，连同数据库、缓存和配置一起清理
-# 注意：不会删除你手动导出的文件，但会清空 App 内部数据
-brew uninstall --zap breeze
-```
-
-**方法 2：手动安装 DMG**
-
-1. 下载最新的 `Breeze-macOS.dmg`。
-2. 双击打开，把 `Breeze.app` 拖入 `Applications`（应用程序）文件夹。
-
-> ⚠️ **首次启动（Gatekeeper）**
-> 本项目是开源免费软件，未进行 Apple 开发者签名。首次打开若提示**「应用已损坏」**或**「无法验证开发者」**，在终端执行放行命令后即可正常使用：
->
-> ```bash
-> xattr -cr /Applications/Breeze.app
-> ```
->
-> 备选：在「应用程序」文件夹中找到 Breeze，按住 `Control` 键点击应用图标，在弹出菜单中选择「打开」。
-
-</details>
-
-<details>
-<summary><b>Linux</b></summary>
-
-同时提供 Flatpak 和 DEB 两种包。
-
-**方式 1：DEB**（Debian/Ubuntu 及衍生版）
-
-当前 Release 只提供 `amd64` 架构的 DEB 包。
-
-```shell
-# 当前目录只有刚下载的 DEB 包时可以直接用通配符
-sudo apt install ./breeze_*.deb
-
-breeze                    # 启动
-sudo apt remove breeze    # 卸载
-```
-
-`apt` 会自动处理所需的系统依赖。安装完成后可以从应用菜单启动 **Breeze**，也可以在终端直接运行 `breeze`。
-
-> **注意**：DEB 包不保证在所有 Debian/Ubuntu 衍生发行版上的兼容性和可用性。如果安装或运行异常，请改用 Flatpak 版本。
-
-**方式 2：Flatpak**
-
-1. 未配置 Flatpak 的先参考 [Flatpak 快速设置指南](https://flathub.org/zh-Hans/setup)。
-   中国大陆用户建议配置 [CERNET 镜像源](https://help.mirrors.cernet.edu.cn/flathub/) 提速。
-2. 本项目基于 GNOME 50 Runtime 构建，先装运行时：
-
-   ```shell
-   flatpak install flathub org.gnome.Platform//50
-   ```
-
-3. 下载 Release 里的 `breeze.flatpak` 并安装：
-
-   ```shell
-   flatpak install --user breeze.flatpak
-   ```
-
-4. 运行：
-
-   ```shell
-   flatpak run io.github.windy.breeze
-   ```
-
-</details>
-
-<details>
-<summary><b>iOS / iPadOS</b></summary>
-
-iOS 系统封闭，未上架 App Store 的应用需要**侧载 (Sideloading) 并自行签名**。下载无签名的 `Breeze-iOS.ipa`，再用下列工具之一安装。
-
-**推荐：AltStore** —— 目前最稳定且对新手友好，支持通过同一局域网下的电脑自动续签。
-
-- 官网：<https://altstore.io/>
-- [AltStore 官方图文指南（英文）](https://faq.altstore.io/)
-- [知乎：基于 AltStore 的越狱工具自签教程](https://zhuanlan.zhihu.com/p/143936759)
-- [哔哩哔哩：iOS 无限自签 IPA 玩法](https://b23.tv/UbuuJTZ)
-
-**其他自签 / 免签方案**
-
-- **Sideloadly**：免越狱，支持 Windows 和 macOS 的桌面自签工具。[官网与教程](https://sideloadly.io/)
-- **TrollStore（巨魔商店）**：如果你的 iOS 版本在漏洞支持范围内，**强烈推荐**，可永久免签安装、永不掉签。[支持版本及安装指南](https://ios.cfw.guide/installing-trollstore/)
-
-</details>
+前往 [Rossi Releases](https://github.com/HibernalGlow/rossi/releases) 获取对应平台的安装包。
 
 ---
 
@@ -260,19 +155,9 @@ iOS 系统封闭，未上架 App Store 的应用需要**侧载 (Sideloading) 并
 
 - **Flutter SDK**：需通过 `flutter doctor` 验证。
 - **Rust Toolchain**：通过 `rustup` 安装，并添加相应的交叉编译 Target（如 `aarch64-linux-android`）。
-- **LLVM / Clang**：涉及 `rustqjs` 等需要解析 C 头的库，必须安装 LLVM（Windows 下推荐 `choco install llvm` 或从官网下载），并配置 `LIBCLANG_PATH`。
+- **LLVM / Clang**：涉及 `rustqjs` 等需要解析 C 头的库，必须安装 LLVM（Windows 下推荐 `choco install llvm` 或从官网下载）。
 
-### 2. 环境变量
-
-| 变量名 | 说明 | 示例路径（参考） |
-| :--- | :--- | :--- |
-| **JAVA_HOME** | 编译 Android、Windows 和 Linux 必需 | `C:\Program Files\Android\Android Studio\jbr` |
-| **ANDROID_NDK_HOME** | Rust 交叉编译 Android 库必需 | `...\AppData\Local\Android\Sdk\ndk\29.0.14206865` |
-| **LIBCLANG_PATH** | 供 `bindgen`（Rust）生成 FFI 绑定使用 | `C:\Program Files\LLVM\bin` |
-
-> 请确保 `PATH` 中包含 `javac` 与 `clang` 的二进制路径。
-
-### 3. 依赖与代码生成
+### 2. 依赖与代码生成
 
 ```bash
 # 根项目 Flutter 依赖
@@ -282,7 +167,7 @@ flutter pub get
 dart ./script/code_generate.dart
 ```
 
-### 4. 平台特定说明
+### 3. 平台特定说明
 
 - **Android**：确保 `local.properties` 指向正确的 SDK 路径。
 - **Windows / Linux**：确保安装了 Visual Studio (C++) 或相应的 GCC 工具链，以支持 Rust 的本地编译。
@@ -342,16 +227,6 @@ dart ./script/code_generate.dart
 
 ---
 
-**开发者信息**
+**项目仓库**
 
-- 开发者：**[windy](https://github.com/deretame)**
-- 项目仓库：**[Breeze](https://github.com/deretame/Breeze)**
-- 联系方式：**[telegram(电报)](https://t.me/breeze_zh_cn)**
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=deretame/Breeze&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=deretame/Breeze&type=Date" />
-    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=deretame/Breeze&type=Date" />
-  </picture>
-</p>
+- [HibernalGlow/rossi](https://github.com/HibernalGlow/rossi)
