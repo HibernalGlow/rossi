@@ -4,7 +4,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/page/plugin_store/models/cloud_plugin_item.dart';
 import 'package:zephyr/page/plugin_store/cubit/plugin_store_cubit.dart';
+import 'package:zephyr/plugin/source_visibility_policy.dart';
 import 'package:zephyr/page/plugin_store/widgets/cloud_plugin_card.dart';
 import 'package:zephyr/page/plugin_store/widgets/plugin_store_status_banner.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
@@ -127,7 +130,22 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
   Widget _buildCloudPluginsSection(PluginStoreState state) {
     final colorScheme = Theme.of(context).colorScheme;
     final query = _searchController.text.trim().toLowerCase();
+    final showRestricted = context.select(
+      (GlobalSettingCubit cubit) => cubit.state.showRestrictedSources,
+    );
+    bool isRestricted(CloudPluginItem item) =>
+        SourceVisibilityPolicy.isRestricted(
+          uuid: item.manifest.uuid,
+          name: item.manifest.name,
+          describe: item.manifest.describe,
+          repo: item.repo,
+          declaredRestricted: item.manifest.declaredRestricted,
+        );
+    final hiddenRestrictedCount = showRestricted
+        ? 0
+        : state.cloudPlugins.where(isRestricted).length;
     final displayPlugins = state.cloudPlugins.where((item) {
+      if (!showRestricted && isRestricted(item)) return false;
       if (query.isEmpty) return true;
       final name = item.manifest.name.toLowerCase();
       final creator = item.manifest.authorOf(item.repo).toLowerCase();
@@ -234,6 +252,15 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
                 )
                 .toList(),
           ),
+        if (hiddenRestrictedCount > 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            t.plugin.restrictedSourcesHidden(count: hiddenRestrictedCount),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
         if (state.cloudError.trim().isNotEmpty && hasData) ...[
           const SizedBox(height: 8),
           Text(

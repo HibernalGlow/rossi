@@ -17,6 +17,7 @@ import 'package:zephyr/page/plugin_settings/view/plugin_settings_page.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/view/search_page.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
@@ -165,7 +166,14 @@ class _PluginHome extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return BlocBuilder<DiscoverCubit, DiscoverState>(
       builder: (context, state) {
-        final plugins = state.plugins.values.toList();
+        // 内置源与云端来源走同一套过滤：开关关闭时，受限来源不出现在来源列表里。
+        final showRestricted = context.select(
+          (GlobalSettingCubit cubit) => cubit.state.showRestrictedSources,
+        );
+        final plugins = filterRestrictedPlugins(
+          state.plugins.values,
+          showRestricted: showRestricted,
+        ).toList();
         final enabledCount = plugins.where((p) => p.isEnabled).length;
 
         return ListView(

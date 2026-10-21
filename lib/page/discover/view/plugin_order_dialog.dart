@@ -1,6 +1,9 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/icons/icons.dart';
 
@@ -9,7 +12,13 @@ Future<void> showPluginOrderDialog(BuildContext context) async {
     presentation: PopupPresentation.relative,
     context: context,
     builder: (_) => PluginOrderDialog(
-      initialPlugins: PluginRegistryService.I.orderedPlugins(),
+      initialPlugins: filterRestrictedPlugins(
+        PluginRegistryService.I.orderedPlugins(),
+        showRestricted: context
+            .read<GlobalSettingCubit>()
+            .state
+            .showRestrictedSources,
+      ).toList(),
     ),
   );
 }

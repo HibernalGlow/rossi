@@ -1183,6 +1183,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get toastResetDone => 'Toast style restored to defaults';
 	@override String get contentAndNetwork => 'Content & Network';
 	@override String get content => 'Content';
+	@override String get fullSourceList => 'Full source list';
+	@override String get fullSourceListSubtitle => 'When off, some sources are hidden from Discover, search and the plugin store. Turn on to show all sources';
 	@override String get network => 'Network';
 	@override String get maskedKeywords => 'Masked keywords';
 	@override String get maskedKeywordsSubtitle => 'Add keywords to filter unwanted content (search only)';
@@ -2491,6 +2493,8 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String get localInstall => 'Local install';
 	@override String get networkInstall => 'Network install';
 	@override String get cloudComponents => 'Cloud components';
+	@override String get restrictedSourceBlocked => 'This source is not available. Enable "Full source list" in Settings → Content & Network first';
+	@override String restrictedSourcesHidden({required Object count}) => '${count} source(s) hidden';
 	@override String get loginSuccess => 'Please complete login in the browser, the host will sync cookies automatically';
 	@override String get chromiumFallbackUnsupported => 'External Chromium auto-login fallback is not supported on this platform';
 	@override String get switchingToExternalBrowser => 'Built-in WebView login is limited, switching to external browser...';
@@ -4981,6 +4985,8 @@ extension on TranslationsEnUs {
 			'settings.toastResetDone' => 'Toast style restored to defaults',
 			'settings.contentAndNetwork' => 'Content & Network',
 			'settings.content' => 'Content',
+			'settings.fullSourceList' => 'Full source list',
+			'settings.fullSourceListSubtitle' => 'When off, some sources are hidden from Discover, search and the plugin store. Turn on to show all sources',
 			'settings.network' => 'Network',
 			'settings.maskedKeywords' => 'Masked keywords',
 			'settings.maskedKeywordsSubtitle' => 'Add keywords to filter unwanted content (search only)',
@@ -5456,10 +5462,10 @@ extension on TranslationsEnUs {
 			'settings.readerHoverFocusEnable' => 'Enable Reader hover refocus',
 			'settings.revealFocusesLane' => 'Focus lane after edge reveal',
 			'settings.revealFocusesLaneSubtitle' => 'Once the pointer has dwelled at the left or right edge long enough, the revealed lane also takes over interaction — no extra click. Reader keeps a narrow sliver, so one click returns to solo. When off, a reveal is only a peek and folds back to Reader after a while.',
-			'settings.panelLaneHoverFocus' => 'Hover focus for panel lanes',
-			'settings.panelLaneHoverFocusSubtitle' => 'Dwelling inside the left or right lane activates it too, sharing the delay above. Lanes collapsed to a rail are excluded, so brushing past them while reading won\'t steal focus.',
 			_ => null,
 		} ?? switch (path) {
+			'settings.panelLaneHoverFocus' => 'Hover focus for panel lanes',
+			'settings.panelLaneHoverFocusSubtitle' => 'Dwelling inside the left or right lane activates it too, sharing the delay above. Lanes collapsed to a rail are excluded, so brushing past them while reading won\'t steal focus.',
 			'settings.delayRangeHint' => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.',
 			'settings.hoverRevealZones' => 'Hover reveal zones',
 			'settings.hoverRevealZonesSubtitle' => 'Drag rectangles on the canvas to decide where the pointer brings content up.',
@@ -5970,10 +5976,10 @@ extension on TranslationsEnUs {
 			'reader.onlyThisBookAskFirst' => 'Affects this book only; the model is not downloaded, so it asks first when you enable it',
 			'reader.onlyThisBookGlobalOthers' => 'Affects this book only; other books follow the global setting',
 			'reader.onlyThisComicUpscaleOwn' => 'Affects this comic only; upscaling has its own switch',
-			'reader.twoPagesIndependent' => 'Two pages independent',
-			'reader.twoPageModeTap' => 'Two-page mode (tap for single page)',
 			_ => null,
 		} ?? switch (path) {
+			'reader.twoPagesIndependent' => 'Two pages independent',
+			'reader.twoPageModeTap' => 'Two-page mode (tap for single page)',
 			'reader.twoPages' => 'Two pages',
 			'reader.originalSize' => 'Original size',
 			'reader.comparingOriginal' => 'Comparing with the original',
@@ -6257,6 +6263,8 @@ extension on TranslationsEnUs {
 			'plugin.localInstall' => 'Local install',
 			'plugin.networkInstall' => 'Network install',
 			'plugin.cloudComponents' => 'Cloud components',
+			'plugin.restrictedSourceBlocked' => 'This source is not available. Enable "Full source list" in Settings → Content & Network first',
+			'plugin.restrictedSourcesHidden' => ({required Object count}) => '${count} source(s) hidden',
 			'plugin.loginSuccess' => 'Please complete login in the browser, the host will sync cookies automatically',
 			'plugin.chromiumFallbackUnsupported' => 'External Chromium auto-login fallback is not supported on this platform',
 			'plugin.switchingToExternalBrowser' => 'Built-in WebView login is limited, switching to external browser...',
@@ -6482,12 +6490,12 @@ extension on TranslationsEnUs {
 			'ocr.apiKey' => 'API key',
 			'ocr.apiKeySubtitle' => 'Stored locally only, never exported; leave empty for local Ollama',
 			'ocr.targetLanguage' => 'Target language',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.glossary' => 'Glossary',
 			'ocr.glossarySubtitle' => 'One per line: source=target; changing it re-translates finished pages',
 			'ocr.glossaryHint' => 'トカゲ=stone skink',
 			'ocr.saved' => 'Saved',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.notConfigured' => 'Base URL or model name is missing',
 			'ocr.epSection' => 'Inference backend',
 			'ocr.ep' => 'Inference backend',
@@ -6996,12 +7004,12 @@ extension on TranslationsEnUs {
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => 'Latest: ${count} / ${chapter}',
 			'comicFollow.noUnread' => 'No updated unread comics',
 			'comicFollow.showAll' => 'Show all',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.latestChapterFailed' => 'Failed to get latest chapter',
 			'comicFollow.newChapters' => ({required Object diff, required Object total}) => '${diff} new chapters, ${total} total',
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '${diff} new unread chapters, ${total} total',
 			'comicFollow.latestCount' => ({required Object count}) => 'Latest ${count} chapters',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.fetchFailed' => 'Fetch failed',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '${diff} new',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '${diff} unread',

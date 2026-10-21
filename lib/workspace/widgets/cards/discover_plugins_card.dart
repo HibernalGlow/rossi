@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -34,9 +36,13 @@ class DiscoverPluginsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final pluginStates = context.watch<PluginRegistryCubit>().state;
-    final enabledPlugins = pluginStates.values
-        .where((p) => p.isEnabled)
-        .toList();
+    final enabledPlugins = filterRestrictedPlugins(
+      pluginStates.values.where((p) => p.isEnabled),
+      showRestricted: context
+          .watch<GlobalSettingCubit>()
+          .state
+          .showRestrictedSources,
+    ).toList();
 
     if (isStandalone) {
       return Padding(

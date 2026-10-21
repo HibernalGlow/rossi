@@ -10,6 +10,9 @@ import 'package:zephyr/page/search_result/bloc/search_bloc.dart';
 import 'package:zephyr/page/search_result/view/search_result_page.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/plugin/source_visibility_policy.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/icons/icons.dart';
 
 void onSearch(
@@ -42,16 +45,30 @@ void onSearch(
 
   if (aggregateMode) {
     final pluginStates = context.read<PluginRegistryCubit>().state;
+    final showRestricted = context
+        .read<GlobalSettingCubit>()
+        .state
+        .showRestrictedSources;
     final availableSources = PluginRegistryService.I
         .sortPlugins(
-          pluginStates.values.where(
-            (plugin) => plugin.isEnabled && !plugin.isDeleted,
+          filterRestrictedPlugins(
+            pluginStates.values.where(
+              (plugin) => plugin.isEnabled && !plugin.isDeleted,
+            ),
+            showRestricted: showRestricted,
           ),
         )
         .map((plugin) => plugin.uuid)
         .toList();
+    // 保存下来的勾选可能包含刚被隐藏的来源：一并剔掉，避免「列表里没有、
+    // 实际却仍在查」。
     final selected = nextAggregateSources.isNotEmpty
-        ? nextAggregateSources
+        ? {
+            for (final entry in nextAggregateSources.entries)
+              if (showRestricted ||
+                  !SourceVisibilityPolicy.isRestricted(uuid: entry.key))
+                entry.key: entry.value,
+          }
         : {for (final source in availableSources) source: true};
     if (tabs != null) {
       final page = SearchAggregateResultPage(

@@ -84,6 +84,17 @@ class ContentNetworkSettingPage extends StatelessWidget {
                 },
               ),
               _chineseConvertMode(state, cubit),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.shield),
+                title: Text(t.settings.fullSourceList),
+                subtitle: Text(t.settings.fullSourceListSubtitle),
+                value: state.showRestrictedSources,
+                onChanged: (value) {
+                  cubit.updateState(
+                    (current) => current.copyWith(showRestrictedSources: value),
+                  );
+                },
+              ),
             ],
           ),
           SettingSectionCard(

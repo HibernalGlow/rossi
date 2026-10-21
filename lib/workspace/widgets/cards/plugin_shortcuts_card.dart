@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/workspace/widgets/cards/expressive_widgets.dart';
 import 'package:zephyr/workspace/widgets/cards/plugin_status_card.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
@@ -40,16 +42,18 @@ class PluginShortcutsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final plugins =
-        context
-            .watch<PluginRegistryCubit>()
-            .state
-            .values
-            .where((p) => p.isActive)
-            .toList()
-          ..sort((a, b) {
-            final order = (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0);
-            return order != 0 ? order : _nameOf(a).compareTo(_nameOf(b));
-          });
+        filterRestrictedPlugins(
+          context.watch<PluginRegistryCubit>().state.values.where(
+            (p) => p.isActive,
+          ),
+          showRestricted: context
+              .watch<GlobalSettingCubit>()
+              .state
+              .showRestrictedSources,
+        ).toList()..sort((a, b) {
+          final order = (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0);
+          return order != 0 ? order : _nameOf(a).compareTo(_nameOf(b));
+        });
 
     return CollapsibleCard(
       cardId: 'plugin_shortcuts',

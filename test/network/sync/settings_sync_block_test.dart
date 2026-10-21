@@ -31,6 +31,8 @@ const List<String> _mustNotSync = <String>[
   'compatibleVersion',
   'socks5Proxy',
   'socks5ProxyEnabled',
+  // 「完整来源列表」是本机隐私偏好：不上传，避免换台设备后被云端悄悄打开。
+  'showRestrictedSources',
   'proxySetting',
   'windowWidth',
   'windowHeight',

@@ -10,6 +10,7 @@ import 'package:zephyr/page/search/widget/history.dart';
 import 'package:zephyr/page/search/widget/search_input_dialog.dart';
 import 'package:zephyr/page/search/widget/source_select_dialog.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/util/debouncer.dart';
@@ -38,8 +39,15 @@ class _SearchBarState extends State<SearchBar> {
 
   List<({String pluginId, String title})> _sourceOptions(BuildContext context) {
     final pluginStates = context.read<PluginRegistryCubit>().state;
+    final showRestricted = context
+        .watch<GlobalSettingCubit>()
+        .state
+        .showRestrictedSources;
     final states = PluginRegistryService.I.sortPlugins(
-      pluginStates.values.where((state) => !state.isDeleted),
+      filterRestrictedPlugins(
+        pluginStates.values.where((state) => !state.isDeleted),
+        showRestricted: showRestricted,
+      ),
     );
     return states.map((state) {
       final info = PluginRegistryService.I.getCachedPluginInfo(state.uuid);

@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/plugin/source_visibility_policy.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/page/search/model/search_history_entry.dart';
 import 'package:zephyr/page/search/widget/search_input_dialog.dart';
@@ -39,11 +41,23 @@ class SearchAggregateResultPage extends StatelessWidget
   @override
   Widget wrappedRoute(BuildContext context) {
     final pluginStates = context.read<PluginRegistryCubit>().state;
+    final showRestricted = context
+        .read<GlobalSettingCubit>()
+        .state
+        .showRestrictedSources;
     final visiblePlugins = PluginRegistryService.I.sortPlugins(
-      pluginStates.values.where((state) => !state.isDeleted),
+      filterRestrictedPlugins(
+        pluginStates.values.where((state) => !state.isDeleted),
+        showRestricted: showRestricted,
+      ),
     );
     final initial = selectedSources.isNotEmpty
-        ? {for (final entry in selectedSources.entries) entry.key: entry.value}
+        ? {
+            for (final entry in selectedSources.entries)
+              if (showRestricted ||
+                  !SourceVisibilityPolicy.isRestricted(uuid: entry.key))
+                entry.key: entry.value,
+          }
         : {for (final plugin in visiblePlugins) plugin.uuid: plugin.isEnabled};
     return MultiBlocProvider(
       providers: [
@@ -246,7 +260,13 @@ class _SearchBarTrigger extends StatelessWidget {
   ) {
     final pluginStates = context.read<PluginRegistryCubit>().state;
     final ordered = PluginRegistryService.I.sortPlugins(
-      pluginStates.values.where((state) => !state.isDeleted),
+      filterRestrictedPlugins(
+        pluginStates.values.where((state) => !state.isDeleted),
+        showRestricted: context
+            .read<GlobalSettingCubit>()
+            .state
+            .showRestrictedSources,
+      ),
     );
     final selectedSet = selectedKeys.toSet();
     final result = <({String pluginId, String title})>[];
@@ -318,8 +338,14 @@ class _ResultList extends StatelessWidget {
     final selectedIds = state.selectedSources.keys.toSet();
     final pluginIds = PluginRegistryService.I
         .sortPlugins(
-          pluginStates.values.where(
-            (plugin) => selectedIds.contains(plugin.uuid),
+          filterRestrictedPlugins(
+            pluginStates.values.where(
+              (plugin) => selectedIds.contains(plugin.uuid),
+            ),
+            showRestricted: context
+                .watch<GlobalSettingCubit>()
+                .state
+                .showRestrictedSources,
           ),
         )
         .map((plugin) => plugin.uuid)

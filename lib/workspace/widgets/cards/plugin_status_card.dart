@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/workspace/widgets/cards/info_card_kit.dart';
 import 'package:zephyr/workspace/widgets/collapsible_card.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -33,17 +35,19 @@ class PluginStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final states =
-        context
-            .watch<PluginRegistryCubit>()
-            .state
-            .values
-            .where((p) => !p.isDeleted)
-            .toList()
-          ..sort((a, b) {
-            final order = (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0);
-            if (order != 0) return order;
-            return _nameOf(a).compareTo(_nameOf(b));
-          });
+        filterRestrictedPlugins(
+          context.watch<PluginRegistryCubit>().state.values.where(
+            (p) => !p.isDeleted,
+          ),
+          showRestricted: context
+              .watch<GlobalSettingCubit>()
+              .state
+              .showRestrictedSources,
+        ).toList()..sort((a, b) {
+          final order = (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0);
+          if (order != 0) return order;
+          return _nameOf(a).compareTo(_nameOf(b));
+        });
 
     final enabled = states.where((p) => p.isEnabled).toList();
     final ready = enabled.where((p) => p.lastLoadSuccess).toList();

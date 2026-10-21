@@ -3305,6 +3305,12 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '内容'
 	String get content => '内容';
 
+	/// zh-CN: '完整来源列表'
+	String get fullSourceList => '完整来源列表';
+
+	/// zh-CN: '关闭时，部分来源不会出现在发现页、搜索与插件商店；开启后显示全部来源'
+	String get fullSourceListSubtitle => '关闭时，部分来源不会出现在发现页、搜索与插件商店；开启后显示全部来源';
+
 	/// zh-CN: '网络'
 	String get network => '网络';
 
@@ -7156,6 +7162,12 @@ class Translations$plugin$zh_CN {
 
 	/// zh-CN: '云端组件'
 	String get cloudComponents => '云端组件';
+
+	/// zh-CN: '该来源当前不可用，请先在 设置 → 内容与网络 中开启「完整来源列表」'
+	String get restrictedSourceBlocked => '该来源当前不可用，请先在 设置 → 内容与网络 中开启「完整来源列表」';
+
+	/// zh-CN: '已隐藏 $count 个来源'
+	String restrictedSourcesHidden({required Object count}) => '已隐藏 ${count} 个来源';
 
 	/// zh-CN: '请在网页中完成登录，宿主会自动同步 Cookie'
 	String get loginSuccess => '请在网页中完成登录，宿主会自动同步 Cookie';
@@ -11922,6 +11934,8 @@ extension on Translations {
 			'settings.toastResetDone' => '已恢复默认提示样式',
 			'settings.contentAndNetwork' => '内容与网络',
 			'settings.content' => '内容',
+			'settings.fullSourceList' => '完整来源列表',
+			'settings.fullSourceListSubtitle' => '关闭时，部分来源不会出现在发现页、搜索与插件商店；开启后显示全部来源',
 			'settings.network' => '网络',
 			'settings.maskedKeywords' => '屏蔽关键词',
 			'settings.maskedKeywordsSubtitle' => '添加关键词，过滤不想看到的内容（仅搜索生效）',
@@ -12397,10 +12411,10 @@ extension on Translations {
 			'settings.readerHoverFocusEnable' => '启用 Reader 悬停重新聚焦',
 			'settings.revealFocusesLane' => '呼出泳道后自动聚焦',
 			'settings.revealFocusesLaneSubtitle' => '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。',
-			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
-			'settings.panelLaneHoverFocusSubtitle' => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。',
 			_ => null,
 		} ?? switch (path) {
+			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
+			'settings.panelLaneHoverFocusSubtitle' => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。',
 			'settings.delayRangeHint' => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。',
 			'settings.hoverRevealZones' => '悬停唤出区',
 			'settings.hoverRevealZonesSubtitle' => '在画布上拖出矩形，决定指针停在哪儿会把对应内容调出来。',
@@ -12911,10 +12925,10 @@ extension on Translations {
 			'reader.onlyThisBookAskFirst' => '只影响这本书；模型未下载，开启时会先问一句',
 			'reader.onlyThisBookGlobalOthers' => '只影响这本书，其它书仍按全局设置',
 			'reader.onlyThisComicUpscaleOwn' => '只影响当前漫画；超分由它自己的开关决定',
-			'reader.twoPagesIndependent' => '双页独立',
-			'reader.twoPageModeTap' => '双页模式（点击切为单页）',
 			_ => null,
 		} ?? switch (path) {
+			'reader.twoPagesIndependent' => '双页独立',
+			'reader.twoPageModeTap' => '双页模式（点击切为单页）',
 			'reader.twoPages' => '双页',
 			'reader.originalSize' => '原始大小',
 			'reader.comparingOriginal' => '原图对比中',
@@ -13198,6 +13212,8 @@ extension on Translations {
 			'plugin.localInstall' => '本地安装',
 			'plugin.networkInstall' => '网络安装',
 			'plugin.cloudComponents' => '云端组件',
+			'plugin.restrictedSourceBlocked' => '该来源当前不可用，请先在 设置 → 内容与网络 中开启「完整来源列表」',
+			'plugin.restrictedSourcesHidden' => ({required Object count}) => '已隐藏 ${count} 个来源',
 			'plugin.loginSuccess' => '请在网页中完成登录，宿主会自动同步 Cookie',
 			'plugin.chromiumFallbackUnsupported' => '当前平台不支持外部 Chromium 自动登录回退',
 			'plugin.switchingToExternalBrowser' => '内置 WebView 登录受限，正在切换外部浏览器...',
@@ -13423,12 +13439,12 @@ extension on Translations {
 			'ocr.apiKey' => 'API Key',
 			'ocr.apiKeySubtitle' => '只存本机设置，不进导出文件；本机 Ollama 可留空',
 			'ocr.targetLanguage' => '目标语言',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.glossary' => '术语表',
 			'ocr.glossarySubtitle' => '每行一条「原文=译文」；改动会让已生成的成品页重译',
 			'ocr.glossaryHint' => 'トカゲ=石龙子',
 			'ocr.saved' => '已保存',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.notConfigured' => '还缺接口地址或模型名',
 			'ocr.epSection' => '推理后端',
 			'ocr.ep' => '推理后端',
@@ -13937,12 +13953,12 @@ extension on Translations {
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => '最新：${count} 话 / ${chapter}',
 			'comicFollow.noUnread' => '暂无已更新未看内容',
 			'comicFollow.showAll' => '显示全部',
+			_ => null,
+		} ?? switch (path) {
 			'comicFollow.latestChapterFailed' => '最新章节获取失败',
 			'comicFollow.newChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话，共 ${total} 话',
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话未阅读，共 ${total} 话',
 			'comicFollow.latestCount' => ({required Object count}) => '最新 ${count} 话',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.fetchFailed' => '获取失败',
 			'comicFollow.newChaptersShort' => ({required Object diff}) => '新增 ${diff} 话',
 			'comicFollow.newUnreadChaptersShort' => ({required Object diff}) => '新增 ${diff} 话未阅读',

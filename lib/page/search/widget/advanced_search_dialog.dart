@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/page/search/cubit/search_cubit.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
@@ -79,8 +81,14 @@ class _AdvancedSearchDialogState extends State<AdvancedSearchDialog> {
   Widget _buildSourceRow() {
     final pluginStates = context.watch<PluginRegistryCubit>().state;
     final sources = PluginRegistryService.I.sortPlugins(
-      pluginStates.values.where(
-        (plugin) => plugin.isEnabled && !plugin.isDeleted,
+      filterRestrictedPlugins(
+        pluginStates.values.where(
+          (plugin) => plugin.isEnabled && !plugin.isDeleted,
+        ),
+        showRestricted: context
+            .watch<GlobalSettingCubit>()
+            .state
+            .showRestrictedSources,
       ),
     );
 

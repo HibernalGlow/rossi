@@ -201,6 +201,11 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(false) bool needCleanCache,
     @Default(1) int comicChoice,
     @Default(false) bool disableBika,
+    // 「完整来源列表」开关。默认关：发现页、搜索与插件商店都不展示被判定为
+    // 受限来源的插件（判定见 `lib/plugin/source_visibility_policy.dart`），
+    // 编译进二进制的内置源同样适用。只做展示层过滤，不会卸载已安装插件，
+    // 也不影响已有历史与收藏。
+    @Default(false) bool showRestrictedSources,
     @Default(false) bool enableMemoryDebug,
     @Default(false) bool blockRustHttpRequests,
     @Default('') String logAddress,

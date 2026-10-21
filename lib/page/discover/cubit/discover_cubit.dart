@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
 
@@ -67,13 +68,19 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   final Map<String, String> _cacheKeys = <String, String>{};
 
   /// 当前默认插件源：优先已启用，否则取首个可见插件。
+  ///
+  /// 「可见」与发现页列表同一口径：开关关闭时不把受限来源（含内置源）当默认源，
+  /// 否则打开搜索会落到一个列表里根本看不到的源上。
   String get currentFrom {
-    final active = state.plugins.values.where((s) => s.isActive).toList();
+    final visible = filterRestrictedPlugins(
+      state.plugins.values,
+      showRestricted: showRestrictedSourcesOrFalse,
+    ).toList();
+    final active = visible.where((s) => s.isActive).toList();
     if (active.isNotEmpty) {
       return active.first.uuid;
     }
-    final first = state.plugins.values.firstOrNull;
-    return first?.uuid ?? '';
+    return visible.firstOrNull?.uuid ?? '';
   }
 
   /// 切换插件启用状态。

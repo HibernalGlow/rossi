@@ -45,6 +45,7 @@ class CloudPluginManifest {
     required this.updateUrl,
     required this.npmName,
     required this.githubRepository,
+    this.declaredRestricted = false,
   });
 
   final String name;
@@ -56,6 +57,11 @@ class CloudPluginManifest {
   final String updateUrl;
   final String npmName;
   final String githubRepository;
+
+  /// 插件作者在 manifest 里显式声明的受限来源标记
+  /// （`breeze-plugin-restricted`）。判定优先级见
+  /// `source_visibility_policy.dart`。
+  final bool declaredRestricted;
 
   factory CloudPluginManifest.fromJson(Map<String, dynamic> json) {
     return CloudPluginManifest(
@@ -69,6 +75,7 @@ class CloudPluginManifest {
       npmName: json['npmName']?.toString() ?? '',
       githubRepository:
           json['breeze-plugin-github-repository']?.toString().trim() ?? '',
+      declaredRestricted: _asBool(json['breeze-plugin-restricted']),
     );
   }
 
@@ -83,4 +90,11 @@ class CloudPluginManifest {
     }
     return '';
   }
+}
+
+/// manifest 里的布尔字段允许写成 `true` / `"true"` / `1` / `"yes"`。
+bool _asBool(Object? value) {
+  if (value is bool) return value;
+  final text = value?.toString().trim().toLowerCase();
+  return text == 'true' || text == '1' || text == 'yes';
 }

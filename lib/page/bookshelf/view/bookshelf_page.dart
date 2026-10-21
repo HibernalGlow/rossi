@@ -13,6 +13,7 @@ import 'package:zephyr/page/search/widget/search_input_dialog.dart';
 import 'package:zephyr/page/bookshelf/widgets/shelf_search_field.dart';
 import 'package:zephyr/page/bookshelf/widgets/shelf_search_header.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
+import 'package:zephyr/plugin/source_visibility.dart';
 import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';
@@ -469,8 +470,14 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
   List<FilterSourceOption> _buildFilterSourceOptions() {
     final pluginStates = context.read<PluginRegistryCubit>().state;
     final sourceOptions = PluginRegistryService.I.sortPlugins(
-      pluginStates.values.where(
-        (plugin) => plugin.isEnabled && !plugin.isDeleted,
+      filterRestrictedPlugins(
+        pluginStates.values.where(
+          (plugin) => plugin.isEnabled && !plugin.isDeleted,
+        ),
+        showRestricted: context
+            .watch<GlobalSettingCubit>()
+            .state
+            .showRestrictedSources,
       ),
     );
     final list = sourceOptions

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/plugin_store/models/cloud_plugin_item.dart';
+import 'package:zephyr/plugin/source_visibility_policy.dart';
 import 'package:zephyr/plugin/plugin_install_service.dart';
 import 'package:zephyr/plugin/utils/plugin_cloud_download_utils.dart';
 import 'package:zephyr/util/json/json_value.dart';
@@ -77,6 +78,19 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
     if (state.installing) {
       return;
     }
+    // 列表那层已经在关掉开关时过滤掉了受限来源，这里再挡一次：入口不止一个
+    // （搜索结果、深链），判定收在 policy 里，两边口径天然一致。
+    if (!_showRestrictedSources &&
+        SourceVisibilityPolicy.isRestricted(
+          uuid: item.manifest.uuid,
+          name: item.manifest.name,
+          describe: item.manifest.describe,
+          repo: item.repo,
+          declaredRestricted: item.manifest.declaredRestricted,
+        )) {
+      showErrorToast(t.plugin.restrictedSourceBlocked);
+      return;
+    }
     final name = item.manifest.name.trim().isEmpty
         ? item.repo
         : item.manifest.name.trim();
@@ -140,6 +154,20 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
 
   void _beginInstall(String message) {
     emit(state.copyWith(installing: true, installMessage: message));
+  }
+
+  /// 设置读取失败时按「关闭」处理：宁可少展示，也不要因为读不到配置
+  /// 把受限来源放出来。库没初始化时（启动早期）这里会抛，必须兜住。
+  bool get _showRestrictedSources {
+    try {
+      return objectbox.userSettingBox
+              .get(1)
+              ?.globalSetting
+              .showRestrictedSources ??
+          false;
+    } catch (_) {
+      return false;
+    }
   }
 
   void _reportInstallFailure(String message) {
