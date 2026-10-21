@@ -180,10 +180,10 @@ Future<void> _writeControl({
     'Maintainer: Breeze Developers <dev@breeze.app>\n'
     'Installed-Size: ${_installedSize(debRoot)}\n'
     '$depends'
-    'Description: Third-party client for Bika and JM comics\n'
+    'Description: Cross-platform comic reader with pluggable sources\n'
     ' A modern, feature-rich Flutter client for reading comics from\n'
-    ' Bika (哔咔) and JM (禁漫), with built-in upscaling, plugins and\n'
-    ' desktop system-tray support.\n'
+    ' user-installed plugins, with built-in upscaling and desktop\n'
+    ' system-tray support.\n'
   );
 
   final postinst = '''#!/bin/sh

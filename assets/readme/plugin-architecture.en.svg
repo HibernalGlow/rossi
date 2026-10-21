@@ -3,7 +3,7 @@
      width="1200" height="440" viewBox="0 0 1200 440"
      role="img" aria-labelledby="title desc">
   <title id="title">How Rossi comic source plugins run</title>
-  <desc id="desc">Three-stage flow: on the left the comic sources (built-in Bika and JM, plus custom .js plugins),
+  <desc id="desc">Three-stage flow: on the left the comic sources (built-in example plugins, plus custom .js plugins),
   in the middle the Rust-side windcore sandbox, which runs plugin JS on QuickJS, sends requests with reqwest,
   and handles image decoding, de-obfuscation and archives; on the right, over flutter_rust_bridge, the Flutter UI
   layer with discovery, aggregate search, bookshelf and reader.</desc>
@@ -34,12 +34,12 @@
       <g>
         <rect x="64" y="168" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
         <circle cx="88" cy="194" r="5" fill="#9C4B5E"/>
-        <text x="106" y="201" font-size="22" fill="#2A2320">Bika (built-in)</text>
+        <text x="106" y="201" font-size="22" fill="#2A2320">Example A (built-in)</text>
       </g>
       <g>
         <rect x="64" y="232" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
         <circle cx="88" cy="258" r="5" fill="#9C4B5E"/>
-        <text x="106" y="265" font-size="22" fill="#2A2320">JM (built-in)</text>
+        <text x="106" y="265" font-size="22" fill="#2A2320">Example B (built-in)</text>
       </g>
       <g>
         <rect x="64" y="296" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5" stroke-dasharray="5 4"/>

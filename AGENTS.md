@@ -18,7 +18,7 @@
 
 - 应用本身不包含具体漫画内容，漫画数据通过**插件**获取。
 - 插件运行在技术栈 `Dart → Flutter Rust Bridge → Rust → QuickJS` 的 Rust 侧运行时中。
-- 默认内置插件（Bika、禁漫等）在 `rust/build.rs` 编译时从 CDN 下载并打包进二进制。
+- 默认内置两个示例源插件，在 `rust/build.rs` 编译时从 CDN 下载并打包进二进制。
 
 ### 1.2 主要仓库
 
@@ -78,7 +78,7 @@
 .
 ├── lib/                        # Dart/Flutter 主代码
 │   ├── main.dart               # 应用入口
-│   ├── config/                 # 全局与业务配置（GlobalSetting、Bika/JM 设置等）
+│   ├── config/                 # 全局与业务配置（GlobalSetting、各源插件设置等）
 │   ├── cubit/                  # 全局轻量 Cubit
 │   ├── debug/                  # 调试页面
 │   ├── model/                  # 通用业务模型
@@ -96,10 +96,10 @@
 │   ├── ocr_core/               # 独立 OCR / inpaint 管线
 │   ├── src/api/                # 暴露给 Dart 的 API
 │   ├── src/compressed/         # 压缩/打包（tar/zip/brotli/zstd）
-│   ├── src/decode/             # 禁漫图片反混淆
+│   ├── src/decode/             # 站点图片反混淆
 │   ├── src/memory/             # 内存统计
 │   ├── src/qjs/                # QuickJS runtime 管理
-│   ├── build.rs                # 编译时从 CDN 下载内置插件 bundle（Bika/禁漫），失败回退缓存
+│   ├── build.rs                # 编译时从 CDN 下载内置示例插件 bundle，失败回退缓存
 │   ├── Cargo.toml
 │   └── rquickjs_playground/    # QuickJS 宿主运行时封装 crate（独立子 crate）
 ├── windows-installer/          # Windows 安装器（SvelteKit + Tauri v2）

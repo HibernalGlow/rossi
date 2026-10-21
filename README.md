@@ -15,7 +15,7 @@
 
 它自己**不带任何漫画内容**。书从哪来，全靠**插件**：一个 JS 文件描述清楚「列表怎么取、搜索怎么发、图片怎么还原」，Rust 侧的 QuickJS 沙箱负责把它跑起来。装什么插件，就读什么源；不装，它就是个读本地 CBZ 的干净书架。
 
-内置哔咔与禁漫两个插件，编译时打包进二进制，开箱即用。
+内置两个示例源插件，编译时打包进二进制，用于验证插件 ABI；装什么源，由插件决定。
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### 图源与搜索
 
-- 内置哔咔、禁漫；也可自行安装 `.js` / `.cjs` / `.br` 插件，或从[插件列表](https://github.com/deretame/Breeze-plugin-list)一键下载、手动更新、拖拽排序。
+- 内置两个示例源插件，用于验证插件 ABI；也可自行安装 `.js` / `.cjs` / `.br` 插件，或从[插件列表](https://github.com/deretame/Breeze-plugin-list)一键下载、手动更新、拖拽排序。
 - **聚合搜索**：一次向多个源发问。搜索支持标签语法与排除词，并带搜索历史。
 - EHentai 标签词典随包，中英对照，不用自己猜标签。
 - 本地 CBZ / ZIP 与压缩包直接读，不需要先解压。
@@ -67,7 +67,7 @@
 
 <p align="center">
   <img src="./assets/readme/plugin-architecture.svg" width="100%"
-       alt="流程图：第三方图源（内置哔咔、禁漫、自定义 JS）交给 Rust 侧 windcore 沙箱，由 QuickJS 执行插件、reqwest 发请求、负责解码与反混淆和压缩包处理，再经 flutter_rust_bridge 交给 Flutter 界面层的发现、聚合搜索、书架与阅读器。">
+       alt="流程图：第三方图源（内置示例插件、自定义 JS）交给 Rust 侧 windcore 沙箱，由 QuickJS 执行插件、reqwest 发请求、负责解码与反混淆和压缩包处理，再经 flutter_rust_bridge 交给 Flutter 界面层的发现、聚合搜索、书架与阅读器。">
 </p>
 
 链路是 `Dart → Flutter Rust Bridge → Rust → QuickJS`。插件代码不在 Dart 里跑，也不碰平台 API：它只能描述「发什么请求、怎么解析、图片怎么还原」，网络和文件能力由宿主按 feature 授予。
@@ -303,13 +303,13 @@ A cross-platform manga reader written in **Flutter + Rust**.
 
 It ships **no comic content at all** — where the comics come from is entirely up to **plugins**. One JS file describes how to list, how to search and how to restore the images; a QuickJS sandbox on the Rust side runs it. Install a plugin and that source becomes readable; install none and it stays a clean bookshelf for local CBZ files.
 
-Two plugins, Bika and JM, are built in: `rust/build.rs` downloads their bundles at compile time, so the first run already works.
+Two example source plugins ship built in: `rust/build.rs` downloads their bundles at compile time, so the first run already works.
 
 ### Capabilities
 
 #### Sources and search
 
-- Bika and JM built in; install your own `.js` / `.cjs` / `.br` plugins, or pull them from the [plugin list](https://github.com/deretame/Breeze-plugin-list) — one-tap download, manual update, drag to reorder.
+- Two example source plugins are built in; install your own `.js` / `.cjs` / `.br` plugins, or pull them from the [plugin list](https://github.com/deretame/Breeze-plugin-list) — one-tap download, manual update, drag to reorder.
 - **Aggregate search** asks several sources in one go. Tag syntax and excluded terms are supported, and searches are kept in history.
 - The EHentai tag dictionary ships with the app, bilingual, so you don't have to guess tag names.
 - Local CBZ / ZIP archives read directly, with no extraction step.
@@ -353,7 +353,7 @@ Two plugins, Bika and JM, are built in: `rust/build.rs` downloads their bundles 
 
 <p align="center">
   <img src="./assets/readme/plugin-architecture.en.svg" width="100%"
-       alt="Flow diagram: comic sources (built-in Bika and JM, plus custom JS plugins) feed into the Rust-side windcore sandbox, where QuickJS executes plugin code, reqwest performs requests, and decoding, de-obfuscation and archive handling happen; flutter_rust_bridge then hands everything to the Flutter UI layer — discovery, aggregate search, bookshelf and reader.">
+       alt="Flow diagram: comic sources (built-in example plugins, plus custom JS plugins) feed into the Rust-side windcore sandbox, where QuickJS executes plugin code, reqwest performs requests, and decoding, de-obfuscation and archive handling happen; flutter_rust_bridge then hands everything to the Flutter UI layer — discovery, aggregate search, bookshelf and reader.">
 </p>
 
 The chain is `Dart → Flutter Rust Bridge → Rust → QuickJS`. Plugin code never runs inside Dart and never touches platform APIs: it can only describe which request to send, how to parse the answer and how to restore the image. Network and file capabilities are granted per feature by the host.

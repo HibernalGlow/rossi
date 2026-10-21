@@ -2,7 +2,7 @@
      width="1200" height="440" viewBox="0 0 1200 440"
      role="img" aria-labelledby="title desc">
   <title id="title">Rossi 的图源插件是怎么跑起来的</title>
-  <desc id="desc">三段式流程图：左侧是第三方图源（内置的哔咔与禁漫、以及自定义 JS 插件），
+  <desc id="desc">三段式流程图：左侧是第三方图源（内置示例插件、以及自定义 JS 插件），
   中间是 Rust 侧的 windcore 沙箱，用 QuickJS 执行插件、用 reqwest 发网络请求、负责解码与反混淆和压缩包处理，
   右侧经 flutter_rust_bridge 交给 Flutter 界面层的发现、搜索、书架与阅读器。</desc>
 
@@ -32,12 +32,12 @@
       <g>
         <rect x="64" y="168" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
         <circle cx="88" cy="194" r="5" fill="#9C4B5E"/>
-        <text x="106" y="201" font-size="22" fill="#2A2320">哔咔 Bika</text>
+        <text x="106" y="201" font-size="22" fill="#2A2320">示例插件 A</text>
       </g>
       <g>
         <rect x="64" y="232" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5"/>
         <circle cx="88" cy="258" r="5" fill="#9C4B5E"/>
-        <text x="106" y="265" font-size="22" fill="#2A2320">禁漫 JM</text>
+        <text x="106" y="265" font-size="22" fill="#2A2320">示例插件 B</text>
       </g>
       <g>
         <rect x="64" y="296" width="240" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.5" stroke="#CFC5B7" stroke-width="1.5" stroke-dasharray="5 4"/>
@@ -59,7 +59,7 @@
       <g font-size="21" fill="#2A2320">
         <text x="386" y="228">· QuickJS 执行插件写的 JS</text>
         <text x="386" y="264">· reqwest 发请求，代理与 TLS 可控</text>
-        <text x="386" y="300">· 图片解码与禁漫反混淆</text>
+        <text x="386" y="300">· 图片解码与站点反混淆</text>
         <text x="386" y="336">· tar / zip / brotli / zstd 打包</text>
       </g>
       <text x="386" y="368" font-size="18" fill="#8A7A66">内存统计 · 数据备份</text>

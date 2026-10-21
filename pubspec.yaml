@@ -1,5 +1,5 @@
 name: zephyr
-description: "使用Flutter开发的三方哔咔及禁漫应用。"
+description: "使用 Flutter 开发的跨平台漫画阅读器，图源由插件提供。"
 publish_to: none
 version: 0.1.0+1
 
