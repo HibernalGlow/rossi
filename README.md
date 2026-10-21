@@ -25,7 +25,6 @@
 
 - 内置两个示例源插件，用于验证插件 ABI；也可自行安装 `.js` / `.cjs` / `.br` 插件，或从[插件列表](https://github.com/deretame/Breeze-plugin-list)一键下载、手动更新、拖拽排序。
 - **聚合搜索**：一次向多个源发问。搜索支持标签语法与排除词，并带搜索历史。
-- EHentai 标签词典随包，中英对照，不用自己猜标签。
 - 本地 CBZ / ZIP 与压缩包直接读，不需要先解压。
 
 ### 阅读
@@ -311,7 +310,6 @@ Two example source plugins ship built in: `rust/build.rs` downloads their bundle
 
 - Two example source plugins are built in; install your own `.js` / `.cjs` / `.br` plugins, or pull them from the [plugin list](https://github.com/deretame/Breeze-plugin-list) — one-tap download, manual update, drag to reorder.
 - **Aggregate search** asks several sources in one go. Tag syntax and excluded terms are supported, and searches are kept in history.
-- The EHentai tag dictionary ships with the app, bilingual, so you don't have to guess tag names.
 - Local CBZ / ZIP archives read directly, with no extraction step.
 
 #### Reading
