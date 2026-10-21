@@ -45,9 +45,4 @@
     <text x="64" y="358" font-size="19" fill="#8A7A66">图源插件 · 本地与云端收藏 · 离线下载 · 超分增强 · 成品页翻译</text>
   </g>
 
-  <g id="metadata" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-     font-size="19" fill="#8A7A66">
-    <text x="64" y="422">Android · iOS · Windows · macOS · Linux</text>
-    <text x="1136" y="422" text-anchor="end">MPL-2.0</text>
-  </g>
 </svg>
