@@ -17,15 +17,47 @@ env:
     secrets.BREEZE_PLUGIN_GITHUB_TOKEN || github.token }}
 
 jobs:
+  # Fork 仓库通常没有签名/发布 secrets。job 级 if 读不到 secrets，先在 step 内检测：
+  # 缺 GIT_CRYPT_KEY 跳过 Android，缺 HOMEBREW_GITHUB_TOKEN 跳过 Homebrew 更新。
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      has_git_crypt: ${{ steps.gitcrypt.outputs.has }}
+      has_homebrew: ${{ steps.homebrew.outputs.has }}
+    steps:
+      - name: 检查 GIT_CRYPT_KEY
+        id: gitcrypt
+        env:
+          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+        run: |
+          if [ -n "$GIT_CRYPT_KEY" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: 检查 HOMEBREW_GITHUB_TOKEN
+        id: homebrew
+        env:
+          HOMEBREW_GITHUB_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+        run: |
+          if [ -n "$HOMEBREW_GITHUB_TOKEN" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # ══════════════════════════════════════════
   # 1. Android 构建 (含 git-crypt & Sentry)
   # ══════════════════════════════════════════
   build-android:
+    needs: check-secrets
+    if: ${{ needs.check-secrets.outputs.has_git_crypt == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # - name: 克隆 rquickjs_playground
       #   run: git clone https://github.com/deretame/rquickjs_playground.git
@@ -181,6 +213,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # - name: 克隆 rquickjs_playground
       #   run: git clone https://github.com/deretame/rquickjs_playground.git
@@ -194,7 +227,7 @@ jobs:
       - name: 安装 Flatpak 构建环境
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder ninja-build libgtk-3-dev liblzma-dev libgcrypt20-dev libayatana-appindicator3-dev libwebkit2gtk-4.1-dev libcurl4-openssl-dev 
+          sudo apt-get install -y flatpak flatpak-builder ninja-build libgtk-3-dev liblzma-dev libgcrypt20-dev libayatana-appindicator3-dev libwebkit2gtk-4.1-dev libcurl4-openssl-dev libmpv-dev libdav1d-dev
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 
@@ -258,6 +291,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # - name: 克隆 rquickjs_playground
       #   run: git clone https://github.com/deretame/rquickjs_playground.git
@@ -337,6 +371,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -462,6 +497,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -513,12 +549,57 @@ jobs:
           workspaces: |
             rust
 
+      - name: 准备 iOS dav1d 静态库
+        run: |
+          set -euo pipefail
+          brew install meson nasm pkg-config
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          PREFIX="$PWD/third_party/ios_sysroot/aarch64-apple-ios"
+          SRC="$PWD/third_party/dav1d-src"
+          if [ ! -d "$SRC/.git" ]; then
+            git clone --depth 1 -b 1.5.0 https://code.videolan.org/videolan/dav1d.git "$SRC"
+          fi
+          INI="$PWD/third_party/meson-ios.ini"
+          cat > "$INI" <<EOF
+          [binaries]
+          c = ['xcrun', '--sdk', 'iphoneos', 'clang']
+          cpp = ['xcrun', '--sdk', 'iphoneos', 'clang++']
+          ar = ['xcrun', '--sdk', 'iphoneos', 'ar']
+          strip = ['xcrun', '--sdk', 'iphoneos', 'strip']
+          pkgconfig = 'pkg-config'
+
+          [host_machine]
+          system = 'darwin'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+
+          [properties]
+          needs_exe_wrapper = true
+
+          [built-in options]
+          c_args = ['-arch', 'arm64', '-isysroot', '$SDKROOT', '-miphoneos-version-min=16.0']
+          c_link_args = ['-arch', 'arm64', '-isysroot', '$SDKROOT', '-miphoneos-version-min=16.0']
+          EOF
+          rm -rf "$SRC/build-ios-aarch64" "$PREFIX"
+          meson setup "$SRC/build-ios-aarch64" "$SRC" \
+            --cross-file "$INI" \
+            --prefix "$PREFIX" \
+            --libdir lib \
+            --default-library=static \
+            -Denable_tests=false -Denable_examples=false -Denable_tools=false \
+            -Dbitdepths="['8', '16']"
+          ninja -C "$SRC/build-ios-aarch64"
+          meson install -C "$SRC/build-ios-aarch64"
+
       - name: 编译 iOS (无签)
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          PKG_CONFIG_LIBDIR: ${{ github.workspace }}/third_party/ios_sysroot/aarch64-apple-ios/lib/pkgconfig
+          PKG_CONFIG_ALLOW_CROSS: "1"
         run: |
           export PATH="$CARGO_HOME/bin:$PATH"
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
@@ -576,12 +657,13 @@ jobs:
   # 6. 汇总发布至 GitHub Release
   # ══════════════════════════════════════════
   publish:
-    needs: [ build-android, build-linux, build-windows, build-macos, build-ios ]
+    needs: [ build-linux, build-windows, build-macos, build-ios ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: 下载所有构建产物
         uses: actions/download-artifact@v8.0.1
@@ -621,7 +703,9 @@ jobs:
           echo "| :--- | :--- |" >> release_body.md
           echo "| **Windows** | [windows-installer-${VERSION}.exe](https://github.com/$REPO/releases/download/$VERSION/windows-installer-${VERSION}.exe) |" >> release_body.md
           echo "| **macOS** | [Breeze-macOS-${VERSION}.dmg](https://github.com/$REPO/releases/download/$VERSION/Breeze-macOS-${VERSION}.dmg) |" >> release_body.md
-          echo "| **Android** | [app-arm64-v8a-release-${VERSION}.apk](https://github.com/$REPO/releases/download/$VERSION/app-arm64-v8a-release-${VERSION}.apk) |" >> release_body.md
+          if find release-assets/android-apks -type f -name '*.apk' | grep -q .; then
+            echo "| **Android** | [app-arm64-v8a-release-${VERSION}.apk](https://github.com/$REPO/releases/download/$VERSION/app-arm64-v8a-release-${VERSION}.apk) |" >> release_body.md
+          fi
           echo "| **iOS** | [Breeze-iOS-${VERSION}.ipa](https://github.com/$REPO/releases/download/$VERSION/Breeze-iOS-${VERSION}.ipa) |" >> release_body.md
           echo "| **Linux** | [breeze-${VERSION}.flatpak](https://github.com/$REPO/releases/download/$VERSION/breeze-${VERSION}.flatpak) |" >> release_body.md
           DEB_FILE_NAME=$(find release-assets/linux-deb -type f -name "*.deb" -printf "%f\n" | head -n 1)
@@ -691,7 +775,8 @@ jobs:
   # 7. 自动更新 Homebrew Tap (仅限 macOS Cask)
   # ══════════════════════════════════════════
   update-homebrew:
-    needs: [ publish ]
+    needs: [ publish, check-secrets ]
+    if: ${{ needs.check-secrets.outputs.has_homebrew == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: 检出 Homebrew Tap 仓库

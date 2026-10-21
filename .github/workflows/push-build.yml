@@ -285,7 +285,7 @@ jobs:
       - name: 安装 Flatpak 构建环境
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder ninja-build libgtk-3-dev liblzma-dev libgcrypt20-dev libayatana-appindicator3-dev libwebkit2gtk-4.1-dev libcurl4-openssl-dev
+          sudo apt-get install -y flatpak flatpak-builder ninja-build libgtk-3-dev liblzma-dev libgcrypt20-dev libayatana-appindicator3-dev libwebkit2gtk-4.1-dev libcurl4-openssl-dev libmpv-dev libdav1d-dev
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 
@@ -854,7 +854,53 @@ jobs:
           workspaces: |
             rust
 
+      - name: 准备 iOS dav1d 静态库
+        run: |
+          set -euo pipefail
+          brew install meson nasm pkg-config
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          PREFIX="$PWD/third_party/ios_sysroot/aarch64-apple-ios"
+          SRC="$PWD/third_party/dav1d-src"
+          if [ ! -d "$SRC/.git" ]; then
+            git clone --depth 1 -b 1.5.0 https://code.videolan.org/videolan/dav1d.git "$SRC"
+          fi
+          INI="$PWD/third_party/meson-ios.ini"
+          cat > "$INI" <<EOF
+          [binaries]
+          c = ['xcrun', '--sdk', 'iphoneos', 'clang']
+          cpp = ['xcrun', '--sdk', 'iphoneos', 'clang++']
+          ar = ['xcrun', '--sdk', 'iphoneos', 'ar']
+          strip = ['xcrun', '--sdk', 'iphoneos', 'strip']
+          pkgconfig = 'pkg-config'
+
+          [host_machine]
+          system = 'darwin'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+
+          [properties]
+          needs_exe_wrapper = true
+
+          [built-in options]
+          c_args = ['-arch', 'arm64', '-isysroot', '$SDKROOT', '-miphoneos-version-min=16.0']
+          c_link_args = ['-arch', 'arm64', '-isysroot', '$SDKROOT', '-miphoneos-version-min=16.0']
+          EOF
+          rm -rf "$SRC/build-ios-aarch64" "$PREFIX"
+          meson setup "$SRC/build-ios-aarch64" "$SRC" \
+            --cross-file "$INI" \
+            --prefix "$PREFIX" \
+            --libdir lib \
+            --default-library=static \
+            -Denable_tests=false -Denable_examples=false -Denable_tools=false \
+            -Dbitdepths="['8', '16']"
+          ninja -C "$SRC/build-ios-aarch64"
+          meson install -C "$SRC/build-ios-aarch64"
+
       - name: 编译 iOS (无签)
+        env:
+          PKG_CONFIG_LIBDIR: ${{ github.workspace }}/third_party/ios_sysroot/aarch64-apple-ios/lib/pkgconfig
+          PKG_CONFIG_ALLOW_CROSS: "1"
         run: |
           export PATH="$CARGO_HOME/bin:$PATH"
           export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
