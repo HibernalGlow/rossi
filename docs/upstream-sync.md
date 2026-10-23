@@ -89,7 +89,17 @@ initState / 下拉刷新。进详情确认最新章节（`_syncFollowFromOnlineD
 （`filterRestrictedPlugins` 包在上游 `registry.plugins` 结构外层）、已下载未读
 批量查询、画师收藏分桶、表达版 UI（封面 glyph、弹层、设置页）。
 
-验证：统一代码生成通过；`flutter analyze` 无 error；测试结果见提交信息。
+验证：统一代码生成通过；`flutter analyze` 无 error；合并涉及模块定向回归
+137 项全过（书架 / 导航 / 发现 / 同步 / 插件首页 / 面板预览）。全套件
+2745 过 / 56 败，经干净 HEAD worktree 基线逐项对照归因：**3 项为合并引入
+且提交前已修复**（discover_page_real / settings_sync_block /
+panel_expressive_preview——注册服务在无 Rust 桥的测试环境直连 FFI 崩溃，
+已加降级防护；同步块测试断言了已删除的设置键，已随设置移除）；46 项为
+HEAD 既有失败（comic_read ×3、discover/setting ×14、workspace ×19、
+download ×2、reader 处理 ×3、toast/theme/operation_binding ×4 等，基线
+复跑逐一命中）；7 项来自并行会话对 real_sr 的在途改写（本合并未触碰
+real_sr，合并树内该域与 HEAD 完全一致）。合并提交信息中「55 项失败归属
+本次合并线」的说法按本条修正。
 i18n 自动合并丢失的本地词条（`collectToLocal` 等四条、`comicFollow`
 通知文案、`includeDownloadedSubtitle`）已从上轮内容基准恢复。
 
