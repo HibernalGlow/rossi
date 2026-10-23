@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.zephyr.breeze.realsr.npu.NpuModelStatus
 import com.zephyr.breeze.realsr.qnn.QualcommHtp
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -27,7 +28,7 @@ object RealSrQnnChannel {
     private const val UPSCALE_TIMEOUT_MS = 120_000L
 
     /** 处理 QNN 方法；非 QNN 方法返回 false（调用方回退到 notImplemented）。 */
-    fun tryHandle(context: Context, call: MethodChannel.MethodCall, result: MethodChannel.Result): Boolean {
+    fun tryHandle(context: Context, call: MethodCall, result: MethodChannel.Result): Boolean {
         if (!call.method.startsWith("qnn")) return false
         when (call.method) {
             "qnnProbe" -> probe(context, result)
@@ -63,7 +64,7 @@ object RealSrQnnChannel {
         }.start()
     }
 
-    private fun prepare(context: Context, call: MethodChannel.MethodCall, result: MethodChannel.Result) {
+    private fun prepare(context: Context, call: MethodCall, result: MethodChannel.Result) {
         val modelRoot = call.argument<String>("modelRoot")
         val modelName = call.argument<String>("modelName")
         val retry = call.argument<Boolean>("retry") ?: false
@@ -80,7 +81,7 @@ object RealSrQnnChannel {
         }
     }
 
-    private fun upscale(context: Context, call: MethodChannel.MethodCall, result: MethodChannel.Result) {
+    private fun upscale(context: Context, call: MethodCall, result: MethodChannel.Result) {
         val inputPath = call.argument<String>("inputPath")
         val outputPath = call.argument<String>("outputPath")
         val modelRoot = call.argument<String>("modelRoot")

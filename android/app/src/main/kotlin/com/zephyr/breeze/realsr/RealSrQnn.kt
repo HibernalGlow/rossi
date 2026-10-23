@@ -61,7 +61,7 @@ object RealSrQnn {
 
     /** 只编译并缓存上下文（设置页「准备模型」用），不做推理。 */
     fun prepare(context: Context, modelRoot: File, modelName: String, retry: Boolean): Future<Outcome> =
-        executor.submit {
+        executor.submit<RealSrQnn.Outcome> {
             val binary = QnnModelContexts.prepare(context, modelRoot, modelName, retry)
             if (binary != null) Outcome.Success(scale = 0, elapsedMs = 0)
             else Outcome.Failure(
@@ -82,7 +82,7 @@ object RealSrQnn {
         model: ModelSpec,
         retryPrepare: Boolean,
     ): Future<Outcome> =
-        executor.submit {
+        executor.submit<RealSrQnn.Outcome> {
             val started = android.os.SystemClock.elapsedRealtime()
             try {
                 val binary = QnnModelContexts.prepare(context, modelRoot, model.name, retryPrepare)
@@ -142,7 +142,7 @@ object RealSrQnn {
 
     /** 交还 NPU 上下文（阅读会话结束时调用；磁盘上已编译的上下文不受影响）。 */
     fun release(): Future<Unit> =
-        executor.submit {
+        executor.submit<Unit> {
             if (libraryLoaded) {
                 runCatching { nativeShutdown() }
                 initializedContextPath = null

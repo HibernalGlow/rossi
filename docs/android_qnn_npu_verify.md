@@ -17,6 +17,11 @@
 - Android SDK / NDK 29.0.14206865（与 `android/app/build.gradle.kts` 一致）。
 - 模型包已托管：`https://github.com/HibernalGlow/breeze-binary/raw/main/realsr-qnn-android.7z`
   （SHA-256 `ab28e693…ed50d6`，应用内自动下载，无需随包）。
+- macOS 构建机注意：**Homebrew 的 rust 会挡住 rustup**（`/opt/homebrew/bin/rustc`
+  是不带 android std 的 brew 版），rust/hook 会以
+  `E0463: can't find crate for core/std` 失败。把钉住的工具链放到 PATH 最前：
+  `export PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH"`，
+  并按 `hook/build.dart` 报错提示设 `ANDROID_NDK_HOME`。
 
 ## 1. 出带 NPU 的 APK
 
