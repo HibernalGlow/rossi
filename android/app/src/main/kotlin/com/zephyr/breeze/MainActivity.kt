@@ -14,6 +14,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import java.io.File
+import com.zephyr.breeze.realsr.RealSrQnnChannel
 import io.flutter.embedding.android.FlutterFragment
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterShellArgs
@@ -179,7 +180,12 @@ class MainActivity: FlutterFragmentActivity() {
                         }
                     }.start()
                 }
-                else -> result.notImplemented()
+                // QNN（Qualcomm NPU）方法组由独立处理器承载；未匹配再回 notImplemented。
+                else -> {
+                    if (!RealSrQnnChannel.tryHandle(this, call, result)) {
+                        result.notImplemented()
+                    }
+                }
             }
         }
 
