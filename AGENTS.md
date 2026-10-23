@@ -262,6 +262,13 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 
 旧版 ncnn 共享库脚本 `script/build_ncnn_android.py` 与 `script/download_android_ncnn_deps.dart` 已删除（CLI 方案不再需要）；`script/models/build_android_ncnn_models.py` 打包 `realsr-android.7z` 用，但其 `model_dirs`（`models-cunet` / `models-upconv_7_photo`，缺 `models-se`）与现 `AndroidNcnnModelConfig` 已脱节，下次打模型包前需先更新。
 
+Android 端另有**实验性 QNN（Qualcomm HTP NPU）超分后端**（移植自 mihon_img_upscale，来源与偏离登记见 `docs/upstream-sync.md` 的「Android QNN NPU 超分后端移植」条目）：进程内 JNI 推理（`librealsr_qnn.so`，源码在 `android/app/src/main/cpp/realsr_qnn/`），与外部 waifu2x CLI 的 Vulkan 路线互为独立引擎，由设置页的「超分引擎」选择。构建口径：
+
+- QNN 运行库（`libQnnHtp*.so` / `libQnnSystem.so`）来自 Maven Central 的 `com.qualcomm.qti:qnn-runtime:2.49.0` AAR，不需要本地 SDK。
+- `libQnnModelDlc.so`（DLC→context 设备端编译器）与编译期 QNN 头文件需本地 **QAIRT SDK 2.49.0.260730**（`local.properties` 写 `qnn.sdk.dir=...`）；无 SDK 时 stub 编译（`ROSSI_ENABLE_QNN=0`），CI 也能出包，运行时如实报「NPU 不可用」。
+- HTP Skel 运行库每档 13-19 MB，默认只打包 v69 / v79 两档（`-PqnnHtpArchitectures=all` 保留全部五档）。
+- NPU 模型为 FP16 DLC，**不随 APK 分发**，首用时下载 `realsr-qnn-android.7z` 到 `getFilePath()/super_resolution/qnn/`；打包脚本 `script/models/package_qnn_models.py`（含从上游 APK 重新提取 DLC 的方法），模型清单与 `lib/page/setting/real_sr/service/android_qnn_model_config.dart` 两处同步维护。
+
 ### 5.4 调试代理
 
 开发模式下应用会读取 `.env.proxy` 资源文件中的 `proxy=` 配置，自动探测并设置 HTTP 代理，方便调试网络请求。
@@ -400,7 +407,8 @@ Android 端已彻底从 JNI + ncnn 共享库方案切换到 **waifu2x CLI** 方�
 | 修改国际化文案 | `lib/i18n/*.i18n.json`，然后运行 `dart ./script/codegen/code_generate.dart`（§5.1） |
 | 修改 Windows 安装器 | `windows-installer/src/`、`windows-installer/src-tauri/` |
 | 修改 RealSR 超分逻辑 | `lib/page/setting/real_sr/service/real_sr_super_resolution.dart`、`lib/page/setting/real_sr/real_sr_setting_page.dart`、`rust/src/api/simple.rs` |
-| 修改 Android RealSR 原生依赖 / waifu2x CLI | `script/android/prepare_android_waifu2x_deps.py`、`script/android/build_ncnn_static_android.py`、`script/android/build_waifu2x_cli_android.py`、`android/app/src/main/cpp/waifu2x_cli/`、`lib/page/setting/real_sr/service/real_sr_super_resolution.dart` |
+| 修改 Android RealSR 原生依赖 / waifu2x CLI | `script/android/prepare_android_waifu2x_deps.py`、`script/android/build_ncnn_static_android.py`、`script/android/build_waifu2x_cli_android.py`、`android/app/src/main/cpp/waifu2x_cli/`、`lib/page/setting/real_sr/service/android_upscale_engines.dart` |
+| 修改 Android QNN NPU 超分 | `android/app/src/main/cpp/realsr_qnn/`、`android/app/src/main/kotlin/com/zephyr/breeze/realsr/`、`lib/page/setting/real_sr/service/android_qnn_engine.dart`、`lib/page/setting/real_sr/service/android_qnn_model_config.dart`（模型清单与 `script/models/package_qnn_models.py` 两处同步；带 NPU 的发布构建需 QAIRT SDK，见 §5.3） |
 | 修改桌面端 RealSR 策略/模型选择 | `lib/page/setting/real_sr/service/desktop_ncnn_model_config.dart`、`lib/page/setting/real_sr/service/real_sr_super_resolution.dart`、`lib/page/setting/real_sr/real_sr_setting_page.dart` |
 | 修改 CoreML 超分（iOS/macOS） | `packages/coreml_upscale/`、`lib/debug/coreml_upscale_debug_page.dart`、`script/models/convert_realcugan_coreml.py` |
 | 导入/导出应用数据 | `lib/page/setting/data_backup/`、`rust/src/api/data_backup.rs` |

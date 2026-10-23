@@ -112,6 +112,8 @@ realsr-macos/
 # Android NCNN runtime model package (upload to release hosting, do not commit)
 realsr-android.7z
 
+realsr-qnn-android.7z
+
 # QNN (Qualcomm NPU) FP16 DLC 模型与 manifest（Apache-2.0 上游 mihon_img_upscale
 # 的发布包提取，见 script/models/package_qnn_models.py；用于打 realsr-qnn-android.7z
 # 上传模型托管仓库，不入库）

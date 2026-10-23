@@ -1,5 +1,50 @@
 # 上游同步记录
 
+## Android QNN NPU 超分后端移植（2026-10-24）
+
+来源：[HaoweiLi97/mihon_img_upscale](https://github.com/HaoweiLi97/mihon_img_upscale)
+（Apache-2.0，Mihon fork，v1.3.16 / master@2026-10-21）。上游已实现 Qualcomm
+QNN / HTP NPU 超分后端且在本仓可用 —— 按 §13 口径整体采用上游实现，不另写
+芯片识别与推理。移植面（`android/app/src/main/cpp/realsr_qnn/` 与
+`android/.../kotlin/com/zephyr/breeze/realsr/`，文件头均带来源标注）：
+
+- `qnn_backend.{h,cpp}`：QNN 推理引擎（dlopen `libQnnHtp.so`/`libQnnSystem.so`，
+  分块、padding、FP16/量化 IO、burst 性能配置）。偏离：新增 `scale()` 访问器
+  （上游由 ncnn 对象记账输出倍率；Rossi 无进程内 ncnn 对象，输出位图尺寸取
+  上下文元数据推导值）。
+- `spatial_qnn_runtime.{h,cpp}` + `qnn_context_bridge.cpp`：DLC → context
+  设备端编译（`libQnnModelDlc.so`）。原样（仅 JNI 名随包名调整）。
+- `periodic_texture_guard.h` / `monochrome_guard.h`：网点纹理防护与单色保证。原样。
+- `QualcommHtp.kt` / `QnnModelContexts.kt` / `NpuModelStatus.kt`：HTP 架构探测
+  （v69/73/75/79/81）、上下文缓存（身份 = 缓存版本|运行时版本|模型哈希|HTP 架构|
+  Build.FINGERPRINT|主 ABI）与状态。偏离：DLC 由 APK assets 改为首用时下载
+  （沿用本仓「模型不打包」口径），编译前按 manifest 校验 DLC SHA-256（下载产物
+  不受签名保护）；状态流从 StateFlow 换线程安全快照（Kotlin 侧未引入 coroutines）。
+- `waifu2x_jni.cpp` 的 QNN 路径 → `realsr_qnn_jni.cpp`：只保留 QNN 推理 JNI
+  （上游在同一库内混装 ncnn Vulkan / MediaTek LiteRT / Anime4K；Rossi 的
+  Vulkan 走外部 waifu2x CLI 进程，不需要进程内 ncnn）。
+
+不移植：上游 `ImageEnhancer.kt` / `ImageEnhancementCache.kt` 的调度与缓存
+（Rossi 已有页面优先级调度、`UpscaledImageCache` 与在飞去重，功能是超集）。
+上游失败语义保留：显式选 NPU 失败不回退 Vulkan，报错并保留原图。
+
+模型：上游 15 个 FP16 DLC 中先收两个（`realcugan-se-x2-no-denoise`、
+`realcugan-pro-x2-denoise3x`，padding 均 18），从上游 v1.3.16 发布 APK 提取到
+`third_party/qnn-dlc/`（gitignore），`script/models/package_qnn_models.py` 打成
+`realsr-qnn-android.7z`（4.4 MiB）托管 `HibernalGlow/breeze-binary`；
+manifest.json 的 SHA-256 即完整性判据。
+
+构建口径：QNN 运行时来自 Maven Central `com.qualcomm.qti:qnn-runtime:2.49.0`；
+QAIRT SDK 2.49.0.260730 仅带 NPU 的发布构建需要（`local.properties` 的
+`qnn.sdk.dir`：头文件 + `libQnnModelDlc.so`），无 SDK 时 stub 编译
+（`ROSSI_ENABLE_QNN=0`，运行时如实报不可用）—— 与上游 CI 一致。HTP Skel 库按
+`-PqnnHtpArchitectures`（默认 `69,79`，写 `all` 保留全部）裁剪，默认包约
++121 MB，全架构约 +175 MB。
+
+验证：`flutter analyze` 无新增告警；`flutter test` 全量与 `test/real_sr/`
+34 项通过。未验证项：Android 工程编译（本机无完整 SDK/NDK，留 CI）、真机
+（SM8475 / SM8750）画质与整页耗时对照、模型 7z 上传托管。
+
 ## 2026-10-23
 
 | 来源 | 先前内容基准 | 本次内容基准 |
@@ -450,6 +495,7 @@ SliverList/SliverGrid，避免 shrinkWrap 嵌套网格全量创建。展墙继�
 几何回报，或把装饰图的 cover 与主图的 contain 混为一谈。保留这些失败记录，
 不将本轮定向通过解释为全仓测试通过。
 
+
 ## 标签搜索触发的界面阻塞（2026-10-16）
 
 继续使用 Breeze 的标签动作、搜索请求和历史记录接口；图片休眠与喜欢画师高亮
@@ -635,6 +681,7 @@ egui 输入体系不能用于 Flutter 命中测试。保留现有控制器与延
 验证：悬停控制器与 widget 回归共 28 项通过，覆盖实际 PageCountWidget 顶部/底部
 底板、栏体阴影、按钮点击、滚动透传、本漫覆盖、状态恢复及动画开关下的连续显隐。
 连续显隐测试同时推进模拟时钟与更新页码；尚未实测高负载下的桌面窗口长期运行。
+
 
 ## 阅读泳道返回后的界面更新修正（2026-10-14）
 
