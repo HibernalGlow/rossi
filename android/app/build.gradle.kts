@@ -99,16 +99,30 @@ val stageQnnDlcRuntime = qnnSdkRoot?.let { sdkRoot ->
 }
 
 // HTP Skel/Stub 裁剪：每个架构约 13-19 MB，全部打包约 +55 MB。
+// v68 不在受支持列表（QualcommHtp 只认 69/73/75/79/81），同样进裁剪候选。
 val qnnHtpArchitectures = providers.gradleProperty("qnnHtpArchitectures").orNull ?: "69,79"
-val qnnAllHtpArchitectures = listOf(69, 73, 75, 79, 81)
+val qnnAllHtpArchitectures = listOf(68, 69, 73, 75, 79, 81)
 val qnnKeptHtpArchitectures = if (qnnHtpArchitectures.trim().equals("all", ignoreCase = true)) {
     qnnAllHtpArchitectures
 } else {
     qnnHtpArchitectures.split(',').mapNotNull { it.trim().toIntOrNull() }
 }
-val qnnTrimmedLibraries = qnnAllHtpArchitectures
-    .filter { it !in qnnKeptHtpArchitectures }
-    .flatMap { listOf("lib/**/libQnnHtpV${it}Skel.so", "lib/**/libQnnHtpV${it}Stub.so") }
+val qnnTrimmedLibraries = buildList {
+    // 只用 HTP 一条后端：DSP（v66）与 GPU 后端的库整组剔除（约 -13 MB）。
+    addAll(
+        listOf(
+            "lib/**/libQnnDsp.so",
+            "lib/**/libQnnDspV66Skel.so",
+            "lib/**/libQnnDspV66Stub.so",
+            "lib/**/libQnnGpu.so",
+        ),
+    )
+    addAll(
+        qnnAllHtpArchitectures
+            .filter { it !in qnnKeptHtpArchitectures }
+            .flatMap { listOf("lib/**/libQnnHtpV${it}Skel.so", "lib/**/libQnnHtpV${it}Stub.so") },
+    )
+}
 
 android {
     namespace = "com.zephyr.breeze"

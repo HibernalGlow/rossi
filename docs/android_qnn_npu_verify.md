@@ -22,6 +22,10 @@
   `E0463: can't find crate for core/std` 失败。把钉住的工具链放到 PATH 最前：
   `export PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH"`，
   并按 `hook/build.dart` 报错提示设 `ANDROID_NDK_HOME`。
+- ferrous-opencc 的 `embedded_map.rs` 若引用了已不存在的旧 hook 缓存路径
+  （报 `couldn't read …/build/<hash>/…/out/*.ocb`），把现有 out 目录的
+  `*.ocb` 复制到报错里的那个路径即可继续（本机曾观察到删掉的缓存目录被
+  旧文件"复活"，根因未明——疑似有文件同步工具在还原 `.dart_tool`）。
 
 ## 1. 出带 NPU 的 APK
 
@@ -41,7 +45,8 @@ unzip -l build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | grep -E 'libQ
 
 应看到 `librealsr_qnn.so`、`libQnnHtp.so`、`libQnnSystem.so`、`libQnnModelDlc.so`
 与 V69/V79 的 Skel/Stub；缺 `libQnnModelDlc.so` 说明 SDK 没接上（只影响设备端
-编译上下文，探测仍可用）。
+编译上下文，探测仍可用）。DSP / GPU / V68/V73/V75/V81 的库默认被裁剪
+（`build.gradle.kts` 的 packaging excludes），出现即说明裁剪配置失效。
 
 ## 2. 真机验收清单（每台机器各跑一遍）
 
