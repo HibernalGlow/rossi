@@ -74,9 +74,11 @@ Rossi 在原绑定解析与阅读设置（含本漫稀疏覆盖）上增加薄�
 
 ## 下次同步
 
-Breeze 在 GitButler 中作为内容提交集成，不新增上游 merge parent。因此 Git 的
-`merge-base` 不能代替上表的内容基准；下次三方合并必须以 `68bebb2b` 为 base，
-避免重复应用上次变更。不要覆盖 Rossi 独有接口或其他工作分支。
+截至 2026-10-13，Breeze 的这轮同步作为内容提交集成，没有新增上游 merge parent。
+2026-10-23 已在保留每个提交文件树的前提下，为 10 月 3 日与 10 月 13 日的同步
+恢复上游父节点，并将修复后的历史应用到本地 `main`。当前与 Breeze 上游的
+`merge-base` 已推进到上表的内容基准 `68bebb2b`。后续使用普通 Git，同步时保留
+真实 merge commit 与上游父节点。不要覆盖 Rossi 独有接口或其他工作分支。
 
 mImageViewer 更新 gitlink 后运行 `python3 script/sync_vendored_modules.py`，
 检查所有 `PORTS` 差异并更新 `pinned_at`；同时人工审查未登记的 `path_key`、
