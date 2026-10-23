@@ -13,6 +13,10 @@ import 'package:uuid/uuid.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_info/method/export_comic.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_qnn_engine.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_qnn_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_sr_engine.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_upscale_engines.dart';
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
@@ -40,10 +44,6 @@ import 'package:zephyr/i18n/strings.g.dart';
 ///   或 realcugan-ncnn-vulkan
 class RealSrSuperResolution {
   RealSrSuperResolution._();
-
-  static const MethodChannel _channel = MethodChannel(
-    'realsr_super_resolution',
-  );
 
   /// GitHub 上存放桌面端模型压缩包的仓库。
   static const String _binaryRepoBaseUrl =
@@ -78,13 +78,20 @@ class RealSrSuperResolution {
 
   /// 当前设备是否支持内置超分（包含模型/可执行文件是否已就绪）。
   ///
-  /// - Android：arm64-v8a 且 NCNN 模型已下载并解压（内置 CLI，没有引擎选择）
+  /// - Android：按**当前选中的引擎**判据 —— Vulkan 看内置 CLI 的 NCNN 模型
+  ///   是否下载就绪；QNN NPU 看 HTP 运行时 + 所选 DLC 是否就绪
   /// - 其余平台：按**当前选中的引擎**判据 —— CoreML 看原生模型、mImage ONNX 看
   ///   `.onnx` 文件、桌面 NCNN 看对应可执行文件是否在位
   static Future<bool> get isAvailable async {
     if (Platform.isAndroid) {
       try {
         if (!await isDeviceSupported) return false;
+        final engine = await RealSrSettings.loadAndroidEngine();
+        if (engine == AndroidSuperResolutionEngine.qnnNpu) {
+          final model = await RealSrSettings.loadAndroidQnnModel();
+          return await AndroidQnnEngine.isSupported &&
+              await AndroidQnnEngine.isModelDownloaded(model);
+        }
         return await _isAndroidNcnnAvailable(
           variant: AndroidNcnnModelConfig.variantFor(
             mode: AndroidNcnnModelConfig.defaultMode,
@@ -240,24 +247,52 @@ class RealSrSuperResolution {
       supportsMImageOnnx &&
       RealSrSettings.currentEngine == SuperResolutionEngine.mimageOnnx;
 
+  /// 当前选择的 Android 引擎是否走 QNN NPU（异步路径，真读引擎设置）。
+  static Future<bool> get _usesAndroidQnn async =>
+      Platform.isAndroid &&
+      await RealSrSettings.loadAndroidEngine() ==
+          AndroidSuperResolutionEngine.qnnNpu;
+
+  static bool get _usesAndroidQnnFromSnapshot =>
+      Platform.isAndroid &&
+      RealSrSettings.currentAndroidEngine ==
+          AndroidSuperResolutionEngine.qnnNpu;
+
   /// 当前平台对应的 7z 压缩包文件名。
   static String? get _assetName {
-    if (Platform.isAndroid) return 'realsr-android.7z';
+    if (Platform.isAndroid) {
+      // QNN 引擎的模型包与 NCNN 的分开（不同托管仓库、不同内容）。
+      return _usesAndroidQnnFromSnapshot
+          ? AndroidQnnModelConfig.archiveName
+          : 'realsr-android.7z';
+    }
     if (Platform.isWindows) return 'realsr-win.7z';
     if (Platform.isLinux) return 'realsr-linux.7z';
     return null;
   }
 
+  static Future<String?> get _assetDownloadUrl async {
+    if (await _usesOnnxModel) {
+      final model = await RealSrSettings.loadMImageModel();
+      return '${MImageOnnxModelConfig.baseUrl}/${model.fileName}';
+    }
+    if (await _usesAndroidQnn) return AndroidQnnModelConfig.archiveUrl;
+    final assetName = _assetName;
+    if (assetName == null) return null;
+    return '$_binaryRepoBaseUrl/$assetName';
+  }
+
   /// 当前平台手动下载模型的直链（可在浏览器中打开）。
   ///
   /// - mImage ONNX 引擎：当前选择的模型文件（`.onnx`）
-  /// - Android：`realsr-android.7z`
-  /// - Windows / Linux 的桌面 NCNN 引擎：对应平台的 7z
+  /// - Android QNN 引擎：`realsr-qnn-android.7z`
+  /// - Android Vulkan / Windows / Linux 的桌面 NCNN 引擎：对应平台的 7z
   static String? get manualDownloadUrl {
     if (_usesOnnxModelFromSnapshot) {
       final model = RealSrSettings.currentMImageModel;
       return '${MImageOnnxModelConfig.baseUrl}/${model.fileName}';
     }
+    if (_usesAndroidQnnFromSnapshot) return AndroidQnnModelConfig.archiveUrl;
     final assetName = _assetName;
     if (assetName == null) return null;
     return '$_binaryRepoBaseUrl/$assetName';
@@ -426,6 +461,29 @@ class RealSrSuperResolution {
     }
 
     if (Platform.isAndroid) {
+      // QNN 引擎要的是 `qnn/<model>.dlc` + manifest；Vulkan 引擎要的是 NCNN 模型目录。
+      if (await _usesAndroidQnn) {
+        final model = await RealSrSettings.loadAndroidQnnModel();
+        final dlcPath = p.join(
+          extractedRoot.path,
+          AndroidQnnModelConfig.dlcDirName,
+          '${model.id}.dlc',
+        );
+        if (!File(dlcPath).existsSync()) {
+          return t.realSr.missingQnnModel(file: '${model.id}.dlc');
+        }
+        if (!File(
+          p.join(
+            extractedRoot.path,
+            AndroidQnnModelConfig.dlcDirName,
+            'manifest.json',
+          ),
+        ).existsSync()) {
+          return t.realSr.missingQnnManifest;
+        }
+        return null;
+      }
+
       final variant = AndroidNcnnModelConfig.variantFor(
         mode: AndroidNcnnModelConfig.defaultMode,
         noise: AndroidNcnnModelConfig.defaultNoise,
@@ -539,7 +597,10 @@ class RealSrSuperResolution {
       throw UnsupportedError('当前平台不支持下载 RealSR 模型');
     }
 
-    final url = '$_binaryRepoBaseUrl/$assetName';
+    final url = await _assetDownloadUrl;
+    if (url == null) {
+      throw UnsupportedError('当前平台不支持下载 RealSR 模型');
+    }
     final cachePath = await getCachePath();
     final archivePath = p.join(cachePath, assetName);
     final destDir = await _modelDirectory;
@@ -1033,17 +1094,37 @@ class RealSrSuperResolution {
 
       try {
         if (Platform.isAndroid) {
-          final variant = AndroidNcnnModelConfig.variantFor(
-            mode: AndroidNcnnModelConfig.defaultMode,
-            noise: AndroidNcnnModelConfig.defaultNoise,
-          );
-          expectedScale = variant.scale;
-          await _upscaleAndroidCli(
-            inputPath: pngInputPath,
-            outputPath: out,
-            variant: variant,
-            tileSize: tileSize,
-          );
+          final engine = await RealSrSettings.loadAndroidEngine();
+          final modelRoot = await _modelDirectory;
+          if (engine == AndroidSuperResolutionEngine.qnnNpu) {
+            final model = await RealSrSettings.loadAndroidQnnModel();
+            expectedScale = model.scale;
+            SuperResolutionLog.add(
+              '开始推理：引擎=QNN NPU；模型=${model.label}（原生 ${model.scale}×）',
+            );
+            // NPU 上下文跨页常驻（原生侧缓存），记一笔账，退出阅读器时由
+            // SrSessionGuard 交还。
+            SrSessionGuard.markQnnHeld();
+            expectedScale = await AndroidUpscaleEngines.upscaleAndroidQnn(
+              inputPath: pngInputPath,
+              outputPath: out,
+              model: model,
+              modelRoot: modelRoot,
+            );
+          } else {
+            final variant = AndroidNcnnModelConfig.variantFor(
+              mode: AndroidNcnnModelConfig.defaultMode,
+              noise: AndroidNcnnModelConfig.defaultNoise,
+            );
+            expectedScale = variant.scale;
+            await AndroidUpscaleEngines.upscaleAndroidVulkanCli(
+              inputPath: pngInputPath,
+              outputPath: out,
+              variant: variant,
+              tileSize: tileSize,
+              modelRoot: modelRoot,
+            );
+          }
         } else if (profile != null &&
             profile.engine != SuperResolutionEngine.desktopNcnn) {
           expectedScale = profile.scale;
@@ -1148,62 +1229,6 @@ class RealSrSuperResolution {
       );
       return true;
     });
-  }
-
-  /// Android 通过 bundled waifu2x CLI 超分。
-  static Future<void> _upscaleAndroidCli({
-    required String inputPath,
-    required String outputPath,
-    required NcnnModelVariant variant,
-    required int tileSize,
-  }) async {
-    final exePath = await _prepareAndroidCli();
-    final modelRoot = await _modelDirectory;
-    final modelPath = p.join(modelRoot, variant.modelDir);
-
-    final result = await Process.run(
-      exePath,
-      [
-        '-i',
-        inputPath,
-        '-o',
-        outputPath,
-        '-s',
-        variant.scale.toString(),
-        '-n',
-        variant.noise.toString(),
-        '-m',
-        modelPath,
-        '-g',
-        '0',
-        '-t',
-        tileSize.toString(),
-      ],
-      runInShell: false,
-      workingDirectory: modelRoot,
-    );
-
-    if (result.exitCode != 0) {
-      throw StateError(
-        'waifu2x CLI 失败 (exitCode=${result.exitCode})\n'
-        'stdout: ${result.stdout}\n'
-        'stderr: ${result.stderr}',
-      );
-    }
-  }
-
-  static String? _androidCliPath;
-
-  /// 获取 APK 中 bundled 的 waifu2x CLI 路径（位于 nativeLibraryDir）。
-  static Future<String> _prepareAndroidCli() async {
-    if (_androidCliPath != null) return _androidCliPath!;
-
-    final path = await _channel.invokeMethod<String>('getWaifu2xCliPath');
-    if (path == null || path.isEmpty) {
-      throw StateError('getWaifu2xCliPath returned empty path');
-    }
-    _androidCliPath = path;
-    return path;
   }
 
   /// mImage ONNX 推理：Apple 走 CoreML EP，Windows 走 DirectML EP，其余平台是

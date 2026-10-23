@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_qnn_model_config.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_sr_engine.dart';
 import 'package:zephyr/util/coreml_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/mimage_onnx_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/model/super_resolution_condition.dart';
@@ -233,6 +235,8 @@ class RealSrSettings {
   static const _keyCoreMLVariant = 'realsr_coreml_variant';
   static const _keyAndroidNcnnMode = 'realsr_android_ncnn_mode';
   static const _keyAndroidNcnnNoise = 'realsr_android_ncnn_noise';
+  static const _keyAndroidEngine = 'realsr_android_engine';
+  static const _keyAndroidQnnModel = 'realsr_android_qnn_model';
   static const _keyDesktopNcnnMode = 'realsr_desktop_ncnn_mode';
   static const _keyDesktopNcnnNoise = 'realsr_desktop_ncnn_noise';
   static const _keyScale = 'realsr_scale';
@@ -461,6 +465,47 @@ class RealSrSettings {
     await prefs.setString(_keyAndroidNcnnNoise, value.name);
   }
 
+  /// Android 使用的超分引擎（Vulkan CLI / QNN NPU），默认 Vulkan。
+  ///
+  /// 引擎快照与 [currentEngine] 同理：`manualDownloadUrl` 这类同步 getter
+  /// 需要它来决定给哪个下载链接。
+  static AndroidSuperResolutionEngine _currentAndroidEngine =
+      defaultAndroidSuperResolutionEngine;
+  static AndroidSuperResolutionEngine get currentAndroidEngine =>
+      _currentAndroidEngine;
+
+  static Future<AndroidSuperResolutionEngine> loadAndroidEngine() async {
+    final prefs = await SharedPreferences.getInstance();
+    _currentAndroidEngine =
+        androidEngineById(prefs.getString(_keyAndroidEngine)) ??
+        defaultAndroidSuperResolutionEngine;
+    return _currentAndroidEngine;
+  }
+
+  static Future<void> saveAndroidEngine(
+    AndroidSuperResolutionEngine value,
+  ) async {
+    _currentAndroidEngine = value;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_keyAndroidEngine) == value.id) return;
+    await prefs.setString(_keyAndroidEngine, value.id);
+    notifyChanges();
+  }
+
+  /// Android QNN 引擎使用的 NPU 模型，默认 SE 2x 无降噪。
+  static Future<AndroidQnnModel> loadAndroidQnnModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return AndroidQnnModelConfig.byId(prefs.getString(_keyAndroidQnnModel)) ??
+        AndroidQnnModelConfig.defaultModel;
+  }
+
+  static Future<void> saveAndroidQnnModel(AndroidQnnModel value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_keyAndroidQnnModel) == value.id) return;
+    await prefs.setString(_keyAndroidQnnModel, value.id);
+    notifyChanges();
+  }
+
   /// 桌面端（Windows / Linux）使用的 NCNN 超分模式。
   static Future<AndroidNcnnMode> loadDesktopNcnnMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -526,15 +571,29 @@ class RealSrSettings {
   ///
   /// 指纹一律由**引擎**决定而不是平台决定：Windows/Linux 现在两种引擎都有，
   /// 按平台分叉会让 `loadProfile().cacheKey` 与这里算出两个值。
-  static Future<String> loadCacheKey() async {
-    if (hasSuperResolutionEngineChoice) {
+  static Future<String> loadCacheKey() =>
+      loadCacheKeyFor(isAndroid: Platform.isAndroid);
+
+  /// 纯判据版：[isAndroid] 显式传入，桌面机器也能验证 Android 分支
+  /// （与 [availableThresholdsFor] 同一理由）。
+  static Future<String> loadCacheKeyFor({required bool isAndroid}) async {
+    if (!isAndroid && hasSuperResolutionEngineChoice) {
       return (await loadProfile()).cacheKey;
     }
-    // Android：内置 waifu2x CLI，没有引擎选择，指纹仍由 NCNN 模式/降噪/倍率决定。
-    final mode = await loadAndroidNcnnMode();
-    final noise = await loadAndroidNcnnNoise();
-    final scale = await loadScale();
-    return '${mode.name}_noise${noise.noise}_${scale.value}x';
+    if (isAndroid) {
+      // QNN 引擎的指纹由 NPU 模型决定；Vulkan 分支的指纹格式保持逐字节不变，
+      // 否则已有超分缓存整体作废。
+      final engine = await loadAndroidEngine();
+      if (engine == AndroidSuperResolutionEngine.qnnNpu) {
+        final model = await loadAndroidQnnModel();
+        return 'qnn_${model.id}';
+      }
+      final mode = await loadAndroidNcnnMode();
+      final noise = await loadAndroidNcnnNoise();
+      final scale = await loadScale();
+      return '${mode.name}_noise${noise.noise}_${scale.value}x';
+    }
+    return '';
   }
 
   static Future<bool> loadConditionalEnabled() async {
@@ -626,8 +685,14 @@ class RealSrSettings {
           break;
       }
     } else if (Platform.isAndroid) {
-      final mode = await loadAndroidNcnnMode();
-      defaultModelId = mode.name;
+      final engine = await loadAndroidEngine();
+      if (engine == AndroidSuperResolutionEngine.qnnNpu) {
+        final model = await loadAndroidQnnModel();
+        defaultModelId = 'qnn:${model.id}';
+      } else {
+        final mode = await loadAndroidNcnnMode();
+        defaultModelId = mode.name;
+      }
     }
 
     return SuperResolutionPolicyPreferences(

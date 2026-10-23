@@ -10,6 +10,7 @@ import 'package:zephyr/page/setting/real_sr/service/android_ncnn_model_config.da
 import 'package:zephyr/page/setting/real_sr/service/desktop_ncnn_model_config.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
+import 'package:zephyr/page/setting/real_sr/widgets/android_engine_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/real_sr_model_management_section.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/super_resolution_engine_settings.dart';
 import 'package:zephyr/page/setting/real_sr/widgets/upscale_conditions_card.dart';
@@ -153,13 +154,8 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
     }
 
     if (Platform.isAndroid) {
-      return [
-        ListTile(
-          leading: const GlyphIcon(AppGlyphs.info),
-          title: Text(t.realSr.androidSuperResolution),
-          subtitle: Text(t.realSr.androidSuperResolutionSubtitle),
-        ),
-      ];
+      // 引擎选择（Vulkan CLI / QNN NPU）与 NPU 模型准备状态在独立组件里。
+      return const [AndroidEngineSettings()];
     }
 
     // Windows / Linux：选了 mImage ONNX 就只留引擎面板（它自带模型的下载与导入），
