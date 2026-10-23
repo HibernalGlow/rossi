@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:zephyr/util/json/json_value.dart';
 
 // need-login 错误只携带插件身份与提示文案。
@@ -11,6 +11,22 @@ class UnauthorizedPayload {
 
   final String pluginId;
   final String message;
+}
+
+/// suppressNeedLoginEvent 为 true 时抛出的结构化登录错误。
+///
+/// 调用方用 `is` 判断即可，无需二次解析；文案直接透传。
+class PluginUnauthorizedException implements Exception {
+  const PluginUnauthorizedException({
+    required this.pluginId,
+    required this.message,
+  });
+
+  final String pluginId;
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 /// 从插件调用抛出的错误里嗅探「登录态失效」载荷。

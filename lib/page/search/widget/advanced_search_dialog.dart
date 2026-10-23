@@ -79,10 +79,10 @@ class _AdvancedSearchDialogState extends State<AdvancedSearchDialog> {
   }
 
   Widget _buildSourceRow() {
-    final pluginStates = context.watch<PluginRegistryCubit>().state;
+    final registry = context.watch<PluginRegistryCubit>().state;
     final sources = PluginRegistryService.I.sortPlugins(
       filterRestrictedPlugins(
-        pluginStates.values.where(
+        registry.plugins.values.where(
           (plugin) => plugin.isEnabled && !plugin.isDeleted,
         ),
         showRestricted: context
@@ -95,14 +95,9 @@ class _AdvancedSearchDialogState extends State<AdvancedSearchDialog> {
     return Wrap(
       spacing: 8,
       children: sources.map((plugin) {
-        final info = PluginRegistryService.I.getCachedPluginInfo(plugin.uuid);
-        final name = info?['name']?.toString().trim();
+        final name = registry.pluginName(plugin.uuid);
         return ChoiceChip(
-          label: Text(
-            (name?.isNotEmpty == true ? name! : plugin.uuid).let(
-              convertChineseForDisplay,
-            ),
-          ),
+          label: Text(name.let(convertChineseForDisplay)),
           selected: _tempState.from == plugin.uuid,
           onSelected: (selected) {
             if (selected) {

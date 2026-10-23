@@ -55,8 +55,6 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   downloadDelayMs: (json['downloadDelayMs'] as num?)?.toInt() ?? 150,
   downloadAutoRetryCount:
       (json['downloadAutoRetryCount'] as num?)?.toInt() ?? 3,
-  oldPageRollbackEnabled: json['oldPageRollbackEnabled'] as bool? ?? false,
-  cloudFavoritePreferred: json['cloudFavoritePreferred'] as bool? ?? false,
   autoFollowOnCollect: json['autoFollowOnCollect'] as bool? ?? false,
   autoFavoriteOnDownload: json['autoFavoriteOnDownload'] as bool? ?? false,
   writeDownloadMetadataFile:
@@ -201,8 +199,6 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'downloadTaskConcurrency': instance.downloadTaskConcurrency,
       'downloadDelayMs': instance.downloadDelayMs,
       'downloadAutoRetryCount': instance.downloadAutoRetryCount,
-      'oldPageRollbackEnabled': instance.oldPageRollbackEnabled,
-      'cloudFavoritePreferred': instance.cloudFavoritePreferred,
       'autoFollowOnCollect': instance.autoFollowOnCollect,
       'autoFavoriteOnDownload': instance.autoFavoriteOnDownload,
       'writeDownloadMetadataFile': instance.writeDownloadMetadataFile,
@@ -734,6 +730,8 @@ _BookshelfSettingState _$BookshelfSettingStateFromJson(
   historySort: json['historySort'] as String? ?? 'dd',
   rememberDownloadSort: json['rememberDownloadSort'] as bool? ?? false,
   downloadSort: json['downloadSort'] as String? ?? 'dd',
+  detailLayout: json['detailLayout'] as bool? ?? false,
+  reverseChapters: json['reverseChapters'] as bool? ?? false,
   shelfCardContextMenu: json['shelfCardContextMenu'] as bool? ?? true,
 );
 
@@ -747,6 +745,8 @@ Map<String, dynamic> _$BookshelfSettingStateToJson(
   'historySort': instance.historySort,
   'rememberDownloadSort': instance.rememberDownloadSort,
   'downloadSort': instance.downloadSort,
+  'detailLayout': instance.detailLayout,
+  'reverseChapters': instance.reverseChapters,
   'shelfCardContextMenu': instance.shelfCardContextMenu,
 };
 

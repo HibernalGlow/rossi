@@ -115,6 +115,37 @@ class AppearanceSettingPage extends StatelessWidget {
               ),
             ],
           ),
+          // 上游 12e71104f：详情布局 / 章节倒序两个开关落进外观页（本仓块结构版）。
+          SettingGroup(
+            title: t.settings.bookshelf,
+            icon: AppGlyphs.columnsThree,
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.columnsThree),
+                title: Text(t.settings.detailLayout),
+                subtitle: Text(t.settings.detailLayoutSubtitle),
+                value: state.bookshelfSetting.detailLayout,
+                onChanged: (value) {
+                  cubit.updateBookshelfSetting(
+                    (current) => current.copyWith(detailLayout: value),
+                  );
+                  showSuccessToast(t.common.settingSaved);
+                },
+              ),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.sort),
+                title: Text(t.settings.reverseChapters),
+                subtitle: Text(t.settings.reverseChaptersSubtitle),
+                value: state.bookshelfSetting.reverseChapters,
+                onChanged: (value) {
+                  cubit.updateBookshelfSetting(
+                    (current) => current.copyWith(reverseChapters: value),
+                  );
+                  showSuccessToast(t.common.settingSaved);
+                },
+              ),
+            ],
+          ),
           const SizedBox(height: 32),
         ],
       ),

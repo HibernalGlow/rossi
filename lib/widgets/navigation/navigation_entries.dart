@@ -3,7 +3,7 @@
 // 一条「条目」有两种：
 //
 // - **页面**（[NavigationEntryIdX.isPage]）：切过去就换当前视图 ——
-//   书架 / 发现 / 更多，以及「旧版页面」开关打开时的旧首页 / 旧排行；
+//   插件首页 / 云收藏 / 书架 / 发现 / 更多；
 // - **动作**（[NavigationEntryIdX.isAction]）：点一下推一条路由，**不换当前
 //   视图** —— 工作台 / 打开本地漫画 / GPU 上屏 / 搜索 / 自定义导航。
 //
@@ -36,8 +36,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/bookshelf/bookshelf.dart';
 import 'package:zephyr/page/discover/view/discover_page.dart';
 import 'package:zephyr/page/more/view/more.dart';
-import 'package:zephyr/page/old_page/old_home/old_home_page.dart';
-import 'package:zephyr/page/old_page/old_ranking/old_ranking_page.dart';
+import 'package:zephyr/page/plugin_home/plugin_home.dart';
 
 /// 能放进导航栏的一条**条目**：页面或动作。
 ///
@@ -51,11 +50,13 @@ import 'package:zephyr/page/old_page/old_ranking/old_ranking_page.dart';
 /// 不占位），而不是把整份清单判成坏数据。
 enum NavigationEntryId {
   // ── 页面：切过去就换当前视图 ──
+  // 插件首页 / 云收藏是上游「老页面插件化」的复活形态（原 oldHome / oldRank
+  // 两条已随 OldHomePage / OldRankingPage 一起删除）。
+  pluginHome,
+  pluginCloudFavorite,
   bookshelf,
   discover,
   more,
-  oldHome,
-  oldRank,
 
   // ── 动作：点一下推一条路由，不换当前视图 ──
   workspace,
@@ -90,11 +91,11 @@ extension NavigationEntryIdX on NavigationEntryId {
   bool get isPage => !isAction;
 
   String get label => switch (this) {
+    NavigationEntryId.pluginHome => t.navigation.home,
+    NavigationEntryId.pluginCloudFavorite => t.oldHome.cloudFavorite,
     NavigationEntryId.bookshelf => t.navigation.bookshelf,
     NavigationEntryId.discover => t.navigation.discover,
     NavigationEntryId.more => t.navigation.more,
-    NavigationEntryId.oldHome => t.navigation.home,
-    NavigationEntryId.oldRank => t.navigation.rank,
     NavigationEntryId.workspace => t.navigation.workspace,
     NavigationEntryId.openLocalComic => t.navigation.openLocalComic,
     NavigationEntryId.gpuPresent => t.navigation.gpuPresent,
@@ -121,19 +122,19 @@ extension NavigationEntryIdX on NavigationEntryId {
   ///
   /// 这套图标是从 FlClash 整份搬来的（`lib/icons/app_glyphs.dart`），
   /// 里面没有「书本」「指南针」这种书站专属图形，所以这里挑的是**语义最近**的：
+  /// - 插件首页 → `dashboard`：四宫格；
+  /// - 云收藏 → `cloud`：云朵；
   /// - 书架 → `columnsThree`：一格格的封面网格；
   /// - 发现 → `target`：一圈准星，读作「去找」；
-  /// - 更多 → `appsList`：一列带点的小方片，正是「更多」页那张功能清单；
-  /// - 旧首页 → `dashboard`：四宫格；
-  /// - 旧排行 → `sort`：三条递减的横线，读作「排名」。
+  /// - 更多 → `appsList`：一列带点的小方片，正是「更多」页那张功能清单。
   ///
   /// 想换图形只改这一处 —— 侧栏与 Dock 都从这里取，不存在两边不一致的可能。
   Glyph get glyph => switch (this) {
+    NavigationEntryId.pluginHome => AppGlyphs.dashboard,
+    NavigationEntryId.pluginCloudFavorite => AppGlyphs.cloud,
     NavigationEntryId.bookshelf => AppGlyphs.columnsThree,
     NavigationEntryId.discover => AppGlyphs.target,
     NavigationEntryId.more => AppGlyphs.appsList,
-    NavigationEntryId.oldHome => AppGlyphs.dashboard,
-    NavigationEntryId.oldRank => AppGlyphs.sort,
     // 动作那几个沿用侧栏底部原本配的图形。
     NavigationEntryId.workspace => AppGlyphs.layoutTabs,
     NavigationEntryId.openLocalComic => AppGlyphs.importFile,
@@ -141,10 +142,6 @@ extension NavigationEntryIdX on NavigationEntryId {
     NavigationEntryId.search => AppGlyphs.search,
     NavigationEntryId.customizeNavigation => AppGlyphs.sliders,
   };
-
-  /// 这一条是否只属于「旧版首页」那套（`oldPageRollbackEnabled` 打开时才存在）。
-  bool get legacyOnly =>
-      this == NavigationEntryId.oldHome || this == NavigationEntryId.oldRank;
 
   /// 关掉新版导航壳之后，退回的旧布局（`NavigationRail` 的
   /// `NavigationRailDestination` 与 `PersistentTabView` 的底栏项）用的是
@@ -158,11 +155,11 @@ extension NavigationEntryIdX on NavigationEntryId {
   /// 动作条目在旧版**移动**布局里不出现（`PersistentTabView` 只认得页面），
   /// 这里给它们配图标只是为了那个 switch 完整 —— 免得将来有人加条目时忘掉。
   Glyph get legacyIcon => switch (this) {
+    NavigationEntryId.pluginHome => AppGlyphs.home,
+    NavigationEntryId.pluginCloudFavorite => AppGlyphs.cloud,
     NavigationEntryId.bookshelf => AppGlyphs.book,
     NavigationEntryId.discover => AppGlyphs.compass,
     NavigationEntryId.more => AppGlyphs.apps,
-    NavigationEntryId.oldHome => AppGlyphs.home,
-    NavigationEntryId.oldRank => AppGlyphs.trophy,
     NavigationEntryId.workspace => AppGlyphs.gridPlus,
     NavigationEntryId.openLocalComic => AppGlyphs.folder,
     NavigationEntryId.gpuPresent => AppGlyphs.storage,
@@ -171,11 +168,11 @@ extension NavigationEntryIdX on NavigationEntryId {
   };
 
   Glyph get legacySelectedIcon => switch (this) {
+    NavigationEntryId.pluginHome => AppGlyphs.home,
+    NavigationEntryId.pluginCloudFavorite => AppGlyphs.cloud,
     NavigationEntryId.bookshelf => AppGlyphs.book,
     NavigationEntryId.discover => AppGlyphs.compass,
     NavigationEntryId.more => AppGlyphs.apps,
-    NavigationEntryId.oldHome => AppGlyphs.home,
-    NavigationEntryId.oldRank => AppGlyphs.trophy,
     NavigationEntryId.workspace => AppGlyphs.gridPlus,
     NavigationEntryId.openLocalComic => AppGlyphs.folder,
     NavigationEntryId.gpuPresent => AppGlyphs.storage,
@@ -184,11 +181,11 @@ extension NavigationEntryIdX on NavigationEntryId {
   };
 
   Widget build() => switch (this) {
+    NavigationEntryId.pluginHome => const PluginHomePage(),
+    NavigationEntryId.pluginCloudFavorite => const PluginCloudFavoritePage(),
     NavigationEntryId.bookshelf => const BookshelfPage(),
     NavigationEntryId.discover => const DiscoverPage(),
     NavigationEntryId.more => const MorePage(),
-    NavigationEntryId.oldHome => const OldHomePage(),
-    NavigationEntryId.oldRank => const OldRankingPage(),
     // 动作不是视图。切页栈按条目对齐（`IndexedStack` 的下标 = 清单下标），
     // 所以给它留一个空的格子 —— 它永远不是选中项，没人会看见这个盒子。
     NavigationEntryId.workspace ||
@@ -207,20 +204,13 @@ extension NavigationEntryIdX on NavigationEntryId {
 /// 同时也就保住了「导航栏总能指回一个视图」这条。
 const int kMinNavigationPageCount = 2;
 
-/// 出厂清单（不含旧版页面）。
+/// 出厂清单（顺序与上游固定五标签一致：插件首页 / 云收藏 / 书架 / 发现 / 更多）。
 ///
 /// **不含动作**：动作默认留在底部快捷区，与改造前一致 —— 于是开箱观感不变，
 /// 而想把它摆到主区上的人自己去「自定义导航」里拖。
 const List<NavigationEntryId> kDefaultNavigationEntries = [
-  NavigationEntryId.bookshelf,
-  NavigationEntryId.discover,
-  NavigationEntryId.more,
-];
-
-/// 出厂清单（含旧版页面），顺序与改造前 `_buildPageList` 的拼接顺序一致。
-const List<NavigationEntryId> kDefaultNavigationEntriesWithLegacy = [
-  NavigationEntryId.oldHome,
-  NavigationEntryId.oldRank,
+  NavigationEntryId.pluginHome,
+  NavigationEntryId.pluginCloudFavorite,
   NavigationEntryId.bookshelf,
   NavigationEntryId.discover,
   NavigationEntryId.more,
@@ -244,24 +234,18 @@ const List<NavigationEntryId> kDefaultNavigationActionEntries = [
 /// 动作不去按平台过滤：底部快捷区本来就在所有「有侧栏」的设备上摆着同样
 /// 几条，这里保持一致（真按平台收，会变成「桌面加得进去、平板加不进去」
 /// 这种更难解释的差别）。
-List<NavigationEntryId> availableNavigationEntries(
-  bool oldPageRollbackEnabled,
-) => [
-  for (final id in NavigationEntryId.values)
-    if (oldPageRollbackEnabled || !id.legacyOnly) id,
+List<NavigationEntryId> availableNavigationEntries() => [
+  for (final id in NavigationEntryId.values) id,
 ];
 
-/// 出厂清单，随「旧版页面」开关变化。
-List<NavigationEntryId> defaultNavigationEntries(bool oldPageRollbackEnabled) =>
-    oldPageRollbackEnabled
-    ? kDefaultNavigationEntriesWithLegacy
-    : kDefaultNavigationEntries;
+/// 出厂清单（主区）。
+List<NavigationEntryId> defaultNavigationEntries() => kDefaultNavigationEntries;
 
 /// 底部快捷区的出厂清单，只取这台设备**可选**的那些。
 ///
-/// 与 [defaultNavigationEntries] 分开：那一个要随「旧版页面」开关变（旧首页 /
-/// 旧排行只在开关打开时存在），而这一段全是动作、没有开关依赖。过滤一次
-/// [allowed] 只是防御 —— 调用方本来就该传同一份 `allowed`。
+/// 与 [defaultNavigationEntries] 分开：那一个是页面的出厂顺序，而这一段全是
+/// 动作、没有页面依赖。过滤一次 [allowed] 只是防御 —— 调用方本来就该传同一
+/// 份 `allowed`。
 List<NavigationEntryId> defaultNavigationActions(
   List<NavigationEntryId> allowed,
 ) => [
@@ -285,8 +269,8 @@ List<String> encodeNavigationEntryIds(List<NavigationEntryId> ids) => [
 ///    **视图**可指，否则「当前页」无处落脚 —— 动作点了不换页，一屏动作等于
 ///    没有导航。
 ///
-/// [allowed] 之外的 id 也丢掉：关掉「旧版页面」之后，清单里残留的
-/// 旧首页 / 旧排行不该继续占着位置。
+/// [allowed] 之外的 id 也丢掉：老清单里已删除的页面（旧首页 / 旧排行）残留的
+/// id 不该继续占着位置。
 List<NavigationEntryId> decodeNavigationEntryIds(
   List<String> raw, {
   required List<NavigationEntryId> fallback,

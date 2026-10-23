@@ -6,6 +6,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/discover/cubit/discover_cubit.dart';
 import 'package:zephyr/page/discover/widgets/plugin_function_chips.dart';
+import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
@@ -17,7 +18,8 @@ class PluginCard extends StatelessWidget {
     super.key,
     required this.pluginUuid,
     required this.pluginState,
-    required this.infoState,
+    required this.info,
+    this.error,
     required this.isToggling,
     required this.onSearch,
     required this.onSettings,
@@ -28,7 +30,12 @@ class PluginCard extends StatelessWidget {
 
   final String pluginUuid;
   final PluginRuntimeState pluginState;
-  final DiscoverPluginInfoState infoState;
+
+  /// 全局 cubit 的 infos[uuid]：null 表示尚未加载（后台 warmup 会补上）。
+  final Map<String, dynamic>? info;
+
+  /// 全局 cubit 的 infoErrors[uuid]：有值表示最近一次 getInfo 失败。
+  final String? error;
   final bool isToggling;
   final VoidCallback onSearch;
   final void Function(String title) onSettings;
@@ -38,13 +45,14 @@ class PluginCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (infoState.loading) {
+    final data = info;
+    if (data == null) {
+      if (error != null) {
+        return _buildError(context, error);
+      }
       return _buildLoading(context);
     }
-    if (infoState.error != null || infoState.data == null) {
-      return _buildError(context, infoState.error);
-    }
-    return _buildLoaded(context, infoState.data!);
+    return _buildLoaded(context, data);
   }
 
   Widget _buildLoading(BuildContext context) {

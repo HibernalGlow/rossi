@@ -3842,18 +3842,6 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后进入应用需要验证'
 	String get appLockSubtitle => '开启后进入应用需要验证';
 
-	/// zh-CN: '旧版首页'
-	String get oldPageRollback => '旧版首页';
-
-	/// zh-CN: '开启后使用旧版首页布局'
-	String get oldPageRollbackSubtitle => '开启后使用旧版首页布局';
-
-	/// zh-CN: '优先云端收藏'
-	String get cloudFavoritePreferred => '优先云端收藏';
-
-	/// zh-CN: '开启后漫画信息页的收藏按钮将执行云端收藏，原云端收藏菜单项切换为本地收藏'
-	String get cloudFavoritePreferredSubtitle => '开启后漫画信息页的收藏按钮将执行云端收藏，原云端收藏菜单项切换为本地收藏';
-
 	/// zh-CN: '收藏自动追更'
 	String get autoFollowOnCollect => '收藏自动追更';
 
@@ -3959,6 +3947,18 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '打开后，导出的文件夹或 zip 里会额外带一张封面图（导出时要现场再取一次封面）。默认关：产物里只有该导的页和两份信息 JSON，封面仍按 JSON 里的地址在线显示'
 	String get exportIncludeCoverSubtitle => '打开后，导出的文件夹或 zip 里会额外带一张封面图（导出时要现场再取一次封面）。默认关：产物里只有该导的页和两份信息 JSON，封面仍按 JSON 里的地址在线显示';
 
+	/// zh-CN: '详情布局'
+	String get detailLayout => '详情布局';
+
+	/// zh-CN: '开启后漫画列表显示为横排详情样式，含作者与分类信息'
+	String get detailLayoutSubtitle => '开启后漫画列表显示为横排详情样式，含作者与分类信息';
+
+	/// zh-CN: '章节倒序'
+	String get reverseChapters => '章节倒序';
+
+	/// zh-CN: '开启后漫画详情页章节默认倒序显示'
+	String get reverseChaptersSubtitle => '开启后漫画详情页章节默认倒序显示';
+
 	/// zh-CN: '存储'
 	String get storage => '存储';
 
@@ -3985,9 +3985,6 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '包含下载的漫画'
 	String get includeDownloaded => '包含下载的漫画';
-
-	/// zh-CN: '导出时一并打包已下载的漫画文件'
-	String get includeDownloadedSubtitle => '导出时一并打包已下载的漫画文件';
 
 	/// zh-CN: '导出数据'
 	String get exportData => '导出数据';
@@ -4960,6 +4957,9 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '动作'
 	String get operationBindingRadialActionLabel => '动作';
+
+	/// zh-CN: '导出时一并打包已下载的漫画文件'
+	String get includeDownloadedSubtitle => '导出时一并打包已下载的漫画文件';
 }
 
 // Path: bookshelf
@@ -5080,6 +5080,9 @@ class Translations$bookshelf$zh_CN {
 
 	/// zh-CN: '已选择 $count 项'
 	String selectedCount({required Object count}) => '已选择 ${count} 项';
+
+	/// zh-CN: '$count 本'
+	String folderComicCount({required Object count}) => '${count} 本';
 
 	/// zh-CN: '选择目标文件夹（可多选）'
 	String get selectTargetFolder => '选择目标文件夹（可多选）';
@@ -5303,17 +5306,11 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '导出漫画'
 	String get exportComic => '导出漫画';
 
-	/// zh-CN: '收藏到云端'
-	String get collectToCloud => '收藏到云端';
+	/// zh-CN: '云收藏'
+	String get cloudCollect => '云收藏';
 
-	/// zh-CN: '取消云端收藏'
-	String get removeCloudCollection => '取消云端收藏';
-
-	/// zh-CN: '收藏到本地'
-	String get collectToLocal => '收藏到本地';
-
-	/// zh-CN: '取消本地收藏'
-	String get removeLocalCollection => '取消本地收藏';
+	/// zh-CN: '已云收藏'
+	String get cloudCollected => '已云收藏';
 
 	/// zh-CN: '该插件暂不支持此功能'
 	String get cloudCollectDisabled => '该插件暂不支持此功能';
@@ -5321,14 +5318,17 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '收藏到云端中...'
 	String get collectingToCloud => '收藏到云端中...';
 
-	/// zh-CN: '取消云端收藏中...'
-	String get removingCloudCollection => '取消云端收藏中...';
+	/// zh-CN: '取消云收藏中...'
+	String get removingCloudCollection => '取消云收藏中...';
 
-	/// zh-CN: '云端收藏成功'
-	String get cloudCollectSuccess => '云端收藏成功';
+	/// zh-CN: '云收藏成功'
+	String get cloudCollectSuccess => '云收藏成功';
 
-	/// zh-CN: '已取消云端收藏'
-	String get cloudUncollectSuccess => '已取消云端收藏';
+	/// zh-CN: '已取消云收藏'
+	String get cloudUncollectSuccess => '已取消云收藏';
+
+	/// zh-CN: '云收藏操作未完成'
+	String get cloudCollectIncomplete => '云收藏操作未完成';
 
 	/// zh-CN: '此漫画已下架'
 	String get discontinued => '此漫画已下架';
@@ -5620,6 +5620,18 @@ class Translations$comicInfo$zh_CN {
 
 	/// zh-CN: '无法解析阅读章节数: $type'
 	String resolveEpsCountFailed({required Object type}) => '无法解析阅读章节数: ${type}';
+
+	/// zh-CN: '收藏到云端'
+	String get collectToCloud => '收藏到云端';
+
+	/// zh-CN: '收藏到本地'
+	String get collectToLocal => '收藏到本地';
+
+	/// zh-CN: '取消云端收藏'
+	String get removeCloudCollection => '取消云端收藏';
+
+	/// zh-CN: '取消本地收藏'
+	String get removeLocalCollection => '取消本地收藏';
 }
 
 // Path: reader
@@ -8690,6 +8702,84 @@ class Translations$realSr$zh_CN {
 	/// zh-CN: '当前使用 waifu2x upconv 动漫模型，2 倍放大'
 	String get androidSuperResolutionSubtitle => '当前使用 waifu2x upconv 动漫模型，2 倍放大';
 
+	/// zh-CN: '超分引擎'
+	String get androidEngine => '超分引擎';
+
+	/// zh-CN: 'Android 上选择超分推理后端'
+	String get androidEngineSubtitle => 'Android 上选择超分推理后端';
+
+	/// zh-CN: 'Vulkan（waifu2x CLI）'
+	String get androidEngineVulkan => 'Vulkan（waifu2x CLI）';
+
+	/// zh-CN: 'ncnn + Vulkan GPU，兼容所有 Android 设备'
+	String get androidEngineVulkanSubtitle => 'ncnn + Vulkan GPU，兼容所有 Android 设备';
+
+	/// zh-CN: 'NPU（Qualcomm QNN）'
+	String get androidEngineQnnNpu => 'NPU（Qualcomm QNN）';
+
+	/// zh-CN: 'Hexagon HTP NPU 推理，骁龙 8 系专属（实验阶段）'
+	String get androidEngineQnnNpuSubtitle => 'Hexagon HTP NPU 推理，骁龙 8 系专属（实验阶段）';
+
+	/// zh-CN: 'NPU 后端处于实验阶段：失败时保留原图并显示原因，不会静默退回 Vulkan'
+	String get androidEngineQnnExperimental => 'NPU 后端处于实验阶段：失败时保留原图并显示原因，不会静默退回 Vulkan';
+
+	/// zh-CN: 'NPU 模型'
+	String get qnnModel => 'NPU 模型';
+
+	/// zh-CN: 'Real-CUGAN FP16 模型，2 倍放大'
+	String get qnnModelSubtitle => 'Real-CUGAN FP16 模型，2 倍放大';
+
+	/// zh-CN: 'Real-CUGAN SE 2×（无降噪）'
+	String get qnnModelSeX2NoDenoise => 'Real-CUGAN SE 2×（无降噪）';
+
+	/// zh-CN: 'Real-CUGAN Pro 2×（降噪 3 档）'
+	String get qnnModelProX2Denoise3x => 'Real-CUGAN Pro 2×（降噪 3 档）';
+
+	/// zh-CN: '正在检测 NPU…'
+	String get qnnProbing => '正在检测 NPU…';
+
+	/// zh-CN: '检测到 Qualcomm HTP $arch，NPU 可用'
+	String qnnSupported({required Object arch}) => '检测到 Qualcomm HTP ${arch}，NPU 可用';
+
+	/// zh-CN: '首次使用会在设备上编译模型上下文（约 1-2 秒）并缓存'
+	String get qnnSupportedSubtitle => '首次使用会在设备上编译模型上下文（约 1-2 秒）并缓存';
+
+	/// zh-CN: '此设备的 NPU 不可用'
+	String get qnnUnsupported => '此设备的 NPU 不可用';
+
+	/// zh-CN: '未检测到受支持的 Qualcomm HTP 运行时（或本包为不含 NPU 支持的构建）'
+	String get qnnUnsupportedSubtitle => '未检测到受支持的 Qualcomm HTP 运行时（或本包为不含 NPU 支持的构建）';
+
+	/// zh-CN: '检测到 HTP $arch，但本包未收录该架构的运行库'
+	String qnnUnsupportedArchSubtitle({required Object arch}) => '检测到 HTP ${arch}，但本包未收录该架构的运行库';
+
+	/// zh-CN: '上下文未准备'
+	String get qnnIdle => '上下文未准备';
+
+	/// zh-CN: '下载模型后点「准备」编译 NPU 上下文；阅读时也会自动准备'
+	String get qnnIdleSubtitle => '下载模型后点「准备」编译 NPU 上下文；阅读时也会自动准备';
+
+	/// zh-CN: '正在编译 NPU 上下文…'
+	String get qnnPreparing => '正在编译 NPU 上下文…';
+
+	/// zh-CN: 'NPU 上下文已就绪'
+	String get qnnReady => 'NPU 上下文已就绪';
+
+	/// zh-CN: 'NPU 上下文准备失败'
+	String get qnnFailed => 'NPU 上下文准备失败';
+
+	/// zh-CN: '准备'
+	String get qnnPrepare => '准备';
+
+	/// zh-CN: '重试'
+	String get qnnRetry => '重试';
+
+	/// zh-CN: '缺少 NPU 模型文件 $file'
+	String missingQnnModel({required Object file}) => '缺少 NPU 模型文件 ${file}';
+
+	/// zh-CN: '缺少 NPU 模型清单 manifest.json'
+	String get missingQnnManifest => '缺少 NPU 模型清单 manifest.json';
+
 	/// zh-CN: '超分策略'
 	String get desktopStrategy => '超分策略';
 
@@ -9005,8 +9095,8 @@ class Translations$oldHome$zh_CN {
 	/// zh-CN: '最新'
 	String get latest => '最新';
 
-	/// zh-CN: '云端收藏'
-	String get cloudFavorite => '云端收藏';
+	/// zh-CN: '云收藏'
+	String get cloudFavorite => '云收藏';
 
 	/// zh-CN: '列表'
 	String get list => '列表';
@@ -9608,11 +9698,17 @@ class Translations$comicFollow$zh_CN {
 	/// zh-CN: '追更更新'
 	String get updateTitle => '追更更新';
 
-	/// zh-CN: '有 1 部追更漫画更新了'
-	String get updateBodySingle => '有 1 部追更漫画更新了';
+	/// zh-CN: '有 1 部漫画更新'
+	String get updatedComicsSingle => '有 1 部漫画更新';
+
+	/// zh-CN: '有 $count 部漫画更新'
+	String updatedComicsMultiple({required Object count}) => '有 ${count} 部漫画更新';
 
 	/// zh-CN: '有 $count 部追更漫画更新了'
 	String updateBodyMultiple({required Object count}) => '有 ${count} 部追更漫画更新了';
+
+	/// zh-CN: '有 1 部追更漫画更新了'
+	String get updateBodySingle => '有 1 部追更漫画更新了';
 }
 
 // Path: changelog
@@ -12113,10 +12209,6 @@ extension on Translations {
 			'settings.exitApp' => '退出',
 			'settings.appLock' => '应用锁',
 			'settings.appLockSubtitle' => '开启后进入应用需要验证',
-			'settings.oldPageRollback' => '旧版首页',
-			'settings.oldPageRollbackSubtitle' => '开启后使用旧版首页布局',
-			'settings.cloudFavoritePreferred' => '优先云端收藏',
-			'settings.cloudFavoritePreferredSubtitle' => '开启后漫画信息页的收藏按钮将执行云端收藏，原云端收藏菜单项切换为本地收藏',
 			'settings.autoFollowOnCollect' => '收藏自动追更',
 			'settings.autoFollowOnCollectSubtitle' => '开启后收藏漫画时将自动加入追更列表',
 			'settings.autoFavoriteOnDownload' => '下载自动收藏',
@@ -12152,6 +12244,10 @@ extension on Translations {
 			'settings.customExportPath' => '自定义导出路径',
 			'settings.exportIncludeCover' => '导出包含封面图',
 			'settings.exportIncludeCoverSubtitle' => '打开后，导出的文件夹或 zip 里会额外带一张封面图（导出时要现场再取一次封面）。默认关：产物里只有该导的页和两份信息 JSON，封面仍按 JSON 里的地址在线显示',
+			'settings.detailLayout' => '详情布局',
+			'settings.detailLayoutSubtitle' => '开启后漫画列表显示为横排详情样式，含作者与分类信息',
+			'settings.reverseChapters' => '章节倒序',
+			'settings.reverseChaptersSubtitle' => '开启后漫画详情页章节默认倒序显示',
 			'settings.storage' => '存储',
 			'settings.cache' => '缓存',
 			'settings.clearCache' => '清理缓存',
@@ -12161,7 +12257,6 @@ extension on Translations {
 			'settings.dataBackup' => '本地导入/导出',
 			'settings.dataBackupSubtitle' => '通过 ZIP 在移动端与桌面端迁移设置和数据，保留本机专属配置',
 			'settings.includeDownloaded' => '包含下载的漫画',
-			'settings.includeDownloadedSubtitle' => '导出时一并打包已下载的漫画文件',
 			'settings.exportData' => '导出数据',
 			'settings.importData' => '导入数据',
 			'settings.imageProcessing' => '图片处理',
@@ -12411,9 +12506,9 @@ extension on Translations {
 			'settings.readerHoverFocusEnable' => '启用 Reader 悬停重新聚焦',
 			'settings.revealFocusesLane' => '呼出泳道后自动聚焦',
 			'settings.revealFocusesLaneSubtitle' => '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。',
+			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
 			_ => null,
 		} ?? switch (path) {
-			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
 			'settings.panelLaneHoverFocusSubtitle' => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。',
 			'settings.delayRangeHint' => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。',
 			'settings.hoverRevealZones' => '悬停唤出区',
@@ -12488,6 +12583,7 @@ extension on Translations {
 			'settings.operationBindingRadialPickHint' => '点轮盘上的一格来选它；空格会画成 +',
 			'settings.operationBindingRadialEmptySlotRow' => '（空格）',
 			'settings.operationBindingRadialActionLabel' => '动作',
+			'settings.includeDownloadedSubtitle' => '导出时一并打包已下载的漫画文件',
 			'bookshelf.collectedWorks' => '藏书',
 			'bookshelf.readingNow' => '正在阅读',
 			'bookshelf.unreadWorks' => '未读作品',
@@ -12525,6 +12621,7 @@ extension on Translations {
 			'bookshelf.deleteSelected' => '删除选中',
 			'bookshelf.cancel' => '取消选择',
 			'bookshelf.selectedCount' => ({required Object count}) => '已选择 ${count} 项',
+			'bookshelf.folderComicCount' => ({required Object count}) => '${count} 本',
 			'bookshelf.selectTargetFolder' => '选择目标文件夹（可多选）',
 			'bookshelf.confirmDeleteFolderTitle' => '确认删除',
 			'bookshelf.confirmDeleteFolderContent' => '确定要删除该文件夹吗？文件夹内的内容会被递归删除。',
@@ -12596,15 +12693,14 @@ extension on Translations {
 			'comicInfo.follow' => '加入追更',
 			'comicInfo.unfollow' => '不再追更',
 			'comicInfo.exportComic' => '导出漫画',
-			'comicInfo.collectToCloud' => '收藏到云端',
-			'comicInfo.removeCloudCollection' => '取消云端收藏',
-			'comicInfo.collectToLocal' => '收藏到本地',
-			'comicInfo.removeLocalCollection' => '取消本地收藏',
+			'comicInfo.cloudCollect' => '云收藏',
+			'comicInfo.cloudCollected' => '已云收藏',
 			'comicInfo.cloudCollectDisabled' => '该插件暂不支持此功能',
 			'comicInfo.collectingToCloud' => '收藏到云端中...',
-			'comicInfo.removingCloudCollection' => '取消云端收藏中...',
-			'comicInfo.cloudCollectSuccess' => '云端收藏成功',
-			'comicInfo.cloudUncollectSuccess' => '已取消云端收藏',
+			'comicInfo.removingCloudCollection' => '取消云收藏中...',
+			'comicInfo.cloudCollectSuccess' => '云收藏成功',
+			'comicInfo.cloudUncollectSuccess' => '已取消云收藏',
+			'comicInfo.cloudCollectIncomplete' => '云收藏操作未完成',
 			'comicInfo.discontinued' => '此漫画已下架',
 			'comicInfo.likes' => ({required Object count}) => '点赞 ${count}',
 			'comicInfo.comments' => ({required Object count}) => '评论 ${count}',
@@ -12702,6 +12798,10 @@ extension on Translations {
 			'comicInfo.confirmAdd' => '确定添加',
 			'comicInfo.resolveComicIdFailed' => ({required Object type}) => '无法解析阅读 comicId: ${type}',
 			'comicInfo.resolveEpsCountFailed' => ({required Object type}) => '无法解析阅读章节数: ${type}',
+			'comicInfo.collectToCloud' => '收藏到云端',
+			'comicInfo.collectToLocal' => '收藏到本地',
+			'comicInfo.removeCloudCollection' => '取消云端收藏',
+			'comicInfo.removeLocalCollection' => '取消本地收藏',
 			'reader.switchBookFailed' => ({required Object error}) => '切换书籍失败：${error}',
 			'reader.pageDecodeFailed' => ({required Object n}) => '第 ${n} 页没能解出来',
 			'reader.cannotOpenPath' => ({required Object path}) => '打不开：${path}',
@@ -12921,12 +13021,12 @@ extension on Translations {
 			'reader.pageOrderSource' => '图源顺序（插件/归档给的顺序）',
 			'reader.imageProcessing' => '图像处理',
 			'reader.readback' => '回读',
+			_ => null,
+		} ?? switch (path) {
 			'reader.backend' => '后端',
 			'reader.onlyThisBookAskFirst' => '只影响这本书；模型未下载，开启时会先问一句',
 			'reader.onlyThisBookGlobalOthers' => '只影响这本书，其它书仍按全局设置',
 			'reader.onlyThisComicUpscaleOwn' => '只影响当前漫画；超分由它自己的开关决定',
-			_ => null,
-		} ?? switch (path) {
 			'reader.twoPagesIndependent' => '双页独立',
 			'reader.twoPageModeTap' => '双页模式（点击切为单页）',
 			'reader.twoPages' => '双页',
@@ -13435,12 +13535,12 @@ extension on Translations {
 			'ocr.baseUrlHint' => 'https://api.deepseek.com/v1 或 http://127.0.0.1:11434/v1',
 			'ocr.baseUrlNone' => '未配置',
 			'ocr.model' => '模型名',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.modelHint' => '例如 deepseek-chat、qwen2.5:14b',
 			'ocr.apiKey' => 'API Key',
 			'ocr.apiKeySubtitle' => '只存本机设置，不进导出文件；本机 Ollama 可留空',
 			'ocr.targetLanguage' => '目标语言',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.glossary' => '术语表',
 			'ocr.glossarySubtitle' => '每行一条「原文=译文」；改动会让已生成的成品页重译',
 			'ocr.glossaryHint' => 'トカゲ=石龙子',
@@ -13699,6 +13799,32 @@ extension on Translations {
 			'realSr.blockInfoFormat' => ({required Object contentSize, required Object blockSize, required Object shrinkSize}) => '内容块 ${contentSize}×${contentSize}，模型输入 ${blockSize}×${blockSize}（含 ${shrinkSize}px 反射边距）',
 			'realSr.androidSuperResolution' => 'Android 超分',
 			'realSr.androidSuperResolutionSubtitle' => '当前使用 waifu2x upconv 动漫模型，2 倍放大',
+			'realSr.androidEngine' => '超分引擎',
+			'realSr.androidEngineSubtitle' => 'Android 上选择超分推理后端',
+			'realSr.androidEngineVulkan' => 'Vulkan（waifu2x CLI）',
+			'realSr.androidEngineVulkanSubtitle' => 'ncnn + Vulkan GPU，兼容所有 Android 设备',
+			'realSr.androidEngineQnnNpu' => 'NPU（Qualcomm QNN）',
+			'realSr.androidEngineQnnNpuSubtitle' => 'Hexagon HTP NPU 推理，骁龙 8 系专属（实验阶段）',
+			'realSr.androidEngineQnnExperimental' => 'NPU 后端处于实验阶段：失败时保留原图并显示原因，不会静默退回 Vulkan',
+			'realSr.qnnModel' => 'NPU 模型',
+			'realSr.qnnModelSubtitle' => 'Real-CUGAN FP16 模型，2 倍放大',
+			'realSr.qnnModelSeX2NoDenoise' => 'Real-CUGAN SE 2×（无降噪）',
+			'realSr.qnnModelProX2Denoise3x' => 'Real-CUGAN Pro 2×（降噪 3 档）',
+			'realSr.qnnProbing' => '正在检测 NPU…',
+			'realSr.qnnSupported' => ({required Object arch}) => '检测到 Qualcomm HTP ${arch}，NPU 可用',
+			'realSr.qnnSupportedSubtitle' => '首次使用会在设备上编译模型上下文（约 1-2 秒）并缓存',
+			'realSr.qnnUnsupported' => '此设备的 NPU 不可用',
+			'realSr.qnnUnsupportedSubtitle' => '未检测到受支持的 Qualcomm HTP 运行时（或本包为不含 NPU 支持的构建）',
+			'realSr.qnnUnsupportedArchSubtitle' => ({required Object arch}) => '检测到 HTP ${arch}，但本包未收录该架构的运行库',
+			'realSr.qnnIdle' => '上下文未准备',
+			'realSr.qnnIdleSubtitle' => '下载模型后点「准备」编译 NPU 上下文；阅读时也会自动准备',
+			'realSr.qnnPreparing' => '正在编译 NPU 上下文…',
+			'realSr.qnnReady' => 'NPU 上下文已就绪',
+			'realSr.qnnFailed' => 'NPU 上下文准备失败',
+			'realSr.qnnPrepare' => '准备',
+			'realSr.qnnRetry' => '重试',
+			'realSr.missingQnnModel' => ({required Object file}) => '缺少 NPU 模型文件 ${file}',
+			'realSr.missingQnnManifest' => '缺少 NPU 模型清单 manifest.json',
 			'realSr.desktopStrategy' => '超分策略',
 			'realSr.desktopStrategySubtitle' => '效率优先使用 waifu2x，质量优先使用 Real-CUGAN',
 			'realSr.desktopNoiseLevel' => '降噪级别',
@@ -13798,7 +13924,7 @@ extension on Translations {
 			'oldHome.navigation' => '导航',
 			'oldHome.recommend' => '推荐',
 			'oldHome.latest' => '最新',
-			'oldHome.cloudFavorite' => '云端收藏',
+			'oldHome.cloudFavorite' => '云收藏',
 			'oldHome.list' => '列表',
 			'oldHome.function' => '功能',
 			'oldHome.close' => '关闭',
@@ -13923,6 +14049,8 @@ extension on Translations {
 			'comicEntry.deleteFavorite' => '删除收藏',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => '确定要删除（${title}）的收藏记录吗？',
 			'comicEntry.deleteHistory' => '删除历史记录',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => '确定要删除（${title}）的历史记录吗？',
 			'comicEntry.deleteDownload' => '删除下载记录',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => '确定要删除（${title}）的下载记录及文件吗？',
@@ -13953,8 +14081,6 @@ extension on Translations {
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => '最新：${count} 话 / ${chapter}',
 			'comicFollow.noUnread' => '暂无已更新未看内容',
 			'comicFollow.showAll' => '显示全部',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.latestChapterFailed' => '最新章节获取失败',
 			'comicFollow.newChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话，共 ${total} 话',
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '新增 ${diff} 话未阅读，共 ${total} 话',
@@ -13980,8 +14106,10 @@ extension on Translations {
 			'comicFollow.updateChannelName' => '漫画更新提醒',
 			'comicFollow.updateChannelDesc' => '追更漫画检测到新章节时推送',
 			'comicFollow.updateTitle' => '追更更新',
-			'comicFollow.updateBodySingle' => '有 1 部追更漫画更新了',
+			'comicFollow.updatedComicsSingle' => '有 1 部漫画更新',
+			'comicFollow.updatedComicsMultiple' => ({required Object count}) => '有 ${count} 部漫画更新',
 			'comicFollow.updateBodyMultiple' => ({required Object count}) => '有 ${count} 部追更漫画更新了',
+			'comicFollow.updateBodySingle' => '有 1 部追更漫画更新了',
 			'changelog.title' => '更新日志',
 			'changelog.loadFailed' => '加载失败',
 			'changelog.loadFailedWithError' => ({required Object error}) => '加载失败: ${error}',

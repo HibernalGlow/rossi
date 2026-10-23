@@ -134,8 +134,8 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: PluginSettingsRoute.page),
     AutoRoute(page: PluginDetailRoute.page),
     AutoRoute(page: PluginFunctionRoute.page),
-    AutoRoute(page: OldHomeRoute.page),
-    AutoRoute(page: OldRankingRoute.page),
+    AutoRoute(page: PluginHomeRoute.page),
+    AutoRoute(page: PluginCloudFavoriteRoute.page),
     AutoRoute(page: MoreRoute.page),
     AutoRoute(page: QjsRuntimeDebugRoute.page),
     CustomRoute(

@@ -99,6 +99,14 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
     // 压平的 `tags` 里分不清画师与上传者（e-hentai 插件给的正是 category + uploader），
     // 所以喜欢画师匹配另走两个桶，命名空间判定只认 `FavoriteArtistBuckets`。
     final buckets = favoriteArtistBuckets;
+    // 上游详情行（web 风横排）数据：作者 + 元信息行，从 secondaryText 拆。
+    final detailLines = secondaryText.trim().isEmpty
+        ? <String>[]
+        : secondaryText
+              .split('  ')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
     return ComicSimplifyEntryInfo(
       title: title,
       id: id,
@@ -110,6 +118,8 @@ abstract class UnifiedComicListItem with _$UnifiedComicListItem {
       tags: collectedTags,
       artistTags: buckets.artistTags,
       circleTags: buckets.circleTags,
+      author: primaryText.trim(),
+      metadata: detailLines,
     );
   }
 }

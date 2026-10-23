@@ -19,8 +19,13 @@ import 'package:zephyr/util/worker_isolate.dart';
 import 'package:zephyr/page/bookshelf/bloc/folder_shelf_event.dart';
 import 'package:zephyr/page/bookshelf/bloc/folder_shelf_state.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
-export 'folder_shelf_event.dart';
-export 'folder_shelf_state.dart';
+export 'package:zephyr/page/bookshelf/bloc/folder_shelf_event.dart';
+export 'package:zephyr/page/bookshelf/bloc/folder_shelf_state.dart';
+
+/// 测试钩：widget/集成测试里把 worker isolate 的 ObjectBox 指向测试临时目录，
+/// 使其 attach 到主 isolate 已打开的测试库。默认 null，走正常应用目录。
+/// 仅测试赋值，生产代码保持 null。
+String? debugShelfDbRootPath;
 
 class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
   FolderShelfBloc({required ShelfPageMode mode})
@@ -69,6 +74,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
         'keyword': search?.keyword ?? '',
         'sort': search?.sort ?? 'dd',
         'sources': search?.sources ?? const <String>[],
+        'dbRootPath': debugShelfDbRootPath,
       };
       final result = await workerManager.execute<Map<String, dynamic>>(
         () => _runFolderShelfLoadTask(payload, token),
@@ -82,6 +88,9 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       emit(
         state.copyWith(
           folders: result['folders'] as List<ComicFolder>,
+          folderComicCounts:
+              (result['folderComicCounts'] as Map?)?.cast<String, int>() ??
+              const <String, int>{},
           comics: result['comics'] as List<ComicSimplifyEntryInfo>,
           comicSearchTexts:
               (result['comicSearchTexts'] as Map?)?.cast<String, String>() ??
@@ -396,7 +405,9 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
   try {
     ensureWorkerIsolateInitialized(token);
     await initRustLib(silent: true);
-    objectbox = await ObjectBox.create();
+    objectbox = await ObjectBox.create(
+      dbRootPath: payload['dbRootPath'] as String?,
+    );
 
     final mode = ShelfPageMode.values.byName(payload['mode'] as String);
     final folderType = FolderShelfBloc._toFolderType(mode);
@@ -469,7 +480,6 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
             folderType,
             sortAscending: sortAscending,
           );
-
     final comics = <ComicSimplifyEntryInfo>[];
     final comicSearchTexts = <String, String>{};
     final seenKeys = <String>{};
@@ -507,6 +517,37 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
         comicSearchTexts.keys.where((key) => !readKeys.contains(key)),
       );
     }
+    // 文件夹直属漫画数：详情行副标题用。key 是显示路径（与 page 侧 folderPathOf 一致）。
+    final folderComicCounts = <String, int>{};
+    if (!isSearching) {
+      final bySyncId = <String, ComicFolder>{
+        for (final folder in folders) folder.syncId: folder,
+      };
+      String folderPathOf(ComicFolder folder) {
+        final parts = <String>[];
+        final visited = <String>{};
+        ComicFolder? current = folder;
+        while (current != null) {
+          if (current.syncId.isNotEmpty && !visited.add(current.syncId)) break;
+          parts.add(current.name);
+          final parentId = current.parentSyncId;
+          if (parentId == null || parentId.isEmpty) break;
+          current = bySyncId[parentId];
+        }
+        return '/${parts.reversed.join('/')}';
+      }
+
+      final pathBySyncId = <String, String>{
+        for (final folder in folders) folder.syncId: folderPathOf(folder),
+      };
+      for (final link in links) {
+        final folderSyncId = link.folderSyncId;
+        if (folderSyncId == null || folderSyncId.isEmpty) continue;
+        final path = pathBySyncId[folderSyncId];
+        if (path == null) continue;
+        folderComicCounts[path] = (folderComicCounts[path] ?? 0) + 1;
+      }
+    }
     if (sortByViewTime) {
       _sortShelfItemsByViewTime(
         comics,
@@ -521,6 +562,7 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
       'comics': comics,
       'comicSearchTexts': comicSearchTexts,
       'unreadComicKeys': unreadComicKeys,
+      'folderComicCounts': folderComicCounts,
     };
   } catch (e) {
     return {
@@ -529,6 +571,7 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
       'comics': <ComicSimplifyEntryInfo>[],
       'comicSearchTexts': <String, String>{},
       'unreadComicKeys': <String>[],
+      'folderComicCounts': <String, int>{},
     };
   }
 }

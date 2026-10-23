@@ -69,8 +69,6 @@ void main() {
           downloadDelayMs: 200,
           downloadAutoRetryCount: 4,
           autoFavoriteOnDownload: true,
-          oldPageRollbackEnabled: true,
-          cloudFavoritePreferred: true,
           autoFollowOnCollect: true,
           leftHandModeEnabled: true,
           clickCoverToStartReading: true,
@@ -101,8 +99,6 @@ void main() {
         expect(library['downloadDelayMs'], 200);
         expect(library['downloadAutoRetryCount'], 4);
         expect(library['autoFavoriteOnDownload'], isTrue);
-        expect(library['oldPageRollbackEnabled'], isTrue);
-        expect(library['cloudFavoritePreferred'], isTrue);
         expect(library['autoFollowOnCollect'], isTrue);
         expect(library['leftHandModeEnabled'], isTrue);
         expect(library['clickCoverToStartReading'], isTrue);

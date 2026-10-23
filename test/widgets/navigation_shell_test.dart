@@ -251,7 +251,7 @@ void main() {
           home: CustomNavigationDialog(
             desktop: initial,
             mobile: initial,
-            availableItems: availableNavigationEntries(false),
+            availableItems: availableNavigationEntries(),
             onChanged: (next, _) => desktop = next,
           ),
         ),
@@ -320,7 +320,7 @@ void main() {
           home: CustomNavigationDialog(
             desktop: initial,
             mobile: initial,
-            availableItems: availableNavigationEntries(false),
+            availableItems: availableNavigationEntries(),
             onChanged: (_, _) {},
           ),
         ),

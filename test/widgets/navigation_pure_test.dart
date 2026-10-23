@@ -77,7 +77,7 @@ void main() {
   group('条目身份', () {
     test('页面与动作分得开，且每一条都有唯一的持久化名字', () {
       expect(NavigationEntryId.bookshelf.isPage, isTrue);
-      expect(NavigationEntryId.oldRank.isPage, isTrue);
+      expect(NavigationEntryId.pluginCloudFavorite.isPage, isTrue);
       expect(NavigationEntryId.workspace.isAction, isTrue);
       expect(NavigationEntryId.search.isAction, isTrue);
       // 「自定义导航」以前是侧栏底部写死的按钮，现在是一条普通动作 ——
@@ -96,27 +96,29 @@ void main() {
       }
     });
 
-    test('旧版页面那两条仍然只属于旧版那一套', () {
-      expect(NavigationEntryId.oldHome.legacyOnly, isTrue);
-      expect(NavigationEntryId.oldRank.legacyOnly, isTrue);
-      expect(NavigationEntryId.workspace.legacyOnly, isFalse);
+    test('旧版页面已删除：枚举里不再有 oldHome / oldRank', () {
+      final names = [for (final id in NavigationEntryId.values) id.name];
+      expect(names, isNot(contains('oldHome')));
+      expect(names, isNot(contains('oldRank')));
     });
   });
 
   group('主区清单', () {
-    final allowed = availableNavigationEntries(false);
-    final allowedWithLegacy = availableNavigationEntries(true);
-    final fallback = defaultNavigationEntries(false);
+    final allowed = availableNavigationEntries();
+    final fallback = defaultNavigationEntries();
 
-    test('出厂口径：主区三条页面；可选全集 = 三条页面 + 五个动作', () {
+    test('出厂口径：主区五条页面（与上游固定五标签同序）；可选全集 = 五页 + 五动作', () {
       expect(fallback, [
+        NavigationEntryId.pluginHome,
+        NavigationEntryId.pluginCloudFavorite,
         NavigationEntryId.bookshelf,
         NavigationEntryId.discover,
         NavigationEntryId.more,
       ]);
-      // 全集是**枚举顺序**（= 「待添加」列表的顺序），不是出厂清单的顺序：
-      // 出厂清单把旧首页 / 旧排行摆在前头，而待添加列表先给新版三页再给动作。
+      // 全集是**枚举顺序**（= 「待添加」列表的顺序），不是出厂清单的顺序。
       expect(allowed, [
+        NavigationEntryId.pluginHome,
+        NavigationEntryId.pluginCloudFavorite,
         NavigationEntryId.bookshelf,
         NavigationEntryId.discover,
         NavigationEntryId.more,
@@ -125,23 +127,6 @@ void main() {
         NavigationEntryId.gpuPresent,
         NavigationEntryId.search,
         NavigationEntryId.customizeNavigation,
-      ]);
-      expect(allowedWithLegacy, [
-        NavigationEntryId.bookshelf,
-        NavigationEntryId.discover,
-        NavigationEntryId.more,
-        NavigationEntryId.oldHome,
-        NavigationEntryId.oldRank,
-        NavigationEntryId.workspace,
-        NavigationEntryId.openLocalComic,
-        NavigationEntryId.gpuPresent,
-        NavigationEntryId.search,
-        NavigationEntryId.customizeNavigation,
-      ]);
-      expect(defaultNavigationEntries(true), [
-        NavigationEntryId.oldHome,
-        NavigationEntryId.oldRank,
-        ...fallback,
       ]);
       // 动作默认**不进主区**：开箱观感与改造前一致，动作留在底部快捷区。
       expect(fallback.where((id) => id.isAction), isEmpty);
@@ -158,7 +143,7 @@ void main() {
       );
     });
 
-    test('关掉旧版页面之后，清单里残留的旧页不再占位', () {
+    test('已删除页面的残留 id 不再占位', () {
       expect(
         resolveNavigationEntryIds(
           stored: ['oldHome', 'bookshelf', 'oldRank'],
@@ -166,7 +151,7 @@ void main() {
           fallback: fallback,
         ),
         [NavigationEntryId.bookshelf],
-        reason: 'allowed 之外的一律丢掉，否则关掉开关后旧页还在侧栏上',
+        reason: 'allowed 之外的一律丢掉，删除的旧页不该还在侧栏上',
       );
     });
 
@@ -222,11 +207,11 @@ void main() {
       );
       expect(
         decodeNavigationEntryIds(
-          encodeNavigationEntryIds(allowedWithLegacy),
-          allowed: allowedWithLegacy,
+          encodeNavigationEntryIds(allowed),
+          allowed: allowed,
           fallback: fallback,
         ),
-        allowedWithLegacy,
+        allowed,
       );
     });
 
@@ -306,7 +291,7 @@ void main() {
   });
 
   group('底部快捷区清单', () {
-    final allowed = availableNavigationEntries(false);
+    final allowed = availableNavigationEntries();
     final fallback = defaultNavigationActions(allowed);
 
     test('出厂：与改造前侧栏底部那块逐条一致，只多一条「自定义导航」', () {

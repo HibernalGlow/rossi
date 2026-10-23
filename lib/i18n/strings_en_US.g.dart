@@ -1362,10 +1362,6 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get exitApp => 'Exit';
 	@override String get appLock => 'App lock';
 	@override String get appLockSubtitle => 'Require verification when entering the app';
-	@override String get oldPageRollback => 'Old home page';
-	@override String get oldPageRollbackSubtitle => 'Use old home page layout';
-	@override String get cloudFavoritePreferred => 'Prefer cloud favorites';
-	@override String get cloudFavoritePreferredSubtitle => 'When enabled, the favorite button on the comic info page performs cloud collection, and the original cloud collection menu item switches to local collection';
 	@override String get autoFollowOnCollect => 'Auto-follow on collect';
 	@override String get autoFollowOnCollectSubtitle => 'Automatically add comics to the follow list when favorited';
 	@override String get autoFavoriteOnDownload => 'Auto-favorite on download';
@@ -1401,6 +1397,10 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get customExportPath => 'Custom export path';
 	@override String get exportIncludeCover => 'Include cover image in export';
 	@override String get exportIncludeCoverSubtitle => 'When on, the exported folder or zip also carries a cover image, fetched again at export time. Off by default: the artifact holds the pages plus the two info JSON files, and the cover is still shown online from the URL in that JSON';
+	@override String get detailLayout => 'Detail layout';
+	@override String get detailLayoutSubtitle => 'Show comic lists as horizontal detail rows with author and category info';
+	@override String get reverseChapters => 'Reverse chapters';
+	@override String get reverseChaptersSubtitle => 'Show chapters in reverse order by default on the detail page';
 	@override String get storage => 'Storage';
 	@override String get cache => 'Cache';
 	@override String get clearCache => 'Clear cache';
@@ -1781,6 +1781,7 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String get deleteSelected => 'Delete selected';
 	@override String get cancel => 'Cancel selection';
 	@override String selectedCount({required Object count}) => 'Selected ${count} items';
+	@override String folderComicCount({required Object count}) => '${count} items';
 	@override String get selectTargetFolder => 'Select target folders (multiple)';
 	@override String get confirmDeleteFolderTitle => 'Confirm delete';
 	@override String get confirmDeleteFolderContent => 'Delete this folder? Contents will be deleted recursively.';
@@ -1861,15 +1862,14 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get follow => 'Follow updates';
 	@override String get unfollow => 'Unfollow';
 	@override String get exportComic => 'Export comic';
-	@override String get collectToCloud => 'Collect to cloud';
-	@override String get removeCloudCollection => 'Remove cloud collection';
-	@override String get collectToLocal => 'Collect locally';
-	@override String get removeLocalCollection => 'Remove local collection';
+	@override String get cloudCollect => 'Cloud collect';
+	@override String get cloudCollected => 'Cloud collected';
 	@override String get cloudCollectDisabled => 'This plugin does not support this feature';
 	@override String get collectingToCloud => 'Adding to cloud collection...';
 	@override String get removingCloudCollection => 'Removing cloud collection...';
 	@override String get cloudCollectSuccess => 'Added to cloud collection';
 	@override String get cloudUncollectSuccess => 'Removed from cloud collection';
+	@override String get cloudCollectIncomplete => 'Cloud collection operation incomplete';
 	@override String get discontinued => 'This comic is discontinued';
 	@override String likes({required Object count}) => 'Likes ${count}';
 	@override String comments({required Object count}) => 'Comments ${count}';
@@ -1967,6 +1967,10 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get confirmAdd => 'Confirm add';
 	@override String resolveComicIdFailed({required Object type}) => 'Cannot resolve comic ID for reading: ${type}';
 	@override String resolveEpsCountFailed({required Object type}) => 'Cannot resolve episode count for reading: ${type}';
+	@override String get collectToCloud => 'Collect to cloud';
+	@override String get collectToLocal => 'Collect locally';
+	@override String get removeCloudCollection => 'Remove cloud collection';
+	@override String get removeLocalCollection => 'Remove local collection';
 }
 
 // Path: reader
@@ -3050,6 +3054,32 @@ class _Translations$realSr$en_US extends Translations$realSr$zh_CN {
 	@override String blockInfoFormat({required Object contentSize, required Object blockSize, required Object shrinkSize}) => 'Content block ${contentSize}×${contentSize}, model input ${blockSize}×${blockSize} (with ${shrinkSize}px reflection padding)';
 	@override String get androidSuperResolution => 'Android Super-Resolution';
 	@override String get androidSuperResolutionSubtitle => 'Currently uses waifu2x upconv anime model, 2x upscale';
+	@override String get androidEngine => 'Upscale engine';
+	@override String get androidEngineSubtitle => 'Choose the Android super-resolution backend';
+	@override String get androidEngineVulkan => 'Vulkan (waifu2x CLI)';
+	@override String get androidEngineVulkanSubtitle => 'ncnn + Vulkan GPU, works on all Android devices';
+	@override String get androidEngineQnnNpu => 'NPU (Qualcomm QNN)';
+	@override String get androidEngineQnnNpuSubtitle => 'Hexagon HTP NPU inference, Snapdragon 8 series only (experimental)';
+	@override String get androidEngineQnnExperimental => 'The NPU backend is experimental: failures keep the original image and surface the reason; no silent fallback to Vulkan';
+	@override String get qnnModel => 'NPU model';
+	@override String get qnnModelSubtitle => 'Real-CUGAN FP16 model, 2x upscale';
+	@override String get qnnModelSeX2NoDenoise => 'Real-CUGAN SE 2x (no denoise)';
+	@override String get qnnModelProX2Denoise3x => 'Real-CUGAN Pro 2x (denoise level 3)';
+	@override String get qnnProbing => 'Detecting NPU…';
+	@override String qnnSupported({required Object arch}) => 'Qualcomm HTP ${arch} detected, NPU available';
+	@override String get qnnSupportedSubtitle => 'First use compiles the model context on device (~1-2 s) and caches it';
+	@override String get qnnUnsupported => 'NPU unavailable on this device';
+	@override String get qnnUnsupportedSubtitle => 'No supported Qualcomm HTP runtime detected (or this build ships without NPU support)';
+	@override String qnnUnsupportedArchSubtitle({required Object arch}) => 'HTP ${arch} detected, but this build does not bundle its runtime libraries';
+	@override String get qnnIdle => 'Context not prepared';
+	@override String get qnnIdleSubtitle => 'Download the model, then tap "Prepare" to compile the NPU context; reading also prepares it automatically';
+	@override String get qnnPreparing => 'Compiling NPU context…';
+	@override String get qnnReady => 'NPU context ready';
+	@override String get qnnFailed => 'NPU context preparation failed';
+	@override String get qnnPrepare => 'Prepare';
+	@override String get qnnRetry => 'Retry';
+	@override String missingQnnModel({required Object file}) => 'Missing NPU model file ${file}';
+	@override String get missingQnnManifest => 'Missing NPU model manifest.json';
 	@override String get desktopStrategy => 'Upscale Strategy';
 	@override String get desktopStrategySubtitle => 'Efficiency priority uses waifu2x; quality priority uses Real-CUGAN';
 	@override String get desktopNoiseLevel => 'Denoise Level';
@@ -3410,8 +3440,10 @@ class _Translations$comicFollow$en_US extends Translations$comicFollow$zh_CN {
 	@override String get updateChannelName => 'Comic update reminder';
 	@override String get updateChannelDesc => 'Pushed when followed comics have new chapters';
 	@override String get updateTitle => 'Follow update';
-	@override String get updateBodySingle => '1 followed comic has updates';
+	@override String get updatedComicsSingle => '1 followed comic updated';
+	@override String updatedComicsMultiple({required Object count}) => '${count} followed comics updated';
 	@override String updateBodyMultiple({required Object count}) => '${count} followed comics have updates';
+	@override String get updateBodySingle => '1 followed comic has updates';
 }
 
 // Path: changelog
@@ -5164,10 +5196,6 @@ extension on TranslationsEnUs {
 			'settings.exitApp' => 'Exit',
 			'settings.appLock' => 'App lock',
 			'settings.appLockSubtitle' => 'Require verification when entering the app',
-			'settings.oldPageRollback' => 'Old home page',
-			'settings.oldPageRollbackSubtitle' => 'Use old home page layout',
-			'settings.cloudFavoritePreferred' => 'Prefer cloud favorites',
-			'settings.cloudFavoritePreferredSubtitle' => 'When enabled, the favorite button on the comic info page performs cloud collection, and the original cloud collection menu item switches to local collection',
 			'settings.autoFollowOnCollect' => 'Auto-follow on collect',
 			'settings.autoFollowOnCollectSubtitle' => 'Automatically add comics to the follow list when favorited',
 			'settings.autoFavoriteOnDownload' => 'Auto-favorite on download',
@@ -5203,6 +5231,10 @@ extension on TranslationsEnUs {
 			'settings.customExportPath' => 'Custom export path',
 			'settings.exportIncludeCover' => 'Include cover image in export',
 			'settings.exportIncludeCoverSubtitle' => 'When on, the exported folder or zip also carries a cover image, fetched again at export time. Off by default: the artifact holds the pages plus the two info JSON files, and the cover is still shown online from the URL in that JSON',
+			'settings.detailLayout' => 'Detail layout',
+			'settings.detailLayoutSubtitle' => 'Show comic lists as horizontal detail rows with author and category info',
+			'settings.reverseChapters' => 'Reverse chapters',
+			'settings.reverseChaptersSubtitle' => 'Show chapters in reverse order by default on the detail page',
 			'settings.storage' => 'Storage',
 			'settings.cache' => 'Cache',
 			'settings.clearCache' => 'Clear cache',
@@ -5576,6 +5608,7 @@ extension on TranslationsEnUs {
 			'bookshelf.deleteSelected' => 'Delete selected',
 			'bookshelf.cancel' => 'Cancel selection',
 			'bookshelf.selectedCount' => ({required Object count}) => 'Selected ${count} items',
+			'bookshelf.folderComicCount' => ({required Object count}) => '${count} items',
 			'bookshelf.selectTargetFolder' => 'Select target folders (multiple)',
 			'bookshelf.confirmDeleteFolderTitle' => 'Confirm delete',
 			'bookshelf.confirmDeleteFolderContent' => 'Delete this folder? Contents will be deleted recursively.',
@@ -5647,15 +5680,14 @@ extension on TranslationsEnUs {
 			'comicInfo.follow' => 'Follow updates',
 			'comicInfo.unfollow' => 'Unfollow',
 			'comicInfo.exportComic' => 'Export comic',
-			'comicInfo.collectToCloud' => 'Collect to cloud',
-			'comicInfo.removeCloudCollection' => 'Remove cloud collection',
-			'comicInfo.collectToLocal' => 'Collect locally',
-			'comicInfo.removeLocalCollection' => 'Remove local collection',
+			'comicInfo.cloudCollect' => 'Cloud collect',
+			'comicInfo.cloudCollected' => 'Cloud collected',
 			'comicInfo.cloudCollectDisabled' => 'This plugin does not support this feature',
 			'comicInfo.collectingToCloud' => 'Adding to cloud collection...',
 			'comicInfo.removingCloudCollection' => 'Removing cloud collection...',
 			'comicInfo.cloudCollectSuccess' => 'Added to cloud collection',
 			'comicInfo.cloudUncollectSuccess' => 'Removed from cloud collection',
+			'comicInfo.cloudCollectIncomplete' => 'Cloud collection operation incomplete',
 			'comicInfo.discontinued' => 'This comic is discontinued',
 			'comicInfo.likes' => ({required Object count}) => 'Likes ${count}',
 			'comicInfo.comments' => ({required Object count}) => 'Comments ${count}',
@@ -5753,6 +5785,10 @@ extension on TranslationsEnUs {
 			'comicInfo.confirmAdd' => 'Confirm add',
 			'comicInfo.resolveComicIdFailed' => ({required Object type}) => 'Cannot resolve comic ID for reading: ${type}',
 			'comicInfo.resolveEpsCountFailed' => ({required Object type}) => 'Cannot resolve episode count for reading: ${type}',
+			'comicInfo.collectToCloud' => 'Collect to cloud',
+			'comicInfo.collectToLocal' => 'Collect locally',
+			'comicInfo.removeCloudCollection' => 'Remove cloud collection',
+			'comicInfo.removeLocalCollection' => 'Remove local collection',
 			'reader.switchBookFailed' => ({required Object error}) => 'Switching books failed: ${error}',
 			'reader.pageDecodeFailed' => ({required Object n}) => 'Page ${n} could not be decoded',
 			'reader.cannotOpenPath' => ({required Object path}) => 'Can\'t open: ${path}',
@@ -5972,12 +6008,12 @@ extension on TranslationsEnUs {
 			'reader.pageOrderSource' => 'Source order (as the plugin or archive provides it)',
 			'reader.imageProcessing' => 'Image processing',
 			'reader.readback' => 'Read-back',
+			_ => null,
+		} ?? switch (path) {
 			'reader.backend' => 'Backend',
 			'reader.onlyThisBookAskFirst' => 'Affects this book only; the model is not downloaded, so it asks first when you enable it',
 			'reader.onlyThisBookGlobalOthers' => 'Affects this book only; other books follow the global setting',
 			'reader.onlyThisComicUpscaleOwn' => 'Affects this comic only; upscaling has its own switch',
-			_ => null,
-		} ?? switch (path) {
 			'reader.twoPagesIndependent' => 'Two pages independent',
 			'reader.twoPageModeTap' => 'Two-page mode (tap for single page)',
 			'reader.twoPages' => 'Two pages',
@@ -6486,12 +6522,12 @@ extension on TranslationsEnUs {
 			'ocr.baseUrlHint' => 'https://api.deepseek.com/v1 or http://127.0.0.1:11434/v1',
 			'ocr.baseUrlNone' => 'Not configured',
 			'ocr.model' => 'Model name',
+			_ => null,
+		} ?? switch (path) {
 			'ocr.modelHint' => 'e.g. deepseek-chat, qwen2.5:14b',
 			'ocr.apiKey' => 'API key',
 			'ocr.apiKeySubtitle' => 'Stored locally only, never exported; leave empty for local Ollama',
 			'ocr.targetLanguage' => 'Target language',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.glossary' => 'Glossary',
 			'ocr.glossarySubtitle' => 'One per line: source=target; changing it re-translates finished pages',
 			'ocr.glossaryHint' => 'トカゲ=stone skink',
@@ -6750,6 +6786,32 @@ extension on TranslationsEnUs {
 			'realSr.blockInfoFormat' => ({required Object contentSize, required Object blockSize, required Object shrinkSize}) => 'Content block ${contentSize}×${contentSize}, model input ${blockSize}×${blockSize} (with ${shrinkSize}px reflection padding)',
 			'realSr.androidSuperResolution' => 'Android Super-Resolution',
 			'realSr.androidSuperResolutionSubtitle' => 'Currently uses waifu2x upconv anime model, 2x upscale',
+			'realSr.androidEngine' => 'Upscale engine',
+			'realSr.androidEngineSubtitle' => 'Choose the Android super-resolution backend',
+			'realSr.androidEngineVulkan' => 'Vulkan (waifu2x CLI)',
+			'realSr.androidEngineVulkanSubtitle' => 'ncnn + Vulkan GPU, works on all Android devices',
+			'realSr.androidEngineQnnNpu' => 'NPU (Qualcomm QNN)',
+			'realSr.androidEngineQnnNpuSubtitle' => 'Hexagon HTP NPU inference, Snapdragon 8 series only (experimental)',
+			'realSr.androidEngineQnnExperimental' => 'The NPU backend is experimental: failures keep the original image and surface the reason; no silent fallback to Vulkan',
+			'realSr.qnnModel' => 'NPU model',
+			'realSr.qnnModelSubtitle' => 'Real-CUGAN FP16 model, 2x upscale',
+			'realSr.qnnModelSeX2NoDenoise' => 'Real-CUGAN SE 2x (no denoise)',
+			'realSr.qnnModelProX2Denoise3x' => 'Real-CUGAN Pro 2x (denoise level 3)',
+			'realSr.qnnProbing' => 'Detecting NPU…',
+			'realSr.qnnSupported' => ({required Object arch}) => 'Qualcomm HTP ${arch} detected, NPU available',
+			'realSr.qnnSupportedSubtitle' => 'First use compiles the model context on device (~1-2 s) and caches it',
+			'realSr.qnnUnsupported' => 'NPU unavailable on this device',
+			'realSr.qnnUnsupportedSubtitle' => 'No supported Qualcomm HTP runtime detected (or this build ships without NPU support)',
+			'realSr.qnnUnsupportedArchSubtitle' => ({required Object arch}) => 'HTP ${arch} detected, but this build does not bundle its runtime libraries',
+			'realSr.qnnIdle' => 'Context not prepared',
+			'realSr.qnnIdleSubtitle' => 'Download the model, then tap "Prepare" to compile the NPU context; reading also prepares it automatically',
+			'realSr.qnnPreparing' => 'Compiling NPU context…',
+			'realSr.qnnReady' => 'NPU context ready',
+			'realSr.qnnFailed' => 'NPU context preparation failed',
+			'realSr.qnnPrepare' => 'Prepare',
+			'realSr.qnnRetry' => 'Retry',
+			'realSr.missingQnnModel' => ({required Object file}) => 'Missing NPU model file ${file}',
+			'realSr.missingQnnManifest' => 'Missing NPU model manifest.json',
 			'realSr.desktopStrategy' => 'Upscale Strategy',
 			'realSr.desktopStrategySubtitle' => 'Efficiency priority uses waifu2x; quality priority uses Real-CUGAN',
 			'realSr.desktopNoiseLevel' => 'Denoise Level',
@@ -6974,6 +7036,8 @@ extension on TranslationsEnUs {
 			'comicEntry.deleteFavorite' => 'Delete Favorite',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => 'Delete favorite record for "${title}"?',
 			'comicEntry.deleteHistory' => 'Delete History',
+			_ => null,
+		} ?? switch (path) {
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => 'Delete history record for "${title}"?',
 			'comicEntry.deleteDownload' => 'Delete Download',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => 'Delete download record and files for "${title}"?',
@@ -7004,8 +7068,6 @@ extension on TranslationsEnUs {
 			'comicFollow.latestChapter' => ({required Object count, required Object chapter}) => 'Latest: ${count} / ${chapter}',
 			'comicFollow.noUnread' => 'No updated unread comics',
 			'comicFollow.showAll' => 'Show all',
-			_ => null,
-		} ?? switch (path) {
 			'comicFollow.latestChapterFailed' => 'Failed to get latest chapter',
 			'comicFollow.newChapters' => ({required Object diff, required Object total}) => '${diff} new chapters, ${total} total',
 			'comicFollow.newUnreadChapters' => ({required Object diff, required Object total}) => '${diff} new unread chapters, ${total} total',
@@ -7031,8 +7093,10 @@ extension on TranslationsEnUs {
 			'comicFollow.updateChannelName' => 'Comic update reminder',
 			'comicFollow.updateChannelDesc' => 'Pushed when followed comics have new chapters',
 			'comicFollow.updateTitle' => 'Follow update',
-			'comicFollow.updateBodySingle' => '1 followed comic has updates',
+			'comicFollow.updatedComicsSingle' => '1 followed comic updated',
+			'comicFollow.updatedComicsMultiple' => ({required Object count}) => '${count} followed comics updated',
 			'comicFollow.updateBodyMultiple' => ({required Object count}) => '${count} followed comics have updates',
+			'comicFollow.updateBodySingle' => '1 followed comic has updates',
 			'changelog.title' => 'Changelog',
 			'changelog.loadFailed' => 'Load failed',
 			'changelog.loadFailedWithError' => ({required Object error}) => 'Load failed: ${error}',

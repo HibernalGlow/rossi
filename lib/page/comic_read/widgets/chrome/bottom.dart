@@ -564,14 +564,7 @@ class _ChapterPickerDialogState extends State<_ChapterPickerDialog> {
                 onPressed: () => widget.onSelected(ref),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        chapterDisplayName(
-                          name: ref.name,
-                          groupTitle: ref.groupTitle,
-                        ),
-                      ),
-                    ),
+                    Expanded(child: Text(ref.name)),
                     if (isCurrent)
                       GlyphIcon(
                         AppGlyphs.checkCircle,

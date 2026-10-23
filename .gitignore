@@ -59,7 +59,7 @@ objectbox_temp/
 .crashlytics
 # .env.proxy
 
-script/bin/
+script/build/bin/
 windows-installer/src-tauri/resources
 
 # Flatpak related
@@ -112,6 +112,11 @@ realsr-macos/
 # Android NCNN runtime model package (upload to release hosting, do not commit)
 realsr-android.7z
 
+# QNN (Qualcomm NPU) FP16 DLC 模型与 manifest（Apache-2.0 上游 mihon_img_upscale
+# 的发布包提取，见 script/models/package_qnn_models.py；用于打 realsr-qnn-android.7z
+# 上传模型托管仓库，不入库）
+third_party/qnn-dlc/
+
 # Android NCNN native build dependencies
 third_party/android_ncnn_deps/
 
@@ -132,3 +137,5 @@ native/generated/ir.json
 # 位置刻意在持久区而不是 $TMPDIR：dirhelper 每天清 tmp 会让这些验证静默变成 skip。
 # 见 docs/ocr-completed-page-acceptance.md 第 0 条与 test/ocr/completed_page_*_test.dart。
 .local/
+# Windows 本地跑 flutter test 需要，见 test/bookshelf 相关测试
+/objectbox.dll

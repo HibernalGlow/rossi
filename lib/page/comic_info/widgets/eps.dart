@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
-import 'package:zephyr/page/comic_info/method/chapter_group.dart';
 import 'package:zephyr/page/comic_read/type/chapter_extern.dart';
 import 'package:zephyr/page/download/adapters/download_chapter_adapter.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
@@ -16,31 +15,12 @@ import 'package:zephyr/page/comic_info/widgets/episode_download_controller.dart'
 import 'package:zephyr/page/comic_info/widgets/episode_read_mark_controller.dart';
 import 'package:zephyr/page/comic_info/widgets/episode_read_marker.dart';
 import 'package:zephyr/service/download/download_task_repository.dart';
-import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/icons/icons.dart';
-
-/// 繁简转换缓存：convertChineseForDisplay 底层走 Rust FFI（opencc），
-/// 每行每次 build 都调一次太贵。这里按「模式|原文」缓存，切换设置后自然 miss。
-final Map<String, String> _displayTitleCache = {};
-
-String _cachedConvertForDisplay(String text) {
-  if (text.isEmpty) return text;
-  final mode = globalSetting.chineseConvertMode;
-  if (mode == ChineseConvertMode.off) return text;
-  final key = '${mode.name}|$text';
-  final cached = _displayTitleCache[key];
-  if (cached != null) return cached;
-  final converted = convertChineseForDisplay(text);
-  if (_displayTitleCache.length > 2000) _displayTitleCache.clear();
-  _displayTitleCache[key] = converted;
-  return converted;
-}
 
 class EpButtonWidget extends StatelessWidget {
   static const double fixedHeight = 56;
@@ -102,13 +82,10 @@ class EpButtonWidget extends StatelessWidget {
     // 标题只在外层 build 算一次（带 FFI 缓存），选中/进度变化只走内层监听，
     final numberTotal = displayTotal ?? epsLength;
     final displayNumber = isReversed ? numberTotal - index : index + 1;
-    final rawTitle = chapterDisplayName(
-      name: doc.name.trim(),
-      groupTitle: resolveChapterGroupTitle(groupTitle: doc.groupTitle),
-    );
+    final rawTitle = doc.name.trim();
     final title = rawTitle.isEmpty
         ? t.comicInfo.episodeFallback(index: displayNumber)
-        : _cachedConvertForDisplay(rawTitle);
+        : convertChineseForDisplay(rawTitle);
     final episodeLabel = t.comicInfo.episodeLabel(index: displayNumber);
 
     // RepaintBoundary 把进度圈动画隔离在行内；选中态只听 selectionCubit，

@@ -29,6 +29,10 @@ _ComicSimplifyEntryInfo _$ComicSimplifyEntryInfoFromJson(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  author: json['author'] as String? ?? '',
+  metadata:
+      (json['metadata'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$ComicSimplifyEntryInfoToJson(
@@ -44,6 +48,8 @@ Map<String, dynamic> _$ComicSimplifyEntryInfoToJson(
   'tags': instance.tags,
   'artistTags': instance.artistTags,
   'circleTags': instance.circleTags,
+  'author': instance.author,
+  'metadata': instance.metadata,
 };
 
 const _$PictureTypeEnumMap = {

@@ -7,7 +7,6 @@ import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
 import 'package:zephyr/page/comic_follow/view/follow_display.dart';
-import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/comic/comic_quick_read.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
@@ -215,8 +214,10 @@ class _SummaryBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  unread > 0
-                      ? t.comicFollow.unreadCountBadge(count: unread)
+                  unread == 1
+                      ? t.comicFollow.updatedComicsSingle
+                      : unread > 1
+                      ? t.comicFollow.updatedComicsMultiple(count: unread)
                       : t.comicFollow.noUnread,
                   style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -562,15 +563,11 @@ class _FollowCard extends StatelessWidget {
     );
   }
 
-  /// 来源插件名 + 作者，插件名走 getCachedPluginInfo（含 DB 兜底）。
+  /// 来源插件名 + 作者，插件名走全局 cubit 的 infos，热切换。
   Widget _buildSourceLine(ThemeData theme) {
     final scheme = theme.colorScheme;
-    return BlocSelector<
-      PluginRegistryCubit,
-      Map<String, PluginRuntimeState>,
-      String
-    >(
-      selector: (_) => _pluginLabel(),
+    return BlocSelector<PluginRegistryCubit, PluginRegistryState, String>(
+      selector: (registry) => registry.pluginName(follow.source),
       builder: (context, pluginLabel) {
         final parts = [
           if (pluginLabel.isNotEmpty) pluginLabel,
@@ -597,12 +594,6 @@ class _FollowCard extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _pluginLabel() {
-    final info = PluginRegistryService.I.getCachedPluginInfo(follow.source);
-    final name = info?['name']?.toString().trim() ?? '';
-    return name.isNotEmpty ? name : follow.source;
   }
 
   /// 阅读进度条：读到 order / 最新总数。
@@ -852,7 +843,7 @@ class _UnreadPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        t.comicFollow.unreadCountBadge(count: count),
+        t.comicFollow.newChaptersShort(diff: count),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: scheme.onPrimary,
           fontWeight: FontWeight.w700,

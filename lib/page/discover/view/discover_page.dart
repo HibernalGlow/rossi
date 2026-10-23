@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/cubit/plugin_registry_cubit.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/discover/cubit/discover_cubit.dart';
@@ -30,8 +31,9 @@ class DiscoverPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final registry = context.read<PluginRegistryCubit>();
     return BlocProvider(
-      create: (_) => DiscoverCubit()..load(),
+      create: (_) => DiscoverCubit(registry: registry)..load(),
       child: const _DiscoverTabsHost(),
     );
   }
@@ -230,15 +232,15 @@ class _PluginHome extends StatelessWidget {
   ) {
     final cubit = context.read<DiscoverCubit>();
     final tabs = this.tabs;
-    final infoState =
-        state.infoStates[plugin.uuid] ??
-        const DiscoverPluginInfoState(loading: true);
+    final info = state.infos[plugin.uuid];
+    final error = state.infoErrors[plugin.uuid];
 
     return PluginCard(
       key: ValueKey('discover-plugin-card:${plugin.uuid}'),
       pluginUuid: plugin.uuid,
       pluginState: plugin,
-      infoState: infoState,
+      info: info,
+      error: error,
       isToggling: state.togglingUuids.contains(plugin.uuid),
       onSearch: () => _openPluginSearch(context, tabs, plugin.uuid),
       onSettings: (title) => _openPluginSettings(tabs, plugin.uuid, title),

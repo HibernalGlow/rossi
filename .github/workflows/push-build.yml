@@ -156,31 +156,31 @@ jobs:
         uses: actions/cache@v5
         with:
           path: third_party/android_ncnn_deps
-          key: ${{ runner.os }}-android-waifu2x-deps-${{ hashFiles('script/prepare_android_waifu2x_deps.py', 'script/build_ncnn_static_android.py', 'script/build_waifu2x_cli_android.py', 'android/app/src/main/cpp/waifu2x_cli/CMakeLists.txt') }}
+          key: ${{ runner.os }}-android-waifu2x-deps-${{ hashFiles('script/android/prepare_android_waifu2x_deps.py', 'script/android/build_ncnn_static_android.py', 'script/android/build_waifu2x_cli_android.py', 'android/app/src/main/cpp/waifu2x_cli/CMakeLists.txt') }}
 
       - name: 缓存 ncnn 源码
         uses: actions/cache@v5
         with:
           path: third_party/ncnn-src
-          key: ${{ runner.os }}-android-ncnn-src-${{ hashFiles('script/build_ncnn_static_android.py') }}
+          key: ${{ runner.os }}-android-ncnn-src-${{ hashFiles('script/android/build_ncnn_static_android.py') }}
 
       - name: 缓存 RealSR-NCNN-Android 源码
         uses: actions/cache@v5
         with:
           path: third_party/RealSR-NCNN-Android
-          key: ${{ runner.os }}-android-realsr-src-${{ hashFiles('script/build_waifu2x_cli_android.py') }}
+          key: ${{ runner.os }}-android-realsr-src-${{ hashFiles('script/android/build_waifu2x_cli_android.py') }}
 
       - name: 准备 Android waifu2x CLI 依赖
         run: |
-          python3 script/prepare_android_waifu2x_deps.py
+          python3 script/android/prepare_android_waifu2x_deps.py
 
       - name: 编译 Android 静态 ncnn
         run: |
-          python3 script/build_ncnn_static_android.py
+          python3 script/android/build_ncnn_static_android.py
 
       - name: 编译 Android waifu2x CLI
         run: |
-          python3 script/build_waifu2x_cli_android.py
+          python3 script/android/build_waifu2x_cli_android.py
 
       - name: 准备 Android dav1d 交叉静态库
         run: |
@@ -250,9 +250,9 @@ jobs:
         run: |
           # build_apk.dart 无参数=release 分 ABI；带任意参数=debug（--target-platform=android-arm64,android-x64）
           if [ "${ANDROID_FLAVOR:-release}" = debug ]; then
-            fvm dart ./script/build_apk.dart debug
+            fvm dart ./script/build/build_apk.dart debug
           else
-            fvm dart ./script/build_apk.dart
+            fvm dart ./script/build/build_apk.dart
           fi
 
       - name: 上传 Android 产物
@@ -314,7 +314,7 @@ jobs:
 
       - name: 构建 Linux + 可选上传符号 + 构建 Flatpak
         run: |
-          fvm dart ./script/build_linux_flatpak.dart
+          fvm dart ./script/build/build_linux_flatpak.dart
 
       - name: 上传 Linux 产物
         uses: actions/upload-artifact@v6
@@ -325,7 +325,7 @@ jobs:
       - name: 构建 Linux .deb
         run: |
           sudo apt-get install -y dpkg-dev
-          fvm dart ./script/build_linux_deb.dart --package-only
+          fvm dart ./script/build/build_linux_deb.dart --package-only
 
       - name: 上传 Linux deb
         uses: actions/upload-artifact@v6
@@ -486,7 +486,7 @@ jobs:
       - name: 运行 Windows 构建脚本
         run: |
           fvm flutter pub get
-          fvm dart ./script/build_windows.dart
+          fvm dart ./script/build/build_windows.dart
 
       # flutter build windows 失败在 INSTALL.vcxproj 时，MSBuild 只把整条命令回显出来，
       # cmake_install.cmake 真正的报错（哪一行、拷不到哪个文件）被吞掉，日志里查不到原因。
@@ -547,7 +547,7 @@ jobs:
       # - name: 运行 Windows 构建脚本
       #   run: |
       #     fvm flutter pub get
-      #     fvm dart ./script/build_windows.dart --prepare-only
+      #     fvm dart ./script/build/build_windows.dart --prepare-only
 
       # - name: 上传未签名 Windows 主程序
       #   id: upload-zephyr
@@ -576,7 +576,7 @@ jobs:
 
       # - name: 继续构建 Windows 安装器
       #   run: |
-      #     fvm dart ./script/build_windows.dart --package-only
+      #     fvm dart ./script/build/build_windows.dart --package-only
 
       # - name: 上传未签名 Windows 安装器
       #   id: upload-installer

@@ -37,7 +37,7 @@ class DiscoverPluginsCard extends StatelessWidget {
     final theme = Theme.of(context);
     final pluginStates = context.watch<PluginRegistryCubit>().state;
     final enabledPlugins = filterRestrictedPlugins(
-      pluginStates.values.where((p) => p.isEnabled),
+      pluginStates.plugins.values.where((p) => p.isEnabled),
       showRestricted: context
           .watch<GlobalSettingCubit>()
           .state

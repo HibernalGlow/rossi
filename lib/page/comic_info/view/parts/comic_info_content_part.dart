@@ -50,7 +50,12 @@ extension _ComicInfoContentPart on _ComicInfoState {
         final refreshable = RefreshIndicator(
           onRefresh: () async {
             _type = ComicEntryType.normal;
-            _isReversed = false;
+            // 下拉刷新重置倒序：回到「章节倒序」设置的默认（上游口径）。
+            _isReversed = context
+                .read<GlobalSettingCubit>()
+                .state
+                .bookshelfSetting
+                .reverseChapters;
 
             context.read<GetComicInfoBloc>().add(
               GetComicInfoEvent(

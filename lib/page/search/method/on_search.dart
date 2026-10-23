@@ -44,7 +44,7 @@ void onSearch(
   final tabLabel = keyword.trim().isEmpty ? t.discover.search : keyword.trim();
 
   if (aggregateMode) {
-    final pluginStates = context.read<PluginRegistryCubit>().state;
+    final registry = context.read<PluginRegistryCubit>().state;
     final showRestricted = context
         .read<GlobalSettingCubit>()
         .state
@@ -52,7 +52,7 @@ void onSearch(
     final availableSources = PluginRegistryService.I
         .sortPlugins(
           filterRestrictedPlugins(
-            pluginStates.values.where(
+            registry.plugins.values.where(
               (plugin) => plugin.isEnabled && !plugin.isDeleted,
             ),
             showRestricted: showRestricted,

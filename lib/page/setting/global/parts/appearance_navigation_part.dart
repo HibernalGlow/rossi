@@ -89,7 +89,6 @@ List<Widget> navigationChromeTiles({
         storedDesktopActionIds: nav.desktopActionIds,
         storedMobilePageIds: nav.mobilePageIds,
         storedMobileActionIds: nav.mobileActionIds,
-        oldPageRollbackEnabled: state.oldPageRollbackEnabled,
         onChanged: (desktop, mobile) {
           patch(
             (current) => current.copyWith(

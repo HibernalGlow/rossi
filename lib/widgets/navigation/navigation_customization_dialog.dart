@@ -87,7 +87,7 @@ Future<void> showCustomNavigationDialog(
 ///
 /// 抽这一层是因为导航栏与「设置 → 外观」两处都要开它，而两边都得先把规矩
 /// 解一遍 —— 主区那一段：存的是 `NavigationEntryId.name`、空清单 = 用出厂
-/// 清单、关掉「旧版页面」之后残留的旧首页 / 旧排行不该继续占位、一条页面都
+/// 清单、已删除页面的残留 id 不该继续占位、一条页面都
 /// 不剩也退回出厂（见 [decodeNavigationEntryIds]）；底部那一段：`null` =
 /// 没设置过用出厂、`[]` = 用户全隐藏、只收动作（见
 /// [decodeNavigationActionIds]）。解两遍迟早分叉。
@@ -97,15 +97,14 @@ Future<void> showCustomNavigationDialogFor(
   required List<String>? storedDesktopActionIds,
   required List<String> storedMobilePageIds,
   required List<String>? storedMobileActionIds,
-  required bool oldPageRollbackEnabled,
   required void Function(
     NavigationLayoutDraft desktop,
     NavigationLayoutDraft mobile,
   )
   onChanged,
 }) {
-  final allowed = availableNavigationEntries(oldPageRollbackEnabled);
-  final mainFallback = defaultNavigationEntries(oldPageRollbackEnabled);
+  final allowed = availableNavigationEntries();
+  final mainFallback = defaultNavigationEntries();
   final actionFallback = defaultNavigationActions(allowed);
 
   NavigationLayoutDraft draft(List<String> main, List<String>? actions) {
@@ -260,9 +259,9 @@ class _CustomNavigationDialogState extends State<CustomNavigationDialog> {
   void _reset() {
     setState(() {
       final desktop = NavigationLayoutDraft(
-        main: defaultNavigationEntries(
-          true,
-        ).where(widget.availableItems.contains).toList(),
+        main: defaultNavigationEntries()
+            .where(widget.availableItems.contains)
+            .toList(),
         actions: defaultNavigationActions(widget.availableItems),
       );
       _desktop = desktop;

@@ -114,10 +114,7 @@ class _NavigationBarState extends State<NavigationBar> {
     // 这里按**出厂清单**解成身份。解成身份而不是直接当下标用，是为了让
     // 「用户改过导航清单」之后，「启动落在第 2 页」不会突然指到别的页上 ——
     // 下标只在某一支布局的清单里才有意义（见 `_pageIdForWelcomeIndex`）。
-    _currentPageId = _entryForWelcomeIndex(
-      globalSetting.welcomePageNum,
-      globalSetting.oldPageRollbackEnabled,
-    );
+    _currentPageId = _entryForWelcomeIndex(globalSetting.welcomePageNum);
     _controller = PersistentTabController(initialIndex: 0);
     // 启动落点。开关关着、或本机没有工作台入口时它逐字不动
     // （见 `resolveStartupLanding`）。
@@ -204,9 +201,8 @@ class _NavigationBarState extends State<NavigationBar> {
     // 里增删排序过）。主区空清单 = 用出厂清单（见 `decodeNavigationEntryIds`）；
     // 底部那一段 `null` = 没设置过用出厂、`[]` = 用户全隐藏了
     // （见 `decodeNavigationActionIds`）。
-    final legacy = globalSettingState.oldPageRollbackEnabled;
-    final allowed = availableNavigationEntries(legacy);
-    final mainFallback = defaultNavigationEntries(legacy);
+    final allowed = availableNavigationEntries();
+    final mainFallback = defaultNavigationEntries();
     final actionFallback = defaultNavigationActions(allowed);
     final desktopEntries = resolveNavigationEntryIds(
       stored: nav.desktopPageIds,
@@ -340,8 +336,8 @@ class _NavigationBarState extends State<NavigationBar> {
       case NavigationEntryId.bookshelf:
       case NavigationEntryId.discover:
       case NavigationEntryId.more:
-      case NavigationEntryId.oldHome:
-      case NavigationEntryId.oldRank:
+      case NavigationEntryId.pluginHome:
+      case NavigationEntryId.pluginCloudFavorite:
         break;
     }
   }
@@ -754,7 +750,6 @@ class _NavigationBarState extends State<NavigationBar> {
       storedDesktopActionIds: state.navigationSetting.desktopActionIds,
       storedMobilePageIds: state.navigationSetting.mobilePageIds,
       storedMobileActionIds: state.navigationSetting.mobileActionIds,
-      oldPageRollbackEnabled: state.oldPageRollbackEnabled,
       onChanged: (desktop, mobile) {
         cubit.updateNavigationSetting(
           (current) => current.copyWith(
@@ -776,8 +771,8 @@ class _NavigationBarState extends State<NavigationBar> {
   /// 会指到别的页上。默认值取 `-1` 的是「工作台」哨兵，不是这里的取值。
   ///
   /// 出厂清单里全是页面，所以这里解出来的身份一定是个页面。
-  NavigationEntryId _entryForWelcomeIndex(int rawIndex, bool legacy) {
-    final defaults = defaultNavigationEntries(legacy);
+  NavigationEntryId _entryForWelcomeIndex(int rawIndex) {
+    final defaults = defaultNavigationEntries();
     return defaults[rawIndex.clamp(0, defaults.length - 1)];
   }
 

@@ -40,14 +40,14 @@ class SearchAggregateResultPage extends StatelessWidget
 
   @override
   Widget wrappedRoute(BuildContext context) {
-    final pluginStates = context.read<PluginRegistryCubit>().state;
+    final registry = context.read<PluginRegistryCubit>().state;
     final showRestricted = context
         .read<GlobalSettingCubit>()
         .state
         .showRestrictedSources;
     final visiblePlugins = PluginRegistryService.I.sortPlugins(
       filterRestrictedPlugins(
-        pluginStates.values.where((state) => !state.isDeleted),
+        registry.plugins.values.where((state) => !state.isDeleted),
         showRestricted: showRestricted,
       ),
     );
@@ -258,10 +258,10 @@ class _SearchBarTrigger extends StatelessWidget {
     BuildContext context,
     Iterable<String> selectedKeys,
   ) {
-    final pluginStates = context.read<PluginRegistryCubit>().state;
+    final registry = context.read<PluginRegistryCubit>().state;
     final ordered = PluginRegistryService.I.sortPlugins(
       filterRestrictedPlugins(
-        pluginStates.values.where((state) => !state.isDeleted),
+        registry.plugins.values.where((state) => !state.isDeleted),
         showRestricted: context
             .read<GlobalSettingCubit>()
             .state
@@ -274,11 +274,10 @@ class _SearchBarTrigger extends StatelessWidget {
       if (!selectedSet.contains(plugin.uuid)) {
         continue;
       }
-      final info = PluginRegistryService.I.getCachedPluginInfo(plugin.uuid);
-      final title = info?['name']?.toString().trim().isNotEmpty == true
-          ? info!['name'].toString().trim()
-          : plugin.uuid;
-      result.add((pluginId: plugin.uuid, title: title));
+      result.add((
+        pluginId: plugin.uuid,
+        title: registry.pluginName(plugin.uuid),
+      ));
     }
     return result;
   }
@@ -334,12 +333,12 @@ class _ResultList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
-    final pluginStates = context.watch<PluginRegistryCubit>().state;
+    final registry = context.watch<PluginRegistryCubit>().state;
     final selectedIds = state.selectedSources.keys.toSet();
     final pluginIds = PluginRegistryService.I
         .sortPlugins(
           filterRestrictedPlugins(
-            pluginStates.values.where(
+            registry.plugins.values.where(
               (plugin) => selectedIds.contains(plugin.uuid),
             ),
             showRestricted: context
@@ -373,7 +372,7 @@ class _ResultList extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SectionHeader(
-                  title: _sourceTitle(pluginId),
+                  title: _sourceTitle(context, pluginId),
                   subtitle: t.search.resultCount(count: items.length),
                   onTap: () => _openSourceSearch(context, pluginId),
                 ),
@@ -406,7 +405,9 @@ class _ResultList extends StatelessWidget {
               child: ListTile(
                 leading: const GlyphIcon(AppGlyphs.error),
                 title: Text(
-                  t.search.loadFailedForSource(source: _sourceTitle(pluginId)),
+                  t.search.loadFailedForSource(
+                    source: _sourceTitle(context, pluginId),
+                  ),
                 ),
                 subtitle: Text(
                   error,
@@ -440,13 +441,10 @@ class _ResultList extends StatelessWidget {
     return ListView(children: children);
   }
 
-  String _sourceTitle(String pluginId) {
-    final info = PluginRegistryService.I.getCachedPluginInfo(pluginId);
-    final name = info?['name']?.toString().trim() ?? '';
-    if (name.isNotEmpty) {
-      return name;
-    }
-    return pluginId;
+  String _sourceTitle(BuildContext context, String pluginId) {
+    return context.select<PluginRegistryCubit, String>(
+      (cubit) => cubit.state.pluginName(pluginId),
+    );
   }
 
   void _openSourceSearch(BuildContext context, String pluginId) {

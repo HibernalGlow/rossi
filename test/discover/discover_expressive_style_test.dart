@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/page/discover/cubit/discover_cubit.dart';
 import 'package:zephyr/page/discover/widgets/plugin_card.dart';
 import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
@@ -76,24 +75,21 @@ void main() {
               updatedAt: DateTime(2026, 10, 13),
               deletedAt: null,
             ),
-            infoState: const DiscoverPluginInfoState(
-              loading: false,
-              data: {
-                'name': 'e-hentai',
-                'functions': [
-                  {
-                    'id': 'latest',
-                    'title': '最新',
-                    'action': {'type': 'openComicList'},
-                  },
-                  {
-                    'id': 'favorite',
-                    'title': '收藏',
-                    'action': {'type': 'openCloudFavorite'},
-                  },
-                ],
-              },
-            ),
+            info: const {
+              'name': 'e-hentai',
+              'functions': [
+                {
+                  'id': 'latest',
+                  'title': '最新',
+                  'action': {'type': 'openComicList'},
+                },
+                {
+                  'id': 'favorite',
+                  'title': '收藏',
+                  'action': {'type': 'openCloudFavorite'},
+                },
+              ],
+            },
             isToggling: false,
             onSearch: () {},
             onSettings: (_) {},

@@ -228,8 +228,6 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(2) int downloadTaskConcurrency,
     @Default(150) int downloadDelayMs,
     @Default(3) int downloadAutoRetryCount,
-    @Default(false) bool oldPageRollbackEnabled,
-    @Default(false) bool cloudFavoritePreferred,
     @Default(false) bool autoFollowOnCollect,
     @Default(false) bool autoFavoriteOnDownload,
     // 下载完成后是否在下载目录的漫画根目录留下元数据 JSON（见 download_metadata_writer.dart）。

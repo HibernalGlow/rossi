@@ -1,8 +1,8 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:material_ui/material_ui.dart' hide Thumb;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:material_ui/material_ui.dart' hide Thumb;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
 import 'package:zephyr/page/search_result/view/search_result_library_view.dart';

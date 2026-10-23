@@ -99,18 +99,23 @@ extension _ComicInfoInlinePart on _ComicInfoState {
                 icon: const GlyphIcon(AppGlyphs.download),
                 label: Text(t.comicInfo.exportComic),
               ),
+            // 双收藏位（上游口径）：星标 = 本地，云 = 云端；原「优先云端收藏」
+            // 开关已随设置移除。
             TextButton.icon(
-              onPressed:
-                  context
-                      .watch<GlobalSettingCubit>()
-                      .state
-                      .cloudFavoritePreferred
-                  ? _toggleLocalCollectFromMenu
-                  : _toggleCloudCollectFromMenu,
+              onPressed: _toggleLocalCollectFromMenu,
               icon: const GlyphIcon(AppGlyphs.star),
               label: Text(
-                context.watch<GlobalSettingCubit>().state.cloudFavoritePreferred
-                    ? t.comicInfo.collectToLocal
+                _isLocalCollected
+                    ? t.comicInfo.removeLocalCollection
+                    : t.comicInfo.collectToLocal,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _toggleCloudCollectFromMenu,
+              icon: const GlyphIcon(AppGlyphs.cloud),
+              label: Text(
+                _isCloudCollected
+                    ? t.comicInfo.removeCloudCollection
                     : t.comicInfo.collectToCloud,
               ),
             ),

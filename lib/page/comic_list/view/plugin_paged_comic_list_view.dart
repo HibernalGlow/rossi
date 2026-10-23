@@ -32,6 +32,8 @@ class PluginPagedComicListView extends StatelessWidget {
     this.physics,
     this.collectionTargetId,
     this.collectionTargetName,
+    this.suppressNeedLoginEvent = false,
+    this.detailed = false,
   });
 
   final PluginListNavigationController? navigationController;
@@ -44,6 +46,8 @@ class PluginPagedComicListView extends StatelessWidget {
   final ScrollPhysics? physics;
   final String? collectionTargetId;
   final String? collectionTargetName;
+  final bool suppressNeedLoginEvent;
+  final bool detailed;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +57,7 @@ class PluginPagedComicListView extends StatelessWidget {
         fnPath: fnPath,
         coreBuilder: coreBuilder,
         externBuilder: externBuilder,
+        suppressNeedLoginEvent: suppressNeedLoginEvent,
       )..loadInitial(),
       child: _PluginPagedComicListBody(
         editorialKey: editorialKey,
@@ -68,6 +73,7 @@ class PluginPagedComicListView extends StatelessWidget {
         physics: physics,
         collectionTargetId: collectionTargetId,
         collectionTargetName: collectionTargetName,
+        detailed: detailed,
       ),
     );
   }
@@ -83,6 +89,7 @@ class _PluginPagedComicListBody extends StatefulWidget {
     required this.physics,
     this.collectionTargetId,
     this.collectionTargetName,
+    this.detailed = false,
   });
 
   final String positionScope;
@@ -93,6 +100,7 @@ class _PluginPagedComicListBody extends StatefulWidget {
   final ScrollPhysics? physics;
   final String? collectionTargetId;
   final String? collectionTargetName;
+  final bool detailed;
 
   @override
   State<_PluginPagedComicListBody> createState() =>
@@ -203,6 +211,8 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
               hasScrollBody: false,
               child: ErrorView(
                 errorMessage: '${state.result}\n${t.comicList.loadFailedRetry}',
+                // 登录失效时给「去登录」入口（上游插件首页口径）。
+                loginPluginId: state.loginPluginId,
                 onRetry: () => context
                     .read<PluginPagedComicListCubit>()
                     .jumpToPage(state.page),
@@ -282,6 +292,7 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
       physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
       collectionTargetId: widget.collectionTargetId,
       collectionTargetName: widget.collectionTargetName,
+      detailed: widget.detailed,
     );
   }
 

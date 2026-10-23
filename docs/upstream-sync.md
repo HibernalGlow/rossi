@@ -1,5 +1,53 @@
 # 上游同步记录
 
+## 2026-10-23
+
+| 来源 | 先前内容基准 | 本次内容基准 |
+|---|---|---|
+| Breeze | `68bebb2b83130c65ba3f6f709ca5413d2ae184d4` | `10a0a4d70`（v3.0.35 线） |
+| mImageViewer | `bb6ca0c665544da10b1acb061b590512acd0a4a4`（v4.6.0） | 无更新 |
+
+真实 merge commit 集成（保留上游父节点），24 个提交按用户四组决策取舍：
+
+**插件首页 / 云收藏（全量接入，改本仓导航）**：删除 `OldHomePage` /
+`OldRankingPage` 与 `lib/page/old_page/`，移除 `oldPageRollbackEnabled` 与
+`cloudFavoritePreferred` 两个设置（含设置页磁贴、同步键白名单与菜单互换逻辑）。
+本仓自定义导航架构（侧栏 / Dock / 自定义清单）保留，`NavigationEntryId` 里
+`oldHome` / `oldRank` 换成 `pluginHome` / `pluginCloudFavorite`，出厂清单对齐
+上游五标签顺序。插件注册服务整体取上游（info / initOk 流、删除插件防残留、
+init 超时为超集演进）；本仓 `PluginInitCoordinator` 保留给
+`qjs_download_runtime` 的下载 runtime 预热。收藏改上游双按钮口径：操作区星标
+（本地）+ 粉色云（云端），详情页菜单项移除。
+
+**书架 / 章节行为（先接入行为）**：文件夹返回拦截（`LocalHistoryEntry` +
+`ShelfBackAction`）、换文件夹按路径 key 重建回顶、文件夹直属漫画数
+（`folderComicCounts`）、详情行选中防闪（provider 缓存嫁接进本仓
+`LibraryImageGeometryReporter`/`ImageSleep` 管线）全部接入。章节组名前缀拼装
+与去前缀显示按上游移除（追更、阅读过渡标题、无缝拼接全部改纯标题）。
+`reverseChapters`（章节倒序默认）接入 `BookshelfSettingState` 并接进
+initState / 下拉刷新。进详情确认最新章节（`_syncFollowFromOnlineDetail`）
+移植进本仓表达版 `comic_info.dart`。
+
+**web 风详情行（默认关，截图评审后再定）**：`detailLayout` 开关随上游带入
+（横排详情行 + 作者 / 元信息行，`UnifiedComicSimplifyEntryInfo` 增加
+`author` / `metadata` 字段与本仓画师分桶并存），开关落设置-外观页本仓
+`SettingGroup` 块。本仓搜索结果页（展墙画布）与详情页表达版布局未接
+`detailLayout` 分支；上游详情页章节虚拟化（`_buildEpisodeSlivers`，与 web 版
+布局耦合）一并缓议，本仓已有等价的显示列表缓存。
+
+**基础设施 / 性能（代码层全量接入）**：source map 按 bundle 名隔离、删除插件
+后残留无限加载修复、脚本目录随上游（`script/build/`、`script/codegen/`）、
+`.mcp.json` / `opencode.json` 删除、`tray_manager` 0.8、评论正文可选择复制与
+头像全屏、繁简转换显示缓存（与本仓 `mode` 参数合并）。
+
+**本仓保留项**：Rossi 品牌（README / flatpak / 包版本）、受限来源过滤
+（`filterRestrictedPlugins` 包在上游 `registry.plugins` 结构外层）、已下载未读
+批量查询、画师收藏分桶、表达版 UI（封面 glyph、弹层、设置页）。
+
+验证：统一代码生成通过；`flutter analyze` 无 error；测试结果见提交信息。
+i18n 自动合并丢失的本地词条（`collectToLocal` 等四条、`comicFollow`
+通知文案、`includeDownloadedSubtitle`）已从上轮内容基准恢复。
+
 ## 操作绑定 v2 与公共 Rust 核心（2026-10-13）
 
 Breeze 与 mImageViewer 当前可用实现没有同时覆盖 Rossi 的区域触屏、多上下文、轮盘与
@@ -74,11 +122,14 @@ Rossi 在原绑定解析与阅读设置（含本漫稀疏覆盖）上增加薄�
 
 ## 下次同步
 
-截至 2026-10-13，Breeze 的这轮同步作为内容提交集成，没有新增上游 merge parent。
-2026-10-23 已在保留每个提交文件树的前提下，为 10 月 3 日与 10 月 13 日的同步
-恢复上游父节点，并将修复后的历史应用到本地 `main`。当前与 Breeze 上游的
-`merge-base` 已推进到上表的内容基准 `68bebb2b`。后续使用普通 Git，同步时保留
-真实 merge commit 与上游父节点。不要覆盖 Rossi 独有接口或其他工作分支。
+2026-10-23 这轮以真实 merge commit 集成（base `68bebb2b` → `10a0a4d70`），
+上游父节点在 `main` 的历史里，`merge-base` 已随提交推进。后续同步继续用普通
+Git：`git fetch upstream && git merge upstream/main`，保留真实 merge commit 与
+上游父节点。不要覆盖 Rossi 独有接口或其他工作分支。
+
+遗留决策点：`detailLayout`（web 风横排详情行）默认关带入，截图评审后决定
+是否在本仓搜索结果页 / 详情页布局上继续接线或回退；上游详情页章节虚拟化
+（`_buildEpisodeSlivers`）随 web 版布局一并缓议。
 
 mImageViewer 更新 gitlink 后运行 `python3 script/sync_vendored_modules.py`，
 检查所有 `PORTS` 差异并更新 `pinned_at`；同时人工审查未登记的 `path_key`、
@@ -399,7 +450,6 @@ SliverList/SliverGrid，避免 shrinkWrap 嵌套网格全量创建。展墙继�
 几何回报，或把装饰图的 cover 与主图的 contain 混为一谈。保留这些失败记录，
 不将本轮定向通过解释为全仓测试通过。
 
-
 ## 标签搜索触发的界面阻塞（2026-10-16）
 
 继续使用 Breeze 的标签动作、搜索请求和历史记录接口；图片休眠与喜欢画师高亮
@@ -585,7 +635,6 @@ egui 输入体系不能用于 Flutter 命中测试。保留现有控制器与延
 验证：悬停控制器与 widget 回归共 28 项通过，覆盖实际 PageCountWidget 顶部/底部
 底板、栏体阴影、按钮点击、滚动透传、本漫覆盖、状态恢复及动画开关下的连续显隐。
 连续显隐测试同时推进模拟时钟与更新页码；尚未实测高负载下的桌面窗口长期运行。
-
 
 ## 阅读泳道返回后的界面更新修正（2026-10-14）
 

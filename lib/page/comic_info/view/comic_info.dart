@@ -46,7 +46,7 @@ part 'parts/comic_info_sections_part.dart';
 part 'parts/comic_info_inline_part.dart';
 part 'parts/embedded_comic_info_part.dart';
 
-enum MenuOption { export, cloudCollect, follow }
+enum MenuOption { export, follow }
 
 @RoutePage()
 class ComicInfoPage extends StatelessWidget {
@@ -133,6 +133,9 @@ class _ComicInfoState extends State<_ComicInfo>
   late String _comicId;
   bool _loadingComplete = false;
   bool _isReversed = false;
+
+  /// 进详情确认最新章节的去重账本：同一本同一章节数只同步一次。
+  final Map<String, int> _followSyncedCounts = {};
   String _title = "";
   late final EpisodeDownloadController _dlController =
       EpisodeDownloadController();
@@ -180,6 +183,13 @@ class _ComicInfoState extends State<_ComicInfo>
     super.initState();
     _type = type;
     _comicId = widget.comicId;
+    // 章节默认倒序是「进页时的初始值」，用户手动点倒序按钮后本次停留不再受
+    // 设置影响（上游口径：只在 initState 与下拉刷新时重置）。
+    _isReversed = context
+        .read<GlobalSettingCubit>()
+        .state
+        .bookshelfSetting
+        .reverseChapters;
   }
 
   @override
@@ -193,9 +203,7 @@ class _ComicInfoState extends State<_ComicInfo>
   Widget build(BuildContext context) {
     super.build(context);
     if (widget.onClose != null) return _buildInlineDetails();
-    // 开启「优先云端收藏」后，页面收藏按钮与菜单项的本地/云端收藏行为互换
     final globalSetting = context.watch<GlobalSettingCubit>().state;
-    final cloudFavoritePreferred = globalSetting.cloudFavoritePreferred;
     // 「阅读」入口只落一处：桌面端落进操作行（下载旁边），触摸端落右下角悬浮按钮。
     final readEntryPlacement = resolveComicInfoReadEntryPlacement(
       platform: defaultTargetPlatform,
@@ -250,13 +258,6 @@ class _ComicInfoState extends State<_ComicInfo>
                 case MenuOption.export:
                   _handleExport();
                   break;
-                case MenuOption.cloudCollect:
-                  if (cloudFavoritePreferred) {
-                    _toggleLocalCollectFromMenu();
-                  } else {
-                    _toggleCloudCollectFromMenu();
-                  }
-                  break;
                 case MenuOption.follow:
                   _toggleFollowFromMenu();
                   break;
@@ -288,30 +289,6 @@ class _ComicInfoState extends State<_ComicInfo>
                   ),
                 );
               }
-
-              menuItems.add(
-                FluentPopupMenuItem<MenuOption>(
-                  value: MenuOption.cloudCollect,
-                  leading: GlyphIcon(
-                    AppGlyphs.star,
-                    fill:
-                        (cloudFavoritePreferred
-                            ? _isLocalCollected
-                            : _isCloudCollected)
-                        ? 1
-                        : 0,
-                  ),
-                  title: Text(
-                    cloudFavoritePreferred
-                        ? (_isLocalCollected
-                              ? t.comicInfo.removeLocalCollection
-                              : t.comicInfo.collectToLocal)
-                        : (_isCloudCollected
-                              ? t.comicInfo.removeCloudCollection
-                              : t.comicInfo.collectToCloud),
-                  ),
-                ),
-              );
 
               return menuItems;
             },
@@ -383,6 +360,12 @@ class _ComicInfoState extends State<_ComicInfo>
                       _isCloudCollected = state.allInfo?.isFavourite ?? false;
                     }
                     _syncLocalCollectStatus(state.allInfo!);
+                    // 进详情即确认最新章节（上游 4f260c1b）：追更的去重判定
+                    // 依赖这里把在线章节数刷回去。
+                    _syncFollowFromOnlineDetail(
+                      state.comicInfo,
+                      state.allInfo!,
+                    );
                     initHistory(
                       context,
                       _comicId,
@@ -819,6 +802,28 @@ class _ComicInfoState extends State<_ComicInfo>
         .where((json) => json.isNotEmpty)
         .map(UnifiedComicListItem.fromJson)
         .toList();
+  }
+
+  /// 进详情即确认最新章节（上游 4f260c1b 移植）。
+  ///
+  /// 只对插件详情生效；同一本「同一章节数」只同步一次，下拉刷新后章节数
+  /// 变大才再同步 —— 追更列表的「落后 N 话」由这里刷回在线值。
+  void _syncFollowFromOnlineDetail(dynamic comicInfo, NormalComicAllInfo info) {
+    if (comicInfo is! PluginComicDetailSource) return;
+    final comicId = info.comicInfo.id;
+    final eps = comicInfo.eps;
+    if (eps.isEmpty) return;
+    if ((_followSyncedCounts[comicId] ?? 0) >= eps.length) return;
+    _followSyncedCounts[comicId] = eps.length;
+    final latest = eps.reduce(
+      (left, right) => left.order >= right.order ? left : right,
+    );
+    context.read<ComicFollowCubit>().syncFollowFromDetailAndPersist(
+      source: widget.from,
+      comicId: comicId,
+      onlineChapterCount: eps.length,
+      onlineLatestTitle: latest.name,
+    );
   }
 
   Future<void> _syncLocalCollectStatus(NormalComicAllInfo info) async {

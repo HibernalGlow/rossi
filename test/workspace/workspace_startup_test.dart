@@ -337,7 +337,7 @@ void main() {
       final next = base.copyWith(startWithWorkspace: true);
       expect(next.startWithWorkspace, isTrue);
       expect(next.welcomePageNum, base.welcomePageNum);
-      expect(next.oldPageRollbackEnabled, base.oldPageRollbackEnabled);
+      expect(next.comicInfoRailLiquidGlass, base.comicInfoRailLiquidGlass);
       expect(next.comicInfoInlineReadButton, base.comicInfoInlineReadButton);
       expect(next.leftHandModeEnabled, base.leftHandModeEnabled);
     });

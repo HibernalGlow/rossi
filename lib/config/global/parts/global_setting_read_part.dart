@@ -252,6 +252,11 @@ abstract class BookshelfSettingState with _$BookshelfSettingState {
     @Default('dd') String historySort,
     @Default(false) bool rememberDownloadSort,
     @Default('dd') String downloadSort,
+    // 漫画列表横排详情样式（web 风）：开启后列表显示为含作者/分类的横排详情行。
+    // 默认关，保持网格观感；上游在设置-外观页放了开关。
+    @Default(false) bool detailLayout,
+    // 漫画详情页章节列表默认倒序显示。
+    @Default(false) bool reverseChapters,
     // 收藏 / 历史卡片的条目右键菜单（触摸端长按）。默认开 —— 默认值取「改造后的
     // 行为」，因为菜单本身不改动任何既有交互（单击打开照旧），关掉即回到纯点击。
     @Default(true) bool shelfCardContextMenu,

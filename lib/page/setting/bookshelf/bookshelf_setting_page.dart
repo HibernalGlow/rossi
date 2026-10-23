@@ -139,7 +139,6 @@ class _BookshelfSettingPageState extends State<BookshelfSettingPage> {
               ),
             ],
           ),
-          const SizedBox(height: 32),
         ],
       ),
     );

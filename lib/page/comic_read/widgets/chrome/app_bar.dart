@@ -150,8 +150,8 @@ class _ComicReadAppBarState extends State<ComicReadAppBar> {
       comicId: widget.comicId,
       comicTitle:
           widget.comicTitle ??
-              ReaderSessionCoordinator.instance.displayTitle ??
-              '',
+          ReaderSessionCoordinator.instance.displayTitle ??
+          '',
       comicInfo: widget.comicInfo,
       chapterRefs: widget.chapterRefs,
     );

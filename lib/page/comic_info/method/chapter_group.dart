@@ -7,36 +7,12 @@
 /// - 非空 = 同组章节，组顺序按在列表中首次出现的顺序推导，不另存顺序 key。
 library;
 
-/// 插件拼 name 时用的分隔符：`{group}—{bare}`（U+2014 EM DASH，不是半角 `-`）。
-const chapterGroupNameSeparator = '—';
-
 /// 解析分组 key，空串表示不分组。
 ///
-/// 只读顶层 `groupTitle`（`name?: string | null`，缺省/null/空白=不分组）。
+/// 只读顶层 `groupTitle`（缺省/null/空白=不分组）。
 /// 展示层按此 key 切段，组顺序=在列表中首次出现的顺序。
 String resolveChapterGroupTitle({String groupTitle = ''}) {
   return groupTitle.trim();
-}
-
-/// 展示用标题：去 `$group—` 前缀。存储的 `name` 不动，只在显示时 strip。
-String chapterDisplayName({required String name, required String groupTitle}) {
-  final group = groupTitle.trim();
-  if (group.isEmpty) return name;
-  final prefix = '$group$chapterGroupNameSeparator';
-  if (name.startsWith(prefix)) return name.substring(prefix.length);
-  return name;
-}
-
-/// 追更/通知用的带组消歧义标题：有组时 `组—裸标题`，无组时原样。
-String chapterQualifiedName({
-  required String name,
-  required String groupTitle,
-}) {
-  final group = groupTitle.trim();
-  final bare = chapterDisplayName(name: name, groupTitle: groupTitle);
-  if (group.isEmpty) return name;
-  if (name.startsWith('$group$chapterGroupNameSeparator')) return name;
-  return '$group$chapterGroupNameSeparator$bare';
 }
 
 /// 组标题展示文案：空组显示“未分组”。
@@ -68,6 +44,28 @@ List<ChapterGroup<T>> groupChaptersByTitle<T>(
       groups.add(ChapterGroup(title: title, items: [item]));
     } else {
       groups[existing].items.add(item);
+    }
+  }
+  return groups;
+}
+
+/// 下标分组：与 [groupChaptersByTitle] 同样的首次出现顺序，但直接按下标循环，
+/// 避免调用方 `List.generate(N)` 的中间分配。详情页章节列表用它（`displayEps`
+/// 已全局排序，组顺序即首次出现顺序）。
+List<ChapterGroup<int>> groupIndicesByTitle(
+  int length,
+  String Function(int index) groupOf,
+) {
+  final groups = <ChapterGroup<int>>[];
+  final indexByTitle = <String, int>{};
+  for (var i = 0; i < length; i++) {
+    final title = groupOf(i);
+    final existing = indexByTitle[title];
+    if (existing == null) {
+      indexByTitle[title] = groups.length;
+      groups.add(ChapterGroup<int>(title: title, items: [i]));
+    } else {
+      groups[existing].items.add(i);
     }
   }
   return groups;

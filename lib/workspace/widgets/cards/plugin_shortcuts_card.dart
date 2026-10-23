@@ -43,7 +43,7 @@ class PluginShortcutsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final plugins =
         filterRestrictedPlugins(
-          context.watch<PluginRegistryCubit>().state.values.where(
+          context.watch<PluginRegistryCubit>().state.plugins.values.where(
             (p) => p.isActive,
           ),
           showRestricted: context

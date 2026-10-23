@@ -145,31 +145,27 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 开启「优先云端收藏」后，收藏按钮执行云端收藏，原逻辑与菜单项互换
-    final cloudFavoritePreferred = context
-        .watch<GlobalSettingCubit>()
-        .state
-        .cloudFavoritePreferred;
-    final collectItem = cloudFavoritePreferred
-        ? _OperationItemData(
-            icon: isCloudCollected ? AppGlyphs.cloudDone : AppGlyphs.cloud,
-            text: isCloudCollected
-                ? t.comicInfo.collected
-                : t.comicInfo.collectToCloud,
-            highlighted: isCloudCollected,
-            accentColor: const Color(0xFFE6A700),
-            enabled: true,
-            onTap: _toggleCloudFavorite,
-          )
-        : _OperationItemData(
-            icon: AppGlyphs.star,
-            fillsWhenHighlighted: true,
-            text: isCollected ? t.comicInfo.collected : t.comicInfo.collect,
-            highlighted: isCollected,
-            accentColor: const Color(0xFFE6A700),
-            enabled: true,
-            onTap: _toggleLocalFavorite,
-          );
+    // 双收藏位（上游口径）：星标 = 本地收藏，粉色云 = 云端收藏。
+    // 原「优先云端收藏」开关与菜单项互换逻辑已随设置一起移除。
+    final localCollectItem = _OperationItemData(
+      icon: AppGlyphs.star,
+      fillsWhenHighlighted: true,
+      text: isCollected ? t.comicInfo.collected : t.comicInfo.collect,
+      highlighted: isCollected,
+      accentColor: const Color(0xFFE6A700),
+      enabled: true,
+      onTap: _toggleLocalFavorite,
+    );
+    final cloudCollectItem = _OperationItemData(
+      icon: isCloudCollected ? AppGlyphs.cloudDone : AppGlyphs.cloud,
+      text: isCloudCollected
+          ? t.comicInfo.cloudCollected
+          : t.comicInfo.cloudCollect,
+      highlighted: isCloudCollected,
+      accentColor: Colors.pink,
+      enabled: true,
+      onTap: _toggleCloudFavorite,
+    );
     final magnet = comicMagnetOf(normalInfo);
     final actions = [
       _OperationItemData(
@@ -187,50 +183,8 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         enabled: normalInfo.allowComments,
         onTap: _openComments,
       ),
-      collectItem,
-      // 桌面端的阅读入口：和「下载」并排，而不是叠在右下角（见
-      // `read_entry_placement.dart`）。触摸端 onRead 为空，这一项不出现。
-      if (widget.onRead != null)
-        _OperationItemData(
-          icon: widget.hasHistory ? AppGlyphs.history : AppGlyphs.book,
-          text: widget.hasHistory
-              ? t.comicInfo.continueRead
-              : t.comicInfo.startRead,
-          onTap: widget.onRead,
-          primary: true,
-        ),
-      _OperationItemData(
-        kind: _OperationKind.download,
-        icon: AppGlyphs.cloudDownload,
-        text: normalInfo.allowDownload
-            ? t.comicInfo.download
-            : t.comicInfo.downloadForbidden,
-        enabled: normalInfo.allowDownload,
-        onTap: _openDownload,
-        onLongPress: (_) => _openDownloadChapterPicker(),
-        onLongPressTooltip: t.reader.selectChapter,
-      ),
-      // 磁力一键复制：只有插件在 comicInfo.extern 里给了 magnet 才出现，
-      // 没有磁力的图源这里恒为空、这一项整个不渲染。
-      if (magnet.isNotEmpty)
-        _OperationItemData(
-          icon: AppGlyphs.copy,
-          text: t.common.copy,
-          enabled: true,
-          onTap: _copyMagnet,
-        ),
-      // 在原站打开。链接只取插件**已经交出来过**的地址（详情的 extern，或早前解析
-      // 列表项时记下的那条），插件没给就和磁力那颗一样静默不出现 —— 不去猜站的 URL。
-      // 单击走内置 WebView（它右上角本来就有「外部浏览器打开」，且与插件共享 Cookie），
-      // 长按给「外部浏览器打开 / 复制链接」。
-      if (_sourcePageUrl.isNotEmpty)
-        _OperationItemData(
-          icon: AppGlyphs.globe,
-          text: t.comicInfo.openOnSource,
-          onTap: _openSourcePageInWebView,
-          onLongPress: _showSourcePageMenu,
-          onLongPressTooltip: t.webview.openInExternalBrowser,
-        ),
+      localCollectItem,
+      cloudCollectItem,
     ];
 
     if (widget.inline) {
@@ -266,7 +220,6 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
           final isDesktop = constraints.maxWidth >= 900;
           final itemWidth = switch (constraints.maxWidth) {
             < 420 => (constraints.maxWidth - 10) / 2,
-            < 720 => (constraints.maxWidth - 20) / 3,
             < 900 => (constraints.maxWidth - 30) / 4,
             _ => 136.0,
           };
@@ -547,7 +500,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     } on FavoriteWorkflowIncompleteException catch (error) {
       if (mounted) {
         showInfoToast(
-          error.result.message ?? t.comicInfo.cloudFavoriteIncomplete,
+          error.result.message ?? t.comicInfo.cloudCollectIncomplete,
         );
       }
     } catch (error) {

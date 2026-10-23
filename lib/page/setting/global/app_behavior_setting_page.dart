@@ -29,17 +29,14 @@ class AppBehaviorSettingPage extends StatefulWidget {
 class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   DesktopCloseBehavior _desktopCloseBehavior = DesktopCloseBehavior.ask;
 
-  List<String> _splashPageList(bool oldPageRollbackEnabled) {
-    if (oldPageRollbackEnabled) {
-      return [
-        t.navigation.home,
-        t.navigation.rank,
-        t.navigation.bookshelf,
-        t.navigation.discover,
-        t.navigation.more,
-      ];
-    }
-    return [t.navigation.bookshelf, t.navigation.discover, t.navigation.more];
+  List<String> _splashPageList() {
+    return [
+      t.navigation.home,
+      t.oldHome.cloudFavorite,
+      t.navigation.bookshelf,
+      t.navigation.discover,
+      t.navigation.more,
+    ];
   }
 
   @override
@@ -97,14 +94,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
               // 所以整块只给一个 id：落点停在开关那一行就够了。
               settingEntry('behavior.appLock', _appLockSetting(state, cubit)),
               settingEntry(
-                'behavior.oldPageRollback',
-                _oldPageRollback(state, cubit),
-              ),
-              settingEntry(
-                'behavior.cloudFavoritePreferred',
-                _cloudFavoritePreferred(state, cubit),
-              ),
-              settingEntry(
                 'behavior.autoFollowOnCollect',
                 _autoFollowOnCollect(state, cubit),
               ),
@@ -153,12 +142,12 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   }
 
   Widget _splashPage(GlobalSettingState state, GlobalSettingCubit cubit) {
-    final splashPageList = _splashPageList(state.oldPageRollbackEnabled);
+    final splashPageList = _splashPageList();
     // 本机**用不用得了**工作台。判据不是「导航栏上有没有那颗按钮」
     // （`hasWorkspaceEntry`，手机上确实没有），而是「进得去且出得来」——
     // 那边靠「设置 → 布局」里的进入按钮、开屏这一项，以及系统返回键。
     final workspaceOptionAvailable = workspaceAvailableOnDevice(context);
-    // 老版回滚开关会让选项表在 3 项 / 5 项之间变，旧值可能越界，读之前先夹一次。
+    // 选项表长度固定 5 项，但旧值可能越界（云同步来的），读之前先夹一次。
     final clampedWelcomePageNum = splashPageList.isEmpty
         ? 0
         : state.welcomePageNum.clamp(0, splashPageList.length - 1);
@@ -234,39 +223,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       onChanged: (bool value) {
         cubit.updateState(
           (current) => current.copyWith(skipUpdateCheck: value),
-        );
-        showSuccessToast(t.common.settingSaved);
-      },
-    );
-  }
-
-  Widget _oldPageRollback(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SettingGroup.switchTile(
-      leading: const GlyphIcon(AppGlyphs.reset),
-      title: Text(t.settings.oldPageRollback),
-      subtitle: Text(t.settings.oldPageRollbackSubtitle),
-      value: state.oldPageRollbackEnabled,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(oldPageRollbackEnabled: value),
-        );
-        showSuccessToast(t.common.restartToTakeEffect);
-      },
-    );
-  }
-
-  Widget _cloudFavoritePreferred(
-    GlobalSettingState state,
-    GlobalSettingCubit cubit,
-  ) {
-    return SettingGroup.switchTile(
-      leading: const GlyphIcon(AppGlyphs.cloud),
-      title: Text(t.settings.cloudFavoritePreferred),
-      subtitle: Text(t.settings.cloudFavoritePreferredSubtitle),
-      value: state.cloudFavoritePreferred,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(cloudFavoritePreferred: value),
         );
         showSuccessToast(t.common.settingSaved);
       },

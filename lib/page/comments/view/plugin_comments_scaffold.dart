@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +14,9 @@ import 'package:zephyr/widgets/comic_simplify_entry/cover.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
+import 'package:zephyr/widgets/picture_bloc/models/picture_info.dart';
 
 @RoutePage(name: 'PluginCommentsScaffoldRoute')
 class PluginCommentsScaffold extends StatefulWidget {
@@ -225,7 +230,7 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    SelectableText(
                       item.content.let(convertChineseForDisplay),
                       style: textTheme.bodyMedium?.copyWith(
                         height: 1.5,
@@ -350,18 +355,75 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
         child: GlyphIcon(AppGlyphs.touch, size: size * 0.6),
       );
     }
-    return ClipOval(
-      child: CoverWidget(
-        key: ValueKey(
-          'avatar_${item.id}_${keySeed}_${item.avatarUrl}_${item.avatarPath}',
+    final pictureInfo = PictureInfo(
+      from: widget.from,
+      url: item.avatarUrl,
+      path: item.avatarPath,
+      cartoonId: item.id,
+      pictureType: PictureType.user,
+    );
+    return SizedBox(
+      width: size,
+      height: size,
+      child: BlocProvider(
+        create: (_) => PictureBloc()..add(GetPicture(pictureInfo)),
+        child: BlocBuilder<PictureBloc, PictureLoadState>(
+          builder: (context, state) {
+            switch (state.status) {
+              case PictureLoadStatus.initial:
+                return CircleAvatar(
+                  radius: size / 2,
+                  child: Icon(Icons.person, size: size * 0.6),
+                );
+              case PictureLoadStatus.success:
+                if (pictureInfo.url.contains('nopic-Male.gif')) {
+                  return ClipOval(
+                    child: Image.asset(
+                      'asset/image/assets/default_cover.png',
+                      width: size,
+                      height: size,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                }
+                return GestureDetector(
+                  onTap: () => context.pushRoute(
+                    FullRouteImageRoute(imagePath: state.imagePath!),
+                  ),
+                  child: ClipOval(
+                    child: SizedBox(
+                      width: size,
+                      height: size,
+                      child: Image.file(
+                        File(state.imagePath!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                );
+              case PictureLoadStatus.failure:
+                if (state.result.toString().contains('404')) {
+                  return ClipOval(
+                    child: Image.asset(
+                      'asset/image/assets/default_cover.png',
+                      width: size,
+                      height: size,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                }
+                return InkWell(
+                  onTap: () {
+                    context.read<PictureBloc>().add(GetPicture(pictureInfo));
+                  },
+                  child: CircleAvatar(
+                    radius: size / 2,
+                    child: Icon(Icons.refresh),
+                  ),
+                );
+            }
+          },
         ),
-        fileServer: item.avatarUrl,
-        path: item.avatarPath,
-        id: item.id,
-        from: widget.from,
-        pictureType: PictureType.user,
-        width: size,
-        height: size,
       ),
     );
   }

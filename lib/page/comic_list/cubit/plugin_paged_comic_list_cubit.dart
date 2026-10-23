@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/network/http/plugin/unauthorized_payload.dart';
 import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/network/http/plugin/unified_plugin_envelope.dart';
 import 'package:zephyr/page/comic_list/cubit/plugin_paged_comic_list_state.dart';
@@ -22,12 +23,15 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
     required this.coreBuilder,
     required this.externBuilder,
     this.pageFetcher,
+    // 新两页内的列表传 true：登录错误不出全局弹窗，由外层出登录/刷新按钮。
+    this.suppressNeedLoginEvent = false,
   }) : super(const PluginPagedComicListState());
 
   final String pluginId;
   final String fnPath;
   final PluginPageCoreBuilder coreBuilder;
   final PluginPageExternBuilder externBuilder;
+  final bool suppressNeedLoginEvent;
 
   /// 可注入请求消费者，分页策略测试不需要启动 QuickJS。
   final Future<Map<String, dynamic>> Function(int page)? pageFetcher;
@@ -77,6 +81,7 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
         hasReachedMax: false,
         page: page,
         result: '',
+        loginPluginId: '',
       ),
     );
     await _fetchPage(page: page, append: false, generation: generation);
@@ -121,6 +126,7 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
               fnPath: resolvedFnPath,
               core: coreBuilder(page),
               extern: externBuilder(page),
+              suppressNeedLoginEvent: suppressNeedLoginEvent,
             );
       if (isClosed || generation != _generation) return;
       final envelope = UnifiedPluginEnvelope.fromMap(pluginResponse);
@@ -180,6 +186,12 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
       if (isClosed || generation != _generation) return;
       logger.e(e, stackTrace: stackTrace);
 
+      // 只认类型化错误（callUnifiedComicPlugin 已识别好），不做二次解析。
+      var loginPluginId = '';
+      if (e is PluginUnauthorizedException) {
+        final id = e.pluginId.trim();
+        loginPluginId = id.isNotEmpty ? id : pluginId;
+      }
       _safeEmit(
         state.copyWith(
           status: currentList.isNotEmpty
@@ -187,6 +199,7 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
               : PluginPagedComicListStatus.failure,
           list: currentList,
           result: normalizeSearchErrorMessage(e),
+          loginPluginId: loginPluginId,
         ),
       );
     }

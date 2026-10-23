@@ -36,7 +36,7 @@ class PluginStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final states =
         filterRestrictedPlugins(
-          context.watch<PluginRegistryCubit>().state.values.where(
+          context.watch<PluginRegistryCubit>().state.plugins.values.where(
             (p) => !p.isDeleted,
           ),
           showRestricted: context
