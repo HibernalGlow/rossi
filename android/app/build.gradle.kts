@@ -79,24 +79,35 @@ val qnnSdkRoot = qnnSdkDir?.takeIf { it.isNotBlank() }?.let { file(it) }
 val generatedQnnJniLibs = layout.buildDirectory.dir("generated/qnnJniLibs")
 
 val stageQnnDlcRuntime = tasks.register<Sync>("stageQnnDlcRuntime") {
-    // libQnnHtpPrepare.so / libQnnHtp*.so 由 qnn-runtime AAR 提供；
-    // 这里只暂存 AAR 里没有的 DLC 编译器。无 SDK（CI）时源为空、目录产出为空，
-    // 任务图保持一致 —— 运行时如实报 NPU 不可用。
+    // 有 SDK 时整套暂存 QNN 运行库（Htp / HtpPrepare / ModelDlc / System +
+    // 各代际 Skel/Stub），替代 qnn-runtime AAR —— 运行库与 qnn.sdk.dir 的
+    // 头文件必须同源同版（混版本会在 contextCreate 报 device config 错）。
+    // 无 SDK（CI）时源为空、目录产出为空，APK 不含 QNN 运行库 —— 运行时
+    // 如实报 NPU 不可用；若 AAR 依赖在场则仍由 AAR 提供（stub 兜底）。
     if (qnnSdkRoot != null) {
         val sdkRoot = qnnSdkRoot!!
-        val libraries = listOf("libQnnModelDlc.so")
+        val libraries = listOf(
+            "libQnnHtp.so",
+            "libQnnHtpPrepare.so",
+            "libQnnModelDlc.so",
+            "libQnnSystem.so",
+            "libQnnHtpV69Skel.so",
+            "libQnnHtpV69Stub.so",
+            "libQnnHtpV79Skel.so",
+            "libQnnHtpV79Stub.so",
+        )
         from(libraries.map { sdkRoot.resolve("lib/aarch64-android/$it") }) {
             into("arm64-v8a")
         }
         doFirst {
             libraries.forEach { library ->
                 check(sdkRoot.resolve("lib/aarch64-android/$library").isFile) {
-                    "QNN DLC runtime not found: $library under ${sdkRoot.absolutePath}"
+                    "QNN runtime not found: $library under ${sdkRoot.absolutePath}"
                 }
             }
         }
     } else {
-        doLast { logger.lifecycle("QAIRT SDK not configured; skipping libQnnModelDlc.so staging") }
+        doLast { logger.lifecycle("QAIRT SDK not configured; skipping QNN runtime staging") }
     }
     into(generatedQnnJniLibs)
 }
@@ -232,6 +243,7 @@ dependencies {
     // 添加核心库脱糖依赖
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("rustls:rustls-platform-verifier:0.1.1")
-    // Qualcomm QNN HTP 运行时（与本地 QAIRT SDK 版本对应，2.49.0）
-    implementation("com.qualcomm.qti:qnn-runtime:2.49.0")
+    // QNN 运行库不来自 AAR：与 qnn.sdk.dir 头文件同源同版由 stageQnnDlcRuntime
+    // 整套暂存（头/库混版本会在设备端 contextCreate 报 INVALID_CONFIG）。
+    // 无 qnn.sdk.dir 的构建（CI）APK 不含 QNN 运行库，运行时如实报不可用。
 }
