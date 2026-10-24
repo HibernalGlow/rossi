@@ -35,7 +35,7 @@ Map<String, String> _extraCargoEnvironmentVariables(
   String projectRoot,
 ) {
   if (codeConfig.targetOS == OS.iOS) {
-    return _iosEnvironmentVariables(codeConfig);
+    return _iosEnvironmentVariables(codeConfig, projectRoot);
   }
   if (codeConfig.targetOS == OS.android) {
     return _androidEnvironmentVariables(codeConfig, projectRoot);
@@ -96,7 +96,10 @@ Map<String, String> _hostEnvironmentVariables() {
 
 // ────────────────────────── iOS ──────────────────────────
 
-Map<String, String> _iosEnvironmentVariables(CodeConfig codeConfig) {
+Map<String, String> _iosEnvironmentVariables(
+  CodeConfig codeConfig,
+  String projectRoot,
+) {
   final sdk = switch (codeConfig.iOS.targetSdk) {
     IOSSdk.iPhoneOS => 'iphoneos',
     IOSSdk.iPhoneSimulator => 'iphonesimulator',
@@ -136,6 +139,24 @@ Map<String, String> _iosEnvironmentVariables(CodeConfig codeConfig) {
     'CXX': linker,
     'LD': linker,
   };
+
+  // dav1d 是给 iOS 交叉编出来的静态库，`image` 的 avif-native 要经 pkg-config 找它。
+  // Xcode 的 Run Script 拉起的 hook 子进程环境是干净的，CI 在步骤级 export 的
+  // PKG_CONFIG_* 进不来（实测 run 40093260465：dav1d 已装进 ios_sysroot，
+  // dav1d-sys 的 build.rs 仍然失败）。与安卓分支同一口径：目录在就把三件写明白。
+  final sysrootPkgConfig = p.join(
+    projectRoot,
+    'third_party',
+    'ios_sysroot',
+    targetTriple,
+    'lib',
+    'pkgconfig',
+  );
+  if (Directory(sysrootPkgConfig).existsSync()) {
+    env['PKG_CONFIG_LIBDIR'] = sysrootPkgConfig;
+    env['PKG_CONFIG_PATH'] = sysrootPkgConfig;
+    env['PKG_CONFIG_ALLOW_CROSS'] = '1';
+  }
 
   // rquickjs-sys 的 bindgen 会把 Rust target triple 直接传给 clang；
   // aarch64-apple-ios-sim 不被 clang 识别，需要额外指定它能识别的 triple。
