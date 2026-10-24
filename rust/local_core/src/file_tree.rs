@@ -119,9 +119,24 @@ pub fn get_available_roots() -> Vec<RootLocation> {
         });
     }
 
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    #[cfg(target_os = "android")]
     {
-        // Linux / Android / Unix
+        // Android 沙箱读不了 `/`：它 is_dir() 为真，但 read_dir 会被 SELinux /
+        // 权限模型挡掉（表现为「读取目录失败: /」）。根列表给主存储 ——
+        // 应用申请了 MANAGE_EXTERNAL_STORAGE，授权后它可整树读取。
+        // HOME 环境变量在 Android 上通常也不存在，下面的常用目录分支自然跳过。
+        let storage = Path::new("/storage/emulated/0");
+        if storage.is_dir() {
+            roots.push(RootLocation {
+                label: "内部存储".to_string(),
+                path: storage.to_string_lossy().to_string(),
+            });
+        }
+    }
+
+    #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
+    {
+        // Linux / Unix
         roots.push(RootLocation {
             label: "根目录 (/)".to_string(),
             path: "/".to_string(),

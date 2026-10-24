@@ -12,7 +12,17 @@ pub(super) fn directory_title(path: &Path) -> String {
 pub(super) fn default_directory() -> Option<PathBuf> {
     crate::file_tree::get_available_roots()
         .into_iter()
-        .find_map(|root| normalize_initial_directory(PathBuf::from(root.path)))
+        .find_map(|root| {
+            let path = PathBuf::from(root.path);
+            // 「stat 得到目录」不等于「能列出内容」：Android 沙箱里 `/` 的
+            // is_dir() 为真，read_dir 却被权限挡掉 —— 会话创建期默认目录
+            // 的兜底要的是**真能读**的目录，逐个根试探，坏根跳到下一个。
+            if path.is_dir() && std::fs::read_dir(&path).is_ok() {
+                normalize_initial_directory(path)
+            } else {
+                None
+            }
+        })
 }
 
 pub(super) fn same_path(a: &Path, b: &Path) -> bool {

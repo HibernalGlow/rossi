@@ -30,6 +30,13 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
       _error = null;
     });
     try {
+      // Android 的存储是权限模型：主存储（/storage/emulated/0，桌面上的
+      // 「根目录」角色在这里不存在 —— 沙箱读不了 `/`）要先拿到「所有文件
+      // 访问」才有内容可列。申请放在建会话之前，授权一次终身有效；用户
+      // 拒绝时不再重试弹窗，核心会在列目录时报出真实的权限错误。
+      if (Platform.isAndroid) {
+        await requestExportPermission();
+      }
       final home = _persistedHomePath;
       final remember = _persistedRememberViewState;
       // 「自动恢复上次打开的页签」：读盘放在建会话**之前**，首个页签直接用上次

@@ -18,6 +18,7 @@ import 'package:zephyr/src/rust/api/file_manager/types.dart';
 import 'package:zephyr/src/rust/api/file_ops.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
+import 'package:zephyr/util/permission.dart';
 import 'package:zephyr/workspace/method/file_manager_actions.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/file_manager_tab_session.dart';
