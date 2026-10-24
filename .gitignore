@@ -141,3 +141,7 @@ native/generated/ir.json
 .local/
 # Windows 本地跑 flutter test 需要，见 test/bookshelf 相关测试
 /objectbox.dll
+
+# QNN (Qualcomm HTP) 运行库：与 qnn.sdk.dir 的头文件同源同版，由开发者按
+# docs/android_qnn_npu_verify.md §0 放入（不提交——CI 构建不含 NPU 支持）
+android/app/src/main/jniLibs/arm64-v8a/libQnn*.so

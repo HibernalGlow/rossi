@@ -2549,11 +2549,15 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String pluginSettingsTitle({required Object name}) => '${name} settings';
 	@override String get debugConfigUpdated => 'Plugin debug config updated';
 	@override String get deletePlugin => 'Delete plugin';
-	@override String get confirmDeletePlugin => 'Delete this plugin? This will delete plugin and related data.';
+	@override String get confirmDeletePlugin => 'The plugin will be removed. Its settings and login info will also be deleted.';
 	@override String deleteFailed({required Object error}) => 'Delete failed: ${error}';
 	@override String get pluginDeleted => 'Plugin deleted';
 	@override String executeFailed({required Object error}) => 'Execute failed: ${error}';
-	@override String get deletePluginSubtitle => 'Delete plugin and related data permanently';
+	@override String get deletePluginSubtitle => 'Delete the plugin; optionally remove this source\'s data (kept by default)';
+	@override String get deletePluginAlsoRemoveData => 'Also delete this source\'s favorites, history, and downloads';
+	@override String get deletePluginAlsoRemoveDataSubtitle => 'Includes downloaded image files';
+	@override String get deletePluginKeepDataHint => 'Kept when off. Reinstalling the same plugin restores access.';
+	@override String get deletePluginRemoveDataHint => 'These records and downloaded files will be deleted permanently.';
 	@override String get debugMode => 'Debug mode';
 	@override String get debugAddress => 'Debug address';
 	@override String get accountLoginSubtitle => 'Go to login';
@@ -6386,11 +6390,15 @@ extension on TranslationsEnUs {
 			'plugin.pluginSettingsTitle' => ({required Object name}) => '${name} settings',
 			'plugin.debugConfigUpdated' => 'Plugin debug config updated',
 			'plugin.deletePlugin' => 'Delete plugin',
-			'plugin.confirmDeletePlugin' => 'Delete this plugin? This will delete plugin and related data.',
+			'plugin.confirmDeletePlugin' => 'The plugin will be removed. Its settings and login info will also be deleted.',
 			'plugin.deleteFailed' => ({required Object error}) => 'Delete failed: ${error}',
 			'plugin.pluginDeleted' => 'Plugin deleted',
 			'plugin.executeFailed' => ({required Object error}) => 'Execute failed: ${error}',
-			'plugin.deletePluginSubtitle' => 'Delete plugin and related data permanently',
+			'plugin.deletePluginSubtitle' => 'Delete the plugin; optionally remove this source\'s data (kept by default)',
+			'plugin.deletePluginAlsoRemoveData' => 'Also delete this source\'s favorites, history, and downloads',
+			'plugin.deletePluginAlsoRemoveDataSubtitle' => 'Includes downloaded image files',
+			'plugin.deletePluginKeepDataHint' => 'Kept when off. Reinstalling the same plugin restores access.',
+			'plugin.deletePluginRemoveDataHint' => 'These records and downloaded files will be deleted permanently.',
 			'plugin.debugMode' => 'Debug mode',
 			'plugin.debugAddress' => 'Debug address',
 			'plugin.accountLoginSubtitle' => 'Go to login',
@@ -6553,12 +6561,12 @@ extension on TranslationsEnUs {
 			'dataBackup.versionMismatch' => 'Version mismatch. Data import may have issues. Continue?',
 			'dataBackup.exportedVersion' => ({required Object version}) => 'Exported version: ${version}',
 			'dataBackup.currentVersion' => ({required Object version}) => 'Current app version: ${version}',
+			_ => null,
+		} ?? switch (path) {
 			'dataBackup.kContinue' => 'Continue',
 			'dataBackup.importSuccess' => 'Import successful',
 			'dataBackup.restartPrompt' => 'Data imported successfully. Please restart the app to apply.',
 			'webdavSync.title' => 'Cloud Sync Config',
-			_ => null,
-		} ?? switch (path) {
 			'webdavSync.serviceTitle' => ({required Object service}) => '${service} Sync Config',
 			'webdavSync.noneTip' => 'Please select a sync service in Settings first, then return here to fill in the configuration.',
 			'webdavSync.deleteConfig' => 'Delete Config',
@@ -7067,12 +7075,12 @@ extension on TranslationsEnUs {
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
 			'comicList.browseMenu' => 'Browse menu',
-			_ => null,
-		} ?? switch (path) {
 			'comicList.currentPage' => ({required Object page}) => 'Page ${page}',
 			'comicList.pageOfTotal' => ({required Object page, required Object total}) => 'Page ${page} of ${total}',
 			'comicList.jumpToPage' => 'Jump to page',

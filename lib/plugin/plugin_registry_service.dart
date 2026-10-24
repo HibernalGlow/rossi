@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
@@ -20,6 +21,17 @@ class PluginRegistryService {
   PluginRegistryService._();
 
   static final PluginRegistryService I = PluginRegistryService._();
+
+  static Future<String> Function() _downloadRootProvider = getDownloadPath;
+
+  /// 测试专用：下载根目录走临时目录，绕开 path_provider 平台通道。
+  @visibleForTesting
+  static set downloadRootProviderForTests(Future<String> Function() provider) =>
+      _downloadRootProvider = provider;
+
+  @visibleForTesting
+  static void resetDownloadRootProviderForTests() =>
+      _downloadRootProvider = getDownloadPath;
 
   final Map<String, PluginRuntimeState> _states = {};
   final _streamController =
@@ -560,7 +572,15 @@ class PluginRegistryService {
     }());
   }
 
-  Future<void> deletePlugin(String uuid) async {
+  /// 删除插件。
+  ///
+  /// [deleteRelatedData] 默认 false：只删插件本体、配置与下载任务，保留该源的
+  /// 收藏、历史、下载记录和已下载文件；显式传 true 才级联清理。
+  /// 配置与下载任务始终删除：前者是插件的登录/设置，后者离开插件无法执行。
+  Future<void> deletePlugin(
+    String uuid, {
+    bool deleteRelatedData = false,
+  }) async {
     final objectbox = _objectbox;
     if (objectbox == null) {
       return;
@@ -583,9 +603,13 @@ class PluginRegistryService {
       // runtime 失败不阻断删除主流程
     }
 
-    await _deletePluginDownloadFolders(uuid);
+    if (deleteRelatedData) {
+      await _deletePluginDownloadFolders(uuid);
+    }
     _deletePluginConfigs(objectbox, uuid);
-    _deletePluginRelatedData(objectbox, uuid);
+    if (deleteRelatedData) {
+      _deletePluginRelatedData(objectbox, uuid);
+    }
     _deletePluginDownloadTasks(objectbox, uuid);
 
     final now = DateTime.now().toUtc();
@@ -606,7 +630,7 @@ class PluginRegistryService {
   }
 
   Future<void> _deletePluginDownloadFolders(String uuid) async {
-    final downloadRoot = await getDownloadPath();
+    final downloadRoot = await _downloadRootProvider();
     final root = p.join(downloadRoot, uuid);
     final directory = Directory(root);
     final exists = await directory.exists();

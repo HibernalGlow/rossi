@@ -84,24 +84,24 @@ void main() {
     expect(selected, 1, reason: '滑动松手应选中滑到的那一项');
   });
 
-  testWidgets('自定义阈值生效:800ms 的出厂阈值下 500ms 不触发', (tester) async {
+  testWidgets('自定义阈值生效:2400ms 的出厂阈值下 500ms 不触发', (tester) async {
     var longPresses = 0;
     await tester.pumpWidget(
       host(
         onSelected: (_) {},
         onLongPress: () => longPresses++,
         // 与 `NavigationSettingState.dockLongPressMilliseconds` 的出厂值同源。
-        longPressDuration: const Duration(milliseconds: 800),
+        longPressDuration: const Duration(milliseconds: 2400),
       ),
     );
     final center = await itemCenter(tester, 1);
 
     final gesture = await tester.startGesture(center);
     await tester.pump(kLongPressTimeout);
-    expect(longPresses, 0, reason: '500ms 时还不到 800ms 阈值,不应触发');
+    expect(longPresses, 0, reason: '500ms 时远不到 2400ms 阈值,不应触发');
 
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(longPresses, 1, reason: '按满 800ms 应当触发');
+    await tester.pump(const Duration(milliseconds: 2000));
+    expect(longPresses, 1, reason: '按满 2400ms 应当触发');
 
     await gesture.up();
     await tester.pumpAndSettle();

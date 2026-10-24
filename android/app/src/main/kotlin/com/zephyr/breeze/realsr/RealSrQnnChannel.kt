@@ -44,18 +44,17 @@ object RealSrQnnChannel {
     private fun probe(context: Context, result: MethodChannel.Result) {
         Thread {
             try {
+                // architecture() points ADSP_LIBRARY_PATH at nativeLibraryDir.
+                // It must run before runtimeAvailable(): the first dlopen of
+                // libQnnHtp.so fixes the DSP's Skel lookup for this process.
+                val architecture = runCatching { QualcommHtp.architecture(context) }.getOrNull()
                 val runtimeAvailable = RealSrQnn.runtimeAvailable()
-                val architecture = if (runtimeAvailable) {
-                    runCatching { QualcommHtp.architecture(context) }.getOrNull()
-                } else {
-                    null
-                }
                 post(result) {
                     mapOf(
                         "libraryLoaded" to RealSrQnn.libraryLoaded,
                         "runtimeAvailable" to runtimeAvailable,
                         // null = 不支持 / 探测失败；数字 = 实际 HTP 架构（受支持时非空）
-                        "architecture" to architecture,
+                        "architecture" to architecture.takeIf { runtimeAvailable },
                     )
                 }
             } catch (e: Exception) {

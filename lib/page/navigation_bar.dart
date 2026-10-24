@@ -534,8 +534,8 @@ class _NavigationBarState extends State<NavigationBar> {
         onSelected: (index) => _handleToEntry(entries[index]),
         // 长按任一目的地直接进导航自定义 —— 底部快捷区没摆「自定义导航」
         // 时的发现路径（那个动作是可选条目，多数出厂配置里没有）。
-        // 开关与阈值都在「设置 → 外观 → 导航」（阈值出厂 800ms,
-        // 比平台的 500ms 稳 —— 500 常常是「想切页却弹了设置」）。
+        // 开关与阈值都在「设置 → 外观 → 导航」（阈值出厂 2400ms,
+        // 比平台的 500ms 长得多 —— 500 常常是「想切页却弹了设置」）。
         onLongPress: longPressCustomize ? _openNavigationCustomization : null,
         longPressDuration: longPressDuration,
         // 底部快捷区在 Dock 这一支里**横排**成一只分组槽。

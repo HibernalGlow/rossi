@@ -57,8 +57,9 @@ abstract class NavigationSettingState with _$NavigationSettingState {
     @Default(true) bool dockLongPressCustomize,
 
     /// 长按判定的阈值（毫秒）。体感 500ms 常常是「想切页却弹了设置」，
-    /// 出厂放宽到 800;范围与步长见设置页那颗滑块。
-    @Default(800) int dockLongPressMilliseconds,
+    /// 出厂放到 2400 —— 长按进自定义是**明确的次要意图**，宁可要人按得
+    /// 久一点；范围与步长见设置页那颗滑块。
+    @Default(2400) int dockLongPressMilliseconds,
   }) = _NavigationSettingState;
 
   factory NavigationSettingState.fromJson(Map<String, dynamic> json) =>

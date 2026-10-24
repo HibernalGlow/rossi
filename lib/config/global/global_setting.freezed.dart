@@ -6595,7 +6595,8 @@ mixin _$NavigationSettingState {
 
  bool get sidebarEnabled; bool get sidebarExpanded; bool get dockEnabled; bool get autoNarrowMobileLayout; double get narrowNavigationWidth; List<String> get desktopPageIds; List<String> get mobilePageIds; List<String>? get desktopActionIds; List<String>? get mobileActionIds;/// 长按 Dock 上任一目的地打开「自定义导航」。
  bool get dockLongPressCustomize;/// 长按判定的阈值（毫秒）。体感 500ms 常常是「想切页却弹了设置」，
-/// 出厂放宽到 800;范围与步长见设置页那颗滑块。
+/// 出厂放到 2400 —— 长按进自定义是**明确的次要意图**，宁可要人按得
+/// 久一点；范围与步长见设置页那颗滑块。
  int get dockLongPressMilliseconds;
 /// Create a copy of NavigationSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -6805,7 +6806,7 @@ return $default(_that.sidebarEnabled,_that.sidebarExpanded,_that.dockEnabled,_th
 @JsonSerializable()
 
 class _NavigationSettingState implements NavigationSettingState {
-  const _NavigationSettingState({this.sidebarEnabled = true, this.sidebarExpanded = false, this.dockEnabled = true, this.autoNarrowMobileLayout = true, this.narrowNavigationWidth = kDefaultNarrowNavigationWidth,  List<String> desktopPageIds = const [],  List<String> mobilePageIds = const [],  List<String>? desktopActionIds,  List<String>? mobileActionIds, this.dockLongPressCustomize = true, this.dockLongPressMilliseconds = 800}): _desktopPageIds = desktopPageIds,_mobilePageIds = mobilePageIds,_desktopActionIds = desktopActionIds,_mobileActionIds = mobileActionIds;
+  const _NavigationSettingState({this.sidebarEnabled = true, this.sidebarExpanded = false, this.dockEnabled = true, this.autoNarrowMobileLayout = true, this.narrowNavigationWidth = kDefaultNarrowNavigationWidth,  List<String> desktopPageIds = const [],  List<String> mobilePageIds = const [],  List<String>? desktopActionIds,  List<String>? mobileActionIds, this.dockLongPressCustomize = true, this.dockLongPressMilliseconds = 2400}): _desktopPageIds = desktopPageIds,_mobilePageIds = mobilePageIds,_desktopActionIds = desktopActionIds,_mobileActionIds = mobileActionIds;
   factory _NavigationSettingState.fromJson(Map<String, dynamic> json) => _$NavigationSettingStateFromJson(json);
 
 @override@JsonKey() final  bool sidebarEnabled;
@@ -6848,7 +6849,8 @@ class _NavigationSettingState implements NavigationSettingState {
 /// 长按 Dock 上任一目的地打开「自定义导航」。
 @override@JsonKey() final  bool dockLongPressCustomize;
 /// 长按判定的阈值（毫秒）。体感 500ms 常常是「想切页却弹了设置」，
-/// 出厂放宽到 800;范围与步长见设置页那颗滑块。
+/// 出厂放到 2400 —— 长按进自定义是**明确的次要意图**，宁可要人按得
+/// 久一点；范围与步长见设置页那颗滑块。
 @override@JsonKey() final  int dockLongPressMilliseconds;
 
 /// Create a copy of NavigationSettingState

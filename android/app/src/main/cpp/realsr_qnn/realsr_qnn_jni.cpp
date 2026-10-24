@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <dlfcn.h>
 #include <jni.h>
 #include <mutex>
 #include <vector>
@@ -40,17 +41,42 @@ std::mutex g_lock;
 std::atomic<int> g_progress{0};
 std::atomic<bool> g_abort_processing{false};
 
+// The DSP loads Skel itself, following ADSP_LIBRARY_PATH. The first dlopen of
+// libQnnHtp.so fixes that lookup for the whole process: setting the variable
+// later leaves every retry failing with "Failed to load skel" / 4000, and the
+// QNN context creation then reports 14001.
+std::string own_library_dir() {
+  Dl_info info{};
+  if (dladdr(reinterpret_cast<void *>(&own_library_dir), &info) != 0 &&
+      info.dli_fname != nullptr) {
+    const std::string path(info.dli_fname);
+    const size_t slash = path.find_last_of('/');
+    if (slash != std::string::npos) return path.substr(0, slash);
+  }
+  return {};
+}
+
+void ensure_dsp_path(const char *preferred_dir) {
+  std::string directory = preferred_dir != nullptr ? preferred_dir : "";
+  if (directory.empty()) directory = own_library_dir();
+  if (directory.empty()) {
+    LOGE("Unable to locate the native library dir; ADSP_LIBRARY_PATH untouched");
+    return;
+  }
+  const std::string dsp_paths =
+      directory +
+      ";/vendor/dsp/cdsp;/vendor/lib/rfsa/cdsp;/system/vendor/lib/rfsa/cdsp";
+  setenv("ADSP_LIBRARY_PATH", dsp_paths.c_str(), 1);
+  LOGD("QNN ADSP_LIBRARY_PATH=%s", dsp_paths.c_str());
+}
+
 void set_adsp_library_path(JNIEnv *env, jstring native_library_dir) {
   if (native_library_dir == nullptr) return;
   const char *chars = env->GetStringUTFChars(native_library_dir, nullptr);
-  if (chars != nullptr && chars[0] != '\0') {
-    const std::string dsp_paths =
-        std::string(chars) +
-        ";/vendor/dsp/cdsp;/vendor/lib/rfsa/cdsp;/system/vendor/lib/rfsa/cdsp";
-    setenv("ADSP_LIBRARY_PATH", dsp_paths.c_str(), 1);
-    LOGD("QNN ADSP_LIBRARY_PATH=%s", dsp_paths.c_str());
+  if (chars != nullptr) {
+    ensure_dsp_path(chars);
+    env->ReleaseStringUTFChars(native_library_dir, chars);
   }
-  if (chars != nullptr) env->ReleaseStringUTFChars(native_library_dir, chars);
 }
 
 // 与上游 force_monochrome_output 相同：仅对被判定为单色的源运行，
@@ -88,6 +114,13 @@ void force_monochrome_output(unsigned char *rgba, int width, int height,
 }
 
 }  // namespace
+
+// System.loadLibrary() runs this before any QNN entry point, so the DSP path
+// is already in place when qnn_backend::probe()/architecture() first dlopen.
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *, void *) {
+  ensure_dsp_path(nullptr);
+  return JNI_VERSION_1_6;
+}
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_zephyr_breeze_realsr_RealSrQnn_nativeIsRuntimeAvailable(JNIEnv *,

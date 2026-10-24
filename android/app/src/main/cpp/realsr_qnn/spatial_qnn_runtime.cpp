@@ -12,6 +12,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
 #include <fstream>
@@ -281,6 +282,7 @@ public:
   void *dlc_library = nullptr;
   void *backend_library = nullptr;
   void *system_library = nullptr;
+  Qnn_LogHandle_t qnn_log = nullptr;
   const QnnInterface_t *provider = nullptr;
   const QnnSystemInterface_t *system_provider = nullptr;
   Qnn_BackendHandle_t backend = nullptr;
@@ -360,6 +362,20 @@ public:
     }
     const auto &api = qnn();
     const auto &sys = system();
+    // QNN 内部日志直通 logcat：裸错误码（如 contextCreate 的 14001）没有
+    // 内部日志无法定位到 Skel 加载 / 架构选择 / 固件拒绝这类具体环节。
+    if (api.logCreate) {
+      static auto log_cb = [](const char *fmt, QnnLog_Level_t level,
+                              uint64_t, va_list args) {
+        __android_log_vprint(ANDROID_LOG_WARN, "QnnLog", fmt, args);
+      };
+      Qnn_LogHandle_t handle = nullptr;
+      // DEBUG names the Skel file the transport asks for; the default WARN
+      // level hides the "Attempting to open dynamically linked so" line.
+      if (api.logCreate(log_cb, QNN_LOG_LEVEL_DEBUG, &handle) == QNN_SUCCESS) {
+        qnn_log = handle;
+      }
+    }
     if (!api.backendCreate || !api.contextCreate ||
         !api.contextCreateFromBinary || !api.contextGetBinarySize ||
         !api.contextGetBinary || !api.graphRetrieve || !api.graphFinalize ||
@@ -367,12 +383,21 @@ public:
         !sys.systemDlcComposeGraphs || !sys.systemDlcFree) {
       return fail("The QNN provider is missing DLC or graph APIs");
     }
+    const char *adsp_path = std::getenv("ADSP_LIBRARY_PATH");
+    __android_log_print(ANDROID_LOG_WARN, "SpatialQnn",
+                        "ADSP_LIBRARY_PATH=%s",
+                        adsp_path ? adsp_path : "(unset)");
     Qnn_ErrorHandle_t status = api.backendCreate(nullptr, nullptr, &backend);
+    __android_log_print(ANDROID_LOG_WARN, "SpatialQnn",
+                        "backendCreate status=%u", (unsigned)status);
     if (status != QNN_SUCCESS) {
       return fail("QNN backendCreate failed: " + std::to_string(status));
     }
     if (api.deviceCreate) {
       status = api.deviceCreate(nullptr, nullptr, &device);
+      __android_log_print(
+          ANDROID_LOG_WARN, "SpatialQnn", "deviceCreate status=%u device=%p",
+          (unsigned)status, (void *)device);
       if (status == QNN_DEVICE_ERROR_UNSUPPORTED_FEATURE ||
           status == QNN_DEVICE_ERROR_INVALID_CONFIG) {
         device = nullptr;
@@ -402,7 +427,9 @@ public:
       const auto &api = qnn();
       if (device && api.deviceFree) api.deviceFree(device);
       if (backend && api.backendFree) api.backendFree(backend);
+      if (qnn_log && api.logFree) api.logFree(qnn_log);
     }
+    qnn_log = nullptr;
     device = nullptr;
     backend = nullptr;
     provider = nullptr;

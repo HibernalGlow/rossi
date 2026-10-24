@@ -13,6 +13,7 @@ import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/page/discover/service/discover_tab_scope.dart';
 import 'package:zephyr/page/plugin_settings/cubit/plugin_settings_cubit.dart';
 import 'package:zephyr/page/plugin_settings/method/plugin_settings_web_login.dart';
+import 'package:zephyr/page/plugin_settings/widgets/delete_plugin_confirm_dialog.dart';
 import 'package:zephyr/page/plugin_settings/widgets/plugin_settings_content.dart';
 import 'package:zephyr/plugin/plugin_cloud_update_service.dart';
 import 'package:zephyr/plugin/plugin_install_service.dart';
@@ -674,29 +675,15 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
   }
 
   Future<void> _confirmDeletePlugin() async {
-    final ok = await showPopupPanel<bool>(
-      context: context,
-      presentation: PopupPresentation.modal,
-      builder: (context) => PopupPanel(
-        title: Text(t.plugin.deletePlugin),
-        content: Text(t.plugin.confirmDeletePlugin),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(t.common.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(t.common.confirm),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) {
+    final deleteRelatedData = await showDeletePluginConfirmDialog(context);
+    if (deleteRelatedData == null) {
       return;
     }
     try {
-      await PluginRegistryService.I.deletePlugin(widget.pluginUuid);
+      await PluginRegistryService.I.deletePlugin(
+        widget.pluginUuid,
+        deleteRelatedData: deleteRelatedData,
+      );
     } catch (e) {
       if (!mounted) {
         return;

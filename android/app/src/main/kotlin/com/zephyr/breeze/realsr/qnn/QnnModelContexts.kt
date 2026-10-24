@@ -25,7 +25,7 @@ import java.security.MessageDigest
 /** Compiles downloaded FP16 DLCs once per model/runtime/device, outside the image cache. */
 object QnnModelContexts {
     const val CACHE_VERSION = "1"
-    private const val RUNTIME_VERSION = "2.49.0"
+    private const val RUNTIME_VERSION = "2.50.0"
     private const val TAG = "QnnModelContexts"
 
     private val statesLock = Any()

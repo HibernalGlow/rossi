@@ -76,41 +76,9 @@ val qnnSdkDir = providers.gradleProperty("qnnSdkDir").orNull
     ?: System.getenv("QNN_SDK_ROOT")
 val qnnSdkRoot = qnnSdkDir?.takeIf { it.isNotBlank() }?.let { file(it) }
 
-val generatedQnnJniLibs = layout.buildDirectory.dir("generated/qnnJniLibs")
-
-val stageQnnDlcRuntime = tasks.register<Sync>("stageQnnDlcRuntime") {
-    // 有 SDK 时整套暂存 QNN 运行库（Htp / HtpPrepare / ModelDlc / System +
-    // 各代际 Skel/Stub），替代 qnn-runtime AAR —— 运行库与 qnn.sdk.dir 的
-    // 头文件必须同源同版（混版本会在 contextCreate 报 device config 错）。
-    // 无 SDK（CI）时源为空、目录产出为空，APK 不含 QNN 运行库 —— 运行时
-    // 如实报 NPU 不可用；若 AAR 依赖在场则仍由 AAR 提供（stub 兜底）。
-    if (qnnSdkRoot != null) {
-        val sdkRoot = qnnSdkRoot!!
-        val libraries = listOf(
-            "libQnnHtp.so",
-            "libQnnHtpPrepare.so",
-            "libQnnModelDlc.so",
-            "libQnnSystem.so",
-            "libQnnHtpV69Skel.so",
-            "libQnnHtpV69Stub.so",
-            "libQnnHtpV79Skel.so",
-            "libQnnHtpV79Stub.so",
-        )
-        from(libraries.map { sdkRoot.resolve("lib/aarch64-android/$it") }) {
-            into("arm64-v8a")
-        }
-        doFirst {
-            libraries.forEach { library ->
-                check(sdkRoot.resolve("lib/aarch64-android/$library").isFile) {
-                    "QNN runtime not found: $library under ${sdkRoot.absolutePath}"
-                }
-            }
-        }
-    } else {
-        doLast { logger.lifecycle("QAIRT SDK not configured; skipping QNN runtime staging") }
-    }
-    into(generatedQnnJniLibs)
-}
+// QNN 运行库不再动态 staging：与 qnn.sdk.dir 头文件同源同版的 so 直接放
+// src/main/jniLibs/arm64-v8a/（gitignore 的 libQnn*，见 runbook §0），
+// merge 天然收进 APK；CI 无此目录时 APK 不含 QNN 运行库，运行时如实报不可用。
 
 // HTP Skel/Stub 裁剪：每个架构约 13-19 MB，全部打包约 +55 MB。
 // v68 不在受支持列表（QualcommHtp 只认 69/73/75/79/81），同样进裁剪候选。
@@ -175,11 +143,6 @@ android {
         }
     }
 
-    // QNN 编译器 so 的暂存目录（无 SDK 时目录为空，不影响构建）。
-    // 用 task provider 派生的路径挂 srcDir，Gradle 会自动带上任务依赖
-    // （手写 dependsOn 名字匹配会被任务图校验拒绝：用了输出却没声明边）。
-    sourceSets["main"].jniLibs.srcDir(stageQnnDlcRuntime.map { it.destinationDir })
-
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/realsr_qnn/CMakeLists.txt")
@@ -243,7 +206,7 @@ dependencies {
     // 添加核心库脱糖依赖
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("rustls:rustls-platform-verifier:0.1.1")
-    // QNN 运行库不来自 AAR：与 qnn.sdk.dir 头文件同源同版由 stageQnnDlcRuntime
-    // 整套暂存（头/库混版本会在设备端 contextCreate 报 INVALID_CONFIG）。
-    // 无 qnn.sdk.dir 的构建（CI）APK 不含 QNN 运行库，运行时如实报不可用。
+    // QNN 运行库不来自 AAR：与 qnn.sdk.dir 头文件同源同版的 so 预置于
+    // src/main/jniLibs/arm64-v8a/（gitignore 的 libQnn*）。混版本会在设备端
+    // contextCreate 报 INVALID_CONFIG。CI 无这些 so，运行时如实报不可用。
 }

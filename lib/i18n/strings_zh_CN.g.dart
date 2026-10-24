@@ -7331,8 +7331,8 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '删除插件'
 	String get deletePlugin => '删除插件';
 
-	/// zh-CN: '确认删除该插件？此操作将删除插件及其相关数据。'
-	String get confirmDeletePlugin => '确认删除该插件？此操作将删除插件及其相关数据。';
+	/// zh-CN: '插件将从列表中移除，插件设置与登录信息会一并删除。'
+	String get confirmDeletePlugin => '插件将从列表中移除，插件设置与登录信息会一并删除。';
 
 	/// zh-CN: '删除失败: $error'
 	String deleteFailed({required Object error}) => '删除失败: ${error}';
@@ -7343,8 +7343,20 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '执行失败: $error'
 	String executeFailed({required Object error}) => '执行失败: ${error}';
 
-	/// zh-CN: '彻底删除插件，并删除相关数据'
-	String get deletePluginSubtitle => '彻底删除插件，并删除相关数据';
+	/// zh-CN: '删除插件；可一并删除该源数据，默认保留'
+	String get deletePluginSubtitle => '删除插件；可一并删除该源数据，默认保留';
+
+	/// zh-CN: '同时删除该源的收藏、历史与下载数据'
+	String get deletePluginAlsoRemoveData => '同时删除该源的收藏、历史与下载数据';
+
+	/// zh-CN: '含已下载的图片文件'
+	String get deletePluginAlsoRemoveDataSubtitle => '含已下载的图片文件';
+
+	/// zh-CN: '关闭时保留这些数据；重新安装同一插件后可继续使用。'
+	String get deletePluginKeepDataHint => '关闭时保留这些数据；重新安装同一插件后可继续使用。';
+
+	/// zh-CN: '将删除这些数据和已下载文件，无法恢复。'
+	String get deletePluginRemoveDataHint => '将删除这些数据和已下载文件，无法恢复。';
 
 	/// zh-CN: '调试模式'
 	String get debugMode => '调试模式';
@@ -13469,11 +13481,15 @@ extension on Translations {
 			'plugin.pluginSettingsTitle' => ({required Object name}) => '${name} 设置',
 			'plugin.debugConfigUpdated' => '插件调试配置已更新',
 			'plugin.deletePlugin' => '删除插件',
-			'plugin.confirmDeletePlugin' => '确认删除该插件？此操作将删除插件及其相关数据。',
+			'plugin.confirmDeletePlugin' => '插件将从列表中移除，插件设置与登录信息会一并删除。',
 			'plugin.deleteFailed' => ({required Object error}) => '删除失败: ${error}',
 			'plugin.pluginDeleted' => '插件已删除',
 			'plugin.executeFailed' => ({required Object error}) => '执行失败: ${error}',
-			'plugin.deletePluginSubtitle' => '彻底删除插件，并删除相关数据',
+			'plugin.deletePluginSubtitle' => '删除插件；可一并删除该源数据，默认保留',
+			'plugin.deletePluginAlsoRemoveData' => '同时删除该源的收藏、历史与下载数据',
+			'plugin.deletePluginAlsoRemoveDataSubtitle' => '含已下载的图片文件',
+			'plugin.deletePluginKeepDataHint' => '关闭时保留这些数据；重新安装同一插件后可继续使用。',
+			'plugin.deletePluginRemoveDataHint' => '将删除这些数据和已下载文件，无法恢复。',
 			'plugin.debugMode' => '调试模式',
 			'plugin.debugAddress' => '调试地址',
 			'plugin.accountLogin' => '账号登录',
@@ -13636,12 +13652,12 @@ extension on Translations {
 			'dataBackup.versionMismatch' => '版本不一致，数据导入可能会出问题，是否继续？',
 			'dataBackup.exportedVersion' => ({required Object version}) => '导出数据版本：${version}',
 			'dataBackup.currentVersion' => ({required Object version}) => '当前应用版本：${version}',
+			_ => null,
+		} ?? switch (path) {
 			'dataBackup.kContinue' => '继续',
 			'dataBackup.importSuccess' => '导入成功',
 			'dataBackup.restartPrompt' => '数据导入成功，请重启应用以生效。',
 			'webdavSync.title' => '云同步配置',
-			_ => null,
-		} ?? switch (path) {
 			'webdavSync.serviceTitle' => ({required Object service}) => '${service} 同步配置',
 			'webdavSync.noneTip' => '请先在设置里选择同步服务，再回到这里填写配置。',
 			'webdavSync.deleteConfig' => '删除配置',
@@ -14150,12 +14166,12 @@ extension on Translations {
 			'searchResult.enterPageNumber' => '输入页数',
 			'searchResult.pleaseEnterNumber' => '请输入数字',
 			'searchResult.returnToTop' => '返回顶部',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.jumpToPage' => '跳转页面',
 			'searchResult.jump' => '跳转',
 			'searchResult.retry' => '点击重试',
 			'comicList.browseMenu' => '浏览菜单',
-			_ => null,
-		} ?? switch (path) {
 			'comicList.currentPage' => ({required Object page}) => '第 ${page} 页',
 			'comicList.pageOfTotal' => ({required Object page, required Object total}) => '第 ${page} / ${total} 页',
 			'comicList.jumpToPage' => '快速跳页',

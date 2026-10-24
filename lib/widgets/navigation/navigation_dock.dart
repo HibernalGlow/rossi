@@ -563,7 +563,7 @@ class FloatingNavigationBar extends StatefulWidget {
   final VoidCallback? onLongPress;
 
   /// 长按判定的阈值；`null` 用平台的 [kLongPressTimeout]（500ms）。
-  /// 本仓出厂给 800ms（「想切页却弹了设置」的体感，见设置页那颗滑块）。
+  /// 本仓出厂给 2400ms（500ms 常常是「想切页却弹了设置」；见设置页那颗滑块）。
   final Duration? longPressDuration;
 
   @override

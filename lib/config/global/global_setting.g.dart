@@ -1079,7 +1079,7 @@ _NavigationSettingState _$NavigationSettingStateFromJson(
       .toList(),
   dockLongPressCustomize: json['dockLongPressCustomize'] as bool? ?? true,
   dockLongPressMilliseconds:
-      (json['dockLongPressMilliseconds'] as num?)?.toInt() ?? 800,
+      (json['dockLongPressMilliseconds'] as num?)?.toInt() ?? 2400,
 );
 
 Map<String, dynamic> _$NavigationSettingStateToJson(

@@ -13,7 +13,15 @@ QNN / HTP NPU 超分后端且在本仓可用 —— 按 §13 口径整体采用�
   （上游由 ncnn 对象记账输出倍率；Rossi 无进程内 ncnn 对象，输出位图尺寸取
   上下文元数据推导值）。
 - `spatial_qnn_runtime.{h,cpp}` + `qnn_context_bridge.cpp`：DLC → context
-  设备端编译（`libQnnModelDlc.so`）。原样（仅 JNI 名随包名调整）。
+  设备端编译（`libQnnModelDlc.so`）。原样（仅 JNI 名随包名调整）。偏离：
+  初始化日志开到 DEBUG，并打印 `ADSP_LIBRARY_PATH`（Skel/传输层故障只在
+  QNN 内部日志里可见）。
+- `realsr_qnn_jni.cpp` + `RealSrQnnChannel.kt`：新增 `JNI_OnLoad`，用
+  `dladdr` 定位本 .so 目录，在任何 QNN `dlopen` 之前设置
+  `ADSP_LIBRARY_PATH`；探测顺序改为 `architecture()` 先于
+  `runtimeAvailable()`。上游把 setenv 放在各入口函数里，首次探测仍可能
+  早于 setenv；DSP 一旦在缺路径时完成 Skel 查找，进程内重试会一直失败
+  （4000 / transport 14001），只有重启进程才能恢复。
 - `periodic_texture_guard.h` / `monochrome_guard.h`：网点纹理防护与单色保证。原样。
 - `QualcommHtp.kt` / `QnnModelContexts.kt` / `NpuModelStatus.kt`：HTP 架构探测
   （v69/73/75/79/81）、上下文缓存（身份 = 缓存版本|运行时版本|模型哈希|HTP 架构|

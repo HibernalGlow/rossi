@@ -206,11 +206,12 @@ class _DockLongPressTile extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   static const int _min = 300;
-  static const int _max = 1500;
+  static const int _max = 3000;
   static const int _step = 100;
 
-  /// 出厂值。比平台的 500ms 稳一档：500 常常是「想切页却弹了设置」。
-  static const int _default = 800;
+  /// 出厂值。500ms 是「想切页却弹了设置」，2400ms 则是「要明确想打开
+  /// 才按得住」—— 长按进自定义是次要意图，宁可慢一点也不要误触。
+  static const int _default = 2400;
 
   int get _clamped => value.clamp(_min, _max);
 
