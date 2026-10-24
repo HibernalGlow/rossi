@@ -606,7 +606,16 @@ class RealSrSuperResolution {
     final destDir = await _modelDirectory;
 
     if (force && Directory(destDir).existsSync()) {
-      await Directory(destDir).delete(recursive: true);
+      // QNN 引擎的模型住在 `qnn/` 子目录里，强刷只删子目录——`super_resolution/`
+      // 根上还有 Vulkan 引擎的 NCNN 模型，整目录删会把另一条引擎一起废掉。
+      if (await _usesAndroidQnn) {
+        final qnnDir = Directory(
+          p.join(destDir, AndroidQnnModelConfig.dlcDirName),
+        );
+        if (qnnDir.existsSync()) await qnnDir.delete(recursive: true);
+      } else {
+        await Directory(destDir).delete(recursive: true);
+      }
     }
 
     await Directory(destDir).create(recursive: true);
@@ -670,7 +679,13 @@ class RealSrSuperResolution {
 
     if (Platform.isAndroid || Platform.isWindows || Platform.isLinux) {
       final destDir = await _modelDirectory;
-      if (Directory(destDir).existsSync()) {
+      if (Platform.isAndroid && await _usesAndroidQnn) {
+        // 只删 QNN 的 `qnn/` 子目录与它的压缩包（根上的 Vulkan NCNN 模型不动）。
+        final qnnDir = Directory(
+          p.join(destDir, AndroidQnnModelConfig.dlcDirName),
+        );
+        if (qnnDir.existsSync()) await qnnDir.delete(recursive: true);
+      } else if (Directory(destDir).existsSync()) {
         await Directory(destDir).delete(recursive: true);
       }
 

@@ -8,6 +8,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/page/comic_read/widgets/settings/reader_settings_primitives.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/page/setting/real_sr/service/android_sr_engine.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_settings.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_super_resolution.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
@@ -42,14 +43,22 @@ class _RealSrModelManagementSectionState
   bool _importing = false;
   double _downloadProgress = 0;
   SuperResolutionEngine _engine = defaultEngine;
+  AndroidSuperResolutionEngine _androidEngine =
+      defaultAndroidSuperResolutionEngine;
 
-  /// 「桌面 NCNN 专属」的那几块（模型管理 / 手动下载 / 导入）要不要画。
+  /// 「模型管理」三行要不要画。
   ///
   /// Apple 没有 NCNN 这条引擎，永远不画；Windows / Linux 只在选中桌面 NCNN 时画 ——
   /// 切到 mImage ONNX 之后，模型的下载/导入由 ONNX 面板自己管，这里再摆一份就会
   /// 出现「按了下载却去拉 7z」的错路。
-  bool get _applies =>
-      supportsDesktopNcnn && _engine != SuperResolutionEngine.mimageOnnx;
+  /// Android 只在 QNN NPU 引擎下画：Vulkan 引擎的 NCNN 模型是全自动下载的，
+  /// 没有「管理」可言；QNN 的 DLC 包需要显式下载/导入。
+  bool get _applies {
+    if (Platform.isAndroid) {
+      return _androidEngine == AndroidSuperResolutionEngine.qnnNpu;
+    }
+    return supportsDesktopNcnn && _engine != SuperResolutionEngine.mimageOnnx;
+  }
 
   @override
   void initState() {
@@ -75,6 +84,7 @@ class _RealSrModelManagementSectionState
       results = await Future.wait([
         RealSrSuperResolution.isAvailable,
         RealSrSettings.loadEngine(),
+        if (Platform.isAndroid) RealSrSettings.loadAndroidEngine(),
       ]);
     } catch (e) {
       failure = e;
@@ -84,6 +94,9 @@ class _RealSrModelManagementSectionState
       if (failure == null) {
         _isAvailable = results[0] as bool;
         _engine = results[1] as SuperResolutionEngine;
+        if (Platform.isAndroid) {
+          _androidEngine = results[2] as AndroidSuperResolutionEngine;
+        }
       } else {
         _failed = true;
       }
