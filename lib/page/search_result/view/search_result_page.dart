@@ -5,7 +5,9 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:material_ui/material_ui.dart' hide Thumb;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/string_select.dart';
+import 'package:zephyr/page/comic_list/view/plugin_comic_grid_sliver.dart';
 import 'package:zephyr/page/search_result/view/search_result_library_view.dart';
+import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
 import 'package:zephyr/page/discover/service/discover_tab_toolbar.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
@@ -269,6 +271,29 @@ class _SearchResultPageState extends State<_SearchResultPage>
           ),
         );
       }
+    }
+
+    // 「详情布局」开启 = 关闭展墙，直接渲染 web 风详情行（与展墙的普通视图
+    // 回退同一份 sliver，只是 detailed 打开）；关 = 展墙照旧。
+    final detailed = context
+        .watch<GlobalSettingCubit>()
+        .state
+        .bookshelfSetting
+        .detailLayout;
+    if (detailed) {
+      return PluginComicGridSliver(
+        controller: _scrollController,
+        entries: mapToUnifiedComicSimplifyEntryInfoList(
+          state.comics.map((item) => item.comic),
+        ),
+        hasReachedMax:
+            state.hasReachedMax && state.status == SearchStatus.success,
+        isLoadingMore: state.status == SearchStatus.loadingMore,
+        loadMoreFailed: state.status == SearchStatus.getMoreFailure,
+        onRetryLoadMore: () => _fetchSearchResult(retry: true),
+        onLoadMore: _fetchSearchResult,
+        detailed: true,
+      );
     }
 
     return SearchResultLibraryView(

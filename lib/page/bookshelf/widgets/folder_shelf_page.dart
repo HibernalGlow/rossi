@@ -331,6 +331,15 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
   }
 
   Widget _buildBody(BuildContext context) {
+    // 「详情布局」开启 = 关闭展墙，走上游 web 风详情行（下方网格 / 多列详情）；
+    // 关 = 本仓展墙（`_buildWallBody`，含普通视图回退）。上游合并带来的类内
+    // 同名 `_buildBody` 曾把展墙那条 extension 路径整个遮蔽掉，这里显式分流。
+    final detailed = context
+        .watch<GlobalSettingCubit>()
+        .state
+        .bookshelfSetting
+        .detailLayout;
+    if (!detailed) return _buildWallBody(context);
     return BlocBuilder<BookshelfSearchCubit, BookshelfSearchState>(
       builder: (context, searchState) {
         return BlocBuilder<FolderShelfBloc, FolderShelfState>(
@@ -347,11 +356,6 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
               prev.sortAscending != curr.sortAscending ||
               prev.selectionMode != curr.selectionMode,
           builder: (context, state) {
-            final detailed = context
-                .watch<GlobalSettingCubit>()
-                .state
-                .bookshelfSetting
-                .detailLayout;
             final keyword = _normalizeSearchText(
               searchState.stateOf(state.mode).keyword,
             );

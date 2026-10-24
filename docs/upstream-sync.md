@@ -186,6 +186,20 @@ Git：`git fetch upstream && git merge upstream/main`，保留真实 merge commi
 是否在本仓搜索结果页 / 详情页布局上继续接线或回退；上游详情页章节虚拟化
 （`_buildEpisodeSlivers`）随 web 版布局一并缓议。
 
+### detailLayout 与展墙分流（2026-10-24 用户口径）
+
+用户裁决：`detailLayout` **开** = 关闭展墙、直接渲染 web 风详情行；**关** =
+保持本仓展墙（上游该档是普通网格，本仓以展墙 + 其普通视图回退承接）。
+接线点三处：`plugin_paged_comic_list_view` 的展墙分支让路给 `detailed`
+（发现页 / 插件首页 / 云收藏 / 漫画列表页全覆盖，上游原版行为不变）；
+`search_result_page` 在开关开启时直接渲染 `PluginComicGridSliver(detailed:
+true)`；书架文件夹页类内 `_buildBody` 按开关显式分流——上游合并引入的类内
+同名 `_buildBody` 曾把本仓展墙那条 extension 路径（`_buildWallBody`）整个
+遮蔽成死代码（文件夹展墙自合并起静默失效），本次顺带修复。
+`folder_shelf_back_test` 的回顶回归改走 detailLayout 开的分支（fling 目标
+换成那支的 `CustomScrollView`，点按只挑可命中候选），展墙路径的滚动保管
+不在这套 key 语义内。详情页表达版布局维持本仓现状，不受该开关影响。
+
 mImageViewer 更新 gitlink 后运行 `python3 script/sync_vendored_modules.py`，
 检查所有 `PORTS` 差异并更新 `pinned_at`；同时人工审查未登记的 `path_key`、
 `thumb_loader`、`catalog`、`fast_resize` 与显示几何切片。

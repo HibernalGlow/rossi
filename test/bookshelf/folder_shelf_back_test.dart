@@ -74,7 +74,15 @@ void main() {
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
-          BlocProvider<GlobalSettingCubit>(create: (_) => GlobalSettingCubit()),
+          // 本测验证上游「路径 key 重建 → 换文件夹回顶」语义，该实现住在
+          // detailLayout 开的分支（多列详情 / 网格）；展墙路径有自己的滚动
+          // 保管，不走这套 key。fling 目标相应是那支的 CustomScrollView。
+          BlocProvider<GlobalSettingCubit>(
+            create: (_) => GlobalSettingCubit()
+              ..updateBookshelfSetting(
+                (current) => current.copyWith(detailLayout: true),
+              ),
+          ),
           BlocProvider<BookshelfSearchCubit>(
             create: (_) => BookshelfSearchCubit(),
           ),
@@ -170,18 +178,22 @@ void main() {
 
     // 向下滚一段：offset > 0。fling 有惯性，多推几帧等它停稳再点，
     // 否则 tap 会打偏（hitTestWarning）根本没进文件夹。
-    await tester.fling(find.byType(GridView), const Offset(0, -2000), 2000);
+    await tester.fling(find.byType(CustomScrollView), const Offset(0, -2000), 2000);
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(offset(), greaterThan(0));
 
-    // 点当前可见的任一文件夹：路径变化 → 回顶。
-    final visibleName = tester
-        .widgetList<Text>(find.byType(Text))
-        .map((w) => w.data ?? '')
-        .firstWhere((s) => RegExp(r'^f\d\d$').hasMatch(s));
-    await tester.tap(find.text(visibleName));
+    // 点当前可见的任一文件夹：路径变化 → 回顶。详情行模式下树序第一个
+    // 名字可能被面包屑浮栏盖住（hitTest 不中，tap 打偏），只从可命中的
+    // 候选里挑。
+    final hittableNames = find
+        .byWidgetPredicate(
+          (w) => w is Text && RegExp(r'^f\d\d$').hasMatch(w.data ?? ''),
+        )
+        .hitTestable();
+    expect(hittableNames, findsWidgets);
+    await tester.tap(hittableNames.first);
     // 进子文件夹后面包屑仍显示文件夹名，不能用文本消失断言；
     // 等 bloc 路径切过去，再断言已回顶。
     String currentPath() => tester

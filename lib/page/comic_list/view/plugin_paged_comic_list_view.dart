@@ -150,7 +150,11 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
           }
         },
         builder: (context, state) {
-          if (widget.editorialKey != null && !widget.shrinkWrap) {
+          // 「详情布局」开启 = 关闭展墙，直接走 web 风详情行（_legacyContent
+          // → _buildContent 会把 detailed 传进网格 sliver）；关 = 展墙照旧。
+          if (widget.editorialKey != null &&
+              !widget.shrinkWrap &&
+              !widget.detailed) {
             final settings = context.watch<GlobalSettingCubit>().state;
             final comics = mapToUnifiedComicSimplifyEntryInfoList(
               state.list,
