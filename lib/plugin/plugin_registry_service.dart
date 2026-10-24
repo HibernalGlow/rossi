@@ -202,11 +202,7 @@ class PluginRegistryService {
     } catch (e, st) {
       // 无 Rust 桥的环境（widget 测试没跑 RustLib.init）按「跳过预热」降级，
       // 不让整页 pump 崩掉；生产环境 Rust 恒可用，不会走到这条分支。
-      logger.w(
-        'global runtime 探测失败，跳过预热',
-        error: e,
-        stackTrace: st,
-      );
+      logger.w('global runtime 探测失败，跳过预热', error: e, stackTrace: st);
     }
   }
 
