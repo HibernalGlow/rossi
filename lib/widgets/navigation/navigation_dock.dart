@@ -37,10 +37,19 @@
 //    留一份在这里就等于两套形变各改各的，所以转发到共享件而不是复制。
 //    上游那份的实现见那个文件的头注释。
 //
+// 7. **长按目的地**：`FloatingNavigationBar` / `NavigationDock` 新增可选的
+//    `onLongPress`（移动端用它打开导航自定义，见 `navigation_bar.dart`）。
+//    判定做在 bar 的裸 `Listener` 里而不是给 item 挂 `GestureDetector`：
+//    bar 刻意不进手势竞技场（「a tap waiting on one lifts the lens late」），
+//    item 上加识别器会把每次点击都拖进竞技场，镜片落下就迟了。于是按下
+//    起 `kLongPressTimeout` 计时，滑动超出触控位移即取消；触发后带一次
+//    中档触感回馈，并拦下松手时的 `onSelected`（长按不等于选中）。
+//
 // `_HitSlop` / `_RenderLensTint` 这两个自绘层原样保留：
 // 触摸离胶囊边缘 8 px 以内仍然算命中（圆角端会把命中区切掉一块），
 // 按压的形变与 lens 的裁切/染色都在 paint 里做，不动布局。
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter, lerpDouble;
 
@@ -286,12 +295,20 @@ class NavigationDock extends StatelessWidget {
     required this.destinations,
     required this.selectedIndex,
     required this.onSelected,
+    this.onLongPress,
+    this.longPressDuration,
     this.trailing,
   });
 
   final List<NavigationDockDestination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+
+  /// 按住任一目的地时触发，原样交给 [FloatingNavigationBar.onLongPress]。
+  final VoidCallback? onLongPress;
+
+  /// 长按阈值，原样交给 [FloatingNavigationBar.longPressDuration]。
+  final Duration? longPressDuration;
   final Widget? trailing;
 
   /// Whether [context] sits in the dock's button slot, where a button keeps
@@ -348,6 +365,8 @@ class NavigationDock extends StatelessWidget {
                       destinations: destinations,
                       selectedIndex: selectedIndex,
                       onSelected: onSelected,
+                      onLongPress: onLongPress,
+                      longPressDuration: longPressDuration,
                     ),
                   ),
                 ),
@@ -529,11 +548,23 @@ class FloatingNavigationBar extends StatefulWidget {
     required this.destinations,
     required this.selectedIndex,
     required this.onSelected,
+    this.onLongPress,
+    this.longPressDuration,
   });
 
   final List<NavigationDockDestination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+
+  /// 按住任一目的地超过长按阈值时触发（不区分按在哪一项上）。
+  ///
+  /// 触发后这次按压就被消费掉：松手不再走 [onSelected]。滑动（超出
+  /// 触控位移）取消长按，滑到别的项松手照常选中。
+  final VoidCallback? onLongPress;
+
+  /// 长按判定的阈值；`null` 用平台的 [kLongPressTimeout]（500ms）。
+  /// 本仓出厂给 800ms（「想切页却弹了设置」的体感，见设置页那颗滑块）。
+  final Duration? longPressDuration;
 
   @override
   State<FloatingNavigationBar> createState() => _FloatingNavigationBarState();
@@ -558,6 +589,10 @@ class _FloatingNavigationBarState extends State<FloatingNavigationBar>
   Offset? _cursor;
   final ValueNotifier<double?> _hoverAt = ValueNotifier(null);
 
+  /// 长按计时与「这次按压已被长按消费」的记账（见头部第 7 条）。
+  Timer? _longPressTimer;
+  bool _longPressed = false;
+
   int get _lastIndex => math.max(0, widget.destinations.length - 1);
 
   int get _selectedIndex => widget.selectedIndex.clamp(0, _lastIndex);
@@ -573,6 +608,7 @@ class _FloatingNavigationBarState extends State<FloatingNavigationBar>
 
   @override
   void dispose() {
+    _longPressTimer?.cancel();
     _lens.dispose();
     _lift.dispose();
     _hover.dispose();
@@ -717,6 +753,18 @@ class _FloatingNavigationBarState extends State<FloatingNavigationBar>
     _dragging = false;
     _lift.springTo(1, _liftSpring);
     _lens.springTo(index.toDouble(), _settleSpring);
+    final onLongPress = widget.onLongPress;
+    if (onLongPress != null) {
+      _longPressTimer?.cancel();
+      _longPressTimer = Timer(
+        widget.longPressDuration ?? kLongPressTimeout,
+        () {
+          _longPressed = true;
+          HapticFeedback.mediumImpact();
+          onLongPress();
+        },
+      );
+    }
   }
 
   void _slide(Offset localPosition) {
@@ -728,6 +776,7 @@ class _FloatingNavigationBarState extends State<FloatingNavigationBar>
         return;
       }
       _dragging = true;
+      _longPressTimer?.cancel();
     }
     final size = context.size!;
     final overshoot =
@@ -779,6 +828,12 @@ class _FloatingNavigationBarState extends State<FloatingNavigationBar>
     _pressedIndex = null;
     _dragging = false;
     _lift.springTo(0, _settleSpring);
+    // 长按已经打开了自己的去处（自定义弹层），松手不再选中。
+    if (_longPressed) {
+      _longPressed = false;
+      _lens.springTo(_selectedIndex.toDouble(), _settleSpring);
+      return;
+    }
     if (!commit) {
       _lens.springTo(_selectedIndex.toDouble(), _settleSpring);
       return;

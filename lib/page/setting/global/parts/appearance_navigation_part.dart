@@ -78,6 +78,23 @@ List<Widget> navigationChromeTiles({
         onChanged: (value) =>
             patch((current) => current.copyWith(narrowNavigationWidth: value)),
       ),
+    // 长按 Dock 进「自定义导航」的开关与阈值。Dock 不按平台收（手机主力、
+    // 桌面窄窗口也露出），这两条同口径；阈值只在开关开着时才有答案。
+    SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.hand),
+      title: Text(t.navigation.dockLongPressCustomize),
+      subtitle: Text(t.navigation.dockLongPressCustomizeSubtitle),
+      value: nav.dockLongPressCustomize,
+      onChanged: (value) =>
+          patch((current) => current.copyWith(dockLongPressCustomize: value)),
+    ),
+    if (nav.dockLongPressCustomize)
+      _DockLongPressTile(
+        value: nav.dockLongPressMilliseconds,
+        onChanged: (value) => patch(
+          (current) => current.copyWith(dockLongPressMilliseconds: value),
+        ),
+      ),
     ListTile(
       leading: const GlyphIcon(AppGlyphs.sliders),
       title: Text(t.navigation.customize),
@@ -168,6 +185,75 @@ class _NarrowWidthTile extends StatelessWidget {
                 onPressed: isDefault
                     ? null
                     : () => onChanged(kDefaultNarrowNavigationWidth),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 长按阈值：一条能拖的滑块 + 一颗「恢复默认」。
+///
+/// 照 [_NarrowWidthTile] 的样式。取滑块而不是数字框：这里与那边的「宽度
+/// 阈值」同类 —— 没有必须精确到某一格的点，300..1500 毫秒摊在手上，
+/// 100ms 一格（更细的差别在真机上换不出手感）。
+class _DockLongPressTile extends StatelessWidget {
+  const _DockLongPressTile({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  static const int _min = 300;
+  static const int _max = 1500;
+  static const int _step = 100;
+
+  /// 出厂值。比平台的 500ms 稳一档：500 常常是「想切页却弹了设置」。
+  static const int _default = 800;
+
+  int get _clamped => value.clamp(_min, _max);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: const GlyphIcon(AppGlyphs.clock),
+      title: Text(t.navigation.dockLongPressDuration),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t.navigation.dockLongPressDurationSubtitle),
+          Row(
+            children: [
+              Expanded(
+                child: Slider(
+                  value: _clamped.toDouble(),
+                  min: _min.toDouble(),
+                  max: _max.toDouble(),
+                  divisions: (_max - _min) ~/ _step,
+                  label: '${_clamped.round()}',
+                  onChanged: (value) => onChanged(value.round()),
+                ),
+              ),
+              SizedBox(
+                width: 56,
+                child: Text(
+                  t.navigation.millisecondUnit(value: _clamped.round()),
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const GlyphIcon(AppGlyphs.reset),
+                tooltip: t.navigation.dockLongPressDurationReset(
+                  value: _default,
+                ),
+                onPressed: _clamped == _default
+                    ? null
+                    : () => onChanged(_default),
               ),
             ],
           ),

@@ -52,6 +52,13 @@ abstract class NavigationSettingState with _$NavigationSettingState {
     @Default([]) List<String> mobilePageIds,
     List<String>? desktopActionIds,
     List<String>? mobileActionIds,
+
+    /// 长按 Dock 上任一目的地打开「自定义导航」。
+    @Default(true) bool dockLongPressCustomize,
+
+    /// 长按判定的阈值（毫秒）。体感 500ms 常常是「想切页却弹了设置」，
+    /// 出厂放宽到 800;范围与步长见设置页那颗滑块。
+    @Default(800) int dockLongPressMilliseconds,
   }) = _NavigationSettingState;
 
   factory NavigationSettingState.fromJson(Map<String, dynamic> json) =>
