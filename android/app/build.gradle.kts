@@ -66,7 +66,7 @@ if (keystorePropertiesFile.exists()) {
 // ---------------------------------------------------------------------------
 
 val localProperties = Properties()
-val localPropertiesFile = rootProject.file("../local.properties")
+val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
@@ -78,13 +78,16 @@ val qnnSdkRoot = qnnSdkDir?.takeIf { it.isNotBlank() }?.let { file(it) }
 
 val generatedQnnJniLibs = layout.buildDirectory.dir("generated/qnnJniLibs")
 
-val stageQnnDlcRuntime = qnnSdkRoot?.let { sdkRoot ->
-    tasks.register<Sync>("stageQnnDlcRuntime") {
-        // libQnnHtpPrepare.so / libQnnHtp*.so 由 qnn-runtime AAR 提供；
-        // 这里只暂存 AAR 里没有的 DLC 编译器。
+val stageQnnDlcRuntime = tasks.register<Sync>("stageQnnDlcRuntime") {
+    // libQnnHtpPrepare.so / libQnnHtp*.so 由 qnn-runtime AAR 提供；
+    // 这里只暂存 AAR 里没有的 DLC 编译器。无 SDK（CI）时源为空、目录产出为空，
+    // 任务图保持一致 —— 运行时如实报 NPU 不可用。
+    if (qnnSdkRoot != null) {
+        val sdkRoot = qnnSdkRoot!!
         val libraries = listOf("libQnnModelDlc.so")
-        from(libraries.map { sdkRoot.resolve("lib/aarch64-android/$it") })
-        into(generatedQnnJniLibs.map { it.dir("arm64-v8a") })
+        from(libraries.map { sdkRoot.resolve("lib/aarch64-android/$it") }) {
+            into("arm64-v8a")
+        }
         doFirst {
             libraries.forEach { library ->
                 check(sdkRoot.resolve("lib/aarch64-android/$library").isFile) {
@@ -92,10 +95,10 @@ val stageQnnDlcRuntime = qnnSdkRoot?.let { sdkRoot ->
                 }
             }
         }
+    } else {
+        doLast { logger.lifecycle("QAIRT SDK not configured; skipping libQnnModelDlc.so staging") }
     }
-} ?: tasks.register("stageQnnDlcRuntime") {
-    // 无 SDK 的构建（CI）：跳过暂存，APK 不含 libQnnModelDlc.so。
-    doLast { logger.lifecycle("QAIRT SDK not configured; skipping libQnnModelDlc.so staging") }
+    into(generatedQnnJniLibs)
 }
 
 // HTP Skel/Stub 裁剪：每个架构约 13-19 MB，全部打包约 +55 MB。
@@ -161,8 +164,10 @@ android {
         }
     }
 
-    // QNN 编译器 so 的暂存目录（无 SDK 时目录为空，不影响构建）
-    sourceSets["main"].jniLibs.srcDir(generatedQnnJniLibs)
+    // QNN 编译器 so 的暂存目录（无 SDK 时目录为空，不影响构建）。
+    // 用 task provider 派生的路径挂 srcDir，Gradle 会自动带上任务依赖
+    // （手写 dependsOn 名字匹配会被任务图校验拒绝：用了输出却没声明边）。
+    sourceSets["main"].jniLibs.srcDir(stageQnnDlcRuntime.map { it.destinationDir })
 
     externalNativeBuild {
         cmake {
@@ -171,18 +176,31 @@ android {
         }
     }
 
+    // release 签名可用性：key.properties（git-crypt）未解锁 / 属性缺失时回退
+    // debug 签名 —— 本机验收包可装可跑；CI 解密后属性齐全，行为不变。
+    val releaseSigningAvailable = keystorePropertiesFile.exists() &&
+        keystoreProperties.getProperty("keyAlias") != null &&
+        keystoreProperties.getProperty("storeFile") != null
+
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { project.file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword")
+            if (releaseSigningAvailable) {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = keystoreProperties.getProperty("storeFile")?.let { project.file(it) }
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs["release"]
+            signingConfig = if (releaseSigningAvailable) {
+                signingConfigs["release"]
+            } else {
+                logger.lifecycle("release signing unavailable (key.properties missing/unlocked?); falling back to debug signing")
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -217,9 +235,3 @@ dependencies {
     // Qualcomm QNN HTP 运行时（与本地 QAIRT SDK 版本对应，2.49.0）
     implementation("com.qualcomm.qti:qnn-runtime:2.49.0")
 }
-
-// CMake 构建前确保编译器 so 已暂存到位。
-tasks.matching { it.name.startsWith("buildCMake") || it.name.startsWith("externalNativeBuild") }
-    .configureEach { dependsOn(stageQnnDlcRuntime) }
-tasks.matching { it.name.contains("MergeJniLibFolders", ignoreCase = true) }
-    .configureEach { dependsOn(stageQnnDlcRuntime) }

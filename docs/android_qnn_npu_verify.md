@@ -14,6 +14,11 @@
   qnn.sdk.dir=/path/to/qairt/2.49.0.260730
   ```
 
+  **无官方 SDK 时的本机合成替代**（已实测可用）：构建只需要头文件和
+  `libQnnModelDlc.so` 两样，可按 `$HOME/.cache/qairt-synth-2.49.0.260730/PROVENANCE.md`
+  的方法从公开渠道合成（头文件取 MihonSY 仓库的 API 2.29 拷贝——旧于运行时，
+  兼容方向正确；DLC 编译器取 mihon_img_upscale v1.3.16 发布 APK，与 AAR 运行库
+  同版）。正式发布仍以官方完整 SDK 为准。
 - Android SDK / NDK 29.0.14206865（与 `android/app/build.gradle.kts` 一致）。
 - 模型包已托管：`https://github.com/HibernalGlow/breeze-binary/raw/main/realsr-qnn-android.7z`
   （SHA-256 `ab28e693…ed50d6`，应用内自动下载，无需随包）。
@@ -30,12 +35,17 @@
 ## 1. 出带 NPU 的 APK
 
 ```bash
-# 默认只打 v69 / v79 两档 HTP Skel（约 +121 MB）；目标机正好是这两档
-dart ./script/build/build_apk.dart
-
-# 要覆盖更多骁龙（v73/v75/v81，约 +175 MB）时：
-#   在 android/gradle.properties 或命令行 -PqnnHtpArchitectures=all
+# 默认只打 v69 / v79 两档 HTP Skel（约 +118 MB）；目标机正好是这两档
+export ANDROID_NDK_HOME=<ndk-29.0.14206865> ANDROID_HOME=<sdk>
+export PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH"  # macOS：绕开 brew rust 遮蔽
+dart ./script/build/build_apk.dart        # 或 flutter build apk --release --target-platform=android-arm64
 ```
+
+**本机已产出的首个 NPU 验收包**（2026-10-24）：
+`build/app/outputs/flutter-apk/app-release.apk`（118 MB，arm64，debug 签名回退——
+本机 key.properties 未解锁；正式发布仍由 CI 解密后正式签名，行为不变）。
+产物自检已通过：`libQnnModelDlc.so`（3.3 MB）在包、`librealsr_qnn.so` 974 KB
+（QNN 使能；stub 版为 ~430 KB）、QNN 运行库全套在位、裁剪判据零命中。
 
 确认产物包含 NPU 运行库（任选其一）：
 
