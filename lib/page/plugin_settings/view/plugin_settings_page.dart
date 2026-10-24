@@ -708,7 +708,9 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       return;
     }
     showSuccessToast(t.plugin.pluginDeleted);
-    Navigator.of(context).pop();
+    // 在发现页的标签里时关的是这条标签；根路由上没有「这一页」，裸 pop
+    // 弹掉的是导航栏那层壳 —— 删除成功后整页黑屏。
+    popTabOrClose(context, otherwise: () => Navigator.of(context).pop());
   }
 
   Future<void> _runAction(
