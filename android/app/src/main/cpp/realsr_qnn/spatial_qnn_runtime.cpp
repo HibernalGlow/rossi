@@ -7,6 +7,7 @@
 #include "spatial_qnn_runtime.h"
 
 #include <algorithm>
+#include <android/log.h>
 #include <cerrno>
 #include <cctype>
 #include <cmath>
@@ -292,6 +293,9 @@ public:
   std::vector<OwnedTensor> outputs;
 
   bool fail(const std::string &message) {
+    // 错误串只经 Dart 冒泡到设置页，这里同步落一条 logcat：真机排查
+    // （Skel 加载 / HTP 初始化死在哪一步）没有它就得逐段二分。
+    __android_log_print(ANDROID_LOG_ERROR, "SpatialQnn", "%s", message.c_str());
     error = message;
     return false;
   }
@@ -429,7 +433,18 @@ public:
     Qnn_ErrorHandle_t status =
         qnn().contextCreate(backend, device, nullptr, &compile_context);
     if (status != QNN_SUCCESS) {
-      return fail("QNN contextCreate failed: " + std::to_string(status));
+      // HTP 段错误（如 v79 上的 14001）的具体原因只在 error message 里，
+      // 裸错误码排查不了。
+      std::string detail;
+      if (qnn().errorGetMessage) {
+        const char *message = nullptr;
+        if (qnn().errorGetMessage(status, &message) == QNN_SUCCESS &&
+            message != nullptr) {
+          detail = std::string(": ") + message;
+        }
+      }
+      return fail("QNN contextCreate failed: " + std::to_string(status) +
+                  detail);
     }
     status = system().systemDlcCreateFromFile(nullptr, dlc_path.c_str(), &dlc);
     if (status != QNN_SUCCESS) {
