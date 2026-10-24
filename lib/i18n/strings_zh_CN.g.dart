@@ -536,11 +536,50 @@ class Translations$workspace$zh_CN {
 	/// zh-CN: '阅读洞察'
 	String get readingInsights => '阅读洞察';
 
-	/// zh-CN: '阅读概览'
-	String get readingOverview => '阅读概览';
+	/// zh-CN: '工作台'
+	String get workspaceHome => '工作台';
+
+	/// zh-CN: '继续阅读'
+	String get continueReading => '继续阅读';
+
+	/// zh-CN: '今日阅读'
+	String get todayReading => '今日阅读';
+
+	/// zh-CN: '最长连续'
+	String get longestStreak => '最长连续';
 
 	/// zh-CN: '阅读来源'
 	String get readingSources => '阅读来源';
+
+	/// zh-CN: '天'
+	String get dayUnit => '天';
+
+	/// zh-CN: '次'
+	String get visitUnit => '次';
+
+	/// zh-CN: '个'
+	String get sourceUnit => '个';
+
+	/// zh-CN: '页'
+	String get pageUnit => '页';
+
+	/// zh-CN: '详情'
+	String get openDetail => '详情';
+
+	/// zh-CN: '还没有阅读记录，去书架挑一本吧'
+	String get noReadingYet => '还没有阅读记录，去书架挑一本吧';
+
+	/// zh-CN: '未找到这张卡片'
+	String get mobileCardMissing => '未找到这张卡片';
+
+	/// zh-CN: '这张卡片在当前设备不可用'
+	String get mobileCardUnsupported => '这张卡片在当前设备不可用';
+
+	/// zh-CN: '漫画信息'
+	String get infoSheetEntry => '漫画信息';
+
+	/// zh-CN: '阅读概览'
+	String get readingOverview => '阅读概览';
 
 	/// zh-CN: '阅读时段'
 	String get readingPeriods => '阅读时段';
@@ -2293,6 +2332,48 @@ class Translations$workspace$zh_CN {
 
 	/// zh-CN: '7Z 归档'
 	String get archive7z => '7Z 归档';
+
+	/// zh-CN: '近 12 周'
+	String get last12Weeks => '近 12 周';
+
+	/// zh-CN: '近期在读'
+	String get recentReading => '近期在读';
+
+	/// zh-CN: '已下载'
+	String get downloadedLabel => '已下载';
+
+	/// zh-CN: '本'
+	String get bookUnit => '本';
+
+	/// zh-CN: '今天'
+	String get todayLabel => '今天';
+
+	/// zh-CN: '昨天'
+	String get yesterdayLabel => '昨天';
+
+	/// zh-CN: '$n 天前'
+	String daysAgoLabel({required Object n}) => '${n} 天前';
+
+	/// zh-CN: '阅读工具'
+	String get readingTools => '阅读工具';
+
+	/// zh-CN: '浏览、搜索与整理本地档案'
+	String get filesBrowseSubtitle => '浏览、搜索与整理本地档案';
+
+	/// zh-CN: '打开'
+	String get openFilesAction => '打开';
+
+	/// zh-CN: '没有更早的记录了'
+	String get noMoreHistory => '没有更早的记录了';
+
+	/// zh-CN: '接着上次的看'
+	String get continueNextHint => '接着上次的看';
+
+	/// zh-CN: '全部'
+	String get openAll => '全部';
+
+	/// zh-CN: '与阅读设置同步'
+	String get toolsStandaloneHint => '与阅读设置同步';
 }
 
 // Path: common
@@ -2690,6 +2771,24 @@ class Translations$navigation$zh_CN {
 	/// zh-CN: '两段各自拖拽排序、自由添加 / 隐藏；动作行上的箭头在「主区」与「底部快捷区」之间搬'
 	String get customizeHint => '两段各自拖拽排序、自由添加 / 隐藏；动作行上的箭头在「主区」与「底部快捷区」之间搬';
 
+	/// zh-CN: '长按底栏进入自定义'
+	String get dockLongPressCustomize => '长按底栏进入自定义';
+
+	/// zh-CN: '按住导航栏上任一项直接打开导航自定义'
+	String get dockLongPressCustomizeSubtitle => '按住导航栏上任一项直接打开导航自定义';
+
+	/// zh-CN: '长按时长'
+	String get dockLongPressDuration => '长按时长';
+
+	/// zh-CN: '按住多久才触发（太短容易和切换页面误触）'
+	String get dockLongPressDurationSubtitle => '按住多久才触发（太短容易和切换页面误触）';
+
+	/// zh-CN: '恢复默认（$value）'
+	String dockLongPressDurationReset({required Object value}) => '恢复默认（${value}）';
+
+	/// zh-CN: '$value 毫秒'
+	String millisecondUnit({required Object value}) => '${value} 毫秒';
+
 	/// zh-CN: '主区'
 	String get customizeMainSection => '主区';
 
@@ -2911,6 +3010,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '进入工作台'
 	String get enterWorkspace => '进入工作台';
+
+	/// zh-CN: '窄窗口使用移动工作台'
+	String get workspaceNarrowMobileHost => '窄窗口使用移动工作台';
+
+	/// zh-CN: '桌面端窗口宽度低于导航窄屏阈值时，工作台入口改开移动端视图（方便验证移动布局）。关闭后桌面始终使用泳道工作台。'
+	String get workspaceNarrowMobileHostSubtitle => '桌面端窗口宽度低于导航窄屏阈值时，工作台入口改开移动端视图（方便验证移动布局）。关闭后桌面始终使用泳道工作台。';
 
 	/// zh-CN: '泳道右移'
 	String get kanbanLaneMoveRight => '泳道右移';
@@ -11114,8 +11219,21 @@ extension on Translations {
 			'workspace.readingHeat' => '阅读热力',
 			'workspace.readingFilter' => '阅读滤镜',
 			'workspace.readingInsights' => '阅读洞察',
-			'workspace.readingOverview' => '阅读概览',
+			'workspace.workspaceHome' => '工作台',
+			'workspace.continueReading' => '继续阅读',
+			'workspace.todayReading' => '今日阅读',
+			'workspace.longestStreak' => '最长连续',
 			'workspace.readingSources' => '阅读来源',
+			'workspace.dayUnit' => '天',
+			'workspace.visitUnit' => '次',
+			'workspace.sourceUnit' => '个',
+			'workspace.pageUnit' => '页',
+			'workspace.openDetail' => '详情',
+			'workspace.noReadingYet' => '还没有阅读记录，去书架挑一本吧',
+			'workspace.mobileCardMissing' => '未找到这张卡片',
+			'workspace.mobileCardUnsupported' => '这张卡片在当前设备不可用',
+			'workspace.infoSheetEntry' => '漫画信息',
+			'workspace.readingOverview' => '阅读概览',
 			'workspace.readingPeriods' => '阅读时段',
 			'workspace.readingWorkhole' => '阅读工作孔',
 			'workspace.readerLaneIdle' => '阅读器泳道空闲中',
@@ -11466,6 +11584,8 @@ extension on Translations {
 			'workspace.expandInformation' => '展开信息',
 			'workspace.expandLabel' => '展开',
 			'workspace.displayWallSettings' => '展墙设置 · 长按开关展墙',
+			_ => null,
+		} ?? switch (path) {
 			'workspace.displayWallCustom' => '展墙自定义',
 			'workspace.displayWall' => '展墙',
 			'workspace.searchDepthCostHint' => '层数越大越慢：一次整库遍历在慢盘上要几十秒；太浅会漏掉更深的目录',
@@ -11479,8 +11599,6 @@ extension on Translations {
 			'workspace.coverLabel' => '封面',
 			'workspace.exportAsJson' => '导出为 JSON',
 			'workspace.importExport' => '导入 / 导出',
-			_ => null,
-		} ?? switch (path) {
 			'workspace.cardWidthAutoColumns' => '宽度为目标尺寸，列数随面板可用空间自动调整。宽卡占两格，可与普通卡并排。',
 			'workspace.finishEditing' => '完成编辑',
 			'workspace.finishLayout' => '完成布局',
@@ -11702,6 +11820,20 @@ extension on Translations {
 			'workspace.archiveCbz' => 'CBZ 归档',
 			'workspace.archiveCbr' => 'CBR 归档',
 			'workspace.archive7z' => '7Z 归档',
+			'workspace.last12Weeks' => '近 12 周',
+			'workspace.recentReading' => '近期在读',
+			'workspace.downloadedLabel' => '已下载',
+			'workspace.bookUnit' => '本',
+			'workspace.todayLabel' => '今天',
+			'workspace.yesterdayLabel' => '昨天',
+			'workspace.daysAgoLabel' => ({required Object n}) => '${n} 天前',
+			'workspace.readingTools' => '阅读工具',
+			'workspace.filesBrowseSubtitle' => '浏览、搜索与整理本地档案',
+			'workspace.openFilesAction' => '打开',
+			'workspace.noMoreHistory' => '没有更早的记录了',
+			'workspace.continueNextHint' => '接着上次的看',
+			'workspace.openAll' => '全部',
+			'workspace.toolsStandaloneHint' => '与阅读设置同步',
 			'appName' => 'Rossi',
 			'common.nameNoSlash' => '名称不能包含 / 或 \\',
 			'common.startupStage' => ({required Object stage}) => '阶段: ${stage}',
@@ -11826,6 +11958,12 @@ extension on Translations {
 			'navigation.customize' => '自定义导航',
 			'navigation.customizeTitle' => '自定义导航栏',
 			'navigation.customizeHint' => '两段各自拖拽排序、自由添加 / 隐藏；动作行上的箭头在「主区」与「底部快捷区」之间搬',
+			'navigation.dockLongPressCustomize' => '长按底栏进入自定义',
+			'navigation.dockLongPressCustomizeSubtitle' => '按住导航栏上任一项直接打开导航自定义',
+			'navigation.dockLongPressDuration' => '长按时长',
+			'navigation.dockLongPressDurationSubtitle' => '按住多久才触发（太短容易和切换页面误触）',
+			'navigation.dockLongPressDurationReset' => ({required Object value}) => '恢复默认（${value}）',
+			'navigation.millisecondUnit' => ({required Object value}) => '${value} 毫秒',
 			'navigation.customizeMainSection' => '主区',
 			'navigation.customizeActionsSection' => '底部快捷区',
 			'navigation.customizeActionsHint' => '侧栏底部那一排 / Dock 尾部溢出菜单里的入口，只放动作',
@@ -11897,6 +12035,8 @@ extension on Translations {
 			'settings.defaultHoverDelay' => '默认悬停定位延迟',
 			'settings.enterWorkspaceSubtitle' => '按下面选好的呈现打开；退出用系统返回键',
 			'settings.enterWorkspace' => '进入工作台',
+			'settings.workspaceNarrowMobileHost' => '窄窗口使用移动工作台',
+			'settings.workspaceNarrowMobileHostSubtitle' => '桌面端窗口宽度低于导航窄屏阈值时，工作台入口改开移动端视图（方便验证移动布局）。关闭后桌面始终使用泳道工作台。',
 			'settings.kanbanLaneMoveRight' => '泳道右移',
 			'settings.kanbanLaneMoveLeft' => '泳道左移',
 			'settings.kanbanPanelMoveDown' => '下移面板',
@@ -11958,6 +12098,8 @@ extension on Translations {
 			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '已导入 ${count} 个颜色 token · 圆角 ${radius}',
 			'settings.tweakcnNoRadius' => '沿用默认',
 			'settings.tweakcnFailedEmpty' => '内容为空',
+			_ => null,
+		} ?? switch (path) {
 			'settings.tweakcnFailedJson' => '不是能识别的 JSON',
 			'settings.tweakcnFailedNoColors' => '没有解析出任何颜色 token',
 			'settings.tweakcnSkipped' => ({required Object keys}) => '以下 token 读不出颜色，已跳过：${keys}',
@@ -11993,8 +12135,6 @@ extension on Translations {
 			'settings.toastPositionSubtitle' => '提示条停靠在屏幕的哪个角',
 			'settings.toastPositionTopLeft' => '左上',
 			'settings.toastPositionTopCenter' => '顶部居中',
-			_ => null,
-		} ?? switch (path) {
 			'settings.toastPositionTopRight' => '右上',
 			'settings.toastPositionMiddleLeft' => '左侧居中',
 			'settings.toastPositionCenter' => '屏幕居中',
@@ -12472,6 +12612,8 @@ extension on Translations {
 			'settings.operationBindingActionFitWindow' => '适应窗口',
 			'settings.operationBindingActionActualSize' => '实际大小',
 			'settings.operationBindingActionRotateClockwise' => '旋转',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionRotate180' => '旋转180度',
 			'settings.operationBindingBoundAction' => '绑定的动作',
 			'settings.operationBindingDisabledRow' => '已停用（不参与冲突判定）',
@@ -12507,8 +12649,6 @@ extension on Translations {
 			'settings.revealFocusesLane' => '呼出泳道后自动聚焦',
 			'settings.revealFocusesLaneSubtitle' => '指针在视口左右边缘停够久，就把交互一并交给被揭示的泳道，不必再点一下；Reader 仍留一条窄缝，点它即可回到独占。关掉后揭示只是「看清楚」，离开一会儿自动收回 Reader。',
 			'settings.panelLaneHoverFocus' => '面板泳道悬停聚焦',
-			_ => null,
-		} ?? switch (path) {
 			'settings.panelLaneHoverFocusSubtitle' => '指针停在左/右泳道里够久也把它激活，与 Reader 共用上面那段延迟。折叠成紧凑轨的泳道不参与，免得读数时扫过去就跳焦点。',
 			'settings.delayRangeHint' => '驻留多久才触发，单位毫秒。三套延时各自独立，改一个不会连带改坏另一个。',
 			'settings.hoverRevealZones' => '悬停唤出区',
@@ -12986,6 +13126,8 @@ extension on Translations {
 			'reader.noRealPlksrBackendHere' => '当前平台暂无 RealPLKSR 推理后端',
 			'reader.pageAnimationOn' => '当前已开启平滑翻页动画',
 			'reader.pageAnimationOff' => '当前已关闭翻页动画',
+			_ => null,
+		} ?? switch (path) {
 			'reader.currentImage' => '当前图片',
 			'reader.translateOnDeviceNow' => '当前使用端侧离线翻译引擎，无需网络即可生成译文页',
 			'reader.translateCloudEndpointNow' => '当前使用云端 API 端点翻译，自动擦除原气泡并回填译文',
@@ -13021,8 +13163,6 @@ extension on Translations {
 			'reader.pageOrderSource' => '图源顺序（插件/归档给的顺序）',
 			'reader.imageProcessing' => '图像处理',
 			'reader.readback' => '回读',
-			_ => null,
-		} ?? switch (path) {
 			'reader.backend' => '后端',
 			'reader.onlyThisBookAskFirst' => '只影响这本书；模型未下载，开启时会先问一句',
 			'reader.onlyThisBookGlobalOthers' => '只影响这本书，其它书仍按全局设置',
@@ -13500,6 +13640,8 @@ extension on Translations {
 			'dataBackup.importSuccess' => '导入成功',
 			'dataBackup.restartPrompt' => '数据导入成功，请重启应用以生效。',
 			'webdavSync.title' => '云同步配置',
+			_ => null,
+		} ?? switch (path) {
 			'webdavSync.serviceTitle' => ({required Object service}) => '${service} 同步配置',
 			'webdavSync.noneTip' => '请先在设置里选择同步服务，再回到这里填写配置。',
 			'webdavSync.deleteConfig' => '删除配置',
@@ -13535,8 +13677,6 @@ extension on Translations {
 			'ocr.baseUrlHint' => 'https://api.deepseek.com/v1 或 http://127.0.0.1:11434/v1',
 			'ocr.baseUrlNone' => '未配置',
 			'ocr.model' => '模型名',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.modelHint' => '例如 deepseek-chat、qwen2.5:14b',
 			'ocr.apiKey' => 'API Key',
 			'ocr.apiKeySubtitle' => '只存本机设置，不进导出文件；本机 Ollama 可留空',
@@ -14014,6 +14154,8 @@ extension on Translations {
 			'searchResult.jump' => '跳转',
 			'searchResult.retry' => '点击重试',
 			'comicList.browseMenu' => '浏览菜单',
+			_ => null,
+		} ?? switch (path) {
 			'comicList.currentPage' => ({required Object page}) => '第 ${page} 页',
 			'comicList.pageOfTotal' => ({required Object page, required Object total}) => '第 ${page} / ${total} 页',
 			'comicList.jumpToPage' => '快速跳页',
@@ -14049,8 +14191,6 @@ extension on Translations {
 			'comicEntry.deleteFavorite' => '删除收藏',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => '确定要删除（${title}）的收藏记录吗？',
 			'comicEntry.deleteHistory' => '删除历史记录',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => '确定要删除（${title}）的历史记录吗？',
 			'comicEntry.deleteDownload' => '删除下载记录',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => '确定要删除（${title}）的下载记录及文件吗？',

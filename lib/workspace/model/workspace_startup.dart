@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:zephyr/util/debouncer.dart';
+import 'package:zephyr/widgets/navigation/navigation_layout.dart';
 import 'package:zephyr/workspace/model/workspace_pointer_mode.dart';
 
 /// 启动后第一眼落在哪儿。
@@ -104,3 +105,28 @@ int resolveSplashDropdownValue({
 }) => selected == splashWorkspaceOption
     ? (startWithWorkspace: true, welcomePageNum: currentWelcomePageNum)
     : (startWithWorkspace: false, welcomePageNum: selected);
+
+/// 工作台入口该开**移动宿主**（`workspace/mobile/`）还是桌面泳道。
+///
+/// 三个入口（导航动作、侧栏按钮、启动落点）共用的唯一判定，别在调用处各写一遍。
+/// 判定顺序：
+///
+/// 1. 触摸平台（iOS / Android，手机与平板）一律移动宿主 —— 泳道的悬停揭示、
+///    拖拽换位与左右分栏是给指针设计的；展台的宽屏体验由移动首页自己的
+///    ≥760 / ≥1024 响应式档位接住。
+/// 2. 桌面平台且 [narrowHostsMobile]（`workspaceDesktopNarrowHostsMobile`，
+///    默认开）开着：窗口宽度低于导航窄屏阈值（与导航栏「窄屏自动切」同一颗
+///    滑块、同一个 `clampNarrowNavigationWidth`）时用移动宿主 —— 窗口窄到
+///    导航栏都切成移动布局了，桌面泳道更不该出现；这同时给了桌面端一条
+///    验证移动视图的路径（把窗口拉窄再进工作台）。
+/// 3. 其余（桌面宽窗口，或用户关掉了那条开关）走桌面泳道。
+bool workspaceHostsMobileView({
+  required bool desktopPlatform,
+  required bool narrowHostsMobile,
+  required double windowWidth,
+  required double narrowWidth,
+}) {
+  if (!desktopPlatform) return true;
+  if (!narrowHostsMobile) return false;
+  return windowWidth < clampNarrowNavigationWidth(narrowWidth);
+}

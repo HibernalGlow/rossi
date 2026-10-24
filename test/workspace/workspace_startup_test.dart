@@ -342,4 +342,74 @@ void main() {
       expect(next.leftHandModeEnabled, base.leftHandModeEnabled);
     });
   });
+
+    group('workspaceHostsMobileView：工作台宿主分流', () {
+      test('触摸平台一律移动宿主，不读宽度与开关', () {
+        expect(
+          workspaceHostsMobileView(
+            desktopPlatform: false,
+            narrowHostsMobile: true,
+            windowWidth: 2000,
+            narrowWidth: 600,
+          ),
+          isTrue,
+        );
+        expect(
+          workspaceHostsMobileView(
+            desktopPlatform: false,
+            narrowHostsMobile: false,
+            windowWidth: 2000,
+            narrowWidth: 320,
+          ),
+          isTrue,
+        );
+      });
+
+      test('桌面 + 开关关：无论多窄都走桌面泳道', () {
+        expect(
+          workspaceHostsMobileView(
+            desktopPlatform: true,
+            narrowHostsMobile: false,
+            windowWidth: 300,
+            narrowWidth: 600,
+          ),
+          isFalse,
+        );
+      });
+
+      test('桌面 + 开关开：低于阈值（含边界值本身）走移动宿主', () {
+        expect(
+          workspaceHostsMobileView(
+            desktopPlatform: true,
+            narrowHostsMobile: true,
+            windowWidth: 599,
+            narrowWidth: 600,
+          ),
+          isTrue,
+        );
+        // 与导航窄屏切换同一条比较（< 阈值），边界值本身不算窄。
+        expect(
+          workspaceHostsMobileView(
+            desktopPlatform: true,
+            narrowHostsMobile: true,
+            windowWidth: 600,
+            narrowWidth: 600,
+          ),
+          isFalse,
+        );
+      });
+
+      test('阈值被夹在合法区间（320..1600），超范围值不改变判定', () {
+        // 1000 宽窗口配上被夹到 320 的阈值 → 不算窄；配 2000（夹到 1600）→ 窄。
+        expect(
+          workspaceHostsMobileView(
+            desktopPlatform: true,
+            narrowHostsMobile: true,
+            windowWidth: 1000,
+            narrowWidth: 2000,
+          ),
+          isTrue,
+        );
+      });
+    });
 }

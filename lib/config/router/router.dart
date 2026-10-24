@@ -42,6 +42,12 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     // `AutoRouteAwareStateMixin`）。手工 `Navigator.push` 的一页不在 `AutoRoutePage`
     // 之下，那个查询会直接抛成红屏（工作台里的「搜索」标签就是这么炸的）。
     AutoRoute(page: BreezeWorkspaceRoute.page),
+    // 移动端工作台三页：首页 / 阅读数据（洞察面板整页）/ 单卡整页宿主。
+    // 它们是普通整页路由，不挂 WorkspaceNavigationBridge —— 从这里推出去的
+    // 阅读器与详情页走全屏导航栈（守卫对「工作台未挂载」逐字放行）。
+    AutoRoute(page: WorkspaceMobileHomeRoute.page),
+    AutoRoute(page: WorkspaceMobileInsightsRoute.page),
+    AutoRoute(page: WorkspaceMobileCardRoute.page),
     AutoRoute(page: LoginRoute.page),
     AutoRoute(page: ComicListRoute.page),
     AutoRoute(page: DiscoverRoute.page),

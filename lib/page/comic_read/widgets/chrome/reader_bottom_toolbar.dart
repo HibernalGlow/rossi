@@ -4,6 +4,7 @@ import 'package:zephyr/widgets/motion/action_bubble.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/workspace/mobile/reader_info_sheet.dart';
 
 /// 阅读操作与钉住直接停靠在浮动工具栏，辅助动作收进菜单。
 class ReaderBottomToolbar extends StatelessWidget {
@@ -97,6 +98,13 @@ class ReaderBottomToolbar extends StatelessWidget {
                           : t.reader.thumbnailStripExpand,
                       checked: thumbnailsVisible,
                       onPressed: toggleThumbnails,
+                    ),
+                    // 移动端上下文信息面板：五张信息卡盖在阅读器上，
+                    // 不用退出阅读去工作台找（桌面走右泳道的信息面板）。
+                    CommonPopupMenuItem(
+                      glyph: AppGlyphs.info,
+                      label: t.workspace.infoSheetEntry,
+                      onPressed: () => showReaderInfoBottomSheet(context),
                     ),
                     CommonPopupMenuItem(
                       glyph: AppGlyphs.home,

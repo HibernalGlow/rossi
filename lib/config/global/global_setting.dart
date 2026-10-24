@@ -252,6 +252,13 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 只在**真有工作台入口**的布局（平板 / 桌面四边栏）落地，手机端忽略 ——
     // 判定收在 `lib/workspace/model/workspace_startup.dart`。
     @Default(false) bool startWithWorkspace,
+    // 桌面端窗口宽度低于导航窄屏阈值（与导航栏「窄屏自动切」同一颗滑块）时，
+    // 工作台入口改开**移动宿主**（`workspace/mobile/`）——与导航栏在窄窗口下
+    // 自动切移动布局是同一个意图：窗口窄到那个程度，桌面泳道本来就不该出现。
+    // 默认开；关掉 = 桌面端无论窗口多窄，工作台一律走桌面泳道（想始终用桌面的
+    // 用户的出口）。触摸平台（手机 / 平板）不读它 —— 那边宿主永远mobile。
+    // 判定收在 `workspaceHostsMobileView`（workspace_startup.dart）。
+    @Default(true) bool workspaceDesktopNarrowHostsMobile,
     // 工作台在场时，被盖住的首页壳要不要「休眠」：内容里的图片换成纯色占位，
     // 让出 imageCache 里的解码位图（live image 随 widget 卸载而释放），
     // 退场后按磁盘文件重新解码。默认开 —— 首页壳被盖住期间那些位图本来

@@ -65,6 +65,8 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   comicInfoInlineReadButton: json['comicInfoInlineReadButton'] as bool? ?? true,
   comicInfoRailLiquidGlass: json['comicInfoRailLiquidGlass'] as bool? ?? true,
   startWithWorkspace: json['startWithWorkspace'] as bool? ?? false,
+  workspaceDesktopNarrowHostsMobile:
+      json['workspaceDesktopNarrowHostsMobile'] as bool? ?? true,
   workspaceSleepCoveredUi: json['workspaceSleepCoveredUi'] as bool? ?? true,
   transparentDesktopTitleBar:
       json['transparentDesktopTitleBar'] as bool? ?? false,
@@ -208,6 +210,8 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
       'comicInfoRailLiquidGlass': instance.comicInfoRailLiquidGlass,
       'startWithWorkspace': instance.startWithWorkspace,
+      'workspaceDesktopNarrowHostsMobile':
+          instance.workspaceDesktopNarrowHostsMobile,
       'workspaceSleepCoveredUi': instance.workspaceSleepCoveredUi,
       'transparentDesktopTitleBar': instance.transparentDesktopTitleBar,
       'transparentTitleBarFused': instance.transparentTitleBarFused,
@@ -1073,6 +1077,9 @@ _NavigationSettingState _$NavigationSettingStateFromJson(
   mobileActionIds: (json['mobileActionIds'] as List<dynamic>?)
       ?.map((e) => e as String)
       .toList(),
+  dockLongPressCustomize: json['dockLongPressCustomize'] as bool? ?? true,
+  dockLongPressMilliseconds:
+      (json['dockLongPressMilliseconds'] as num?)?.toInt() ?? 800,
 );
 
 Map<String, dynamic> _$NavigationSettingStateToJson(
@@ -1087,4 +1094,6 @@ Map<String, dynamic> _$NavigationSettingStateToJson(
   'mobilePageIds': instance.mobilePageIds,
   'desktopActionIds': instance.desktopActionIds,
   'mobileActionIds': instance.mobileActionIds,
+  'dockLongPressCustomize': instance.dockLongPressCustomize,
+  'dockLongPressMilliseconds': instance.dockLongPressMilliseconds,
 };

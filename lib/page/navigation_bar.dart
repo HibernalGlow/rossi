@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -149,21 +151,37 @@ class _NavigationBarState extends State<NavigationBar> {
     super.dispose();
   }
 
-  /// 打开工作台（泳道 / 四边栏）。两个入口共用：四边栏布局 trailing 上的按钮，
-  /// 以及「启动时直接打开工作台」。
+  /// 打开工作台。三个入口共用：四边栏布局 trailing 上的按钮、
+  /// 导航栏上的「工作台」动作，以及「启动时直接打开工作台」。
+  ///
+  /// 宿主判定收在 [workspaceHostsMobileView]（真值表可测）：触摸平台一律
+  /// 移动首页；桌面平台跟随「窄窗口用移动工作台」开关 —— 开着（默认）时，
+  /// 窗口宽度低于导航窄屏阈值就开移动首页，与导航栏的窄屏自动切同源同触发，
+  /// 也顺手给了桌面端一条验证移动视图的路径；关掉则桌面无论多窄都走泳道。
   ///
   /// 走路由表（`context.pushRoute`）而不是 `Navigator.push`：工作台里摊的是上游
   /// 原版页面，它们会按 auto_route 的常规写法查自己那条路由，手工推的一页给不出
   /// 那个上下文（注册理由见 `AppRouter.routes`）。
   void _openWorkspace() {
-    context.pushRoute(BreezeWorkspaceRoute());
+    final setting = context.read<GlobalSettingCubit>().state;
+    final hostsMobile = workspaceHostsMobileView(
+      desktopPlatform: isWorkspaceDesktopPlatform(defaultTargetPlatform),
+      narrowHostsMobile: setting.workspaceDesktopNarrowHostsMobile,
+      windowWidth: MediaQuery.sizeOf(context).width,
+      narrowWidth: setting.navigationSetting.narrowNavigationWidth,
+    );
+    if (hostsMobile) {
+      context.pushRoute(const WorkspaceMobileHomeRoute());
+    } else {
+      context.pushRoute(BreezeWorkspaceRoute());
+    }
   }
 
   /// 启动后是否**直接**进工作台（判定见 `resolveStartupLanding`）。
   ///
   /// 排到首帧之后：工作台是整页、`initState` 期间这一层
   /// 还没进 Navigator；而「有没有入口」要看 `MediaQuery`（`isTablet`）——
-  /// 两者都要求先有帧。
+  /// 两者都要求先有帧。落点（桌面 / 移动宿主）由 [_openWorkspace] 统一分流。
   void _maybeOpenWorkspaceOnStart(bool startWithWorkspace) {
     if (_workspaceAutoOpenHandled) return;
     _workspaceAutoOpenHandled = true;

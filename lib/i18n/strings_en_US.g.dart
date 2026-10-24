@@ -236,8 +236,21 @@ class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
 	@override String get readingHeat => 'Reading heat';
 	@override String get readingFilter => 'Reading filter';
 	@override String get readingInsights => 'Reading insights';
-	@override String get readingOverview => 'Reading overview';
+	@override String get workspaceHome => 'Workspace';
+	@override String get continueReading => 'Continue reading';
+	@override String get todayReading => 'Today';
+	@override String get longestStreak => 'Longest streak';
 	@override String get readingSources => 'Reading sources';
+	@override String get dayUnit => 'days';
+	@override String get visitUnit => 'visits';
+	@override String get sourceUnit => 'sources';
+	@override String get pageUnit => 'pages';
+	@override String get openDetail => 'Details';
+	@override String get noReadingYet => 'No reading history yet — pick one from the bookshelf';
+	@override String get mobileCardMissing => 'Card not found';
+	@override String get mobileCardUnsupported => 'This card is unavailable on this device';
+	@override String get infoSheetEntry => 'Comic info';
+	@override String get readingOverview => 'Reading overview';
 	@override String get readingPeriods => 'Reading time of day';
 	@override String get readingWorkhole => 'Reading workhole';
 	@override String get readerLaneIdle => 'The reader lane is idle';
@@ -822,6 +835,20 @@ class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
 	@override String get archiveCbz => 'CBZ archive';
 	@override String get archiveCbr => 'CBR archive';
 	@override String get archive7z => '7Z archive';
+	@override String get last12Weeks => 'Last 12 weeks';
+	@override String get recentReading => 'Reading recently';
+	@override String get downloadedLabel => 'Downloaded';
+	@override String get bookUnit => 'books';
+	@override String get todayLabel => 'today';
+	@override String get yesterdayLabel => 'yesterday';
+	@override String daysAgoLabel({required Object n}) => '${n} days ago';
+	@override String get readingTools => 'Reading tools';
+	@override String get filesBrowseSubtitle => 'Browse, search and organize local files';
+	@override String get openFilesAction => 'Open';
+	@override String get noMoreHistory => 'No earlier records';
+	@override String get continueNextHint => 'Pick up where you left off';
+	@override String get openAll => 'All';
+	@override String get toolsStandaloneHint => 'Synced with reading settings';
 }
 
 // Path: common
@@ -972,6 +999,12 @@ class _Translations$navigation$en_US extends Translations$navigation$zh_CN {
 	@override String get customize => 'Customize navigation';
 	@override String get customizeTitle => 'Customize navigation';
 	@override String get customizeHint => 'Drag to reorder each section, add or hide freely; the arrow on an action moves it between the main area and the bottom shortcuts';
+	@override String get dockLongPressCustomize => 'Long-press dock to customize';
+	@override String get dockLongPressCustomizeSubtitle => 'Hold any destination on the dock to open navigation customization';
+	@override String get dockLongPressDuration => 'Long-press duration';
+	@override String get dockLongPressDurationSubtitle => 'How long to hold before it triggers (too short clashes with switching pages)';
+	@override String dockLongPressDurationReset({required Object value}) => 'Reset to default (${value})';
+	@override String millisecondUnit({required Object value}) => '${value} ms';
 	@override String get customizeMainSection => 'Main area';
 	@override String get customizeActionsSection => 'Bottom shortcuts';
 	@override String get customizeActionsHint => 'Shown at the sidebar foot, or in the dock\'s overflow menu — actions only';
@@ -1052,6 +1085,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get defaultHoverDelay => 'Default hover reveal delay';
 	@override String get enterWorkspaceSubtitle => 'Opens with the presentation selected below; use the system back key to exit';
 	@override String get enterWorkspace => 'Enter workspace';
+	@override String get workspaceNarrowMobileHost => 'Mobile workspace in narrow windows';
+	@override String get workspaceNarrowMobileHostSubtitle => 'On desktop, workspace entries below the navigation narrow-width threshold open the mobile workspace. Turn off to always use the desktop lanes.';
 	@override String get kanbanLaneMoveRight => 'Move lane right';
 	@override String get kanbanLaneMoveLeft => 'Move lane left';
 	@override String get kanbanPanelMoveDown => 'Move panel down';
@@ -4101,8 +4136,21 @@ extension on TranslationsEnUs {
 			'workspace.readingHeat' => 'Reading heat',
 			'workspace.readingFilter' => 'Reading filter',
 			'workspace.readingInsights' => 'Reading insights',
-			'workspace.readingOverview' => 'Reading overview',
+			'workspace.workspaceHome' => 'Workspace',
+			'workspace.continueReading' => 'Continue reading',
+			'workspace.todayReading' => 'Today',
+			'workspace.longestStreak' => 'Longest streak',
 			'workspace.readingSources' => 'Reading sources',
+			'workspace.dayUnit' => 'days',
+			'workspace.visitUnit' => 'visits',
+			'workspace.sourceUnit' => 'sources',
+			'workspace.pageUnit' => 'pages',
+			'workspace.openDetail' => 'Details',
+			'workspace.noReadingYet' => 'No reading history yet — pick one from the bookshelf',
+			'workspace.mobileCardMissing' => 'Card not found',
+			'workspace.mobileCardUnsupported' => 'This card is unavailable on this device',
+			'workspace.infoSheetEntry' => 'Comic info',
+			'workspace.readingOverview' => 'Reading overview',
 			'workspace.readingPeriods' => 'Reading time of day',
 			'workspace.readingWorkhole' => 'Reading workhole',
 			'workspace.readerLaneIdle' => 'The reader lane is idle',
@@ -4453,6 +4501,8 @@ extension on TranslationsEnUs {
 			'workspace.expandInformation' => 'Expand information',
 			'workspace.expandLabel' => 'Expand',
 			'workspace.displayWallSettings' => 'Display wall settings · long-press to toggle the wall',
+			_ => null,
+		} ?? switch (path) {
 			'workspace.displayWallCustom' => 'Display wall customise',
 			'workspace.displayWall' => 'Display wall',
 			'workspace.searchDepthCostHint' => 'More depth is slower: one full-library scan takes tens of seconds on a slow disk; too shallow misses deeper folders',
@@ -4466,8 +4516,6 @@ extension on TranslationsEnUs {
 			'workspace.coverLabel' => 'Cover',
 			'workspace.exportAsJson' => 'Export as JSON',
 			'workspace.importExport' => 'Import / export',
-			_ => null,
-		} ?? switch (path) {
 			'workspace.cardWidthAutoColumns' => 'Width is the target size; the column count adapts to the panel. Wide cards take two slots and can sit beside normal ones.',
 			'workspace.finishEditing' => 'Finish editing',
 			'workspace.finishLayout' => 'Finish layout',
@@ -4689,6 +4737,20 @@ extension on TranslationsEnUs {
 			'workspace.archiveCbz' => 'CBZ archive',
 			'workspace.archiveCbr' => 'CBR archive',
 			'workspace.archive7z' => '7Z archive',
+			'workspace.last12Weeks' => 'Last 12 weeks',
+			'workspace.recentReading' => 'Reading recently',
+			'workspace.downloadedLabel' => 'Downloaded',
+			'workspace.bookUnit' => 'books',
+			'workspace.todayLabel' => 'today',
+			'workspace.yesterdayLabel' => 'yesterday',
+			'workspace.daysAgoLabel' => ({required Object n}) => '${n} days ago',
+			'workspace.readingTools' => 'Reading tools',
+			'workspace.filesBrowseSubtitle' => 'Browse, search and organize local files',
+			'workspace.openFilesAction' => 'Open',
+			'workspace.noMoreHistory' => 'No earlier records',
+			'workspace.continueNextHint' => 'Pick up where you left off',
+			'workspace.openAll' => 'All',
+			'workspace.toolsStandaloneHint' => 'Synced with reading settings',
 			'appName' => 'Rossi',
 			'common.nameNoSlash' => 'The name can\'t contain / or \\',
 			'common.startupStage' => ({required Object stage}) => 'Stage: ${stage}',
@@ -4813,6 +4875,12 @@ extension on TranslationsEnUs {
 			'navigation.customize' => 'Customize navigation',
 			'navigation.customizeTitle' => 'Customize navigation',
 			'navigation.customizeHint' => 'Drag to reorder each section, add or hide freely; the arrow on an action moves it between the main area and the bottom shortcuts',
+			'navigation.dockLongPressCustomize' => 'Long-press dock to customize',
+			'navigation.dockLongPressCustomizeSubtitle' => 'Hold any destination on the dock to open navigation customization',
+			'navigation.dockLongPressDuration' => 'Long-press duration',
+			'navigation.dockLongPressDurationSubtitle' => 'How long to hold before it triggers (too short clashes with switching pages)',
+			'navigation.dockLongPressDurationReset' => ({required Object value}) => 'Reset to default (${value})',
+			'navigation.millisecondUnit' => ({required Object value}) => '${value} ms',
 			'navigation.customizeMainSection' => 'Main area',
 			'navigation.customizeActionsSection' => 'Bottom shortcuts',
 			'navigation.customizeActionsHint' => 'Shown at the sidebar foot, or in the dock\'s overflow menu — actions only',
@@ -4884,6 +4952,8 @@ extension on TranslationsEnUs {
 			'settings.defaultHoverDelay' => 'Default hover reveal delay',
 			'settings.enterWorkspaceSubtitle' => 'Opens with the presentation selected below; use the system back key to exit',
 			'settings.enterWorkspace' => 'Enter workspace',
+			'settings.workspaceNarrowMobileHost' => 'Mobile workspace in narrow windows',
+			'settings.workspaceNarrowMobileHostSubtitle' => 'On desktop, workspace entries below the navigation narrow-width threshold open the mobile workspace. Turn off to always use the desktop lanes.',
 			'settings.kanbanLaneMoveRight' => 'Move lane right',
 			'settings.kanbanLaneMoveLeft' => 'Move lane left',
 			'settings.kanbanPanelMoveDown' => 'Move panel down',
@@ -4945,6 +5015,8 @@ extension on TranslationsEnUs {
 			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '${count} color tokens imported · radius ${radius}',
 			'settings.tweakcnNoRadius' => 'default',
 			'settings.tweakcnFailedEmpty' => 'Nothing to import',
+			_ => null,
+		} ?? switch (path) {
 			'settings.tweakcnFailedJson' => 'Not recognizable JSON',
 			'settings.tweakcnFailedNoColors' => 'No color token could be parsed',
 			'settings.tweakcnSkipped' => ({required Object keys}) => 'Skipped tokens with unreadable colors: ${keys}',
@@ -4980,8 +5052,6 @@ extension on TranslationsEnUs {
 			'settings.toastPositionSubtitle' => 'Which corner the toast sticks to',
 			'settings.toastPositionTopLeft' => 'Top left',
 			'settings.toastPositionTopCenter' => 'Top center',
-			_ => null,
-		} ?? switch (path) {
 			'settings.toastPositionTopRight' => 'Top right',
 			'settings.toastPositionMiddleLeft' => 'Middle left',
 			'settings.toastPositionCenter' => 'Center',
@@ -5459,6 +5529,8 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
 			'settings.operationBindingActionOpenSettings' => 'Open settings',
 			'settings.operationBindingActionZoomIn' => 'Zoom in',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionZoomOut' => 'Zoom out',
 			'settings.operationBindingActionFitWindow' => 'Fit to window',
 			'settings.operationBindingActionActualSize' => 'Actual size',
@@ -5494,8 +5566,6 @@ extension on TranslationsEnUs {
 			'settings.readerHoverFocusEnable' => 'Enable Reader hover refocus',
 			'settings.revealFocusesLane' => 'Focus lane after edge reveal',
 			'settings.revealFocusesLaneSubtitle' => 'Once the pointer has dwelled at the left or right edge long enough, the revealed lane also takes over interaction — no extra click. Reader keeps a narrow sliver, so one click returns to solo. When off, a reveal is only a peek and folds back to Reader after a while.',
-			_ => null,
-		} ?? switch (path) {
 			'settings.panelLaneHoverFocus' => 'Hover focus for panel lanes',
 			'settings.panelLaneHoverFocusSubtitle' => 'Dwelling inside the left or right lane activates it too, sharing the delay above. Lanes collapsed to a rail are excluded, so brushing past them while reading won\'t steal focus.',
 			'settings.delayRangeHint' => 'Dwell time in milliseconds before it fires. The three delays are independent — changing one never drags another along.',
@@ -5973,6 +6043,8 @@ extension on TranslationsEnUs {
 			'reader.noRealPlksrBackendHere' => 'This platform has no RealPLKSR inference backend yet',
 			'reader.pageAnimationOn' => 'Smooth page-turn animation is currently on',
 			'reader.pageAnimationOff' => 'Page-turn animation is currently off',
+			_ => null,
+		} ?? switch (path) {
 			'reader.currentImage' => 'Current image',
 			'reader.translateOnDeviceNow' => 'Using an on-device offline engine right now; translated pages need no network',
 			'reader.translateCloudEndpointNow' => 'Translating through a cloud API endpoint right now; erases the original bubbles and fills in the translation',
@@ -6008,8 +6080,6 @@ extension on TranslationsEnUs {
 			'reader.pageOrderSource' => 'Source order (as the plugin or archive provides it)',
 			'reader.imageProcessing' => 'Image processing',
 			'reader.readback' => 'Read-back',
-			_ => null,
-		} ?? switch (path) {
 			'reader.backend' => 'Backend',
 			'reader.onlyThisBookAskFirst' => 'Affects this book only; the model is not downloaded, so it asks first when you enable it',
 			'reader.onlyThisBookGlobalOthers' => 'Affects this book only; other books follow the global setting',
@@ -6487,6 +6557,8 @@ extension on TranslationsEnUs {
 			'dataBackup.importSuccess' => 'Import successful',
 			'dataBackup.restartPrompt' => 'Data imported successfully. Please restart the app to apply.',
 			'webdavSync.title' => 'Cloud Sync Config',
+			_ => null,
+		} ?? switch (path) {
 			'webdavSync.serviceTitle' => ({required Object service}) => '${service} Sync Config',
 			'webdavSync.noneTip' => 'Please select a sync service in Settings first, then return here to fill in the configuration.',
 			'webdavSync.deleteConfig' => 'Delete Config',
@@ -6522,8 +6594,6 @@ extension on TranslationsEnUs {
 			'ocr.baseUrlHint' => 'https://api.deepseek.com/v1 or http://127.0.0.1:11434/v1',
 			'ocr.baseUrlNone' => 'Not configured',
 			'ocr.model' => 'Model name',
-			_ => null,
-		} ?? switch (path) {
 			'ocr.modelHint' => 'e.g. deepseek-chat, qwen2.5:14b',
 			'ocr.apiKey' => 'API key',
 			'ocr.apiKeySubtitle' => 'Stored locally only, never exported; leave empty for local Ollama',
@@ -7001,6 +7071,8 @@ extension on TranslationsEnUs {
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
 			'comicList.browseMenu' => 'Browse menu',
+			_ => null,
+		} ?? switch (path) {
 			'comicList.currentPage' => ({required Object page}) => 'Page ${page}',
 			'comicList.pageOfTotal' => ({required Object page, required Object total}) => 'Page ${page} of ${total}',
 			'comicList.jumpToPage' => 'Jump to page',
@@ -7036,8 +7108,6 @@ extension on TranslationsEnUs {
 			'comicEntry.deleteFavorite' => 'Delete Favorite',
 			'comicEntry.deleteFavoriteConfirm' => ({required Object title}) => 'Delete favorite record for "${title}"?',
 			'comicEntry.deleteHistory' => 'Delete History',
-			_ => null,
-		} ?? switch (path) {
 			'comicEntry.deleteHistoryConfirm' => ({required Object title}) => 'Delete history record for "${title}"?',
 			'comicEntry.deleteDownload' => 'Delete Download',
 			'comicEntry.deleteDownloadConfirm' => ({required Object title}) => 'Delete download record and files for "${title}"?',

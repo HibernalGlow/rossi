@@ -3,8 +3,11 @@ import 'dart:async';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
@@ -93,16 +96,39 @@ class _WorkspaceLayoutSettingPageState
                 // 手机端没有那颗侧栏按钮 —— `hasWorkspaceEntry` 回答的是
                 // 「四边栏布局的 trailing 上有没有按钮」，那边真正的入口就在这一页。
                 // 桌面/平板不摆：那颗按钮本来就在导航栏上，重复一个入口只会多一行。
-                // 文案不补 i18n 词条（与导航栏上那颗工作台的 tooltip 同一口径）。
+                // 触摸设备进的是**移动端首页**（展开态面板），不是桌面泳道 ——
+                // 同一套注册表与卡片，只是宿主不同（见 workspace/mobile/）。
                 if (!hasWorkspaceEntry(context)) ...[
                   settingCategoryTile(
                     icon: AppGlyphs.gridPlus,
                     title: t.settings.enterWorkspace,
                     subtitle: t.settings.enterWorkspaceSubtitle,
-                    onTap: () => context.pushRoute(BreezeWorkspaceRoute()),
+                    onTap: () =>
+                        context.pushRoute(const WorkspaceMobileHomeRoute()),
                   ),
                   const SizedBox(height: 12),
                 ],
+                // 桌面端窄窗口时工作台开哪个宿主。只在桌面三平台摆：触摸
+                // 平台（手机 / 平板）的宿主永远是移动首页，这颗开关在那边
+                // 是死数据，摆出来只会让人怀疑它没生效。
+                if (isWorkspaceDesktopPlatform(defaultTargetPlatform))
+                  SettingGroup.switchTile(
+                    leading: const GlyphIcon(AppGlyphs.columnsThree),
+                    title: Text(t.settings.workspaceNarrowMobileHost),
+                    subtitle: Text(
+                      t.settings.workspaceNarrowMobileHostSubtitle,
+                    ),
+                    value: context
+                        .watch<GlobalSettingCubit>()
+                        .state
+                        .workspaceDesktopNarrowHostsMobile,
+                    onChanged: (value) =>
+                        context.read<GlobalSettingCubit>().updateState(
+                          (current) => current.copyWith(
+                            workspaceDesktopNarrowHostsMobile: value,
+                          ),
+                        ),
+                  ),
                 _StartupViewCard(
                   mode: snapshot.mode,
                   onChanged: (mode) {
