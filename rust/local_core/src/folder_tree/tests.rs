@@ -414,6 +414,34 @@ fn sorted_subdirs_prefers_same_name_zip_over_convertible_archives() {
     assert!(names.iter().any(|name| name == "book.rar"));
 }
 
+/// 上游 same_name_folder_book_navigation_and_excluded_current_anchor 的移植：
+/// 三态策略决定同名 folder / book 谁留在候选里。上游用例里依赖
+/// sorted_subdirs_for_nav（本仓刻意未搬的导航层）的「落点仍可达」断言不随移植，
+/// 该语义由本地 navigate_folder_with_skip 族承担。
+#[test]
+fn same_name_folder_book_navigation_and_excluded_current_anchor() {
+    use crate::same_name_folder_book::SameNameFolderBookPolicy as Policy;
+
+    let temp = tempfile::TempDir::new().unwrap();
+    let root = temp.path();
+    std::fs::create_dir(root.join("book")).unwrap();
+    std::fs::create_dir(root.join("next")).unwrap();
+    std::fs::write(root.join("book.zip"), b"zip").unwrap();
+    for (policy, folder, book) in [
+        (Policy::PreferBook, false, true),
+        (Policy::PreferFolder, true, false),
+        (Policy::ShowBoth, true, true),
+    ] {
+        let opts = FolderTreeOptions {
+            same_name_folder_book: policy,
+            ..FolderTreeOptions::default()
+        };
+        let candidates = sorted_subdirs(root, opts);
+        assert_eq!(candidates.contains(&root.join("book")), folder);
+        assert_eq!(candidates.contains(&root.join("book.zip")), book);
+    }
+}
+
 #[test]
 fn folder_should_stop_can_ignore_convertible_archive_file() {
     let tmp = tempfile::TempDir::new().unwrap();

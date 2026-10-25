@@ -170,5 +170,17 @@
     "omit_items": [
       "fn is_drive_or_share_root"
     ]
+  },
+  {
+    "id": "same_name_folder_book",
+    "upstream": "src/same_name_folder_book.rs",
+    "local": "rust/local_core/src/same_name_folder_book.rs",
+    "items": [
+      "const KEY",
+      "const LEGACY_KEY",
+      "enum SameNameFolderBookPolicy",
+      "fn canonicalize",
+      "fn keep_mask"
+    ]
   }
 ]

@@ -23,8 +23,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// (= ナビゲーション中の並列 `Settings::load()` 起動を撲滅、boot race を消す)。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FolderTreeOptions {
-    /// 同名フォルダがある ZIP をスキップする (= `Settings.skip_zip_if_folder_exists`)。
-    pub skip_zip: bool,
+    /// Shared folder/book candidate projection, after existing eligibility checks.
+    pub same_name_folder_book: crate::same_name_folder_book::SameNameFolderBookPolicy,
     /// 同名 ZIP/CBZ がある変換アーカイブをスキップする。
     pub skip_archive_if_zip_exists: bool,
     /// RAR/7z/LZH などの変換アーカイブをフォルダ移動候補に含める。
@@ -37,7 +37,7 @@ impl FolderTreeOptions {
     /// `Settings` から関連フィールドだけ抜き出す convenience。
     pub fn from_settings(settings: &crate::settings::Settings) -> Self {
         Self {
-            skip_zip: settings.skip_zip_if_folder_exists,
+            same_name_folder_book: settings.same_name_folder_book,
             skip_archive_if_zip_exists: settings.skip_archive_if_zip_exists,
             include_convertible_archives: !settings.archive_file_handling_ignores_convertible(),
             sort_order: settings.sort_order,
@@ -48,7 +48,7 @@ impl FolderTreeOptions {
 impl Default for FolderTreeOptions {
     fn default() -> Self {
         Self {
-            skip_zip: true,
+            same_name_folder_book: Default::default(),
             skip_archive_if_zip_exists: true,
             include_convertible_archives: true,
             sort_order: crate::settings::SortOrder::default(),
@@ -665,7 +665,6 @@ fn walk_dirs_recursive_with_progress_inner(
 /// 撲滅するため `FolderTreeOptions` を呼び出し側から受け取る形に変更
 /// (= ナビ中の並列 Settings::load() を 0 件に)。
 pub fn sorted_subdirs(path: &Path, opts: FolderTreeOptions) -> Vec<PathBuf> {
-    let skip_zip = opts.skip_zip;
     let sort_order = opts.sort_order;
 
     // (PathBuf, mtime_secs) を蓄積。ソート時に mtime と name を引く。
@@ -725,18 +724,8 @@ pub fn sorted_subdirs(path: &Path, opts: FolderTreeOptions) -> Vec<PathBuf> {
         })
         .collect();
 
-    // コンテナフィルタ: 同名フォルダ、または優先 ZIP/CBZ があればスキップ
+    // Existing book-vs-book precedence, followed by the shared folder/book policy.
     for (zp, mtime) in container_candidates {
-        if skip_zip {
-            let stem = zp
-                .file_stem()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-            if real_folder_names.contains(&stem) {
-                continue; // スキップ
-            }
-        }
         if opts.skip_archive_if_zip_exists
             && is_convertible_archive_path(&zp)
             && native_zip_stems.contains(
@@ -750,6 +739,24 @@ pub fn sorted_subdirs(path: &Path, opts: FolderTreeOptions) -> Vec<PathBuf> {
         }
         dirs.push((zp, mtime));
     }
+
+    let mask = crate::same_name_folder_book::keep_mask(
+        opts.same_name_folder_book,
+        dirs.iter().map(|(path, _)| {
+            (
+                path.as_path(),
+                real_folder_names.contains(
+                    &path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_lowercase(),
+                ),
+            )
+        }),
+    );
+    let mut mask = mask.into_iter();
+    dirs.retain(|_| mask.next().unwrap());
 
     // グリッドと同じソート規則を使う。名前キーは候補ごとに 1 回だけ作る。
     let mut keyed_dirs: Vec<_> = dirs

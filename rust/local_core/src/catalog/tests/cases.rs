@@ -871,3 +871,63 @@ fn pdf_meta_safe_overrides_password_required_on_existing_row() {
         "被 safe 路径的确信（password_required=false）覆盖"
     );
 }
+
+// -- 缓存清理（上游 backlog 2.12 的删除单元口径）--
+
+use super::super::cache_store::{db_path_for, delete_all_cache, delete_old_cache};
+
+/// 删除单元是 `.db` + `-wal`/`-shm` sidecar；clear-all 还要回收
+/// `.db` 已不存在的孤儿 sidecar。
+#[test]
+fn delete_all_cache_removes_db_sidecars_and_reclaims_orphans() {
+    let temp = tempfile::TempDir::new().unwrap();
+    let cache = temp.path();
+    let folder = Path::new("/photos/a");
+    let db = db_path_for(cache, folder);
+    let db_name = db.file_name().unwrap().to_str().unwrap().to_owned();
+    std::fs::create_dir(db.parent().unwrap()).unwrap();
+    std::fs::write(&db, b"db").unwrap();
+    std::fs::write(db.with_file_name(db_name.clone() + "-wal"), b"wal").unwrap();
+    std::fs::write(db.with_file_name(db_name.clone() + "-shm"), b"shm").unwrap();
+    // 旧版本清理留下的孤儿：只有 sidecar，没有 .db
+    let orphan_wal = db.with_file_name("orphanhash.db-wal");
+    std::fs::write(&orphan_wal, b"orphan").unwrap();
+    // 孤儿回收只认 `.db-wal` / `.db-shm` 后缀，别的文件不碰
+    let bystander = db.with_file_name("keephash.txt");
+    std::fs::write(&bystander, b"txt").unwrap();
+
+    let deleted = delete_all_cache(cache);
+
+    assert_eq!(deleted, 1);
+    assert!(!db.exists());
+    assert!(!db.with_file_name(db_name.clone() + "-wal").exists());
+    assert!(!db.with_file_name(db_name + "-shm").exists());
+    assert!(!orphan_wal.exists());
+    assert!(bystander.exists());
+}
+
+/// 按期清理同样带走 sidecar；未到期的 .db 与 sidecar 都保留。
+#[test]
+fn delete_old_cache_takes_sidecars_with_expired_db() {
+    let temp = tempfile::TempDir::new().unwrap();
+    let cache = temp.path();
+    let db = db_path_for(cache, Path::new("/photos/b"));
+    std::fs::create_dir(db.parent().unwrap()).unwrap();
+    // mtime = 现在 ⇒ 未到期；先验证保留
+    std::fs::write(&db, b"db").unwrap();
+    let sidecar = db.with_file_name(db.file_name().unwrap().to_str().unwrap().to_owned() + "-wal");
+    std::fs::write(&sidecar, b"wal").unwrap();
+
+    assert_eq!(delete_old_cache(cache, 30), 0);
+    assert!(db.exists());
+    assert!(sidecar.exists());
+
+    // 把 mtime 拨回 60 天前 ⇒ 到期删除，sidecar 一起带走
+    let past = std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 24 * 3600);
+    let old = std::fs::File::options().write(true).open(&db).unwrap();
+    old.set_modified(past).unwrap();
+
+    assert_eq!(delete_old_cache(cache, 30), 1);
+    assert!(!db.exists());
+    assert!(!sidecar.exists());
+}

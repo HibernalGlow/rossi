@@ -50,10 +50,10 @@
 
 | 本地 | 上游 | 当前对齐的上游 commit |
 |---|---|---|
-| `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `bb6ca0c6` |
-| `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `bb6ca0c6` |
-| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `bb6ca0c6` |
-| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `bb6ca0c6` |
+| `rust/local_core/src/page_load_scheduler.rs` | `src/fs_page_load_scheduler.rs` | `94017f82e` |
+| `rust/local_core/src/prefetch_policy.rs` | `src/app/prefetch_policy.rs` | `94017f82e` |
+| `rust/local_core/src/auto_aspect.rs` | `src/auto_aspect.rs` | `94017f82e` |
+| `rust/local_core/src/page_split.rs` | `src/page_split.rs` | `94017f82e` |
 | `rust/local_core/src/perf_sink.rs` | —— **本地新增**，上游对应物是 `src/perf.rs`（完整 JSONL 性能日志系统） | —— |
 
 
@@ -76,6 +76,27 @@
 按「保住上游名字」的原则一并搬入，为将来的索引留接口；`pub` 项不会触发 `dead_code`。
 
 这七份里**有六份**纳入 `sync_vendored_modules.py`。
+
+**2026-10-25 同步到上游 `94017f82e`（v4.8.1，子模块从 `bb6ca0c6` 快进 673 个提交）**：
+全部 `pinned_at` 跟到 `94017f82e`，同步脚本 `exit 0`，本地核心 516 项测试通过。
+
+- `folder_tree` 采用上游三态同名策略（866c01f68）：`skip_zip` 布尔升级为
+  `same_name_folder_book`（PreferBook/PreferFolder/ShowBoth），新策略模块
+  `src/same_name_folder_book.rs` 以构建期切片直接编译（items：枚举 + `canonicalize`
+  + `keep_mask`）；`settings` 同步换字段，`settings_db` 读取时经上游 `canonicalize`
+  迁移旧布尔（开 → PreferBook、关 → ShowBoth，与上游公告一致）。上游为导航层加的
+  `show_hidden_files` 字段与两个新测试模块随「未搬导航层」剥离登记。
+- `catalog` 吸收上游 backlog 2.12：缓存清理删除单元 = `.db` + `-wal`/`-shm`，
+  clear-all 同时回收 `.db` 已不存在的孤儿 sidecar（本地 `cache_store.rs` 原实现
+  只删 `.db`，与上游修复前同病）。
+- `fs_page_load_scheduler` 上游只加了一个 PDF 拦截测试专用的 test-only 辅助
+  （backlog 1.114），本仓无 rerender probe，登记剥离不搬。
+- 15 个构建期切片项（exif_orientation / animation / natural_sort / rotation UV /
+  fast_resize 等）在 pin..HEAD 间逐字比对无变化；上游 AVIF（libavif+dav1d）解码、
+  显示基准重构（backlog 1.165）、书结构操作（STORES）等属 UI/应用层或待决策能力，
+  登记进复用台账备注，未接入。
+
+以下是历史同步记录，当前 pin 以上表与本段为准。
 
 **2026-10-13 同步到上游 `bb6ca0c6`（v4.6.0，子模块从 `8d95fffe` 快进 895 个提交）**：
 十份 `PORTS` 的 `pinned_at` 全部更新，同步脚本 `exit 0`，本地核心 462 项测试通过。

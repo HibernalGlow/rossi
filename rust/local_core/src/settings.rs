@@ -90,7 +90,7 @@ fn default_true() -> bool {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     #[serde(default)]
-    pub skip_zip_if_folder_exists: bool,
+    pub same_name_folder_book: crate::same_name_folder_book::SameNameFolderBookPolicy,
     #[serde(default)]
     pub skip_archive_if_zip_exists: bool,
     #[serde(default)]
@@ -120,7 +120,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            skip_zip_if_folder_exists: false,
+            same_name_folder_book: Default::default(),
             skip_archive_if_zip_exists: false,
             include_convertible_archives: false,
             sort_order: SortOrder::default(),

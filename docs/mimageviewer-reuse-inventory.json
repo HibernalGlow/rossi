@@ -43,7 +43,7 @@
         "src/ui_view_trim.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "过桥适配层：把 RGBA 缓冲接进移植的检测算法，输出摊平成归一化 ContentBBox{left,top,right,bottom}。上游显示侧在 ui_view_trim.rs（egui 手动裁边 UI，按 B3 不搬），本仓显示几何落在 lib/page/comic_read/model/page_trim.dart。",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -62,14 +62,16 @@
       "classification": "source_port",
       "local": [
         "rust/local_core/src/folder_tree.rs",
-        "rust/local_core/src/folder_tree"
+        "rust/local_core/src/folder_tree",
+        "rust/local_core/src/same_name_folder_book.rs"
       ],
       "upstream": [
-        "src/folder_tree.rs"
+        "src/folder_tree.rs",
+        "src/same_name_folder_book.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
-      "reason": "保留 Unix 大小写/符号链接与共享 SortOrder；未接入 EPUB/RAW/转换缓存的新导航层",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+      "reason": "v4.8.1 起同名文件夹/书候选走上游三态策略（same_name_folder_book 切片直接编译，settings 同步换字段、旧布尔经 canonicalize 迁移）；保留 Unix 大小写/符号链接与共享 SortOrder；未接入 EPUB/RAW/转换缓存的新导航层；show_hidden_files 只服务未搬的导航层，无本地消费者",
       "owner": "Rust 核心维护者",
       "tests": [
         "folder_tree 内置回归测试",
@@ -115,7 +117,7 @@
         "src/fs_page_load_scheduler.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "公开调度诊断并接本地 perf_sink；测试拆文件",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -320,7 +322,7 @@
         "src/archive_converter.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "构建期 AST 提取格式、别名、标签和分卷候选函数；只排除转换专用 temp_suffix",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -344,7 +346,7 @@
         "src/zip_tree.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "完整递归转换、进度、取消、上限保护、原子替换和转换产物缓存尚未接入；不是 Windows 阻碍导致无法复用",
       "owner": "Rust 核心维护者",
       "tests": [],
@@ -364,7 +366,7 @@
         "src/archive_converter.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "dedup_entry_name 直接编译上游；normalize_entry_name 保留更严格的空段、点段拒绝",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -432,7 +434,7 @@
         "src/fast_resize.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "直接提取 RGB/RGBA/DynamicImage 的 SIMD 缩放与比例策略，不搬 RAW 尺寸探测和 LibRaw",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -440,7 +442,8 @@
         "现有 Catalog/缩略图测试"
       ],
       "parity_gaps": [
-        "RAW 不具备；跨机器 SIMD 像素容差需要基准样本"
+        "RAW 不具备；跨机器 SIMD 像素容差需要基准样本",
+        "上游 probe_dims 增加 AVIF 尺寸探测（libavif），切片未含该函数；需要时按上游补"
       ],
       "parity": "选中符号直接编译",
       "action": "缩放函数体直接采用上游，探测入口由当前 decoder 提供"
@@ -455,7 +458,7 @@
         "src/ui_helpers.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "natural_sort_key/natural_digit_value 直接编译；保留 Rossi NaturalChunk::Num 在前的已有顺序，避免改变文件列表约定",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -479,7 +482,7 @@
         "src/displayed_image_transform.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "只提取 Rotation/impl 与 forward_uv/inverse_uv；补 Default，不引入旋转 DB 和 egui 布局",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -502,8 +505,8 @@
         "src/catalog.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
-      "reason": "SQLite schema/缓存 CRUD 部分源自上游并拆分；本地不含 pin/selection-proof、编辑源/EPUB/RAW 完整缓存链",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+      "reason": "SQLite schema/缓存 CRUD 部分源自上游并拆分；本地不含 pin/selection-proof、编辑源/EPUB/RAW 完整缓存链；v4.8.1 已吸收上游 backlog 2.12：缓存清理的删除单元 = .db + -wal/-shm，clear-all 同时回收孤儿 sidecar",
       "owner": "Rust 核心维护者",
       "tests": [
         "Catalog schema/迁移、WAL、缓存淘汰与尺寸回归"
@@ -525,14 +528,15 @@
         "src/folder_thumb_pins.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "裁剪的文件夹代表图算法；Rossi 目录块优先、多候选/归档、失败回退及循环上限不同于上游 direct-image-first",
       "owner": "Rust 核心维护者",
       "tests": [
         "排序不泄漏进代表图 key、递归/失败/符号链接回归"
       ],
       "parity_gaps": [
-        "固定封面/pin、selection-proof、EPUB/RAW 缓存并未接入；不可声称同一代表图策略"
+        "固定封面/pin、selection-proof、EPUB/RAW 缓存并未接入；不可声称同一代表图策略",
+        "上游缩略图链路 v4.8.x 接入 AVIF 解码，本地代表图策略未变"
       ],
       "parity": "未证明与上游完整链路等价",
       "action": "保留产品差异；抽取共有 cache key/候选过滤前先对照两套黄金样本"
@@ -548,7 +552,7 @@
         "src/catalog.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "组合本地 LocalSource、尺寸缓存与四格目录封面；上游单代表图不提供相同产品行为",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -574,7 +578,7 @@
         "src/fast_resize.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "跨平台 image/zune-JPEG/JXL 后端保留；字节流 EXIF 朝向已委托直接上游切片，快路/降采样/布局尺寸一致。WIC/Susie/RAW/ICC 等完整 canonical 链未对齐",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -582,7 +586,8 @@
         "EXIF 1-8 的像素位置、JPEG 快路/缩放/尺寸一致"
       ],
       "parity_gaps": [
-        "ICC/CMYK/16bit/alpha，JXL 元数据，多格式动画，错误输入，降采样/取消与平台后端端到端对照"
+        "ICC/CMYK/16bit/alpha，JXL 元数据，多格式动画，错误输入，降采样/取消与平台后端端到端对照",
+        "上游 v4.8.0 起内置 libavif+dav1d 解 AVIF（WIC 之前），本仓 image 管线未开 avif feature，属待决策能力"
       ],
       "parity": "未证明与上游完整链路等价",
       "action": "保留解码后端适配；EXIF 不再维护副本，颜色处理按样本继续提取上游"
@@ -599,7 +604,7 @@
         "src/zip_tree.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "ZIP 中央目录 index 是真正定位符，展示名独立规范化/去重；避免同名条目 by_name 读错。zip_loader 只是自有首图扫描",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -623,7 +628,7 @@
         "src/archive_converter.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "实际解压委托上游 unrar-patched；本地按需直读、检查头并类型化拒绝固实/加密/嵌套，rar_loader 仅适配",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -675,7 +680,7 @@
         "src/zip_loader.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "LocalSource 统一 folders/media/ZIP/RAR；无驻留归档句柄，media_formats 是本地格式支持表。导航产品状态不同",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -704,7 +709,7 @@
         "src/ui_main.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "本地 headless 页签/浏览状态对应上游 egui App；枚举/排序/搜索已委托可复用模块，根目录按平台处理",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -729,7 +734,7 @@
         "src/book_fs_journal.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "std/fs 与 trash 后端替代 Windows IFileOperation/剪贴板；平台后端不能跨平台直接搬，但纯 book_fs_journal 没有这个障碍",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -772,8 +777,8 @@
         "src/favorite_view_state.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
-      "reason": "缩减的本地 Settings/收藏视图 SQLite；与 Breeze GlobalSetting 与 Rossi 会话一起工作，没有上游全量 schema",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+      "reason": "缩减的本地 Settings/收藏视图 SQLite；与 Breeze GlobalSetting 与 Rossi 会话一起工作，没有上游全量 schema；v4.8.1 起 skip_zip_if_folder_exists 换成 same_name_folder_book 三态（settings_db 读取时经上游 canonicalize 迁移旧布尔）",
       "owner": "Rust 核心维护者",
       "tests": [
         "settings_db 持久化、视图恢复回归"
@@ -838,7 +843,7 @@
         "src/books.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "仅 path.starts_with 判定，不是书库/收藏管理",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -885,7 +890,7 @@
         "src/fs_animation.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "直接编译 canonical loader 的流式 PNG/WebP/GIF 扫描；本地 Cursor 字节适配及 VP8X 标志保留头部4096字节接口，避免 ANIM 在窗口外漏判",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -931,7 +936,7 @@
         "src/ring_shortcut.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "Rossi 操作模型与 Flutter 快捷键/轮盘 schema，不是上游 Rust keymap 的复制；业务动作集合不同",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -953,7 +958,7 @@
         "src/video/seek_strip_wave.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "symphonia 窗口 RMS 为 media_kit UI 服务；上游 music_core+wgpu+SQLite 音频 tile 架构不同",
       "owner": "Rust 核心维护者",
       "tests": [
@@ -998,7 +1003,7 @@
         "src/ai/mod.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "tile 布局及 NCHW/零填充直接编译上游；blend/会话和 EP 仍为本地 CoreML/DirectML/CPU 适配。上游 blend 使用整图 float 累积，本地使用 u8 增量合并，内存与取整契约不同",
       "owner": "推理/平台维护者",
       "tests": [
@@ -1027,7 +1032,7 @@
         "src/video/native_presenter"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "Flutter C ABI + DXGI/共享纹理呈现，生命周期与 egui 或上游视频 window 不同",
       "owner": "GPU/平台维护者",
       "tests": [
@@ -1051,7 +1056,7 @@
         "src/video/native_presenter"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "macOS IOSurface/Flutter texture 与时间序列没有上游 Windows 直接实现",
       "owner": "GPU/平台维护者",
       "tests": [
@@ -1079,7 +1084,7 @@
         "src/post_filter.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "本地 wgpu 输入/缓存/输出与 Flutter 窗口，shader/增强近似能力；不能按相同算法名视作源码复用",
       "owner": "GPU/平台维护者",
       "tests": [
@@ -1176,7 +1181,7 @@
         "src/keymap.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "FRB 传输/会话/取消与 DTO 连接 Flutter；实际纯逻辑在 local_core",
       "owner": "FRB/Flutter 维护者",
       "tests": [
@@ -1279,7 +1284,7 @@
         "src/raw"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "PDF/EPUB/RAW 原生文档/显影未接入 LocalSource；格式识别表不得当作支持证明",
       "owner": "Rust 核心维护者",
       "tests": [],
@@ -1300,7 +1305,7 @@
         "src/canonical_image_loader.rs"
       ],
       "repository": "mimageviewer",
-      "reviewed_at": "bb6ca0c665544da10b1acb061b590512acd0a4a4",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
       "reason": "rexif 朝向读取和 image 旋转/镜像直接编译上游。Rossi 适配朝向后的布局尺寸及动画第一帧跳过策略；字节入口不依赖 WIC",
       "owner": "Rust 解码维护者",
       "tests": [
@@ -1362,6 +1367,28 @@
       ],
       "parity": "选中符号直接编译；手抄六项按公式对照，未证明逐行等价",
       "action": "接入呈现链（FRB + 设置存储 + 缓存身份）后补端到端判据；上游改动色调公式时对手抄六项逐项复核"
+    },
+    {
+      "id": "local_adjust_bridge",
+      "classification": "adapter",
+      "local": [
+        "rust/local_core/src/local_adjust.rs"
+      ],
+      "upstream": [
+        "crates/local-adjust-core"
+      ],
+      "repository": "mimageviewer",
+      "reviewed_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+      "reason": "局部调整层薄适配：本仓 PagePixels（RGBA8 步长 4）与上游 local-adjust-core 的 RgbaImageRef 同一份内存布局，直接转发 apply_layers；掩码栅格化、图层排序与合成全在上游 crate（path 依赖，ADR-0024 阶段 B，零 egui / 零 image）",
+      "owner": "Rust 核心维护者",
+      "tests": [
+        "local_adjust 内置单元测试（层合成与掩码栅格化）"
+      ],
+      "parity_gaps": [
+        "上游 crate 改 RgbaImageRef / apply_layers 接口时需同步适配；上游 UI 侧的图层编辑器不在范围"
+      ],
+      "parity": "path 依赖直接编译上游 crate，无本地副本",
+      "action": "跟随 crate 演进，接口变化时适配"
     }
   ]
 }

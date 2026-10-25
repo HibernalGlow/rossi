@@ -48,7 +48,7 @@ PORTS = [
     {
         "upstream": "src/folder_tree.rs",
         "local": "rust/local_core/src/folder_tree.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # v4.1.0：上游把导航用的 bool 换成 NavigationArchivePolicy 三值枚举；
@@ -81,6 +81,18 @@ PORTS = [
             (r"            file_type_visibility: [^\n]*\n", ""),
             (r"            skip_epub_if_pdf_exists: [^\n]*\n", ""),
             (r"            include_epub: [^\n]*\n", ""),
+            # v4.8.1（866c01f68）：skip_zip 布尔升级为 same_name_folder_book 三态，
+            # 本仓随上游接入（settings 同步换字段，迁移走 canonicalize）。
+            # 下面三条把 pin 版的旧字段形态映射到新字段（head 侧已无 skip_zip，
+            # 规则无匹配、幂等）。
+            (r"    pub skip_zip: bool,\n", "    pub same_name_folder_book: crate::same_name_folder_book::SameNameFolderBookPolicy,\n"),
+            (r"            skip_zip: settings\.skip_zip_if_folder_exists,\n", "            same_name_folder_book: settings.same_name_folder_book,\n"),
+            (r"            skip_zip: true,\n", "            same_name_folder_book: Default::default(),\n"),
+            # show_hidden_files 只服务未搬的导航层 listing_candidates 概念，
+            # 本仓无消费者，随字段剥离（同上方 EPUB 三条的处理）。
+            (r"    pub show_hidden_files: bool,\n", ""),
+            (r"            show_hidden_files: settings\.show_hidden_files,\n", ""),
+            (r"            show_hidden_files: false,\n", ""),
             (r"pub fn is_paged_document_path\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", ""),
             (r"is_zip_extension\(&ext\) \|\| is_paged_document_path\(path\)", "is_zip_extension(&ext) || is_pdf_extension(&ext)"),
             # Unix 的反斜杠/大小写不能使用 Catalog 的 Windows 风格归一化键。
@@ -133,6 +145,10 @@ PORTS = [
             (r"(pub fn is_convertible_archive_path\(path: &Path\) -> bool \{[\s\S]*?\n\}\n)[\s\S]*?(\npub fn path_eq)", r"\1\2"),
             # 新增 Unix 平台回归测试；上游 Windows 测试仍参与比较。
             (r"\n\s*#\[cfg\(not\(windows\)\)\]\n\s*#\[test\]\n\s*fn unix_paths_preserve_case_and_backslashes\(\) \{[^}]*\}", ""),
+            # v4.8.1 三态策略用例的本地移植：上游原版因依赖 sorted_subdirs_for_nav
+            # 的落点断言被整体剥离（见 upstream_strip），等价移植版一起丢出比较。
+            # 注意缩进：本地 tests.rs 是独立文件、条目 0 缩进；上游侧在 mod tests 内 4 缩进。
+            (r"\n/// 上游 same_name_folder_book_navigation_and_excluded_current_anchor 的移植[\s\S]*?\n\}\n", "\n"),
             # 既有移植：没有 checkout 测试数据时跳过上游 RAR 样本用例。
             (r'\s*if !fixture\.is_dir\(\) \{\s*eprintln!\(\s*"skip: upstream RAR fixture is not checked out: \{\}"\s*,\s*fixture\.display\(\)\s*\);\s*return;\s*\}', ""),
         ],
@@ -162,6 +178,13 @@ PORTS = [
             # EPUB 和新 visibility 的回归依赖本仓没有的运行时边界，随能力一起未搬。
             (r"\n\s*#\[test\]\n\s*fn (?:epub_file_is_resolved_as_openable_without_parent_fallback|paged_document_navigation_skips_same_name_epub_with_pdf|epub_ignore_removes_epub_but_keeps_pdf_and_archive_navigation_candidates)\(\)[\s\S]*?\n    \}\n", ""),
             (r"\n#\[cfg\(test\)\]\nmod file_type_visibility_navigation_tests \{[\s\S]*", ""),
+            # v4.8.1（866c01f68 / 4b6bc7ab6）的新用例：
+            # 三态投影用例的落点断言依赖 sorted_subdirs_for_nav（未搬的导航层），
+            # 整条剥离；候选投影的等价断言已移植进本地 tests.rs（同名用例）。
+            # hidden_same_name_qualification_tests 整模依赖 crate::app::folder_scan /
+            # book_materialization / rating_sort（未搬），随实现剥离。
+            (r"\n    #\[test\]\n    fn same_name_folder_book_navigation_and_excluded_current_anchor\(\)[\s\S]*?\n    \}\n", ""),
+            (r"\n#\[cfg\(all\(test, windows\)\)\]\nmod hidden_same_name_qualification_tests \{[\s\S]*", ""),
             # 上游为导航层新增的 11 个 rar_nav_* 用例（真实 RAR 夹具 + 独立窗口），随实现一起未搬。
             (r"\n\s*#\[test\]\n\s*fn rar_nav_[\s\S]*?\n    \}\n", ""),
         ],
@@ -170,7 +193,7 @@ PORTS = [
     {
         "upstream": "src/fs_entry.rs",
         "local": "rust/local_core/src/fs_entry.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             (
@@ -197,7 +220,7 @@ PORTS = [
     {
         "upstream": "src/filename_sort.rs",
         "local": "rust/local_core/src/filename_sort.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [(r"\bpub\(crate\)", "pub")],
         "local_strip": [],
         "upstream_strip": [],
@@ -206,7 +229,7 @@ PORTS = [
     {
         "upstream": "src/fs_page_load_scheduler.rs",
         "local": "rust/local_core/src/page_load_scheduler.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -234,7 +257,16 @@ PORTS = [
             # 偏离 4：本地补的 Default（clippy 的 new_without_default）。
             (r"impl Default for FsPageLoadScheduler \{\n[\s\S]*?\n\}\n\n", ""),
         ],
-        "upstream_strip": [],
+        "upstream_strip": [
+            # v4.8.1（5a7d3523e，backlog 1.114）：上游为 PDF 拦截测试加的
+            # test-only 辅助——rerender probe 注册真实 ticket 但不取 permit，
+            # 用它做终态清理。本仓没有 rerender probe（上游 app 层），
+            # 无消费者，不搬。
+            (
+                r"    /// Intercepted tests have no worker to acquire/drop a permit\.[\s\S]*?\n    \}\n",
+                "",
+            ),
+        ],
         "drop_lines": [
             "use crate::perf_sink::PerfValue;",
         ],
@@ -242,7 +274,7 @@ PORTS = [
     {
         "upstream": "src/app/prefetch_policy.rs",
         "local": "rust/local_core/src/prefetch_policy.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
         ],
@@ -264,7 +296,7 @@ PORTS = [
     {
         "upstream": "src/auto_aspect.rs",
         "local": "rust/local_core/src/auto_aspect.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # 偏离 2：测试里的行尾注释翻成中文（行尾带注释的行算代码行，不参与注释差异）。
@@ -281,7 +313,7 @@ PORTS = [
     {
         "upstream": "src/page_split.rs",
         "local": "rust/local_core/src/page_split.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             # 偏离 1: B3 几何解耦，替换 eframe::egui 为本地无依赖纯几何类型与别名
             (r"use eframe::egui;", "use egui_compat as egui;"),
@@ -308,7 +340,7 @@ PORTS = [
     {
         "upstream": "src/folder_pane.rs",
         "local": "rust/local_core/src/folder_pane.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -375,7 +407,7 @@ PORTS = [
     {
         "upstream": "src/search_query.rs",
         "local": "rust/local_core/src/search_query.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             (r"let chars: Vec<char> = query.chars\(\).collect\(\);", "let folded = crate::search_norm::normalize_for_match(query);\nlet chars: Vec<char> = folded.chars().collect();"),
             (r"let needle = raw.to_lowercase\(\);", "let needle = raw.to_owned();"),
@@ -391,7 +423,7 @@ PORTS = [
     {
         "upstream": "src/search_norm.rs",
         "local": "rust/local_core/src/search_norm.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             (r"s.to_lowercase\(\)", 'if s.is_ascii() { return s.to_ascii_lowercase(); } s.nfkc().collect::<String>().to_lowercase()'),
             (r"fn normalize_fullwidth_ascii_lowercases\(\) \{[\s\S]*?\n    \}", ""),
@@ -406,7 +438,7 @@ PORTS = [
     {
         "upstream": "src/margin_fit.rs",
         "local": "rust/local_core/src/margin_fit.rs",
-        "pinned_at": "bb6ca0c6",
+        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
         "upstream_normalize": [
             # 偏离 2: 上游测试用 egui::ColorImage 的结构体字面量（带 source_size: egui::vec2）。
             # 本仓替身 ColorImage 没有 source_size 字段（检测算法从不读它）⇒ 改成构造函数调用。
@@ -432,14 +464,14 @@ for port in PORTS:
         port["binding"] = "path"
 PORTS.append({
     "upstream": "src/path_key.rs", "local": "rust/local_core/src/path_key.rs",
-    "pinned_at": "bb6ca0c6", "upstream_normalize": [], "drop_lines": [],
+    "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606", "upstream_normalize": [], "drop_lines": [],
     "local_strip": [(r"pub fn is_drive_or_share_root\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", "")],
     "upstream_strip": [(r"pub fn is_drive_or_share_root\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", "")],
 })
 SOURCE_SPECS = json.loads((REPO / "rust/local_core/upstream_sources.json").read_text(encoding="utf-8"))
 generated_locals = {spec["local"] for spec in SOURCE_SPECS}
 PORTS = [port for port in PORTS if port["local"] not in generated_locals]
-PORTS.extend({**spec, "pinned_at": "bb6ca0c6", "binding": "generated"} for spec in SOURCE_SPECS)
+PORTS.extend({**spec, "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606", "binding": "generated"} for spec in SOURCE_SPECS)
 
 
 def git(*args: str, text: bool = True):

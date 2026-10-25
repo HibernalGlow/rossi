@@ -62,6 +62,7 @@ pub mod folder_pane;
 pub mod folder_tree;
 pub mod fs_entry;
 pub mod rar_loader;
+pub mod same_name_folder_book;
 // 文件管理器的查询语法与文本归一化同样是上游源码，保留 `parse` / `matches` /
 // `decide_partial` / `normalize_for_match` 的原名，升级时可直接对拍。
 pub mod search_norm;

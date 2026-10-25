@@ -1,5 +1,59 @@
 # 上游同步记录
 
+## mImageViewer v4.8.1 同步（2026-10-25）
+
+| 来源 | 先前内容基准 | 本次内容基准 |
+|---|---|---|
+| mImageViewer | `bb6ca0c665544da10b1acb061b590512acd0a4a4`（v4.6.0 线） | `94017f82e`（v4.8.1） |
+| Breeze | 无更新 | 无更新 |
+
+子模块快进 673 个提交（v4.6.0 → v4.8.1），`sync_vendored_modules.py` 全量
+报告后按「上游优先」逐项处理，最终脚本 `exit 0`、`cargo test -p rossi_local_core`
+516 项通过、`cargo check -p windcore` 通过。
+
+**采用（合并进本仓）**：
+
+- **同名文件夹/书三态策略**（上游 866c01f68，"one three-way same-name setting"）：
+  旧 `skip_zip_if_folder_exists` 布尔升级为 `SameNameFolderBookPolicy`
+  （PreferBook / PreferFolder / ShowBoth）。上游新模块 `src/same_name_folder_book.rs`
+  是纯策略（serde + std），以构建期 AST 切片直接编译（`upstream_sources.json` 新条目，
+  items = 枚举 + `canonicalize` + `keep_mask`，上游自带 `mod tests` 里依赖上游全量
+  `Settings` 的用例不随切片）；`folder_tree::sorted_subdirs` 按上游形状改走
+  `keep_mask` 投影（该函数在 PORTS 声明的人工读区域，比较不覆盖、手动移植）。
+  `Settings` 字段同步替换，`settings_db::load_settings` 读取时先跑上游 `canonicalize`
+  迁移旧布尔（开 → PreferBook、关 → ShowBoth；注意这是上游公告的**语义翻转**——
+  旧「开」原本跳过 ZIP 保留文件夹，迁移后保留书）。上游为导航层加的
+  `show_hidden_files` 字段无本地消费者（`listing_candidates` 概念随导航层未搬），
+  与 EPUB 三字段同样以 strip 规则登记。
+- **catalog 缓存清理删除单元修复**（上游 backlog 2.12）：`delete_old_cache` /
+  `delete_all_cache` 从只删 `.db` 改为 `.db` + `-wal`/`-shm` 一起删
+  （`.db` 删除失败不动 sidecar），clear-all 额外回收 `.db` 已不存在的孤儿 sidecar
+  （上游实测旧版残留可积 1.4 GB）。本地 `cache_store.rs` 与上游修复前同病；
+  该 API 目前无生产调用方，按已登记能力修正并补回归测试。
+
+**登记不搬（上游动了文件但本地刻意不跟）**：
+
+- `fs_page_load_scheduler` 的 `completion_without_worker_for_test`（5a7d3523e，
+  backlog 1.114）：上游 PDF 拦截测试专用的 test-only 清理辅助，本仓无 rerender
+  probe，PORTS 登记剥离。
+- `folder_tree` 上游两个新测试（三态落点断言依赖未搬的 `sorted_subdirs_for_nav`；
+  `hidden_same_name_qualification_tests` 整模依赖 `crate::app::*`），剥离登记；
+  等价候选断言已移植进本地 `tests.rs`。
+- 其余上游变更集中在 egui 0.37 迁移、书结构操作（STORES）、显示基准重构
+  （backlog 1.165）、ZIP 嵌套缓存身份（1.194）、通知时长等 UI/应用层，不影响
+  本仓借用的纯逻辑；15 个构建期切片项（exif_orientation、animation、
+  natural_sort、rotation UV、fast_resize 等）pin..HEAD 逐字比对无变化。
+
+**待决策能力（上游已实现、本仓未接，非同步范围）**：AVIF 解码
+（v4.8.0 起内置 libavif + dav1d，位于 WIC 之前；`fast_resize::probe_dims` 也加了
+AVIF 尺寸探测）。已在复用台账 `decode` / `fast_resize` / `thumb_loader` 条目的
+parity_gaps 备注。
+
+**台账维护**：30 项被标记能力逐项复核后 `reviewed_at` 跟到 `94017f82e`；
+`local_adjust.rs`（local-adjust-core 薄适配，ADR-0024）补登记为 `local_adjust_bridge`；
+`folder_tree` 条目挂上 `same_name_folder_book` 切片的两侧路径。`crates/unrar-patched`
+与 `crates/local-adjust-core` 在本窗口无变化。
+
 ## Android QNN NPU 超分后端移植（2026-10-24）
 
 来源：[HaoweiLi97/mihon_img_upscale](https://github.com/HaoweiLi97/mihon_img_upscale)

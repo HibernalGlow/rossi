@@ -51,7 +51,11 @@ pub fn cache_stats(cache_dir: &Path) -> (usize, u64) {
 }
 
 /// 删除 cache_dir 下最后更新时间在 `days` 天以前的 .db 文件。
-/// 返回删除的文件数。
+/// 返回删除的文件数（只计 .db；sidecar 不计数）。
+///
+/// 删除单元是 `.db` + 它的 `-wal`/`-shm` sidecar（上游 backlog 2.12：
+/// 只删 `.db` 会把 WAL 残留成孤儿，实测可积到 GB 级）。`.db` 删除失败时
+/// 不动 sidecar——可能还有活着的读者。
 pub fn delete_old_cache(cache_dir: &Path, days: u64) -> usize {
     let now = std::time::SystemTime::now();
     let threshold = std::time::Duration::from_secs(days * 24 * 3600);
@@ -65,20 +69,74 @@ pub fn delete_old_cache(cache_dir: &Path, days: u64) -> usize {
         if age >= threshold {
             if std::fs::remove_file(path).is_ok() {
                 deleted += 1;
+                delete_db_sidecars(path);
             }
         }
     });
     deleted
 }
 
-/// 删除 cache_dir 下的全部 .db 文件。
-/// 返回删除的文件数。
+/// 删除 cache_dir 下的全部 .db 文件，并回收孤儿 sidecar
+/// （`.db` 已不存在的 `-wal`/`-shm`，旧版本只删 `.db` 留下的残留）。
+/// 返回删除的 `.db` 文件数；孤儿回收不计数。
 pub fn delete_all_cache(cache_dir: &Path) -> usize {
     let mut deleted = 0usize;
     collect_db_paths(cache_dir, &mut |path, _| {
         if std::fs::remove_file(path).is_ok() {
             deleted += 1;
+            delete_db_sidecars(path);
         }
     });
+    reclaim_orphan_sidecars(cache_dir);
     deleted
+}
+
+/// 删除 `.db` 的 `-wal` / `-shm` sidecar（不存在视为成功）。
+fn delete_db_sidecars(path: &Path) {
+    for suffix in ["-wal", "-shm"] {
+        let mut name = path.as_os_str().to_os_string();
+        name.push(suffix);
+        let _ = std::fs::remove_file(Path::new(&name));
+    }
+}
+
+/// 回收 `.db` 已不存在的 `-wal`/`-shm` 孤儿。
+/// 清理路径不跟随符号链接/联接目录，避免经由缓存目录逃逸删除。
+fn reclaim_orphan_sidecars(cache_dir: &Path) {
+    let Ok(top) = std::fs::read_dir(cache_dir) else {
+        return;
+    };
+    for entry in top.flatten() {
+        let Ok(ft) = entry.file_type() else {
+            continue;
+        };
+        if !ft.is_dir() || ft.is_symlink() {
+            continue;
+        }
+        let Ok(sub_entries) = std::fs::read_dir(entry.path()) else {
+            continue;
+        };
+        for file in sub_entries.flatten() {
+            let path = file.path();
+            let file_name = file.file_name();
+            let Some(name) = file_name.to_str() else {
+                continue;
+            };
+            // 只碰 `.db-wal` / `.db-shm` 命名的条目；对应的 `.db` 仍在
+            // （含删除失败而幸存的）就跳过——sidecar 归还活着的 DB。
+            let Some(db_name) = name
+                .strip_suffix(".db-wal")
+                .or_else(|| name.strip_suffix(".db-shm"))
+            else {
+                continue;
+            };
+            let db_path = path.with_file_name(format!("{db_name}.db"));
+            match db_path.try_exists() {
+                Ok(false) => {
+                    let _ = std::fs::remove_file(&path);
+                }
+                _ => {}
+            }
+        }
+    }
 }

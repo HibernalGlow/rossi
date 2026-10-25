@@ -92,8 +92,19 @@ impl SettingsDb {
 
         match maybe_json {
             Some(json) => {
-                let settings =
-                    serde_json::from_str::<Settings>(&json).unwrap_or_else(|_| Settings::default());
+                // 先按上游 same_name_folder_book::canonicalize 迁移旧布尔键
+                // （skip_zip_if_folder_exists → 三态策略），再反序列化。
+                // 迁移失败时保留原 map 继续走 derive（未知键被忽略），
+                // 与本函数「坏值退回默认」的既有姿态一致。
+                let settings = serde_json::from_str::<serde_json::Value>(&json)
+                    .ok()
+                    .and_then(|mut value| {
+                        if let Some(map) = value.as_object_mut() {
+                            let _ = crate::same_name_folder_book::canonicalize(map);
+                        }
+                        serde_json::from_value::<Settings>(value).ok()
+                    })
+                    .unwrap_or_else(Settings::default);
                 Ok(settings)
             }
             None => Ok(Settings::default()),
@@ -469,6 +480,51 @@ mod tests {
         let reloaded = db.load_settings().unwrap();
         assert_eq!(reloaded.grid_cols, 4);
         assert!(reloaded.favorite_view_overlay.is_none());
+    }
+
+    /// 旧版本落盘的 `skip_zip_if_folder_exists` 布尔在读取时迁移成三态策略
+    /// （上游 866c01f68 的映射：开 → PreferBook，关 → ShowBoth），
+    /// 且其他字段不因迁移丢失；再落盘后旧键消失。
+    #[test]
+    fn legacy_skip_zip_bool_migrates_to_same_name_folder_book() {
+        use crate::same_name_folder_book::SameNameFolderBookPolicy;
+
+        for (old, expected) in [
+            (true, SameNameFolderBookPolicy::PreferBook),
+            (false, SameNameFolderBookPolicy::ShowBoth),
+        ] {
+            let db = SettingsDb::open_in_memory().unwrap();
+            let legacy = serde_json::json!({
+                "skip_zip_if_folder_exists": old,
+                "grid_cols": 9,
+            });
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "INSERT INTO settings_kv (key, value) VALUES ('settings', ?1)",
+                    params![legacy.to_string()],
+                )
+                .unwrap();
+
+            let loaded = db.load_settings().unwrap();
+            assert_eq!(loaded.same_name_folder_book, expected);
+            assert_eq!(loaded.grid_cols, 9);
+
+            db.save_settings(&loaded).unwrap();
+            let saved: String = db
+                .conn
+                .lock()
+                .unwrap()
+                .query_row(
+                    "SELECT value FROM settings_kv WHERE key = 'settings'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(!saved.contains("skip_zip_if_folder_exists"));
+            assert!(saved.contains("same_name_folder_book"));
+        }
     }
 
     #[test]
