@@ -1,0 +1,89 @@
+---
+name: 准备 Android dav1d 交叉静态库
+description: >-
+  给安卓交叉目标用 NDK clang 编 dav1d 静态库并装进 third_party/android_sysroot/<triple>，
+  hook/build.dart 探到那里的 lib/pkgconfig 才会自己设 PKG_CONFIG_LIBDIR。
+# 单一真源：push-build.yml 与 release.yml 的 build-android 都 uses 这一份。
+# 配方出处：docs/android-build.md §2/§2.1（third_party/build_dav1d_android.sh 写死了本机 macOS 路径，CI 用不了）。
+runs:
+  using: composite
+  steps:
+    - name: 用 NDK clang 交叉编 dav1d
+      shell: bash
+      run: |
+        # 要点三条（都是踩过坑才写下来的，别简化）：
+        #  1. dav1d-sys 的兜底是「clone + meson setup（不带 cross file）」，会编出宿主架构的 .a，
+        #     staticlib 不解析符号，要到最终链接才炸 ⇒ 必须自己用 NDK clang 的 cross file 编；
+        #  2. 装进 third_party/android_sysroot/<triple>/{lib,include}，hook/build.dart 看到
+        #     lib/pkgconfig 就会自己设 PKG_CONFIG_LIBDIR/PATH/ALLOW_CROSS（PKG_CONFIG_PATH 不够，
+        #     它是追加，宿主那份 .pc 仍会被命中）；
+        #  3. bionic 没有 libpthread.so，ort-sys 却发 -lpthread ⇒ 在自己的 sysroot 里放链接脚本。
+        set -euo pipefail
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq meson ninja-build nasm pkg-config
+        NDK_VER=$(grep "ndkVersion" android/app/build.gradle.kts | awk -F'"' '{print $2}')
+        ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+        NDK="$ANDROID_HOME/ndk/$NDK_VER"
+        BIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+        [ -d "$BIN" ] || { echo "::error::找不到 NDK 工具链目录 $BIN"; exit 1; }
+        SRC="$PWD/third_party/dav1d-src"
+        if [ ! -d "$SRC/.git" ]; then
+          git clone --depth 1 -b 1.5.0 https://code.videolan.org/videolan/dav1d.git "$SRC"
+        fi
+        # 只做 aarch64 与 x86_64：armv7 不在名单里是**有意的** —— docs/android-build.md §5/§6 记着
+        # ort-sys 的发行表里 aarch64-linux-android 只有一条，armv7-linux-androideabi 与
+        # x86_64-linux-android 没有发行包，那两条 ABI 现在编不出来；
+        # 出货侧因此由 script/build/build_apk.dart 的 release 分支显式只走 android-arm64。
+        # 哪天补上 ORT 的手工库、要恢复三 ABI，先在这里加回 armv7-linux-androideabi
+        # （NDK 的可执行文件名是 armv7a-linux-androideabi<API>-clang，与 Rust 三元组不同名），
+        # 再把 build_apk.dart 那行的 --target-platform 放开。
+        for T in aarch64-linux-android x86_64-linux-android; do
+          case "$T" in
+            aarch64-linux-android) FAM=aarch64; CPU=aarch64 ;;
+            x86_64-linux-android)  FAM=x86_64; CPU=x86_64 ;;
+          esac
+          PREFIX="$PWD/third_party/android_sysroot/$T"
+          INI="$PWD/third_party/meson-android-$FAM.ini"
+          cat > "$INI" <<EOF
+        [binaries]
+        c = '$BIN/${T}21-clang'
+        cpp = '$BIN/${T}21-clang++'
+        ar = '$BIN/llvm-ar'
+        strip = '$BIN/llvm-strip'
+        ranlib = '$BIN/llvm-ranlib'
+        pkgconfig = 'pkg-config'
+
+        [properties]
+        sys_root = '$BIN/../sysroot'
+        needs_exe_wrapper = true
+
+        [host_machine]
+        system = 'android'
+        cpu_family = '$FAM'
+        cpu = '$CPU'
+        endian = 'little'
+        EOF
+          rm -rf "$SRC/build-cross-$FAM" "$PREFIX"
+          meson setup "$SRC/build-cross-$FAM" "$SRC" \
+            --cross-file "$INI" \
+            --prefix "$PREFIX" \
+            --libdir lib \
+            --default-library=static \
+            -Denable_tests=false -Denable_examples=false -Denable_tools=false \
+            -Dbitdepths="['8', '16']"
+          ninja -C "$SRC/build-cross-$FAM"
+          ninja -C "$SRC/build-cross-$FAM" install
+          printf 'INPUT(-lc)\n' > "$PREFIX/lib/libpthread.so"
+          echo "== $T =="
+          find "$PREFIX" -name '*.pc' -o -name '*.a' | sort
+          # 判据要能证伪：读回 .a 的机器架构，宿主架构（x86-64）混进来就当场停，
+          # 别留给最终链接去报一堆没头没尾的 undefined symbol。
+          MACHINE="$("$BIN/llvm-readelf" -h "$PREFIX/lib/libdav1d.a" 2>/dev/null | awk '/Machine:/{print $2; exit}')"
+          echo "[rossi-android] $T libdav1d.a Machine=$MACHINE"
+          case "$T:$MACHINE" in
+            aarch64-linux-android:AArch64) : ;;
+            x86_64-linux-android:X86_64) : ;;
+            *) echo "::error::$T 编出来的 libdav1d.a 架构是 '$MACHINE'，不是交叉目标的架构"; exit 1 ;;
+          esac
+          PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" pkg-config --modversion --define-prefix dav1d || true
+        done

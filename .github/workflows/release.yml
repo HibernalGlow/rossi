@@ -178,6 +178,17 @@ jobs:
           docker system prune -a -f
           sudo apt-get clean
 
+      # 以下两步与 push-build.yml 的 build-android 同源：rquickjs 的 bindgen 要 libclang，
+      # 交叉编 dav1d 要 meson/ninja/nasm + NDK cross file。release 这条腿以前两步都没有，
+      # 于是钩子在 armv7 上直接报 failed to run custom build command for `dav1d-sys v0.8.3`。
+      - name: 安装编译依赖 (LLVM/Clang)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-dev libclang-dev clang
+
+      - name: 准备 Android dav1d 交叉静态库
+        uses: ./.github/actions/setup-dav1d-android
+
       - name: 解密敏感文件 (git-crypt)
         env:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}

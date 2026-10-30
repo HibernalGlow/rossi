@@ -256,13 +256,19 @@ Future<void> main(List<String> args) async {
       exit(exitCode);
     }
 
-    _printColor('\n开始构建 APK（Impeller 由应用运行时判断）...', _cyan);
+    _printColor('\n开始构建 APK（Impeller 由应用运行时判断，出货只出 arm64）...', _cyan);
+    // 与上面 debug 分支同一个理由：ort-sys 的发行表里 android 只有 aarch64 一条，
+    // armv7 / x86_64 没有 ONNX Runtime 预编译产物（docs/android-build.md §5/§6），
+    // 三 ABI 全出会在 native-assets 编 windcore 那一步直接失败。
+    // 哪天补上手工带的 ORT 库、要恢复三 ABI，记得同时放开
+    // .github/actions/setup-dav1d-android/action.yml 里的目标清单。
     exitCode = await _runCommand(
       flutterExecutable,
       [
         'build',
         'apk',
         '--split-per-abi',
+        '--target-platform=android-arm64',
         '--split-debug-info=$symbolsDir',
         '--dart-define=sentry_dsn=$sentryDsn',
       ],

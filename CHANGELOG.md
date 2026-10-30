@@ -815,5 +815,8 @@
 - 发布管路：dav1d 前置与 Windows 的 cargo 预编抽成 `.github/actions/` 下的共用 action，push 与 release 两条 CI 吃同一份配方（此前只有 push 那份有，release 的 macOS/Windows 腿连着红了两次）
 - `release.yml` 版本号可以整段留空，改由 `pubspec.yaml` 推导；并在构建开跑前就校验 CHANGELOG 段落与 tag 是否同源，不合格立刻红
 - 没有 `GIT_CRYPT_KEY` 时安卓照常出 release 包，签名回退 debug key，不再整条腿跳过
+- 安卓出货只出 `arm64-v8a`：`ort-sys` 的发行表里 android 只有 aarch64 一条，armv7 / x86_64 没有
+  ONNX Runtime 预编译产物（`docs/android-build.md` §5/§6），`build_apk.dart` 的 release 分支因此
+  显式 `--target-platform=android-arm64`，与 debug 分支同口径
 - `update-tag-on-release.yml` 改读本仓的 latest release，不再拿上游版本号去刷 CDN tag
 - Windows 安装器版本随本次发布对齐到 `0.1.2`
