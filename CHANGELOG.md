@@ -799,3 +799,21 @@
 
 - RealSR：QNN 运行库整套由本地 SDK 暂存，不再走 qnn-runtime AAR
 - 新增本机安卓出包配方：`task apk`（release）/ `task apkd`（debug）
+
+## [v0.1.2]
+
+### 功能更新
+
+- 同步 mImageViewer v4.8.1：同名文件夹/书改为三态策略，新增回收孤儿 sidecar 的能力
+
+### 优化
+
+- 缓存清理修掉删除单元搞错的问题；设置字段随之调整并补齐用例
+
+### 杂项
+
+- 发布管路：dav1d 前置与 Windows 的 cargo 预编抽成 `.github/actions/` 下的共用 action，push 与 release 两条 CI 吃同一份配方（此前只有 push 那份有，release 的 macOS/Windows 腿连着红了两次）
+- `release.yml` 版本号可以整段留空，改由 `pubspec.yaml` 推导；并在构建开跑前就校验 CHANGELOG 段落与 tag 是否同源，不合格立刻红
+- 没有 `GIT_CRYPT_KEY` 时安卓照常出 release 包，签名回退 debug key，不再整条腿跳过
+- `update-tag-on-release.yml` 改读本仓的 latest release，不再拿上游版本号去刷 CDN tag
+- Windows 安装器版本随本次发布对齐到 `0.1.2`

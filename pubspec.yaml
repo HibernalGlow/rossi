@@ -1,7 +1,7 @@
 name: zephyr
 description: "使用 Flutter 开发的跨平台漫画阅读器，图源由插件提供。"
 publish_to: none
-version: 0.1.0+1
+version: 0.1.2+1
 
 environment:
   sdk: ^3.12.0
