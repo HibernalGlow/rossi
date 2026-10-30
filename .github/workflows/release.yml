@@ -181,13 +181,12 @@ jobs:
       # 以下两步与 push-build.yml 的 build-android 同源：rquickjs 的 bindgen 要 libclang，
       # 交叉编 dav1d 要 meson/ninja/nasm + NDK cross file。release 这条腿以前两步都没有，
       # 于是钩子在 armv7 上直接报 failed to run custom build command for `dav1d-sys v0.8.3`。
+      # 注意 dav1d 那一步不能放在这里：它要 $ANDROID_HOME/ndk/<ver> 已经装好，
+      # 而 NDK 是后面「安装 Android NDK」才落的（实测放早了会报「找不到 NDK 工具链目录」）。
       - name: 安装编译依赖 (LLVM/Clang)
         run: |
           sudo apt-get update
           sudo apt-get install -y llvm-dev libclang-dev clang
-
-      - name: 准备 Android dav1d 交叉静态库
-        uses: ./.github/actions/setup-dav1d-android
 
       - name: 解密敏感文件 (git-crypt)
         env:
@@ -306,6 +305,9 @@ jobs:
       - name: 编译 Android waifu2x CLI
         run: |
           python3 script/android/build_waifu2x_cli_android.py
+
+      - name: 准备 Android dav1d 交叉静态库
+        uses: ./.github/actions/setup-dav1d-android
 
       - name: 运行 Android 构建脚本
         env:
