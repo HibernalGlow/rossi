@@ -76,14 +76,40 @@ runs:
           printf 'INPUT(-lc)\n' > "$PREFIX/lib/libpthread.so"
           echo "== $T =="
           find "$PREFIX" -name '*.pc' -o -name '*.a' | sort
-          # 判据要能证伪：读回 .a 的机器架构，宿主架构（x86-64）混进来就当场停，
-          # 别留给最终链接去报一堆没头没尾的 undefined symbol。
-          MACHINE="$("$BIN/llvm-readelf" -h "$PREFIX/lib/libdav1d.a" 2>/dev/null | awk '/Machine:/{print $2; exit}')"
-          echo "[rossi-android] $T libdav1d.a Machine=$MACHINE"
-          case "$T:$MACHINE" in
-            aarch64-linux-android:AArch64) : ;;
-            x86_64-linux-android:X86_64) : ;;
-            *) echo "::error::$T 编出来的 libdav1d.a 架构是 '$MACHINE'，不是交叉目标的架构"; exit 1 ;;
-          esac
+          # 想把「编出宿主架构的 .a」提前拦住（§2.1 记着它要到最终链接才炸）。
+          # 但 llvm-readelf 不吃 .a 归档：上一版直接读 libdav1d.a 把整步撞成 exit 74
+          # —— 判据本身也会成为故障源。所以先 ar 解出一个成员再读；
+          # 读得回且架构不符就红，读不回就明说读不回并继续，让交叉链接当那道硬闸。
+          _chk="$(mktemp -d)"
+          MACHINE=""
+          if (cd "$_chk" && "$BIN/llvm-ar" x "$PREFIX/lib/libdav1d.a" 2>/dev/null); then
+            _first="$(find "$_chk" -name '*.o' | head -n 1)"
+            if [ -n "$_first" ]; then
+              MACHINE="$("$BIN/llvm-readelf" -h "$_first" 2>/dev/null | awk -F: '/Machine:/{gsub(/^[ \t]+/,"",$2); print $2; exit}' || true)"
+            fi
+          fi
+          rm -rf "$_chk"
+          echo "[rossi-android] $T libdav1d.a Machine='${MACHINE:-读不回}'"
+          if [ -z "$MACHINE" ]; then
+            echo "::warning::$T 的 libdav1d.a 读不回架构（不拦，交叉链接那关才是硬判据）"
+          else
+            # bash 的 case 区分大小写：llvm-readelf 对 aarch64 打的是 "AArch64"，
+            # 拿 *arch64* 去接会漏（本机直测过，第一条就把正确的产物判成红）。先统一小写再比。
+            MLC="$(printf '%s' "$MACHINE" | tr '[:upper:]' '[:lower:]')"
+            case "$T" in
+              aarch64-linux-android)
+                case "$MLC" in
+                  *aarch64*) : ;;
+                  *) echo "::error::$T 编出来的 libdav1d.a 架构是 '$MACHINE'，不是 AArch64"; exit 1 ;;
+                esac
+                ;;
+              x86_64-linux-android)
+                case "$MLC" in
+                  *x86-64*|*x86_64*) : ;;
+                  *) echo "::error::$T 编出来的 libdav1d.a 架构是 '$MACHINE'，不是 X86-64"; exit 1 ;;
+                esac
+                ;;
+            esac
+          fi
           PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" pkg-config --modversion --define-prefix dav1d || true
         done
