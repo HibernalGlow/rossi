@@ -367,9 +367,18 @@ Android 端另有**实验性 QNN（Qualcomm HTP NPU）超分后端**（移植自
 
 ### 8.2 发布前准备
 
-1. 更新 `pubspec.yaml` 中的 `version`。
-2. 在 `CHANGELOG.md` 顶部按格式追加新版本日志（格式：`## [vX.Y.Z]`）。
-3. 提交并推送后手动触发 `release.yml`。
+1. 更新 `pubspec.yaml` 中的 `version`（`windows-installer/src-tauri/tauri.conf.json` 的 `version` 不从 pubspec 同步，要一起改）。
+2. 在 `CHANGELOG.md` **末尾**按格式追加新版本日志（格式：`## [vX.Y.Z]`；本仓的日志是升序排列，新段落加在最后，不是顶部）。
+3. 提交并推送后手动触发 `release.yml`：**版本输入可以留空**，`preflight` 会从 `pubspec.yaml` 推导 `vX.Y.Z`，
+   并在任何构建开跑前校验 CHANGELOG 有该段且非空、已存在的 tag 必须指向本次提交（不合格会立刻红，不再烧完构建分钟才发现）。
+4. `publish` 对 `build-android/linux/windows/macos/ios` 五条腿全部 `needs`，**任何一条红就整条跳过**，
+   一个 Release 都不会生成；所以「push-build 绿」不等于「能发布」。
+5. dav1d 与 Windows 的 cargo 预编配方只在 `.github/actions/setup-dav1d-{macos,windows,android}/` 各存一份，
+   两条 workflow 都 `uses`；别再往 workflow 里塞第二份（这正是 10 月连续两轮发不出版的根因）。
+6. 安卓只出 `arm64-v8a`（`ort-sys` 没有 armv7/x86_64 的预编译产物，见 `docs/android-build.md` §5/§6）；
+   本仓 Actions secrets 为空，Android 走 debug 签名回退，Sentry / Telegram / Homebrew 步骤各自静默跳过。
+7. 查云端状态要带 `-R HibernalGlow/rossi`——本机 git 配了 `remote.upstream.gh-resolved=base`，
+   裸 `gh release list` / `gh run list` 读到的是上游 `deretame/Breeze`。
 
 ### 8.3 敏感文件
 
