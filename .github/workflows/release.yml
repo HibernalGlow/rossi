@@ -875,6 +875,10 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           tag_name: ${{ needs.preflight.outputs.version }}
+          # 必须钉在本次构建的提交上：softprops 的 target_commitish 默认是 main，
+          # 而构建要跑 40 分钟，期间只要有人往 main 推过东西，tag 就会落在别人的提交上，
+          # 变成「产物来自 A、tag 指向 B」。v0.1.2 第一次发布就是这么指到了文档提交（fc86278d9）。
+          target_commitish: ${{ github.sha }}
           name: Breeze ${{ needs.preflight.outputs.version }}
           body_path: release_body.md
           files: |
