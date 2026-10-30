@@ -1,0 +1,32 @@
+---
+name: 预编 rust/gpu_present 与 windcore（把 cargo 的真实报错放到日志上）
+description: >-
+  MSBuild 会吞掉 build script 的 stderr，只剩 MSB8066 退出码；这里按同一套环境变量直接跑 cargo，
+  要么看见原始报错，要么让那条自定义命令本来就是 up-to-date。
+# 单一真源：push-build.yml 与 release.yml 的 build-windows 都 uses 这一份。
+# 必须排在 setup-dav1d-windows 之后 —— 它依赖那一步写好的 PKG_CONFIG_PATH 与 cargo [env] 配置。
+runs:
+  using: composite
+  steps:
+    - name: cargo 预编 gpu_present 与 windcore
+      shell: pwsh
+      run: |
+        # windows/runner/CMakeLists.txt 用 `cmake -E env` 调 cargo 编 rossi_gpu_present.dll；
+        # 它失败时 MSBuild 只报 MSB8066 退出码 101，cargo 自己的输出一个字都不出现
+        # （该文件 118-133 行把这个指纹写得很清楚）。这里按同一套环境变量直接跑 cargo，
+        # 产物落点也和 CMake 一致（<crate>/target），这样要么看见真错误，
+        # 要么让那条自定义命令本来就是 up-to-date。
+        $env:CARGO_TARGET_DIR = (Resolve-Path '.').Path + '\rust\gpu_present\target'
+        cargo build --release --manifest-path rust/gpu_present/Cargo.toml
+        if ($LASTEXITCODE -ne 0) { "::error::cargo 预编 gpu_present 失败，退出码 $LASTEXITCODE"; exit 1 }
+        Get-ChildItem "$env:CARGO_TARGET_DIR\release\rossi_gpu_present.dll" -ErrorAction SilentlyContinue |
+          Select-Object -ExpandProperty FullName
+
+        # MSBuild 会把 build script 的 stderr 整段吞掉，只剩下
+        # "CUSTOMBUILD : error : failed to run custom build command for dav1d-sys v0.8.3"。
+        # 这里绕开 MSBuild 直接编 windcore（native-assets hook 编的就是它），
+        # 让 cargo 自己把缺什么打在步骤日志里；失败也让它停在这一步，
+        # 这样上面紧挨着的就是原始报错。
+        $env:CARGO_TARGET_DIR = (Resolve-Path '.').Path + '\rust\target'
+        cargo build --release --manifest-path rust/Cargo.toml -p windcore
+        if ($LASTEXITCODE -ne 0) { "::error::cargo 预编 windcore 失败，退出码 $LASTEXITCODE（原始报错见上）"; exit 1 }

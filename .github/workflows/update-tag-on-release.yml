@@ -30,10 +30,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # 这里原来写死了 deretame/Breeze —— 本仓是独立版本线（0.1.x），
+          # 读上游的 latest 会把别人的版本号写进我们自己的 latest-release.json，
+          # 再顺着 jsdelivr tag 发给客户端。改成读当前仓。
           RESPONSE=$(curl -sL \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/deretame/Breeze/releases/latest)
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest")
 
           TAG_NAME=$(printf '%s' "$RESPONSE" | jq -r '.tag_name // empty')
           if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "null" ]; then
@@ -105,5 +108,12 @@ jobs:
           accessKey: ${{ env.S3_ACCESS_KEY }}
           secretKey: ${{ env.S3_SECRET_KEY }}
         # 上传 jsdelivr-{releaseTag} 到 S3，客户端直接用该 tag 访问 CDN
-        run: node index.js ${{ steps.latest-release.outputs.jsdelivr_tag }}
+        # 本仓是 fork，没有这两个 secret 时以前会直接把 node 撞挂；这里明确跳过，
+        # 让「没镜像」是一句写在日志里的决定，而不是一条红叉。
+        run: |
+          if [ -z "$accessKey" ] || [ -z "$secretKey" ]; then
+            echo "未配置 S3_ACCESS_KEY / S3_SECRET_KEY —— 跳过 S3 镜像上传，jsdelivr tag 已推送到本仓。"
+            exit 0
+          fi
+          node index.js ${{ steps.latest-release.outputs.jsdelivr_tag }}
         working-directory: update-tag-version

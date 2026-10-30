@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "发布版本号 (例如: v2.12.6)"
-        required: true
-        default: "v2.12.6"
+        description: "发布版本号 vX.Y.Z；留空则读 pubspec.yaml。preflight 会先校验 CHANGELOG 段落与 tag，不合格立刻红"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -47,11 +47,119 @@ jobs:
           fi
 
   # ══════════════════════════════════════════
+  # 0. 版本与发布前置校验（排在所有构建之前）
+  # ══════════════════════════════════════════
+  # 为什么要这一 job：以前版本号只在 publish 里第一次被读到。填错版本、或 CHANGELOG 少一段，
+  # 要等四条腿跑满 30 分钟构建分钟，才在 Release 正文里静默抓出一段空文本。
+  # 现在把这些判据前移到开跑之前，不合格就立刻红，并把原因写在步骤日志里。
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 解析并校验版本号
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          RUN_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          VERSION="$(printf '%s' "$INPUT_VERSION" | tr -d '[:space:]')"
+          if [ -z "$VERSION" ]; then
+            # 留空即读 pubspec.yaml：`version: 0.1.2+1` -> v0.1.2（+1 是 build 号，不进 tag）
+            RAW="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
+            if [ -z "$RAW" ]; then
+              echo "::error::pubspec.yaml 里没读到 version: 行，无法推导版本号 —— 请手填 vX.Y.Z"
+              exit 1
+            fi
+            VERSION="v${RAW%%+*}"
+            echo "[preflight] 输入留空 ⇒ 从 pubspec.yaml 的 $RAW 推导版本号 $VERSION"
+          fi
+          # 允许不带前缀 v 的写法（0.1.2 -> v0.1.2），免得每次都要想格式
+          case "$VERSION" in
+            v*) : ;;
+            *) VERSION="v$VERSION" ;;
+          esac
+          if ! printf '%s\n' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([._-][0-9A-Za-z._-]+)?$'; then
+            echo "::error::版本号形状不合格：'$VERSION'（要 vX.Y.Z，或整段留空由 pubspec 推导）"
+            exit 1
+          fi
+
+          # 正文来源与 publish 里那段 awk 用同一把尺：判据不一致就等于没有判据。
+          SECTION="$(awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 {flag=1; print; next}
+            flag && /^## \[[^]]+\]/ {exit}
+            flag
+          ' CHANGELOG.md)"
+          if [ -z "$SECTION" ]; then
+            echo "::error::CHANGELOG.md 里没有 ## [$VERSION] 段落 —— Release 正文会只剩下载表格。现有段落（最后 5 条）："
+            grep -E '^## \[' CHANGELOG.md | tail -5 || echo "  (CHANGELOG 里一条 ## [x] 标题都没有)"
+            exit 1
+          fi
+          BODY_LINES="$(printf '%s\n' "$SECTION" | grep -Ec '^[^#[:space:]].*[^[:space:]]' || true)"
+          if [ "${BODY_LINES:-0}" -lt 1 ]; then
+            echo "::error::CHANGELOG.md 的 ## [$VERSION] 段只有标题、没有内容，不予发布"
+            exit 1
+          fi
+
+          # tag 与产物必须同源：softprops 只会在 tag 不存在时于本次提交建 tag，
+          # 已存在就挂在原处 —— 那时包体来自本次运行，tag 却指向旧提交。
+          # 判据要能证伪：只有明确的 404 才算「不存在」，其它非 200 一律红，
+          # 免得查询本身挂掉时被当成「没有 tag」而放过一次错位发布。
+          CODE="$(curl -sS -o "$RUNNER_TEMP/ref.json" -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$VERSION" || echo 000)"
+          case "$CODE" in
+            404) EXISTING="" ;;
+            200)
+              TYPE="$(jq -r '.object.type // empty' "$RUNNER_TEMP/ref.json")"
+              SHA="$(jq -r '.object.sha // empty' "$RUNNER_TEMP/ref.json")"
+              if [ "$TYPE" = "tag" ]; then
+                # 附注 tag 的 ref 指向 tag 对象，直接拿来和 github.sha 比会永远不等 ⇒ 假红。
+                # 必须先解引用到它包裹的 commit（v0.1.1 就是附注 tag，实测 ref 返回 84a4551c 而非 0e632075）。
+                URL="$(jq -r '.object.url // empty' "$RUNNER_TEMP/ref.json")"
+                SHA="$(curl -sS -H "Authorization: Bearer $GH_TOKEN" "$URL" | jq -r '.object.sha // empty')"
+                if [ -z "$SHA" ]; then
+                  echo "::error::附注 tag $VERSION 解引用失败，无法判断它指向哪个提交，不予放行。"
+                  exit 1
+                fi
+              fi
+              EXISTING="$SHA"
+              ;;
+            *)
+              echo "::error::查询 tag $VERSION 失败（HTTP $CODE），无法判断它指向哪个提交，不予放行。"
+              exit 1
+              ;;
+          esac
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "$RUN_SHA" ]; then
+            echo "::error::tag $VERSION 已存在且指向 ${EXISTING:0:10}，与本次运行的 $RUN_SHA 不一致。"
+            echo "  本次会发出「产物来自 A、tag 指向 B」的 Release。要么把 tag 挪到本次提交，要么换版本号。"
+            exit 1
+          fi
+
+          {
+            echo "## 发布前置校验通过"
+            echo ""
+            echo "- 版本号：**$VERSION**（输入$( [ -z "$INPUT_VERSION" ] && echo 留空，读 pubspec.yaml || echo 手填 )）"
+            echo "- CHANGELOG 段落：${BODY_LINES} 行正文"
+            if [ -n "$EXISTING" ]; then
+              echo "- tag：已存在且就是本次提交"
+            else
+              echo "- tag：尚不存在，publish 会在本次提交上创建"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "[preflight] 通过：version=$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  # ══════════════════════════════════════════
   # 1. Android 构建 (含 git-crypt & Sentry)
   # ══════════════════════════════════════════
   build-android:
-    needs: check-secrets
-    if: ${{ needs.check-secrets.outputs.has_git_crypt == 'true' }}
+    needs: [ preflight, check-secrets ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -74,9 +182,24 @@ jobs:
         env:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
         run: |
-          sudo apt-get update && sudo apt-get install -y git-crypt
-          echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
-          git-crypt unlock ./git-crypt-key && rm ./git-crypt-key
+          if [ -z "$GIT_CRYPT_KEY" ]; then
+            # 本仓是独立 fork，没有 GIT_CRYPT_KEY 这个 secret。以前整条 Android 腿被
+            # `if: has_git_crypt` 直接跳过，于是 Release 里永远没有 APK。
+            # 现在照常出包：android/app/build.gradle.kts 的 releaseSigningAvailable 探到
+            # key.properties 未解锁时，release 构建回退 debug 签名 —— 装得上也能跑，只是不是发布 key。
+            echo "未配置 GIT_CRYPT_KEY：跳过解密，release 构建将回退 debug 签名（fork 的既成口径）。"
+          else
+            sudo apt-get update && sudo apt-get install -y git-crypt
+            echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
+            git-crypt unlock ./git-crypt-key && rm ./git-crypt-key
+          fi
+          # 无论走哪条路，都把 gradle 用来决定签名的判据当场读一遍，
+          # 别让「其实没解密」变成跑完 30 分钟才从安装包签名上看出来的秘密。
+          if [ -f android/key.properties ] && grep -q '^keyAlias=' android/key.properties; then
+            echo "[rossi-android] key.properties 可读 ⇒ release 用发布 key 签名"
+          else
+            echo "[rossi-android] key.properties 未解锁或缺 keyAlias ⇒ release 回退 debug 签名"
+          fi
 
       - name: 设置 Java 21 & SDK
         uses: actions/setup-java@v5
@@ -208,6 +331,7 @@ jobs:
   # 2. Linux 构建 (Sentry Plugin 上传 + Flatpak + DEB)
   # ══════════════════════════════════════════
   build-linux:
+    needs: preflight
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -284,6 +408,7 @@ jobs:
   # 3. Windows 构建 (Sentry Plugin 上传)
   # ══════════════════════════════════════════
   build-windows:
+    needs: preflight
     runs-on: windows-2025-vs2026
     steps:
       - name: 关闭 Git CRLF 转换
@@ -329,6 +454,14 @@ jobs:
         with:
           node-version: 22
 
+      # 这两步与 push-build.yml 共用同一份 action —— 过去 dav1d 前置只进了 push-build.yml，
+      # release.yml 的 Windows 腿因此连着红了两次（dav1d-sys 的 custom build command 失败）。
+      - name: 准备 dav1d 与 pkg-config（Windows 原生资产前置）
+        uses: ./.github/actions/setup-dav1d-windows
+
+      - name: 预编 rust/gpu_present（把 cargo 的真实报错放到日志上）
+        uses: ./.github/actions/prebuild-rust-windows
+
       - name: 运行 Windows 构建脚本
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -363,6 +496,7 @@ jobs:
   # 4. macOS 构建 (Sentry Plugin 上传)
   # ══════════════════════════════════════════
   build-macos:
+    needs: preflight
     runs-on: macos-latest
     env:
       CARGO_HOME: ${{ github.workspace }}/.cargo
@@ -438,6 +572,11 @@ jobs:
             ' macos/Podfile
           fi
 
+      # 与 push-build.yml 共用同一份配方：干净 runner 上没有 dav1d 时，
+      # windcore 链接期直接 ld: library 'dav1d' not found（release.yml 的 macOS 腿就栽在这）。
+      - name: 准备 dav1d 与 pkg-config（macOS 原生资产前置）
+        uses: ./.github/actions/setup-dav1d-macos
+
       - name: 编译 macOS 产物
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -489,6 +628,7 @@ jobs:
   # 5. iOS 构建 (免签 + Sentry Plugin 上传)
   # ══════════════════════════════════════════
   build-ios:
+    needs: preflight
     runs-on: macos-latest
     env:
       CARGO_HOME: ${{ github.workspace }}/.cargo
@@ -657,7 +797,7 @@ jobs:
   # 6. 汇总发布至 GitHub Release
   # ══════════════════════════════════════════
   publish:
-    needs: [ build-linux, build-windows, build-macos, build-ios ]
+    needs: [ preflight, build-android, build-linux, build-windows, build-macos, build-ios ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -671,8 +811,9 @@ jobs:
           path: release-assets
 
       - name: 重命名产物文件（追加版本后缀）
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
         run: |
-          VERSION="${{ github.event.inputs.version }}"
           find release-assets -type f | while IFS= read -r file; do
             dir="$(dirname "$file")"
             name="$(basename "$file")"
@@ -685,9 +826,10 @@ jobs:
 
       - name: 提取日志并准备 Release 内容
         id: prepare
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          REPO: ${{ github.repository }}
         run: |
-          VERSION="${{ github.event.inputs.version }}"
-          REPO="${{ github.repository }}"
 
           awk -v ver="$VERSION" '
             index($0, "## [" ver "]") == 1 {flag=1; print; next}
@@ -719,8 +861,8 @@ jobs:
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v3.0.0
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: Breeze ${{ github.event.inputs.version }}
+          tag_name: ${{ needs.preflight.outputs.version }}
+          name: Breeze ${{ needs.preflight.outputs.version }}
           body_path: release_body.md
           files: |
             release-assets/android-apks/**/*.apk
@@ -735,7 +877,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           REPO: ${{ github.repository }}
-          VERSION: ${{ github.event.inputs.version }}
+          VERSION: ${{ needs.preflight.outputs.version }}
         run: |
           if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
             echo "未配置 TELEGRAM_BOT_TOKEN 或 TELEGRAM_CHAT_ID，跳过 Telegram 通知。"
@@ -775,7 +917,7 @@ jobs:
   # 7. 自动更新 Homebrew Tap (仅限 macOS Cask)
   # ══════════════════════════════════════════
   update-homebrew:
-    needs: [ publish, check-secrets ]
+    needs: [ publish, preflight, check-secrets ]
     if: ${{ needs.check-secrets.outputs.has_homebrew == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -789,7 +931,7 @@ jobs:
       - name: 下载 macOS 产物并计算 SHA256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.event.inputs.version }}
+          VERSION: ${{ needs.preflight.outputs.version }}
         run: |
           CLEAN_VERSION="${VERSION#v}"
           echo "CLEAN_VERSION=$CLEAN_VERSION" >> $GITHUB_ENV
@@ -832,5 +974,5 @@ jobs:
             echo "没有需要提交的变更，跳过推送。"
             exit 0
           fi
-          git commit -m "Update macOS Cask to ${{ github.event.inputs.version }} and clean up placeholders"
+          git commit -m "Update macOS Cask to ${{ needs.preflight.outputs.version }} and clean up placeholders"
           git push

@@ -1,0 +1,26 @@
+---
+name: 准备 dav1d 与 pkg-config（macOS 原生资产前置）
+description: >-
+  给 macos runner 装上 dav1d 并把 pkg-config 的探路变量写进 job 环境，
+  让 flutter 的 native-assets 钩子里 dav1d-sys 走「链接现成库」而不是回退 meson。
+# 单一真源：push-build.yml 与 release.yml 的 build-macos 都 uses 这一份。
+# 起因 —— 同一件事曾在两条管路里各写一遍，dav1d 前置只进了 push-build.yml，
+# 于是 release.yml 的 macOS 腿连着红了两次（ld: library 'dav1d' not found）。
+runs:
+  using: composite
+  steps:
+    - name: brew install dav1d pkg-config
+      shell: bash
+      run: |
+        # 干净 runner 上没有 dav1d ⇒ dav1d-sys 探不到库就回退 meson，
+        # 表现为 "failed to run custom build command for dav1d-sys v0.8.3"（本机装了 brew dav1d 所以编得过）。
+        brew install dav1d pkg-config
+        BP="$(brew --prefix)"
+        echo "PKG_CONFIG_PATH=$BP/lib/pkgconfig:$BP/opt/dav1d/lib/pkgconfig" >> "$GITHUB_ENV"
+        # Intel runner 上 pkg-config 认为自己在交叉编译，直接拒答，dav1d-sys 的 build.rs 就 panic：
+        # PkgConfig(pkg-config has not been configured to support cross-compilation.)
+        # 显式放行（arm64 上加了也无害）。
+        echo "PKG_CONFIG_ALLOW_CROSS=1" >> "$GITHUB_ENV"
+        # 判据要能证伪：装完当场把 .pc 的实际落点打出来，缺就写「缺」，
+        # 别让下一步的链接错误替我们回忆这一步到底装没装上。
+        echo "[rossi-macos] brew prefix=$BP dav1d=$(brew --prefix dav1d 2>/dev/null) pc文件=$(ls "$BP"/opt/dav1d/lib/pkgconfig/dav1d.pc 2>/dev/null || ls "$BP"/lib/pkgconfig/dav1d.pc 2>/dev/null || echo 缺)"
