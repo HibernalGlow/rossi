@@ -27,11 +27,15 @@ mod tab_defaults;
 mod types;
 mod util;
 pub use hierarchy::*;
-pub use listing::*;
 pub use search::*;
 pub use state::*;
 pub use types::*;
-pub use util::*;
+// listing / util 里全是 pub(super) 的内部助手（见两个文件顶部）：它们只在
+// file_manager 及其子模块内可见，对外没有一件可重导出。这里仍要把名字引进
+// 本模块作用域，好让各子模块靠 `use super::*` 互相看见；但用 `pub use` 会
+// 触发「glob 没有重导出任何 pub 项」的警告，所以降成私有 `use`。
+use listing::*;
+use util::*;
 
 #[cfg(test)]
 mod tests;

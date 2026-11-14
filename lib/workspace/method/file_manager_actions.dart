@@ -115,6 +115,10 @@ Future<FileManagerActionCall?> planFileManagerEntryAction(
     case FileManagerEntryAction.open:
     case FileManagerEntryAction.openInNewTab:
     case FileManagerEntryAction.revealInFileManager:
+    // 收藏由 `_runInlineAction` 就地处理（写库、不动盘、不问参数），正常到不了
+    // 这里；留在这一组只是让这个穷举 switch 覆盖全枚举 —— 真走到也只是原样
+    // 包成一个不带参数的 call，随后 `_dispatchFor` 对它返回 null 安全退出。
+    case FileManagerEntryAction.toggleFavorite:
     case FileManagerEntryAction.copy:
     case FileManagerEntryAction.cut:
     case FileManagerEntryAction.paste:
