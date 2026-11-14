@@ -351,9 +351,6 @@ abstract final class LensMetrics {
   /// 悬停时被指着的那格追过去的比例。
   static const double hoverMagnet = 0.2;
 
-  /// 内容视差：底下内容追过去的比例（比 [hoverMagnet] 小，所以有层次）。
-  static const double hoverParallax = 0.5;
-
   /// 悬停时整条 bar 的鼓起。
   static const double hoverSwell = 0.4;
 

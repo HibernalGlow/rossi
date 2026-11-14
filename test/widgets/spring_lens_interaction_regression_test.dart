@@ -1,3 +1,7 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
@@ -193,6 +197,100 @@ void main() {
     expect(controller.offset, greaterThan(480));
     expect(calls, 0);
     expect(_painter(tester).lift, closeTo(0, 0.001));
+  });
+
+  testWidgets('悬停不移动内容：画在哪儿、点到的就是哪儿', (tester) async {
+    var left = 0;
+    var right = 0;
+    final boundaryKey = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: RepaintBoundary(
+              key: boundaryKey,
+              child: SpringLensBar(
+                key: const ValueKey('bar'),
+                tabSizes: const [200],
+                selectedIndex: 0,
+                onSelected: (_) {},
+                tabs: [
+                  SpringLensTab(
+                    // 左右各半格、各上一种颜色：一格「往指针那边滑」时，
+                    // 110 这一点的颜色和命中的那一半会立刻对不上。
+                    child: SizedBox(
+                      width: 200,
+                      height: 40,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              key: const ValueKey('left'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => left++,
+                              child: const ColoredBox(color: Colors.red),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              key: const ValueKey('right'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => right++,
+                              child: const ColoredBox(color: Colors.green),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final origin = tester.getTopLeft(find.byKey(const ValueKey('bar')));
+    final y = origin.dy + 20;
+
+    // 鼠标停在格心右侧 60px —— 早先的视差会把整格内容再往右推半格多。
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer();
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(Offset(origin.dx + 160, y));
+    await tester.pumpAndSettle();
+
+    // x=110 画出来的必须是右半格，点下去也必须落在右半格。
+    final boundary =
+        boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
+    final color = await tester.runAsync(() async {
+      final image = await boundary.toImage(pixelRatio: 1);
+      final bytes = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final local =
+          Offset(110, 20) - (tester.getTopLeft(find.byKey(boundaryKey)));
+      final index = (local.dy.floor() * image.width + local.dx.floor()) * 4;
+      final result = Color.fromARGB(
+        bytes.getUint8(index + 3),
+        bytes.getUint8(index),
+        bytes.getUint8(index + 1),
+        bytes.getUint8(index + 2),
+      );
+      image.dispose();
+      return result;
+    });
+    expect(color?.toARGB32(), Colors.green.toARGB32(), reason: '悬停不许把内容挪走');
+
+    await tester.tapAt(Offset(origin.dx + 110, y));
+    await tester.pumpAndSettle();
+    expect(right, 1);
+    expect(left, 0);
+    expect(tester.takeException(), isNull);
   });
 
   test('不等宽页签：整数位置严格匹配本格宽度，等宽页签不扩成整条栏', () {

@@ -1,6 +1,6 @@
 part of 'spring_lens_bar.dart';
 
-class _Slot extends StatefulWidget {
+class _Slot extends StatelessWidget {
   const _Slot({
     required this.index,
     required this.tab,
@@ -8,7 +8,6 @@ class _Slot extends StatefulWidget {
     required this.extent,
     required this.crossAxisAlignment,
     required this.lens,
-    required this.hoverAt,
     required this.lift,
     required this.selected,
     required this.semanticContainer,
@@ -29,7 +28,6 @@ class _Slot extends StatefulWidget {
   final double extent;
   final CrossAxisAlignment crossAxisAlignment;
   final SpringLensValue lens;
-  final ValueListenable<double?> hoverAt;
   final SpringLensValue lift;
   final bool selected;
   final bool semanticContainer;
@@ -44,65 +42,22 @@ class _Slot extends StatefulWidget {
   final Color? tintColor;
 
   @override
-  State<_Slot> createState() => _SlotState();
-}
-
-class _SlotState extends State<_Slot> with SingleTickerProviderStateMixin {
-  late final SpringLensValue _parallax = SpringLensValue(this, 0);
-
-  @override
-  void initState() {
-    super.initState();
-    widget.hoverAt.addListener(_followPointer);
-  }
-
-  @override
-  void didUpdateWidget(covariant _Slot oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.hoverAt != widget.hoverAt) {
-      oldWidget.hoverAt.removeListener(_followPointer);
-      widget.hoverAt.addListener(_followPointer);
-    }
-    _followPointer();
-  }
-
-  @override
-  void dispose() {
-    widget.hoverAt.removeListener(_followPointer);
-    _parallax.dispose();
-    super.dispose();
-  }
-
-  void _followPointer() {
-    final hoverAt = widget.hoverAt.value;
-    // 内容视差：指针在这一格附近时，底下内容追过去一点点（比lens 追得少）。
-    final offset = hoverAt == null ? 0.0 : hoverAt - widget.index;
-    final target = offset.abs() > 0.5
-        ? 0.0
-        : offset * LensMetrics.hoverParallax;
-    if (target != _parallax.target) {
-      _parallax.springTo(target, LensMetrics.hover);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final horizontal = widget.axis == Axis.horizontal;
+    final horizontal = axis == Axis.horizontal;
     final content = _MotionTransform(
-      lens: widget.lens,
-      lift: widget.lift,
-      parallax: _parallax,
-      color: widget.tintColor,
+      lens: lens,
+      lift: lift,
+      color: tintColor,
       horizontal: horizontal,
-      index: widget.index,
-      slots: widget.slots,
-      corner: widget.corner,
-      child: widget.tab.child,
+      index: index,
+      slots: slots,
+      corner: corner,
+      child: tab.child,
     );
 
     Widget slot = horizontal
-        ? SizedBox(width: widget.extent, child: content)
-        : SizedBox(height: widget.extent, child: content);
+        ? SizedBox(width: extent, child: content)
+        : SizedBox(height: extent, child: content);
 
     // 点击走**这一格自己的**识别器，而不是外层那个 `Listener`：外层要同时
     // 接拖动跟手与悬停。两者的分工靠「谁在命中路径上」：
@@ -116,22 +71,22 @@ class _SlotState extends State<_Slot> with SingleTickerProviderStateMixin {
     // `Listener` 仍然收得到指针。
     slot = GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: widget.onTap,
+      onTap: onTap,
       child: slot,
     );
 
     // 有 tooltip 才包：给一个空 message 的 Tooltip 会挡住鼠标。
-    if (widget.tab.tooltip != null) {
-      slot = Tooltip(message: widget.tab.tooltip!, child: slot);
+    if (tab.tooltip != null) {
+      slot = Tooltip(message: tab.tooltip!, child: slot);
     }
-    if (widget.semanticContainer) {
+    if (semanticContainer) {
       slot = Semantics(
         container: true,
         button: true,
-        selected: widget.selected,
-        label: widget.tab.semanticLabel,
-        excludeSemantics: widget.tab.semanticLabel != null,
-        onTap: widget.onTap,
+        selected: selected,
+        label: tab.semanticLabel,
+        excludeSemantics: tab.semanticLabel != null,
+        onTap: onTap,
         child: slot,
       );
     }
@@ -143,11 +98,14 @@ class _SlotState extends State<_Slot> with SingleTickerProviderStateMixin {
 ///
 /// 与 `navigation_dock.dart` 里那个 `_LensTint` 同一套做法（clip 出 lens 的形状、
 /// lens 内外的色分开画），只是这里把「lens 落在第几格」换成了弹簧的连续位置。
+///
+/// **只放缩、不随鼠标位移**：悬停时内容一律留在静止位置。位移跟着指针走会让
+/// 看到的落点和点到的落点错开（页签右侧那颗关闭键尤其明显：鼠标一靠近，它就被
+/// 推开，点下去命中的是静止排布里的另一个位置）。悬停反馈只有那一层淡高亮。
 class _MotionTransform extends SingleChildRenderObjectWidget {
   const _MotionTransform({
     required this.lens,
     required this.lift,
-    required this.parallax,
     required this.color,
     required this.horizontal,
     required this.index,
@@ -160,7 +118,6 @@ class _MotionTransform extends SingleChildRenderObjectWidget {
   final double? corner;
   final SpringLensValue lens;
   final ValueListenable<double> lift;
-  final ValueListenable<double> parallax;
 
   /// `null` = 不染色（内容保持自己的颜色）。
   final Color? color;
@@ -175,7 +132,6 @@ class _MotionTransform extends SingleChildRenderObjectWidget {
     return _RenderMotionTransform(
       lens: lens,
       lift: lift,
-      parallax: parallax,
       color: color,
       horizontal: horizontal,
       index: index,
@@ -192,7 +148,6 @@ class _MotionTransform extends SingleChildRenderObjectWidget {
     renderObject
       ..lens = lens
       ..lift = lift
-      ..parallax = parallax
       ..color = color
       ..horizontal = horizontal
       ..index = index
@@ -205,7 +160,6 @@ class _RenderMotionTransform extends RenderProxyBox {
   _RenderMotionTransform({
     required this._lens,
     required this._lift,
-    required this._parallax,
     required this._color,
     required this._horizontal,
     required this._index,
@@ -218,12 +172,11 @@ class _RenderMotionTransform extends RenderProxyBox {
   bool get isRepaintBoundary => true;
 
   // 比较可见变化而不是全局弹簧位置，未被透镜覆盖的静止图标无需重画。
-  ({double scale, double shift, Rect? tint})? _paintedVisual;
+  ({double scale, Rect? tint})? _paintedVisual;
 
-  ({double scale, double shift, Rect? tint}) get _visual {
+  ({double scale, Rect? tint}) get _visual {
     final emphasis = (1 - (_lens.value - _index).abs()).clamp(0.0, 1.0);
     final scale = 1 + LensMetrics.magnify * emphasis * _lift.value;
-    final shift = _parallax.value * size.longestSide;
     Rect? tint;
     if (_color != null && !size.isEmpty) {
       final geometry = _slots.resolvedTo(size);
@@ -246,7 +199,7 @@ class _RenderMotionTransform extends RenderProxyBox {
         if (rect.overlaps(content)) tint = rect;
       }
     }
-    return (scale: scale, shift: shift, tint: tint);
+    return (scale: scale, tint: tint);
   }
 
   void _onMotionChanged() {
@@ -296,17 +249,6 @@ class _RenderMotionTransform extends RenderProxyBox {
     markNeedsPaint();
   }
 
-  ValueListenable<double> _parallax;
-  set parallax(ValueListenable<double> value) {
-    if (value == _parallax) return;
-    if (attached) {
-      _parallax.removeListener(_onMotionChanged);
-      value.addListener(_onMotionChanged);
-    }
-    _parallax = value;
-    markNeedsPaint();
-  }
-
   Color? _color;
   set color(Color? value) {
     if (value == _color) return;
@@ -334,7 +276,6 @@ class _RenderMotionTransform extends RenderProxyBox {
     super.attach(owner);
     _lens.addListener(_onMotionChanged);
     _lift.addListener(_onMotionChanged);
-    _parallax.addListener(_onMotionChanged);
     _onMotionChanged();
   }
 
@@ -342,7 +283,6 @@ class _RenderMotionTransform extends RenderProxyBox {
   void detach() {
     _lens.removeListener(_onMotionChanged);
     _lift.removeListener(_onMotionChanged);
-    _parallax.removeListener(_onMotionChanged);
     super.detach();
   }
 
@@ -356,18 +296,14 @@ class _RenderMotionTransform extends RenderProxyBox {
     super.dispose();
   }
 
-  /// 放大 + 视差平移，叠在一起是一个 Matrix4。静止时返回 null（不建层）。
+  /// 按下时绕格心放大。静止时返回 null（不建层）。
   Matrix4? get _transform {
     final emphasis = (1 - (_lens.value - _index).abs()).clamp(0.0, 1.0);
     final scale = 1 + LensMetrics.magnify * emphasis * _lift.value;
-    final shift = _parallax.value * size.longestSide;
-    if (scale == 1 && shift == 0) return null;
+    if (scale == 1) return null;
     final center = size.center(Offset.zero);
-    return Matrix4.diagonal3Values(scale, scale, 1)..setTranslationRaw(
-      center.dx * (1 - scale) + (_horizontal ? shift : 0),
-      center.dy * (1 - scale) + (_horizontal ? 0 : shift),
-      0,
-    );
+    return Matrix4.diagonal3Values(scale, scale, 1)
+      ..setTranslationRaw(center.dx * (1 - scale), center.dy * (1 - scale), 0);
   }
 
   @override

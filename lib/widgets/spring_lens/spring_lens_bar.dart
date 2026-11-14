@@ -57,9 +57,6 @@ abstract final class SpringLensBarMetrics {
   /// 悬停时被指着的那格追过去的比例。
   static const double hoverMagnet = LensMetrics.hoverMagnet;
 
-  /// 内容视差（比 [hoverMagnet] 小，所以有层次）。
-  static const double hoverParallax = LensMetrics.hoverParallax;
-
   /// 甩动投射的时长。
   static const Duration flingProjection = LensMetrics.flingProjection;
 }
@@ -491,7 +488,6 @@ class SpringLensBarState extends State<SpringLensBar>
                 extent: forSlots.spanOf(index),
                 crossAxisAlignment: widget.crossAxisAlignment,
                 lens: _lens,
-                hoverAt: _hoverAt,
                 lift: _lift,
                 selected: index == _selectedIndex,
                 semanticContainer: widget.semanticContainer,
