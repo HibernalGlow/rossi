@@ -167,21 +167,21 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
   }
 
   /// 走一次菜单动作。
-  Future<void> _runEntryAction(
+  Future<bool> _runEntryAction(
     FileManagerEntry entry,
     FileManagerEntryAction action,
   ) async {
     final id = _sessionId;
-    if (id == null || _snapshot == null || _busy || _disposed) return;
+    if (id == null || _snapshot == null || _busy || _disposed) return false;
     // 目标在这一次动作开始时算一次，往下带到执行处 —— 右键**不会**改动选中集合，
     // 所以「这一批是哪些」不能等到执行时再从集合里读。
     final targets = _actionTargets(entry);
 
     // 不改盘、也不用问参数的那几个先处理掉：它们与「点一下列表」同级，
     // 绕一圈忙状态只会让手感变钝。
-    if (await _runInlineAction(id, entry, action, targets)) return;
+    if (await _runInlineAction(id, entry, action, targets)) return true;
     // 打开一个目录会把整张卡片换掉（也可能把面板整个收起来）。
-    if (!mounted || _disposed) return;
+    if (!mounted || _disposed) return false;
 
     final call = await planFileManagerEntryAction(
       context,
@@ -195,11 +195,12 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       ),
     );
     // `null` = 用户在对话框里取消了。
-    if (call == null || !mounted) return;
+    if (call == null || !mounted) return false;
 
     final dispatch = _dispatchFor(id, call, targets);
-    if (dispatch == null) return;
+    if (dispatch == null) return false;
     await _runMutation(dispatch);
+    return true;
   }
 
   /// 打开、复制到剪贴板、复制路径这类动作。返回 `true` = 已经处理掉了。

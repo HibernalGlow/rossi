@@ -103,6 +103,25 @@ extension _FileManagerCardEditorialPart on _FileManagerCardState {
       onOpen: (child) => _openEntry(child, forceEnter: child.isDir),
       rowBuilder: (child) =>
           _libraryEntry(context, child, LibraryViewMode.coverGrid),
+      onDelete: _fileOpsEnabled
+          ? () => unawaited(
+              _runEntryAction(entry, FileManagerEntryAction.trash),
+            )
+          : null,
+      onDeletePermanently: _fileOpsEnabled
+          ? () => unawaited(
+              _runEntryAction(
+                entry,
+                FileManagerEntryAction.deletePermanently,
+              ),
+            )
+          : null,
+      trashRestoreSupported: _ops?.trashRestoreSupported ?? false,
+      childRowWrapper: (context, child, tile) => _wrapEntryRow(
+        context,
+        _libraryEntry(context, child, LibraryViewMode.coverGrid),
+        tile,
+      ),
     );
   }
 }

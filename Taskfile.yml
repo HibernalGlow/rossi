@@ -8,8 +8,12 @@ version: '3'
 #   task rel   出 macOS 发布产物 → Breeze-macOS.dmg（本机唯一能出的平台）
 #   task apk   出本机可装的安卓 release 包（arm64，debug 私钥签名，AOT 不卡）
 #   task apkd  出安卓 debug 包（JIT，会卡；只在要断点/热重载时用）
-#   task rust  单独重编 Rust 库（修 FRB content hash 不一致时用）
-#   task a     静态检查 dart analyze lib/
+#   task rust    单独重编 Rust 库（修 FRB content hash 不一致时用）
+#   task install 把最近一次 macOS 构建同步到 /Applications（profile 常驻副本）
+#   task a       静态检查 dart analyze lib/
+#
+# dev 正常退出（按 q）会自动把最新 profile app 同步到 /Applications；构建/运行失败则不同步，
+# 免得空壳产物覆盖掉能用的副本。副本是完整独立 bundle，删 build/ 或 rust/target 都不受影响。
 #
 # 注：r/dev/d/b/rel 都会先跑一次 `task rust`。cargo 增量判断很快（没改 Rust 就是空转），
 # 但能保证「frb 绑定刚重生成、dylib 还是旧的」时不再报 content hash 不一致。
@@ -25,6 +29,8 @@ vars:
   # 必须放在全局 vars —— go-task 里 task 级 vars 会盖掉 CLI 传参，全局的不会：
   #   task rel SENTRY_DSN=https://xxx@sentry.io/1
   SENTRY_DSN: ''
+  # profile app 的常驻副本。想换位置/名字：task dev PROFILE_APP='/Applications/xxx.app'
+  PROFILE_APP: '/Applications/Rossi Profile.app'
   # 本机 xcode-select 指向 CommandLineTools，直接用 xcodebuild 会报
   # "requires Xcode"；这里显式指向 Xcode.app 绕过（无需 sudo）。
   # 若已 `sudo xcode-select -s /Applications/Xcode.app`，可删掉下面的 env。
@@ -52,10 +58,22 @@ tasks:
       - '{{.FLUTTER}} run --release -d macos'
 
   dev:
-    desc: 日常开发（profile：Dart AOT + Rust release，带 DevTools，无热重载）
+    desc: 日常开发（profile：Dart AOT + Rust release，带 DevTools，无热重载；退出时同步 /Applications 副本）
     cmds:
       - task: rust
-      - '{{.FLUTTER}} run --profile -d macos'
+      - |
+        set -euo pipefail
+        if {{.FLUTTER}} run --profile -d macos; then
+          bash script/sync_macos_app.sh Profile "{{.PROFILE_APP}}"
+        else
+          status=$?
+          exit "$status"
+        fi
+
+  install:
+    desc: 把最近一次 macOS 构建同步到 /Applications（默认 profile；CONFIG=Release 用发布版）
+    cmds:
+      - bash script/sync_macos_app.sh '{{.CONFIG | default "Profile"}}' '{{.PROFILE_APP}}'
 
   d:
     desc: 显式 debug 运行（带 Observatory/断点，默认 macOS）

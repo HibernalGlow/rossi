@@ -17,6 +17,10 @@ class FileManagerInlineDetails extends StatefulWidget {
     required this.onOpen,
     required this.rowBuilder,
     this.statisticsLabel,
+    this.onDelete,
+    this.onDeletePermanently,
+    this.trashRestoreSupported = false,
+    this.childRowWrapper,
   });
   final FileManagerEntry entry;
   final FileManagerTreeSnapshot? tree;
@@ -25,6 +29,10 @@ class FileManagerInlineDetails extends StatefulWidget {
   final ValueChanged<FileManagerEntry> onOpen;
   final LibraryEntry Function(FileManagerEntry) rowBuilder;
   final String? statisticsLabel;
+  final VoidCallback? onDelete;
+  final VoidCallback? onDeletePermanently;
+  final bool trashRestoreSupported;
+  final Widget Function(BuildContext, FileManagerEntry, Widget)? childRowWrapper;
   @override
   State<FileManagerInlineDetails> createState() =>
       _FileManagerInlineDetailsState();
@@ -91,6 +99,28 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                   ),
                   label: Text(entry.isDir ? t.workspace.enterFolder : '打开'),
                 ),
+                if (widget.onDelete != null)
+                  FilledButton.tonalIcon(
+                    onPressed: widget.onDelete,
+                    style: FilledButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                    ),
+                    icon: const GlyphIcon(AppGlyphs.delete),
+                    label: Text(
+                      widget.trashRestoreSupported
+                          ? t.workspace.moveToTrash
+                          : t.common.delete,
+                    ),
+                  ),
+                if (widget.onDeletePermanently != null)
+                  TextButton.icon(
+                    onPressed: widget.onDeletePermanently,
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                    ),
+                    icon: const GlyphIcon(AppGlyphs.delete),
+                    label: Text(t.workspace.deleteForever),
+                  ),
                 if (entry.isDir) ...[
                   FilterChip(
                     label: Text(t.workspace.internalThumbnails),
@@ -156,13 +186,19 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                           itemCount: children.length,
                           itemBuilder: (context, i) {
                             final row = children[i];
-                            return LibraryEditorialTile(
+                            final tile = LibraryEditorialTile(
                               entry: widget.rowBuilder(row.entry!),
                               onTap: () => widget.onOpen(row.entry!),
                               onInfo: row.mayHaveChildren
                                   ? () => widget.onToggle(row.path)
                                   : null,
                             );
+                            return widget.childRowWrapper?.call(
+                                  context,
+                                  row.entry!,
+                                  tile,
+                                ) ??
+                                tile;
                           },
                         )
                       : ListView.builder(
@@ -170,7 +206,7 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                           itemCount: children.length,
                           itemBuilder: (context, i) {
                             final row = children[i];
-                            return Padding(
+                            final item = Padding(
                               padding: EdgeInsets.only(
                                 left: ((row.depth - parent!.depth - 1) * 16.0)
                                     .clamp(0.0, 96.0),
@@ -230,6 +266,12 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                                 ],
                               ),
                             );
+                            return widget.childRowWrapper?.call(
+                                  context,
+                                  row.entry!,
+                                  item,
+                                ) ??
+                                item;
                           },
                         ),
                 ),
