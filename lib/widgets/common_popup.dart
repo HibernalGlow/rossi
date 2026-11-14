@@ -1022,6 +1022,7 @@ class CommonPopupMenu extends StatefulWidget {
     this.minWidth = 160,
     this.maxWidth = 280,
     this.header,
+    this.footer,
   });
 
   final List<CommonPopupMenuItem> items;
@@ -1033,6 +1034,9 @@ class CommonPopupMenu extends StatefulWidget {
   /// 只在**根层**显示，子菜单不带 —— 图标条是这一个菜单的快捷区，
   /// 不该跟着每一层子菜单复制一遍。默认 null：既有调用零改动。
   final Widget? header;
+
+  /// 根层最后面的一块自定义内容（底部图标条），同样只在根层显示。
+  final Widget? footer;
 
   @override
   State<CommonPopupMenu> createState() => _CommonPopupMenuState();
@@ -1307,10 +1311,15 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     final owner = level.owner;
     if (owner == null) {
       final header = widget.header;
+      final footer = widget.footer;
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [if (header != null) header, ...items],
+        children: [
+          if (header != null) header,
+          ...items,
+          if (footer != null) footer,
+        ],
       );
     }
     final unfold = active ? _unfold : kAlwaysCompleteAnimation;
@@ -1464,6 +1473,7 @@ Future<void> showCommonPopupMenu({
   required Offset position,
   required List<CommonPopupMenuItem> items,
   Widget? header,
+  Widget? footer,
   double minWidth = 160,
 }) async {
   // 空清单不弹：泳道刚被摘掉、一块面板都不该右键时就是这样。
@@ -1483,8 +1493,12 @@ Future<void> showCommonPopupMenu({
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       anchorOf: () => local & Size.zero,
       placement: PopupPlacement.belowPoint,
-      builder: (_) =>
-          CommonPopupMenu(items: items, header: header, minWidth: minWidth),
+      builder: (_) => CommonPopupMenu(
+        items: items,
+        header: header,
+        footer: footer,
+        minWidth: minWidth,
+      ),
     ),
   );
 }

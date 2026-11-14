@@ -67,6 +67,7 @@ class ContextMenuPreview extends StatelessWidget {
           child: CommonPopupMenu(
             items: resolved.items,
             header: resolved.header,
+            footer: resolved.footer,
             minWidth: resolved.minWidth,
           ),
         ),

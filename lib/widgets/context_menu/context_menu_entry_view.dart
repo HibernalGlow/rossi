@@ -65,6 +65,7 @@ Future<void> showContextMenu({
     position: position,
     items: resolved.items,
     header: resolved.header,
+    footer: resolved.footer,
     minWidth: resolved.minWidth,
   );
 }
@@ -75,11 +76,13 @@ class ContextMenuBuildResult {
   const ContextMenuBuildResult({
     required this.items,
     this.header,
+    this.footer,
     this.minWidth = 160,
   });
 
   final List<CommonPopupMenuItem> items;
   final Widget? header;
+  final Widget? footer;
   final double minWidth;
 }
 
@@ -224,11 +227,30 @@ ContextMenuBuildResult buildContextMenuItemsWith({
     );
   }
 
+  Widget? footer;
+  if (settings.topStripEnabled && plan.bottomStrip.isNotEmpty) {
+    footer = CommonPopupMenuIconStrip(
+      // 底部那条：分隔线在图标上方。
+      dividerAbove: true,
+      actions: <ContextMenuIconAction>[
+        for (final planned in plan.bottomStrip)
+          _iconAction(planned, itemFor(planned)),
+      ],
+    );
+  }
+
   return ContextMenuBuildResult(
     items: items,
     header: header,
+    footer: footer,
     // 图标条那 6 格决定了下限，否则 4 格时菜单会被 160 夹得过窄。
-    minWidth: math.max(160, plan.topStrip.length * (34 + 2) + 16).toDouble(),
+    minWidth: math
+        .max(
+          160,
+          math.max(plan.topStrip.length, plan.bottomStrip.length) * (34 + 2) +
+              16,
+        )
+        .toDouble(),
   );
 }
 

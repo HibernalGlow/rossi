@@ -49,10 +49,10 @@ ContextMenuEntryDefinition _entry(
 
 ContextMenuDefinition _definition({
   List<ContextMenuEntryDefinition>? entries,
-  bool supportsTopStrip = true,
+  bool supportsIconStrip = true,
 }) => ContextMenuDefinition(
   scope: 'demo',
-  supportsTopStrip: supportsTopStrip,
+  supportsIconStrip: supportsIconStrip,
   entries:
       entries ??
       <ContextMenuEntryDefinition>[
@@ -166,7 +166,7 @@ void _iconStrip() {
   ]);
   checkEq('第 7、8 个降级为普通顶部行', _ids(widePlan.topRows), ['demo.e6', 'demo.e7']);
 
-  final noStrip = _definition(supportsTopStrip: false);
+  final noStrip = _definition(supportsIconStrip: false);
   var disabled = setContextMenuPin(noStrip, null, 'demo.a', ContextMenuPin.top);
   disabled = setContextMenuIconOnly(noStrip, disabled, 'demo.a', true);
   final disabledPlan = resolveContextMenu(
@@ -175,6 +175,69 @@ void _iconStrip() {
   );
   check('菜单不支持图标条时降级为普通行', disabledPlan.topStrip.isEmpty);
   checkEq('降级后仍在顶部区段', _topIds(disabledPlan), ['demo.a']);
+
+  // ── 底部图标条 ──────────────────────────────────────────────────────────
+  var bottom = setContextMenuPin(
+    definition,
+    null,
+    'demo.b',
+    ContextMenuPin.bottom,
+  );
+  bottom = setContextMenuIconOnly(definition, bottom, 'demo.b', true);
+  final bottomPlan = resolveContextMenu(definition: definition, layout: bottom);
+  checkEq('pin 底部 + 只显示图标进底部图标条', _ids(bottomPlan.bottomStrip), [
+    'demo.b',
+  ]);
+  check('底部图标条里的项不再出现在底部普通行', bottomPlan.bottomRows.isEmpty);
+
+  var wideBottom = const ContextMenuScopeLayout();
+  for (var i = 0; i < 8; i++) {
+    final id = 'demo.e$i';
+    wideBottom = setContextMenuPin(many, wideBottom, id, ContextMenuPin.bottom);
+    wideBottom = setContextMenuIconOnly(many, wideBottom, id, true);
+  }
+  final wideBottomPlan = resolveContextMenu(
+    definition: many,
+    layout: wideBottom,
+  );
+  checkEq('底部图标条也最多 6 格', _ids(wideBottomPlan.bottomStrip), [
+    'demo.e0',
+    'demo.e1',
+    'demo.e2',
+    'demo.e3',
+    'demo.e4',
+    'demo.e5',
+  ]);
+  checkEq('底部第 7、8 个降级为普通行', _ids(wideBottomPlan.bottomRows), [
+    'demo.e6',
+    'demo.e7',
+  ]);
+
+  // 顶部 ↔ 底部切换保留 iconOnly；只有取消 pin 才清掉。
+  var switched = setContextMenuPin(
+    definition,
+    null,
+    'demo.c',
+    ContextMenuPin.top,
+  );
+  switched = setContextMenuIconOnly(definition, switched, 'demo.c', true);
+  switched = setContextMenuPin(
+    definition,
+    switched,
+    'demo.c',
+    ContextMenuPin.bottom,
+  );
+  check(
+    '顶部切到底部保留只显示图标',
+    switched.overrides['demo.c']?.iconOnly == true,
+  );
+  final unpinned = setContextMenuPin(
+    definition,
+    switched,
+    'demo.c',
+    ContextMenuPin.none,
+  );
+  check('取消固定才清掉只显示图标', unpinned.overrides['demo.c']?.iconOnly != true);
 }
 
 void _hidden() {

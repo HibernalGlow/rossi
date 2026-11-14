@@ -75,7 +75,7 @@ class ContextMenuScopeEditor extends StatelessWidget {
         _sectionHeader(context, t.contextMenu.bottomSection),
         _reorderableSection(
           context,
-          plan.bottomRows,
+          <ContextMenuPlannedEntry>[...plan.bottomStrip, ...plan.bottomRows],
           ContextMenuBucket.bottom,
           empty: t.contextMenu.pinNone,
         ),
@@ -320,7 +320,7 @@ class ContextMenuScopeEditor extends StatelessWidget {
                 ? () => _setPin(context, entry.id, ContextMenuPin.none)
                 : null,
           ),
-          if (pin == ContextMenuPin.top) ...[
+          if (pin != ContextMenuPin.none) ...[
             const CommonPopupMenuItem.divider(),
             CommonPopupMenuItem(
               label: t.contextMenu.iconOnly,
@@ -347,7 +347,11 @@ class ContextMenuScopeEditor extends StatelessWidget {
           ? '${t.contextMenu.pinTop} · ${t.contextMenu.iconOnly}'
           : t.contextMenu.pinTop;
     }
-    if (pin == ContextMenuPin.bottom) return t.contextMenu.pinBottom;
+    if (pin == ContextMenuPin.bottom) {
+      return iconOnly
+          ? '${t.contextMenu.pinBottom} · ${t.contextMenu.iconOnly}'
+          : t.contextMenu.pinBottom;
+    }
     if (visibility == ContextMenuVisibility.collapsed) {
       return t.contextMenu.collapsed;
     }

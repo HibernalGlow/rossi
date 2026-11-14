@@ -42,18 +42,26 @@ class CommonPopupMenuIconStrip extends StatelessWidget {
     required this.actions,
     this.cellSize = 34,
     this.gap = 2,
+    this.dividerAbove = false,
   });
 
   final List<ContextMenuIconAction> actions;
   final double cellSize;
   final double gap;
 
+  /// 分隔线画在上面（底部图标条用）还是下面（顶部图标条用）。
+  final bool dividerAbove;
+
   @override
   Widget build(BuildContext context) {
+    const divider = Divider(height: 17, thickness: 1);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 与 `CommonPopupMenu` 的 `_dividerHeight`（8 * 2 + 1）同高，
+        // 这样图标条与相邻列表之间的留白和普通分节线一致。
+        if (dividerAbove) divider,
         Wrap(
           spacing: gap,
           runSpacing: gap,
@@ -62,9 +70,7 @@ class CommonPopupMenuIconStrip extends StatelessWidget {
               _IconActionCell(action: action, size: cellSize),
           ],
         ),
-        // 与 `CommonPopupMenu` 的 `_dividerHeight`（8 * 2 + 1）同高，
-        // 这样图标条与下方列表之间的留白和普通分节线一致。
-        const Divider(height: 17, thickness: 1),
+        if (!dividerAbove) divider,
       ],
     );
   }

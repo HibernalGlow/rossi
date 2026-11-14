@@ -444,6 +444,7 @@ class LaneMoreMenu extends StatelessWidget {
       popupBuilder: (_) => CommonPopupMenu(
         items: resolved.items,
         header: resolved.header,
+        footer: resolved.footer,
         minWidth: resolved.minWidth,
       ),
     );

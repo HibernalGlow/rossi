@@ -13,7 +13,7 @@ library;
 import 'package:zephyr/model/context_menu/context_menu_definition.dart';
 import 'package:zephyr/model/context_menu/context_menu_model.dart';
 
-/// 顶部图标条最多几格。
+/// 图标条最多几格（顶部与底部各一条，各自计数）。
 ///
 /// 上限不只是观感：`CommonPopupMenu` 用 `IntrinsicWidth` 量宽，`Wrap` 的 intrinsic
 /// 宽度会把菜单撑过 280。6 格 × 34 + 5 × 2 ≈ 214，加两侧内边距仍在 280 以内。
@@ -47,6 +47,7 @@ class ContextMenuPlan {
     this.list = const <ContextMenuPlannedEntry>[],
     this.collapsed = const <ContextMenuPlannedEntry>[],
     this.bottomRows = const <ContextMenuPlannedEntry>[],
+    this.bottomStrip = const <ContextMenuPlannedEntry>[],
     this.ephemeral = const <ContextMenuPlannedEntry>[],
   });
 
@@ -62,8 +63,11 @@ class ContextMenuPlan {
   /// 折叠进「更多」子菜单。
   final List<ContextMenuPlannedEntry> collapsed;
 
-  /// 固定到底部。
+  /// 固定到底部的普通行。
   final List<ContextMenuPlannedEntry> bottomRows;
+
+  /// 底部图标条（pin=bottom 且只画图标），渲染在菜单最底部。
+  final List<ContextMenuPlannedEntry> bottomStrip;
 
   /// 每次现造、不受偏好影响的项，渲染在主列表之后。
   final List<ContextMenuPlannedEntry> ephemeral;
@@ -74,6 +78,7 @@ class ContextMenuPlan {
       list.isEmpty &&
       collapsed.isEmpty &&
       bottomRows.isEmpty &&
+      bottomStrip.isEmpty &&
       ephemeral.isEmpty;
 }
 
@@ -116,7 +121,7 @@ ContextMenuScopeLayout materializeContextMenuLayout(
 /// 1. `persistent == false`：不进偏好，永远按出厂位置追加在主列表之后；
 /// 2. `hidden`：从所有区段消失；
 /// 3. `pin == top`：进顶部（`iconOnly` 且能力允许且未超上限 ⇒ 图标条）；
-/// 4. `pin == bottom`：进底部；
+/// 4. `pin == bottom`：进底部（同样是 `iconOnly` ⇒ 底部图标条）；
 /// 5. `collapsed`：进「更多」；
 /// 6. 其余：进主列表。
 ContextMenuPlan resolveContextMenu({
@@ -145,7 +150,7 @@ ContextMenuPlan resolveContextMenu({
     final pin = _effectivePin(entry, override);
     final iconOnly =
         override.iconOnly &&
-        pin == ContextMenuPin.top &&
+        pin != ContextMenuPin.none &&
         entry.capabilities.canIconOnly;
 
     final planned = ContextMenuPlannedEntry(
@@ -182,10 +187,21 @@ ContextMenuPlan resolveContextMenu({
   final topRows = <ContextMenuPlannedEntry>[];
   for (final planned in top) {
     final fits =
-        definition.supportsTopStrip &&
+        definition.supportsIconStrip &&
         planned.iconOnly &&
         topStrip.length < maxStripItems;
     (fits ? topStrip : topRows).add(planned);
+  }
+
+  // 底部与顶部各自计数：两条独立的图标条，互不吃对方的上限。
+  final bottomStrip = <ContextMenuPlannedEntry>[];
+  final bottomRows = <ContextMenuPlannedEntry>[];
+  for (final planned in bottom) {
+    final fits =
+        definition.supportsIconStrip &&
+        planned.iconOnly &&
+        bottomStrip.length < maxStripItems;
+    (fits ? bottomStrip : bottomRows).add(planned);
   }
 
   return ContextMenuPlan(
@@ -193,7 +209,8 @@ ContextMenuPlan resolveContextMenu({
     topRows: topRows,
     list: list,
     collapsed: collapsed,
-    bottomRows: bottom,
+    bottomRows: bottomRows,
+    bottomStrip: bottomStrip,
     ephemeral: ephemeral,
   );
 }
@@ -214,7 +231,8 @@ ContextMenuScopeLayout setContextMenuVisibility(
   return _withOverride(layout, id, current.copyWith(visibility: value));
 }
 
-/// 设置 pin 位置。切离顶部时顺手清掉 `iconOnly`（免得留着一条无意义的偏好）。
+/// 设置 pin 位置。只有在取消固定（`none`）时才清掉 `iconOnly` —— 顶部与底部
+/// 都支持图标条，在两者之间来回切时应保留「只显示图标」的选择。
 ContextMenuScopeLayout setContextMenuPin(
   ContextMenuDefinition definition,
   ContextMenuScopeLayout? layout,
@@ -232,12 +250,12 @@ ContextMenuScopeLayout setContextMenuPin(
     id,
     current.copyWith(
       pin: value,
-      iconOnly: value == ContextMenuPin.top ? current.iconOnly : false,
+      iconOnly: value == ContextMenuPin.none ? false : current.iconOnly,
     ),
   );
 }
 
-/// 设置顶部图标条里的「只显示图标」。只有 pin 在顶部时才有意义。
+/// 设置图标条里的「只显示图标」。固定在顶部或底部时才有意义。
 ContextMenuScopeLayout setContextMenuIconOnly(
   ContextMenuDefinition definition,
   ContextMenuScopeLayout? layout,
@@ -250,7 +268,7 @@ ContextMenuScopeLayout setContextMenuIconOnly(
   final current =
       (layout ?? const ContextMenuScopeLayout()).overrides[id] ??
       const ContextMenuItemOverride();
-  if (current.pin != ContextMenuPin.top) {
+  if (current.pin == ContextMenuPin.none) {
     return layout ?? const ContextMenuScopeLayout();
   }
   return _withOverride(layout, id, current.copyWith(iconOnly: value));
@@ -293,7 +311,11 @@ ContextMenuScopeLayout reorderContextMenuBucket({
       for (final entry in plan.collapsed) entry.entry.id,
     ],
     ContextMenuBucket.bottom => <String>[
-      for (final entry in plan.bottomRows) entry.entry.id,
+      for (final entry in <ContextMenuPlannedEntry>[
+        ...plan.bottomStrip,
+        ...plan.bottomRows,
+      ])
+        entry.entry.id,
     ],
     ContextMenuBucket.hidden => <String>[],
   };

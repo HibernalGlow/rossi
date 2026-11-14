@@ -3776,8 +3776,8 @@ class _Translations$contextMenu$en_US extends Translations$contextMenu$zh_CN {
 	@override String get restore => 'Show';
 	@override String get resetScope => 'Restore this menu';
 	@override String get resetAll => 'Restore all';
-	@override String get topStripEnabled => 'Top icon strip';
-	@override String get topStripEnabledHint => 'Items pinned to the top with "icon only" are shown as a row of small icons';
+	@override String get topStripEnabled => 'Menu icon strip';
+	@override String get topStripEnabledHint => 'Items pinned to the top or bottom with "icon only" are shown as a row of small icons';
 	@override String get customizeEntryVisible => 'Show "Customize this menu…" at the bottom';
 	@override String get dragHint => 'Drag the handle on the right to reorder';
 	@override String get emptyHidden => 'Nothing hidden';
@@ -7432,8 +7432,8 @@ extension on TranslationsEnUs {
 			'contextMenu.restore' => 'Show',
 			'contextMenu.resetScope' => 'Restore this menu',
 			'contextMenu.resetAll' => 'Restore all',
-			'contextMenu.topStripEnabled' => 'Top icon strip',
-			'contextMenu.topStripEnabledHint' => 'Items pinned to the top with "icon only" are shown as a row of small icons',
+			'contextMenu.topStripEnabled' => 'Menu icon strip',
+			'contextMenu.topStripEnabledHint' => 'Items pinned to the top or bottom with "icon only" are shown as a row of small icons',
 			'contextMenu.customizeEntryVisible' => 'Show "Customize this menu…" at the bottom',
 			'contextMenu.dragHint' => 'Drag the handle on the right to reorder',
 			'contextMenu.emptyHidden' => 'Nothing hidden',

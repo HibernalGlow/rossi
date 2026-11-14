@@ -31,11 +31,9 @@ ContextMenuDefinition buildFileManagerMenuDefinition(
           enabled: spec.enabled,
           dangerous: spec.dangerous,
           destructive: spec.destructive,
-          // 破坏性动作不允许被压成小图标：图标条是「常用动作」的快捷区，
-          // 删除不该离手指那么近。
-          capabilities: spec.dangerous
-              ? const ContextMenuEntryCapabilities(canIconOnly: false)
-              : const ContextMenuEntryCapabilities(),
+          // 破坏性动作也可以只显示图标：两个删除用不同图标区分
+          // （回收站 = 归档箱、永久删除 = 垃圾桶），图标条上仍分得清。
+          capabilities: const ContextMenuEntryCapabilities(),
         ),
     ],
   );

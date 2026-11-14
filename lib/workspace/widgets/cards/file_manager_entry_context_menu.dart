@@ -234,7 +234,10 @@ Glyph fileManagerEntryActionIcon(FileManagerEntryAction action) {
     case FileManagerEntryAction.createFolder:
       return AppGlyphs.folderPlus;
     case FileManagerEntryAction.trash:
-      return AppGlyphs.delete;
+      // 与「永久删除」必须一眼分得开：只显示图标时没有文字，
+      // 两个都画垃圾桶就分不出「可撤销」和「删了就没了」。
+      // 回收站 = 归档箱（可找回），永久删除 = 垃圾桶。
+      return AppGlyphs.archive;
     case FileManagerEntryAction.deletePermanently:
       return AppGlyphs.delete;
   }

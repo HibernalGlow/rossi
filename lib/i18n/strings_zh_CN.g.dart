@@ -10506,11 +10506,11 @@ class Translations$contextMenu$zh_CN {
 	/// zh-CN: '全部恢复默认'
 	String get resetAll => '全部恢复默认';
 
-	/// zh-CN: '顶部图标条'
-	String get topStripEnabled => '顶部图标条';
+	/// zh-CN: '菜单图标条'
+	String get topStripEnabled => '菜单图标条';
 
-	/// zh-CN: '固定在顶部并开启「只显示图标」的动作会排成一排小图标'
-	String get topStripEnabledHint => '固定在顶部并开启「只显示图标」的动作会排成一排小图标';
+	/// zh-CN: '固定在顶部或底部并开启「只显示图标」的动作会排成一排小图标'
+	String get topStripEnabledHint => '固定在顶部或底部并开启「只显示图标」的动作会排成一排小图标';
 
 	/// zh-CN: '在菜单底部显示「自定义此菜单…」'
 	String get customizeEntryVisible => '在菜单底部显示「自定义此菜单…」';
@@ -14631,8 +14631,8 @@ extension on Translations {
 			'contextMenu.restore' => '显示',
 			'contextMenu.resetScope' => '恢复此菜单默认',
 			'contextMenu.resetAll' => '全部恢复默认',
-			'contextMenu.topStripEnabled' => '顶部图标条',
-			'contextMenu.topStripEnabledHint' => '固定在顶部并开启「只显示图标」的动作会排成一排小图标',
+			'contextMenu.topStripEnabled' => '菜单图标条',
+			'contextMenu.topStripEnabledHint' => '固定在顶部或底部并开启「只显示图标」的动作会排成一排小图标',
 			'contextMenu.customizeEntryVisible' => '在菜单底部显示「自定义此菜单…」',
 			'contextMenu.dragHint' => '拖动右侧把手调整顺序',
 			'contextMenu.emptyHidden' => '没有隐藏的项',

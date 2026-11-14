@@ -96,7 +96,7 @@ class ContextMenuDefinition {
   const ContextMenuDefinition({
     required this.scope,
     required this.entries,
-    this.supportsTopStrip = true,
+    this.supportsIconStrip = true,
   });
 
   /// scope id，lowerCamel 单数：`shelf` / `fileManager` / `folder` / ...
@@ -105,8 +105,9 @@ class ContextMenuDefinition {
   /// 出厂次序。用户没改过时，渲染结果就是它。
   final List<ContextMenuEntryDefinition> entries;
 
-  /// 这个菜单是否支持顶部图标条。纯开关/视图类菜单可以关掉。
-  final bool supportsTopStrip;
+  /// 这个菜单是否支持图标条（顶部与底部共用这一个开关）。
+  /// 纯开关/视图类菜单可以关掉。
+  final bool supportsIconStrip;
 
   ContextMenuEntryDefinition? entryById(String id) {
     for (final entry in entries) {
