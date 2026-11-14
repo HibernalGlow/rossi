@@ -905,6 +905,7 @@ class CommonPopupMenuItem {
     this.subItems = const [],
     this.content,
     this.isDivider = false,
+    this.dismissOnSelect = true,
   });
 
   /// 分节线。不占一项的语义，只在两组动作之间画一条线（`_dividerHeight` 那条
@@ -917,7 +918,8 @@ class CommonPopupMenuItem {
       checked = null,
       subItems = const [],
       content = null,
-      isDivider = true;
+      isDivider = true,
+      dismissOnSelect = true;
 
   final String label;
   final Glyph? glyph;
@@ -932,6 +934,12 @@ class CommonPopupMenuItem {
   final Widget? content;
 
   final bool isDivider;
+
+  /// 选中后是否关掉菜单。默认 `true`（菜单的常规语义）。
+  ///
+  /// `false` 只给**要在原位改菜单自己**的那一项用（右键菜单的
+  /// 「自定义此菜单…」）：关掉之后卡片就没了，编辑态也就没地方显示。
+  final bool dismissOnSelect;
 }
 
 /// 弹出物**长成之后那张脸**：底色、圆角、阴影与 [`CommonPopupRoute`] 的托盘
@@ -1203,9 +1211,13 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     _controller.reverse();
   }
 
-  void _select(VoidCallback onPressed) {
-    Navigator.of(context).pop();
-    onPressed();
+  void _select(CommonPopupMenuItem item) {
+    // 默认「选中即关菜单」。少数项（右键菜单的「自定义此菜单…」）要在原位
+    // 把卡片切成编辑器，关掉就什么都没了 —— 它们用 `dismissOnSelect: false`。
+    if (item.dismissOnSelect) {
+      Navigator.of(context).pop();
+    }
+    item.onPressed?.call();
   }
 
   Widget _buildRow(
@@ -1295,7 +1307,7 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     return _buildRow(
       context,
       item: item,
-      onTap: onPressed == null ? null : () => _select(onPressed),
+      onTap: onPressed == null ? null : () => _select(item),
     );
   }
 

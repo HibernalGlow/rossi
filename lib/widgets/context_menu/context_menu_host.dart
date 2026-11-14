@@ -63,6 +63,8 @@ class _ContextMenuHostState extends State<ContextMenuHost> {
         CommonPopupMenuItem(
           label: t.contextMenu.customizeThisMenu,
           glyph: AppGlyphs.sliders,
+          // 不关菜单：点它要把**这张卡**切成编辑器，关掉就什么都没了。
+          dismissOnSelect: false,
           onPressed: () => setState(() => _editing = true),
         ),
       ],
