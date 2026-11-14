@@ -16,6 +16,7 @@ import 'package:zephyr/icons/icons.dart';
 
 import 'package:zephyr/page/setting/global/appearance_setting_page.dart';
 import 'package:zephyr/page/setting/global/toast_setting_page.dart';
+import 'package:zephyr/page/setting/global/context_menu_setting_page.dart';
 import 'package:zephyr/page/setting/global/notify_setting_page.dart';
 import 'package:zephyr/page/setting/global/file_manager_setting_page.dart';
 import 'package:zephyr/page/setting/global/swimlane_panel_setting_page.dart';
@@ -91,6 +92,17 @@ class _GlobalSettingPageState extends State<GlobalSettingPage> {
         .length;
     if (off == 0) return t.settings.notifySummaryAllOn;
     return t.settings.notifySummaryOffCount(count: off);
+  }
+
+  /// 右键菜单入口那一行：已经改过几个菜单。全部出厂时给一句「尚未自定义」，
+  /// 与页内副标题同一口径。
+  String _contextMenuSummary(GlobalSettingState state) {
+    final count = state.contextMenuSetting.scopes.values
+        .where((layout) => !layout.isPristine)
+        .length;
+    return count == 0
+        ? t.contextMenu.nothingCustomized
+        : t.contextMenu.customizedCount(count: count);
   }
 
   @override

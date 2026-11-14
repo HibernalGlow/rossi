@@ -76,6 +76,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$notification$en_US notification = _Translations$notification$en_US._(_root);
 	@override late final _Translations$update$en_US update = _Translations$update$en_US._(_root);
 	@override late final _Translations$dialog$en_US dialog = _Translations$dialog$en_US._(_root);
+	@override late final _Translations$contextMenu$en_US contextMenu = _Translations$contextMenu$en_US._(_root);
 	@override late final _Translations$shelfMenu$en_US shelfMenu = _Translations$shelfMenu$en_US._(_root);
 	@override late final _Translations$video$en_US video = _Translations$video$en_US._(_root);
 	@override late final _Translations$bindingEditor$en_US bindingEditor = _Translations$bindingEditor$en_US._(_root);
@@ -3746,6 +3747,53 @@ class _Translations$dialog$en_US extends Translations$dialog$zh_CN {
 	@override String get rememberChoice => 'Remember my choice';
 }
 
+// Path: contextMenu
+class _Translations$contextMenu$en_US extends Translations$contextMenu$zh_CN {
+	_Translations$contextMenu$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get more => 'More';
+	@override String get customizeThisMenu => 'Customize this menu…';
+	@override String get customizeTitle => 'Customize context menus';
+	@override String get settingsSubtitle => 'Reorder, collapse, hide and pin items';
+	@override String get topSection => 'Pinned to top';
+	@override String get listSection => 'Menu items';
+	@override String get collapsedSection => 'Collapsed into More';
+	@override String get bottomSection => 'Pinned to bottom';
+	@override String get hiddenSection => 'Hidden';
+	@override String get normal => 'Show normally';
+	@override String get collapsed => 'Collapse into More';
+	@override String get hidden => 'Hide';
+	@override String get pinNone => 'Not pinned';
+	@override String get pinTop => 'Pin to top';
+	@override String get pinBottom => 'Pin to bottom';
+	@override String get iconOnly => 'Icon only';
+	@override String get restore => 'Show';
+	@override String get resetScope => 'Restore this menu';
+	@override String get resetAll => 'Restore all';
+	@override String get topStripEnabled => 'Top icon strip';
+	@override String get topStripEnabledHint => 'Items pinned to the top with "icon only" are shown as a row of small icons';
+	@override String get customizeEntryVisible => 'Show "Customize this menu…" at the bottom';
+	@override String get dragHint => 'Drag the handle on the right to reorder';
+	@override String get emptyHidden => 'Nothing hidden';
+	@override String customizedCount({required Object count}) => '${count} menus customized';
+	@override String get nothingCustomized => 'No menus customized yet';
+	@override String get scopeDefault => 'Default';
+	@override String get scopeCustomized => 'Customized';
+	@override String get scopeShelf => 'Bookshelf entries';
+	@override String get scopeFileManager => 'File manager entries';
+	@override String get scopeFolder => 'Bookshelf folders';
+	@override String get scopeFolderComic => 'Comics in a folder';
+	@override String get scopeComicInfoLink => 'Detail page link';
+	@override String get scopePlatTab => 'Discover tabs';
+	@override String get scopeLane => 'Swimlane header';
+	@override String get scopePanelTab => 'Panel tab handle';
+	@override String get scopeFileManagerTab => 'File manager tabs';
+	@override String get scopeCard => 'Workspace cards';
+}
+
 // Path: shelfMenu
 class _Translations$shelfMenu$en_US extends Translations$shelfMenu$zh_CN {
 	_Translations$shelfMenu$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
@@ -7349,6 +7397,44 @@ extension on TranslationsEnUs {
 			'update.unknownArch' => 'Unknown',
 			'dialog.hideOrClose' => 'Hide to tray or close app',
 			'dialog.rememberChoice' => 'Remember my choice',
+			'contextMenu.more' => 'More',
+			'contextMenu.customizeThisMenu' => 'Customize this menu…',
+			'contextMenu.customizeTitle' => 'Customize context menus',
+			'contextMenu.settingsSubtitle' => 'Reorder, collapse, hide and pin items',
+			'contextMenu.topSection' => 'Pinned to top',
+			'contextMenu.listSection' => 'Menu items',
+			'contextMenu.collapsedSection' => 'Collapsed into More',
+			'contextMenu.bottomSection' => 'Pinned to bottom',
+			'contextMenu.hiddenSection' => 'Hidden',
+			'contextMenu.normal' => 'Show normally',
+			'contextMenu.collapsed' => 'Collapse into More',
+			'contextMenu.hidden' => 'Hide',
+			'contextMenu.pinNone' => 'Not pinned',
+			'contextMenu.pinTop' => 'Pin to top',
+			'contextMenu.pinBottom' => 'Pin to bottom',
+			'contextMenu.iconOnly' => 'Icon only',
+			'contextMenu.restore' => 'Show',
+			'contextMenu.resetScope' => 'Restore this menu',
+			'contextMenu.resetAll' => 'Restore all',
+			'contextMenu.topStripEnabled' => 'Top icon strip',
+			'contextMenu.topStripEnabledHint' => 'Items pinned to the top with "icon only" are shown as a row of small icons',
+			'contextMenu.customizeEntryVisible' => 'Show "Customize this menu…" at the bottom',
+			'contextMenu.dragHint' => 'Drag the handle on the right to reorder',
+			'contextMenu.emptyHidden' => 'Nothing hidden',
+			'contextMenu.customizedCount' => ({required Object count}) => '${count} menus customized',
+			'contextMenu.nothingCustomized' => 'No menus customized yet',
+			'contextMenu.scopeDefault' => 'Default',
+			'contextMenu.scopeCustomized' => 'Customized',
+			'contextMenu.scopeShelf' => 'Bookshelf entries',
+			'contextMenu.scopeFileManager' => 'File manager entries',
+			'contextMenu.scopeFolder' => 'Bookshelf folders',
+			'contextMenu.scopeFolderComic' => 'Comics in a folder',
+			'contextMenu.scopeComicInfoLink' => 'Detail page link',
+			'contextMenu.scopePlatTab' => 'Discover tabs',
+			'contextMenu.scopeLane' => 'Swimlane header',
+			'contextMenu.scopePanelTab' => 'Panel tab handle',
+			'contextMenu.scopeFileManagerTab' => 'File manager tabs',
+			'contextMenu.scopeCard' => 'Workspace cards',
 			'shelfMenu.open' => 'Open',
 			'shelfMenu.resumeReading' => 'Resume reading',
 			'shelfMenu.openInFileManagerTab' => 'Open in a new file manager tab',
@@ -7554,6 +7640,8 @@ extension on TranslationsEnUs {
 			'plat.openBelow' => 'Open below',
 			'plat.openLeft' => 'Open left',
 			'plat.openRight' => 'Open right',
+			_ => null,
+		} ?? switch (path) {
 			'plat.closeTab' => 'Close tab',
 			_ => null,
 		};

@@ -52,6 +52,14 @@ extension _GlobalSettingDestinations on _GlobalSettingPageState {
             route: const NotifySettingRoute(),
             detail: const NotifySettingPage(),
           ),
+          destination(
+            id: 'contextMenu',
+            title: t.contextMenu.customizeTitle,
+            subtitle: _contextMenuSummary(state),
+            icon: AppGlyphs.sliders,
+            route: const ContextMenuSettingRoute(),
+            detail: const ContextMenuSettingPage(),
+          ),
         ],
       ),
       SettingDestinationGroup(

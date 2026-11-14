@@ -75,6 +75,10 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
       customRouteBuilder: settingAutoRoute,
     ),
     CustomRoute(
+      page: ContextMenuSettingRoute.page,
+      customRouteBuilder: settingAutoRoute,
+    ),
+    CustomRoute(
       page: WorkspaceLayoutSettingRoute.page,
       customRouteBuilder: settingAutoRoute,
     ),

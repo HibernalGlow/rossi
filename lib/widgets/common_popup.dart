@@ -1021,11 +1021,18 @@ class CommonPopupMenu extends StatefulWidget {
     required this.items,
     this.minWidth = 160,
     this.maxWidth = 280,
+    this.header,
   });
 
   final List<CommonPopupMenuItem> items;
   final double minWidth;
   final double maxWidth;
+
+  /// 根层最前面的一块自定义内容（右键菜单的顶部图标条）。
+  ///
+  /// 只在**根层**显示，子菜单不带 —— 图标条是这一个菜单的快捷区，
+  /// 不该跟着每一层子菜单复制一遍。默认 null：既有调用零改动。
+  final Widget? header;
 
   @override
   State<CommonPopupMenu> createState() => _CommonPopupMenuState();
@@ -1299,10 +1306,11 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     ];
     final owner = level.owner;
     if (owner == null) {
+      final header = widget.header;
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: items,
+        children: [if (header != null) header, ...items],
       );
     }
     final unfold = active ? _unfold : kAlwaysCompleteAnimation;
@@ -1455,6 +1463,8 @@ Future<void> showCommonPopupMenu({
   required BuildContext context,
   required Offset position,
   required List<CommonPopupMenuItem> items,
+  Widget? header,
+  double minWidth = 160,
 }) async {
   // 空清单不弹：泳道刚被摘掉、一块面板都不该右键时就是这样。
   if (items.isEmpty) {
@@ -1473,7 +1483,8 @@ Future<void> showCommonPopupMenu({
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       anchorOf: () => local & Size.zero,
       placement: PopupPlacement.belowPoint,
-      builder: (_) => CommonPopupMenu(items: items),
+      builder: (_) =>
+          CommonPopupMenu(items: items, header: header, minWidth: minWidth),
     ),
   );
 }

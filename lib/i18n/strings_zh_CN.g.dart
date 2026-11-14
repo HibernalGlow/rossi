@@ -81,6 +81,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$notification$zh_CN notification = Translations$notification$zh_CN.internal(_root);
 	late final Translations$update$zh_CN update = Translations$update$zh_CN.internal(_root);
 	late final Translations$dialog$zh_CN dialog = Translations$dialog$zh_CN.internal(_root);
+	late final Translations$contextMenu$zh_CN contextMenu = Translations$contextMenu$zh_CN.internal(_root);
 	late final Translations$shelfMenu$zh_CN shelfMenu = Translations$shelfMenu$zh_CN.internal(_root);
 	late final Translations$video$zh_CN video = Translations$video$zh_CN.internal(_root);
 	late final Translations$bindingEditor$zh_CN bindingEditor = Translations$bindingEditor$zh_CN.internal(_root);
@@ -10431,6 +10432,129 @@ class Translations$dialog$zh_CN {
 	String get rememberChoice => '记住我的选择';
 }
 
+// Path: contextMenu
+class Translations$contextMenu$zh_CN {
+	Translations$contextMenu$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '更多'
+	String get more => '更多';
+
+	/// zh-CN: '自定义此菜单…'
+	String get customizeThisMenu => '自定义此菜单…';
+
+	/// zh-CN: '自定义右键菜单'
+	String get customizeTitle => '自定义右键菜单';
+
+	/// zh-CN: '调整顺序、折叠、隐藏与固定位置'
+	String get settingsSubtitle => '调整顺序、折叠、隐藏与固定位置';
+
+	/// zh-CN: '顶部固定'
+	String get topSection => '顶部固定';
+
+	/// zh-CN: '菜单列表'
+	String get listSection => '菜单列表';
+
+	/// zh-CN: '折叠到「更多」'
+	String get collapsedSection => '折叠到「更多」';
+
+	/// zh-CN: '底部固定'
+	String get bottomSection => '底部固定';
+
+	/// zh-CN: '已隐藏'
+	String get hiddenSection => '已隐藏';
+
+	/// zh-CN: '正常显示'
+	String get normal => '正常显示';
+
+	/// zh-CN: '折叠到更多'
+	String get collapsed => '折叠到更多';
+
+	/// zh-CN: '隐藏'
+	String get hidden => '隐藏';
+
+	/// zh-CN: '不固定'
+	String get pinNone => '不固定';
+
+	/// zh-CN: '固定在顶部'
+	String get pinTop => '固定在顶部';
+
+	/// zh-CN: '固定在底部'
+	String get pinBottom => '固定在底部';
+
+	/// zh-CN: '只显示图标'
+	String get iconOnly => '只显示图标';
+
+	/// zh-CN: '显示'
+	String get restore => '显示';
+
+	/// zh-CN: '恢复此菜单默认'
+	String get resetScope => '恢复此菜单默认';
+
+	/// zh-CN: '全部恢复默认'
+	String get resetAll => '全部恢复默认';
+
+	/// zh-CN: '顶部图标条'
+	String get topStripEnabled => '顶部图标条';
+
+	/// zh-CN: '固定在顶部并开启「只显示图标」的动作会排成一排小图标'
+	String get topStripEnabledHint => '固定在顶部并开启「只显示图标」的动作会排成一排小图标';
+
+	/// zh-CN: '在菜单底部显示「自定义此菜单…」'
+	String get customizeEntryVisible => '在菜单底部显示「自定义此菜单…」';
+
+	/// zh-CN: '拖动右侧把手调整顺序'
+	String get dragHint => '拖动右侧把手调整顺序';
+
+	/// zh-CN: '没有隐藏的项'
+	String get emptyHidden => '没有隐藏的项';
+
+	/// zh-CN: '$count 个菜单已自定义'
+	String customizedCount({required Object count}) => '${count} 个菜单已自定义';
+
+	/// zh-CN: '尚未自定义任何菜单'
+	String get nothingCustomized => '尚未自定义任何菜单';
+
+	/// zh-CN: '出厂设置'
+	String get scopeDefault => '出厂设置';
+
+	/// zh-CN: '已自定义'
+	String get scopeCustomized => '已自定义';
+
+	/// zh-CN: '书架条目'
+	String get scopeShelf => '书架条目';
+
+	/// zh-CN: '文件管理器条目'
+	String get scopeFileManager => '文件管理器条目';
+
+	/// zh-CN: '书架文件夹'
+	String get scopeFolder => '书架文件夹';
+
+	/// zh-CN: '文件夹内漫画'
+	String get scopeFolderComic => '文件夹内漫画';
+
+	/// zh-CN: '详情页链接'
+	String get scopeComicInfoLink => '详情页链接';
+
+	/// zh-CN: '发现页标签'
+	String get scopePlatTab => '发现页标签';
+
+	/// zh-CN: '泳道栏头'
+	String get scopeLane => '泳道栏头';
+
+	/// zh-CN: '面板栏把手'
+	String get scopePanelTab => '面板栏把手';
+
+	/// zh-CN: '文件管理页签'
+	String get scopeFileManagerTab => '文件管理页签';
+
+	/// zh-CN: '工作台卡片'
+	String get scopeCard => '工作台卡片';
+}
+
 // Path: shelfMenu
 class Translations$shelfMenu$zh_CN {
 	Translations$shelfMenu$zh_CN.internal(this._root);
@@ -14446,6 +14570,44 @@ extension on Translations {
 			'update.unknownArch' => '未知',
 			'dialog.hideOrClose' => '隐藏到托盘或关闭程序',
 			'dialog.rememberChoice' => '记住我的选择',
+			'contextMenu.more' => '更多',
+			'contextMenu.customizeThisMenu' => '自定义此菜单…',
+			'contextMenu.customizeTitle' => '自定义右键菜单',
+			'contextMenu.settingsSubtitle' => '调整顺序、折叠、隐藏与固定位置',
+			'contextMenu.topSection' => '顶部固定',
+			'contextMenu.listSection' => '菜单列表',
+			'contextMenu.collapsedSection' => '折叠到「更多」',
+			'contextMenu.bottomSection' => '底部固定',
+			'contextMenu.hiddenSection' => '已隐藏',
+			'contextMenu.normal' => '正常显示',
+			'contextMenu.collapsed' => '折叠到更多',
+			'contextMenu.hidden' => '隐藏',
+			'contextMenu.pinNone' => '不固定',
+			'contextMenu.pinTop' => '固定在顶部',
+			'contextMenu.pinBottom' => '固定在底部',
+			'contextMenu.iconOnly' => '只显示图标',
+			'contextMenu.restore' => '显示',
+			'contextMenu.resetScope' => '恢复此菜单默认',
+			'contextMenu.resetAll' => '全部恢复默认',
+			'contextMenu.topStripEnabled' => '顶部图标条',
+			'contextMenu.topStripEnabledHint' => '固定在顶部并开启「只显示图标」的动作会排成一排小图标',
+			'contextMenu.customizeEntryVisible' => '在菜单底部显示「自定义此菜单…」',
+			'contextMenu.dragHint' => '拖动右侧把手调整顺序',
+			'contextMenu.emptyHidden' => '没有隐藏的项',
+			'contextMenu.customizedCount' => ({required Object count}) => '${count} 个菜单已自定义',
+			'contextMenu.nothingCustomized' => '尚未自定义任何菜单',
+			'contextMenu.scopeDefault' => '出厂设置',
+			'contextMenu.scopeCustomized' => '已自定义',
+			'contextMenu.scopeShelf' => '书架条目',
+			'contextMenu.scopeFileManager' => '文件管理器条目',
+			'contextMenu.scopeFolder' => '书架文件夹',
+			'contextMenu.scopeFolderComic' => '文件夹内漫画',
+			'contextMenu.scopeComicInfoLink' => '详情页链接',
+			'contextMenu.scopePlatTab' => '发现页标签',
+			'contextMenu.scopeLane' => '泳道栏头',
+			'contextMenu.scopePanelTab' => '面板栏把手',
+			'contextMenu.scopeFileManagerTab' => '文件管理页签',
+			'contextMenu.scopeCard' => '工作台卡片',
 			'shelfMenu.open' => '打开',
 			'shelfMenu.resumeReading' => '继续阅读',
 			'shelfMenu.openInFileManagerTab' => '在文件管理新页签打开',
@@ -14651,6 +14813,8 @@ extension on Translations {
 			'plat.openBelow' => '在下方打开',
 			'plat.openLeft' => '在左侧打开',
 			'plat.openRight' => '在右侧打开',
+			_ => null,
+		} ?? switch (path) {
 			'plat.closeTab' => '关闭标签',
 			_ => null,
 		};

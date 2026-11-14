@@ -165,6 +165,11 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
       : NavigationSettingState.fromJson(
           json['navigationSetting'] as Map<String, dynamic>,
         ),
+  contextMenuSetting: json['contextMenuSetting'] == null
+      ? const ContextMenuSettingState()
+      : ContextMenuSettingState.fromJson(
+          json['contextMenuSetting'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
@@ -242,6 +247,7 @@ Map<String, dynamic> _$GlobalSettingStateToJson(_GlobalSettingState instance) =>
       'operationBindingSetting': instance.operationBindingSetting.toJson(),
       'eInkSetting': instance.eInkSetting.toJson(),
       'navigationSetting': instance.navigationSetting.toJson(),
+      'contextMenuSetting': instance.contextMenuSetting.toJson(),
     };
 
 const _$ThemeModeEnumMap = {
@@ -1098,4 +1104,27 @@ Map<String, dynamic> _$NavigationSettingStateToJson(
   'mobileActionIds': instance.mobileActionIds,
   'dockLongPressCustomize': instance.dockLongPressCustomize,
   'dockLongPressMilliseconds': instance.dockLongPressMilliseconds,
+};
+
+_ContextMenuSettingState _$ContextMenuSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _ContextMenuSettingState(
+  scopes:
+      (json['scopes'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(
+          k,
+          ContextMenuScopeLayout.fromJson(e as Map<String, dynamic>),
+        ),
+      ) ??
+      const <String, ContextMenuScopeLayout>{},
+  topStripEnabled: json['topStripEnabled'] as bool? ?? true,
+  customizeEntryVisible: json['customizeEntryVisible'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$ContextMenuSettingStateToJson(
+  _ContextMenuSettingState instance,
+) => <String, dynamic>{
+  'scopes': instance.scopes.map((k, e) => MapEntry(k, e.toJson())),
+  'topStripEnabled': instance.topStripEnabled,
+  'customizeEntryVisible': instance.customizeEntryVisible,
 };

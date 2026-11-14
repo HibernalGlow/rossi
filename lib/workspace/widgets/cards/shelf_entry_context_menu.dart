@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_region.dart';
+import 'package:zephyr/workspace/model/shelf_entry_menu_definition.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 
 /// 收藏 / 历史卡片里**一个条目**的右键菜单宿主。
@@ -13,25 +15,21 @@ import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 /// - **有哪些项、哪一项可用** —— 纯函数 [buildShelfEntryMenuItems]
 ///   （`lib/workspace/model/shelf_entry_menu_spec.dart`，判据 `dart run
 ///   test/workspace/shelf_entry_menu_check.dart`）；
-/// - **长什么样、在哪儿弹** —— 本文件；
+/// - **用户能怎么摆它** —— [buildShelfMenuDefinition]（同一个目录下的
+///   `shelf_entry_menu_definition.dart`）；
+/// - **长什么样、在哪儿弹** —— 本文件 + `showContextMenu`；
 /// - **动作怎么落地** —— 卡片里的 `_onMenuAction`。
 ///
 /// # 弹出动画与工作台那排「更多」同源
 ///
-/// 这一份曾经走 MD3 的 `MenuAnchor`（Material 自己的淡入缩放），与栏头 ⋮、
-/// 文件管理器「更多」的 FlClash 托盘动画不是一套。现在统一走
-/// [showCommonPopupMenu]：托盘从右键 / 长按那一点长出来、放不下时自己朝上翻，
-/// 全仓菜单只有一份弹出动画。菜单面也随之换成 [CommonPopupSurface]
-/// （superellipse 卡片），与工作台其余菜单同貌。
+/// 统一走 `showCommonPopupMenu`：托盘从右键 / 长按那一点长出来、放不下时自己
+/// 朝上翻，全仓菜单只有一份弹出动画。顺序 / 折叠 / 隐藏 / pin / 顶部图标条
+/// 由 `lib/model/context_menu/` 的解析器决定，这里不再自己拼分隔线。
 ///
 /// # 触发方式：桌面右键 + 触摸长按
 ///
-/// 两个手势都挂，不按平台分叉。理由：桌面端长按也弹菜单无害（用户只是在按住
-/// 卡片看封面，松手即散），而**按平台分叉会在「带触摸屏的桌面」上错**——
-/// `defaultTargetPlatform` 说 desktop、用户却用触控笔长按，于是菜单永远出不来。
-///
-/// 与卡片自己的 `InkWell(onTap:)` 不冲突：那个只认主键单击，这里认的是次键与长按，
-/// 三种手势在 arena 里各走各的。
+/// 两个手势都挂，不按平台分叉（理由见 `ContextMenuRegion` 顶部注释）：
+/// 按 `defaultTargetPlatform` 分叉会在「带触摸屏的桌面」上错。
 class ShelfEntryContextMenuRegion extends StatelessWidget {
   const ShelfEntryContextMenuRegion({
     super.key,
@@ -59,61 +57,31 @@ class ShelfEntryContextMenuRegion extends StatelessWidget {
 
   void _openAt(BuildContext context, Offset globalPosition) {
     final input = inputBuilder();
-    final items = <CommonPopupMenuItem>[];
-    for (final spec in buildShelfEntryMenuItems(input)) {
-      // 两条分隔线把菜单切成「打开类 / 复制类 / 破坏性」三段：挨在一起最容易点错，
-      // 而破坏性那一段必须与上面隔开（neoview 的两份菜单也是这么分组的）。
-      if (spec.action == ShelfEntryAction.copyTitle ||
-          spec.action == ShelfEntryAction.remove) {
-        items.add(const CommonPopupMenuItem.divider());
-      }
-      items.add(
-        CommonPopupMenuItem(
-          label: shelfEntryActionLabel(
-            spec.action,
-            kind: input.kind,
-            isFavorite: input.isFavorite,
-          ),
-          // 动作 → glyph 一张表拍平：词表（含本仓补的 book / folder）里
-          // 每个动作都有符号，不再留 Material `icon:` 兜底 —— 图标语汇只有一份。
-          glyph: switch (spec.action) {
-            ShelfEntryAction.open => AppGlyphs.book,
-            ShelfEntryAction.openInFileManagerTab => AppGlyphs.folder,
-            ShelfEntryAction.copyTitle => AppGlyphs.copy,
-            ShelfEntryAction.copyLink => AppGlyphs.link,
-            ShelfEntryAction.toggleFavorite || ShelfEntryAction.remove
-                when input.kind == ShelfEntryKind.favorite =>
-              AppGlyphs.star,
-            ShelfEntryAction.remove => AppGlyphs.delete,
-            _ => null,
-          },
-          // `onPressed: null` 就是禁用态：菜单项**永远在场**，只是有的不可点。
-          // 破坏性那一项按 `danger` 上一档色（与工作台「退出」类同一读法）。
-          danger: spec.destructive,
-          onPressed: spec.enabled ? () => onAction(context, spec.action) : null,
-        ),
-      );
-    }
-    // 路由自己会在选中 / 点空白时关掉，不必等它。
+    final definition = buildShelfMenuDefinition(input);
     unawaited(
-      showCommonPopupMenu(
+      showContextMenu(
         context: context,
         position: globalPosition,
-        items: items,
+        definition: definition,
+        viewOf: (entry) {
+          final action = shelfEntryActionOfId(entry.id);
+          return ContextMenuEntryView(
+            label: shelfEntryActionLabel(
+              action,
+              kind: input.kind,
+              isFavorite: input.isFavorite,
+            ),
+            glyph: shelfEntryActionIcon(action, kind: input.kind),
+            onPressed: () => onAction(context, action),
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled) return child;
-    return GestureDetector(
-      // `deferToChild`：手势只在这一行本身吃掉了事件时才认，不抢上层滚动的。
-      behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapUp: (details) => _openAt(context, details.globalPosition),
-      onLongPressStart: (details) => _openAt(context, details.globalPosition),
-      child: child,
-    );
+    return ContextMenuRegion(enabled: enabled, onOpen: _openAt, child: child);
   }
 }
 
@@ -143,5 +111,31 @@ String shelfEntryActionLabel(
       return kind == ShelfEntryKind.favorite
           ? t.shelfMenu.removeFavorite
           : t.shelfMenu.removeHistory;
+  }
+}
+
+/// 一个动作对应哪一个符号。
+///
+/// 收藏卡上的「收藏 / 移除」共用星标（那个动作就是取消收藏），历史卡的
+/// 「收藏」没有符号 —— 与迁移前那张 switch 表逐条一致。
+Glyph? shelfEntryActionIcon(
+  ShelfEntryAction action, {
+  required ShelfEntryKind kind,
+}) {
+  switch (action) {
+    case ShelfEntryAction.open:
+      return AppGlyphs.book;
+    case ShelfEntryAction.openInFileManagerTab:
+      return AppGlyphs.folder;
+    case ShelfEntryAction.copyTitle:
+      return AppGlyphs.copy;
+    case ShelfEntryAction.copyLink:
+      return AppGlyphs.link;
+    case ShelfEntryAction.toggleFavorite:
+      return kind == ShelfEntryKind.favorite ? AppGlyphs.star : null;
+    case ShelfEntryAction.remove:
+      return kind == ShelfEntryKind.favorite
+          ? AppGlyphs.star
+          : AppGlyphs.delete;
   }
 }

@@ -9,6 +9,7 @@ import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/type/breadcrumb_style.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/model/context_menu/context_menu.dart';
 import 'package:zephyr/service/operation_binding/operation_binding_migration.dart';
 import 'package:zephyr/page/comic_read/model/reader_magnifier.dart';
 import 'package:zephyr/page/comic_read/model/reader_page_order.dart';
@@ -33,6 +34,7 @@ part 'parts/global_setting_notify_part.dart';
 part 'parts/global_setting_favorite_part.dart';
 part 'parts/global_setting_workspace_part.dart';
 part 'parts/global_setting_navigation_part.dart';
+part 'parts/global_setting_context_menu_part.dart';
 part 'parts/global_setting_read_extras_part.dart';
 
 enum ReaderInfoVerticalPosition { top, bottom }
@@ -325,6 +327,10 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     // 顶部导航栏（Arc 侧栏 / 悬浮 Dock）的偏好。默认值全在
     // `parts/global_setting_navigation_part.dart` 里带说明。
     @Default(NavigationSettingState()) NavigationSettingState navigationSetting,
+    // 右键 / 长按上下文菜单的偏好。默认值全在
+    // `parts/global_setting_context_menu_part.dart` 里带说明。
+    @Default(ContextMenuSettingState())
+    ContextMenuSettingState contextMenuSetting,
   }) = _GlobalSettingState;
 
   factory GlobalSettingState.fromJson(Map<String, dynamic> json) =>
@@ -523,6 +529,20 @@ class GlobalSettingCubit extends Cubit<GlobalSettingState> {
     updateState(
       (current) => current.copyWith(
         navigationSetting: updates(current.navigationSetting),
+      ),
+    );
+  }
+
+  /// 改右键菜单偏好（排序 / 显隐 / pin / 顶部图标条）。
+  ///
+  /// 与 [updateNavigationSetting] 同构：菜单自定义弹窗与设置页两处都要写它，
+  /// 收在一个具名入口里，将来加字段不会漏改一边。
+  void updateContextMenuSetting(
+    ContextMenuSettingState Function(ContextMenuSettingState current) updates,
+  ) {
+    updateState(
+      (current) => current.copyWith(
+        contextMenuSetting: updates(current.contextMenuSetting),
       ),
     );
   }

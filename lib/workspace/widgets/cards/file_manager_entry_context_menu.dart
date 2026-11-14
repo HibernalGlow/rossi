@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/platform/desktop/reveal_in_file_manager.dart';
+import 'package:zephyr/workspace/model/file_manager_entry_menu_definition.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/icons/icons.dart';
-import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_region.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
 /// 文件管理器**一个条目**的右键菜单宿主。
@@ -71,45 +73,27 @@ class FileManagerEntryContextMenuRegion extends StatelessWidget {
 
   void _openAt(BuildContext context, Offset globalPosition) {
     final input = inputBuilder();
-    final specs = buildFileManagerEntryMenuItems(input);
-    final items = <CommonPopupMenuItem>[];
-    for (var index = 0; index < specs.length; index += 1) {
-      final spec = specs[index];
-      // 分组：相关动作要成组，组间用分隔线。前两组（打开 / 剪贴板+编辑）
-      // 与危险组之间必须隔开 —— 挨在一起最容易点错。
-      if (index > 0 && spec.dangerous && !specs[index - 1].dangerous) {
-        items.add(const CommonPopupMenuItem.divider());
-      }
-      items.add(
-        CommonPopupMenuItem(
-          label: fileManagerEntryActionLabel(spec.action, input: input),
-          glyph: fileManagerEntryActionIcon(spec.action),
-          // `onPressed: null` 就是禁用态：菜单项**永远在场**，只是有的不可点。
-          danger: spec.dangerous,
-          onPressed: spec.enabled ? () => onAction(context, spec.action) : null,
-        ),
-      );
-    }
-    // 路由自己会在选中 / 点空白时关掉，不必等它。
+    final definition = buildFileManagerMenuDefinition(input);
     unawaited(
-      showCommonPopupMenu(
+      showContextMenu(
         context: context,
         position: globalPosition,
-        items: items,
+        definition: definition,
+        viewOf: (entry) {
+          final action = fileManagerActionOfId(entry.id);
+          return ContextMenuEntryView(
+            label: fileManagerEntryActionLabel(action, input: input),
+            glyph: fileManagerEntryActionIcon(action),
+            onPressed: () => onAction(context, action),
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled) return child;
-    return GestureDetector(
-      // `deferToChild`：手势只在这一行本身吃掉了事件时才认，不抢上层滚动的。
-      behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapUp: (details) => _openAt(context, details.globalPosition),
-      onLongPressStart: (details) => _openAt(context, details.globalPosition),
-      child: child,
-    );
+    return ContextMenuRegion(enabled: enabled, onOpen: _openAt, child: child);
   }
 }
 
