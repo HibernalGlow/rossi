@@ -20,6 +20,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/permission.dart';
 import 'package:zephyr/workspace/method/file_manager_actions.dart';
+import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/file_manager_tab_session.dart';
 import 'package:zephyr/workspace/model/file_manager_tab_target.dart';
@@ -196,6 +197,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
   /// 而工具栏「更多」菜单里那一行也要读它来画勾选态。
   bool _showRootsBar = true;
 
+  /// 这一帧的「默认在新页签打开文件夹」开关（全局设置）。
+  bool _openFolderInNewTab = false;
+
   /// 工具栏那颗「多选」开关摁没摁下。
   ///
   /// 只有这一个布尔留在 Dart：**它是「用户要哪种手感」的意图，不是选中集合的副本**
@@ -339,6 +343,9 @@ class _FileManagerCardState extends State<FileManagerCard> {
     );
     _showRootsBar = context.select<GlobalSettingCubit, bool>(
       (cubit) => cubit.state.fileManagerSetting.showRootsBar,
+    );
+    _openFolderInNewTab = context.select<GlobalSettingCubit, bool>(
+      (cubit) => cubit.state.fileManagerSetting.openFolderInNewTab,
     );
     if (snapshot != null &&
         !_busy &&

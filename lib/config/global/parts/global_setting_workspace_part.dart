@@ -49,6 +49,9 @@ enum FileManagerTabStartupPolicy {
 /// - [showRootsBar]：是否画面包屑下面那一排「快速切换」胶囊（挂载卷 / 根目录 / 主目录）。
 ///   默认开。关掉只是不画这一行 —— 卷列表照样由核心每轮重扫，重新打开立刻就在，
 ///   导航本身不受影响（页签、面包屑、主页键、右键「路径操作」都还在原处）。
+/// - [openFolderInNewTab]：打开文件夹时默认在新页签中打开。默认关（在当前页签进入）；
+///   开启后点击文件夹会直接新建页签打开该目录。穿透模式下单击可直接阅读的目录
+///   仍直接进阅读器，双击或点「进入文件夹」会在新页签打开。
 @freezed
 abstract class FileManagerSettingState with _$FileManagerSettingState {
   const factory FileManagerSettingState({
@@ -57,6 +60,7 @@ abstract class FileManagerSettingState with _$FileManagerSettingState {
     @Default(false) bool openHomeOnStart,
     @Default(true) bool rememberViewState,
     @Default(true) bool restoreTabs,
+    @Default(false) bool openFolderInNewTab,
     @Default(true) bool fileOperations,
     @Default(false) bool searchSubfoldersDefault,
     @Default(false) bool wrapGridTitle,

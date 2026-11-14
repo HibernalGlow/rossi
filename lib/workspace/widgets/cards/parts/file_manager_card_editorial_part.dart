@@ -103,6 +103,12 @@ extension _FileManagerCardEditorialPart on _FileManagerCardState {
       onOpen: (child) => _openEntry(child, forceEnter: child.isDir),
       rowBuilder: (child) =>
           _libraryEntry(context, child, LibraryViewMode.coverGrid),
+      isFavorite: isLocalEntryFavorite(entry.path),
+      onToggleFavorite: (entry.isDir || entry.isArchive || entry.isImage)
+          ? () => unawaited(
+              _runEntryAction(entry, FileManagerEntryAction.toggleFavorite),
+            )
+          : null,
       onDelete: _fileOpsEnabled
           ? () => unawaited(
               _runEntryAction(entry, FileManagerEntryAction.trash),

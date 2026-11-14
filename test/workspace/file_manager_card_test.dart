@@ -64,7 +64,7 @@ void main() {
   _tabMenuTests(() => api);
   _layoutTests(() => api);
   _searchTests(() => api);
-  _entryTabTests(() => api);
+  _entryTabTests(() => api, () => settings);
 
   for (final width in [260.0, 340.0, 700.0]) {
     for (final mode in FileManagerViewMode.values) {

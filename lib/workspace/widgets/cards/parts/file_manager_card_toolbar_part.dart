@@ -329,6 +329,13 @@ extension _FileManagerCardToolbarPart on _FileManagerCardState {
                           checked: _showRootsBar,
                           onPressed: () => _setShowRootsBar(!_showRootsBar),
                         ),
+                        CommonPopupMenuItem(
+                          label: t.workspace.openFolderInNewTab,
+                          glyph: AppGlyphs.layoutTabs,
+                          checked: _openFolderInNewTab,
+                          onPressed: () =>
+                              _setOpenFolderInNewTab(!_openFolderInNewTab),
+                        ),
                         const CommonPopupMenuItem.divider(),
                         CommonPopupMenuItem(
                           label: t.workspace.showHiddenFiles,

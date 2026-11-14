@@ -1745,6 +1745,9 @@ class Translations$workspace$zh_CN {
 	/// zh-CN: '在新页签打开'
 	String get openInNewTab => '在新页签打开';
 
+	/// zh-CN: '默认在新页签打开文件夹'
+	String get openFolderInNewTab => '默认在新页签打开文件夹';
+
 	/// zh-CN: '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；'
 	String get readerLaneReadsHint => '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；';
 
@@ -4507,6 +4510,12 @@ class Translations$settings$zh_CN {
 
 	/// zh-CN: '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先'
 	String get fileManagerRestoreTabsSubtitle => '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先';
+
+	/// zh-CN: '默认在新页签打开文件夹'
+	String get fileManagerOpenFolderInNewTab => '默认在新页签打开文件夹';
+
+	/// zh-CN: '点击文件夹时直接在新页签中打开，而不是在当前页签进入；穿透模式下单击可直接阅读的文件夹仍直接阅读，双击或点「进入文件夹」会在新页签打开'
+	String get fileManagerOpenFolderInNewTabSubtitle => '点击文件夹时直接在新页签中打开，而不是在当前页签进入；穿透模式下单击可直接阅读的文件夹仍直接阅读，双击或点「进入文件夹」会在新页签打开';
 
 	/// zh-CN: '文件操作'
 	String get fileManagerSectionFileOps => '文件操作';
@@ -11636,6 +11645,7 @@ extension on Translations {
 			'workspace.onlineSource' => '在线图源',
 			'workspace.onlineLabel' => '在线',
 			'workspace.openInNewTab' => '在新页签打开',
+			'workspace.openFolderInNewTab' => '默认在新页签打开文件夹',
 			'workspace.readerLaneReadsHint' => '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；',
 			'workspace.searchSubdirs' => '在子目录里搜',
 			'workspace.gallery' => '图集',
@@ -12109,9 +12119,9 @@ extension on Translations {
 			'settings.tweakcnEnabled' => '启用导入的主题',
 			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '已导入 ${count} 个颜色 token · 圆角 ${radius}',
 			'settings.tweakcnNoRadius' => '沿用默认',
-			'settings.tweakcnFailedEmpty' => '内容为空',
 			_ => null,
 		} ?? switch (path) {
+			'settings.tweakcnFailedEmpty' => '内容为空',
 			'settings.tweakcnFailedJson' => '不是能识别的 JSON',
 			'settings.tweakcnFailedNoColors' => '没有解析出任何颜色 token',
 			'settings.tweakcnSkipped' => ({required Object keys}) => '以下 token 读不出颜色，已跳过：${keys}',
@@ -12548,6 +12558,8 @@ extension on Translations {
 			'settings.fileManagerSectionTabs' => '页签',
 			'settings.fileManagerRestoreTabs' => '自动恢复上次打开的页签',
 			'settings.fileManagerRestoreTabsSubtitle' => '文件管理器打开时把上次那批页签摆回来。两个以上页签才记，而且只记目录（后退历史与搜索结果不记）；目录已经没了就落在就近还在的父目录。上次开着两个以上页签时，这条比「启动时默认打开主页」优先',
+			'settings.fileManagerOpenFolderInNewTab' => '默认在新页签打开文件夹',
+			'settings.fileManagerOpenFolderInNewTabSubtitle' => '点击文件夹时直接在新页签中打开，而不是在当前页签进入；穿透模式下单击可直接阅读的文件夹仍直接阅读，双击或点「进入文件夹」会在新页签打开',
 			'settings.fileManagerSectionFileOps' => '文件操作',
 			'settings.fileManagerFileOperations' => '允许修改文件',
 			'settings.fileManagerFileOperationsSubtitle' => '复制、移动、重命名、新建与删除。关闭后右键菜单、多选与操作条都会消失，文件管理器回到只看不改',
@@ -12621,11 +12633,11 @@ extension on Translations {
 			'settings.operationBindingActionOpenSettings' => '打开设置',
 			'settings.operationBindingActionZoomIn' => '放大',
 			'settings.operationBindingActionZoomOut' => '缩小',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionFitWindow' => '适应窗口',
 			'settings.operationBindingActionActualSize' => '实际大小',
 			'settings.operationBindingActionRotateClockwise' => '旋转',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingActionRotate180' => '旋转180度',
 			'settings.operationBindingBoundAction' => '绑定的动作',
 			'settings.operationBindingDisabledRow' => '已停用（不参与冲突判定）',
@@ -13135,11 +13147,11 @@ extension on Translations {
 			'reader.restoreConservativeDefaults' => '恢复保守默认值',
 			'reader.mimageModelMissingPrompt' => '当前设备尚未下载 mImage ONNX 超分模型（约 5.4 MB），是否立即下载并启用？',
 			'reader.noImageInfoAvailable' => '当前没有可读取的图片信息',
+			_ => null,
+		} ?? switch (path) {
 			'reader.noRealPlksrBackendHere' => '当前平台暂无 RealPLKSR 推理后端',
 			'reader.pageAnimationOn' => '当前已开启平滑翻页动画',
 			'reader.pageAnimationOff' => '当前已关闭翻页动画',
-			_ => null,
-		} ?? switch (path) {
 			'reader.currentImage' => '当前图片',
 			'reader.translateOnDeviceNow' => '当前使用端侧离线翻译引擎，无需网络即可生成译文页',
 			'reader.translateCloudEndpointNow' => '当前使用云端 API 端点翻译，自动擦除原气泡并回填译文',
@@ -13649,11 +13661,11 @@ extension on Translations {
 			'dataBackup.importTitle' => '导入数据',
 			'dataBackup.importConfirm' => '导入将覆盖备份中的设置与应用数据；本机路径、代理、应用锁及同步配置会保留。是否继续？',
 			'dataBackup.includesDownloadsWarning' => '该备份包含下载的漫画文件，导入时会先删除本机现有的下载文件。',
+			_ => null,
+		} ?? switch (path) {
 			'dataBackup.versionMismatch' => '版本不一致，数据导入可能会出问题，是否继续？',
 			'dataBackup.exportedVersion' => ({required Object version}) => '导出数据版本：${version}',
 			'dataBackup.currentVersion' => ({required Object version}) => '当前应用版本：${version}',
-			_ => null,
-		} ?? switch (path) {
 			'dataBackup.kContinue' => '继续',
 			'dataBackup.importSuccess' => '导入成功',
 			'dataBackup.restartPrompt' => '数据导入成功，请重启应用以生效。',
@@ -14163,11 +14175,11 @@ extension on Translations {
 			'discover.tabCoverModeDesc' => '把页签显示成书封，并在封面上叠加信息',
 			'discover.webPage' => '网页',
 			'discover.comicDetail' => '详情',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.enterPageNumber' => '输入页数',
 			'searchResult.pleaseEnterNumber' => '请输入数字',
 			'searchResult.returnToTop' => '返回顶部',
-			_ => null,
-		} ?? switch (path) {
 			'searchResult.jumpToPage' => '跳转页面',
 			'searchResult.jump' => '跳转',
 			'searchResult.retry' => '点击重试',

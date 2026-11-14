@@ -639,6 +639,7 @@ class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
 	@override String get onlineSource => 'Online source';
 	@override String get onlineLabel => 'Online';
 	@override String get openInNewTab => 'Open in a new tab';
+	@override String get openFolderInNewTab => 'Open folders in a new tab by default';
 	@override String get readerLaneReadsHint => 'Anything opened from the shelf on the left or discover on the right is read in this lane;';
 	@override String get searchSubdirs => 'Search inside subfolders';
 	@override String get gallery => 'Gallery';
@@ -1585,6 +1586,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get fileManagerSectionTabs => 'Tabs';
 	@override String get fileManagerRestoreTabs => 'Restore the tabs from last time';
 	@override String get fileManagerRestoreTabsSubtitle => 'Puts last session\'s tabs back when the file manager opens. Only recorded from two tabs up, and only the folders - no back history, no search results. A folder that is gone falls back to the nearest parent that still exists. When the last session had two or more tabs, this wins over \'Open the home folder on start\'';
+	@override String get fileManagerOpenFolderInNewTab => 'Open folders in a new tab by default';
+	@override String get fileManagerOpenFolderInNewTabSubtitle => 'Clicking a folder opens it in a new tab instead of navigating inside the current tab; in passthrough mode, single-tapping a readable folder still opens the reader, while double-tapping or clicking Enter opens it in a new tab';
 	@override String get fileManagerSectionFileOps => 'File operations';
 	@override String get fileManagerFileOperations => 'Allow modifying files';
 	@override String get fileManagerFileOperationsSubtitle => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only';
@@ -4545,6 +4548,7 @@ extension on TranslationsEnUs {
 			'workspace.onlineSource' => 'Online source',
 			'workspace.onlineLabel' => 'Online',
 			'workspace.openInNewTab' => 'Open in a new tab',
+			'workspace.openFolderInNewTab' => 'Open folders in a new tab by default',
 			'workspace.readerLaneReadsHint' => 'Anything opened from the shelf on the left or discover on the right is read in this lane;',
 			'workspace.searchSubdirs' => 'Search inside subfolders',
 			'workspace.gallery' => 'Gallery',
@@ -5018,9 +5022,9 @@ extension on TranslationsEnUs {
 			'settings.tweakcnEnabled' => 'Use the imported theme',
 			'settings.tweakcnApplied' => ({required Object count, required Object radius}) => '${count} color tokens imported · radius ${radius}',
 			'settings.tweakcnNoRadius' => 'default',
-			'settings.tweakcnFailedEmpty' => 'Nothing to import',
 			_ => null,
 		} ?? switch (path) {
+			'settings.tweakcnFailedEmpty' => 'Nothing to import',
 			'settings.tweakcnFailedJson' => 'Not recognizable JSON',
 			'settings.tweakcnFailedNoColors' => 'No color token could be parsed',
 			'settings.tweakcnSkipped' => ({required Object keys}) => 'Skipped tokens with unreadable colors: ${keys}',
@@ -5458,6 +5462,8 @@ extension on TranslationsEnUs {
 			'settings.fileManagerSectionTabs' => 'Tabs',
 			'settings.fileManagerRestoreTabs' => 'Restore the tabs from last time',
 			'settings.fileManagerRestoreTabsSubtitle' => 'Puts last session\'s tabs back when the file manager opens. Only recorded from two tabs up, and only the folders - no back history, no search results. A folder that is gone falls back to the nearest parent that still exists. When the last session had two or more tabs, this wins over \'Open the home folder on start\'',
+			'settings.fileManagerOpenFolderInNewTab' => 'Open folders in a new tab by default',
+			'settings.fileManagerOpenFolderInNewTabSubtitle' => 'Clicking a folder opens it in a new tab instead of navigating inside the current tab; in passthrough mode, single-tapping a readable folder still opens the reader, while double-tapping or clicking Enter opens it in a new tab',
 			'settings.fileManagerSectionFileOps' => 'File operations',
 			'settings.fileManagerFileOperations' => 'Allow modifying files',
 			'settings.fileManagerFileOperationsSubtitle' => 'Copy, move, rename, create and delete. When off, the context menu, multi-select and the action bar all disappear and the file manager goes back to read-only',
@@ -5530,11 +5536,11 @@ extension on TranslationsEnUs {
 			'settings.operationBindingActionToggleDirection' => 'Toggle reading direction',
 			'settings.operationBindingActionBookMode' => 'Book mode',
 			'settings.operationBindingActionResetView' => 'Reset view',
+			_ => null,
+		} ?? switch (path) {
 			'settings.operationBindingActionToggleBars' => 'Show or hide the bars',
 			'settings.operationBindingActionOpenSettings' => 'Open settings',
 			'settings.operationBindingActionZoomIn' => 'Zoom in',
-			_ => null,
-		} ?? switch (path) {
 			'settings.operationBindingActionZoomOut' => 'Zoom out',
 			'settings.operationBindingActionFitWindow' => 'Fit to window',
 			'settings.operationBindingActionActualSize' => 'Actual size',
@@ -6044,11 +6050,11 @@ extension on TranslationsEnUs {
 			'reader.restoreConservativeDefaults' => 'Restore conservative defaults',
 			'reader.mimageModelMissingPrompt' => 'This device has not downloaded the mImage ONNX upscale model (about 5.4 MB). Download and enable it now?',
 			'reader.noImageInfoAvailable' => 'No image information available to read right now',
+			_ => null,
+		} ?? switch (path) {
 			'reader.noRealPlksrBackendHere' => 'This platform has no RealPLKSR inference backend yet',
 			'reader.pageAnimationOn' => 'Smooth page-turn animation is currently on',
 			'reader.pageAnimationOff' => 'Page-turn animation is currently off',
-			_ => null,
-		} ?? switch (path) {
 			'reader.currentImage' => 'Current image',
 			'reader.translateOnDeviceNow' => 'Using an on-device offline engine right now; translated pages need no network',
 			'reader.translateCloudEndpointNow' => 'Translating through a cloud API endpoint right now; erases the original bubbles and fills in the translation',
@@ -6558,11 +6564,11 @@ extension on TranslationsEnUs {
 			'dataBackup.importTitle' => 'Import data',
 			'dataBackup.importConfirm' => 'Import will replace backed-up settings and app data. Local paths, proxy, app lock and sync configuration will be kept. Continue?',
 			'dataBackup.includesDownloadsWarning' => 'This backup contains downloaded comic files. Existing downloads will be deleted before import.',
+			_ => null,
+		} ?? switch (path) {
 			'dataBackup.versionMismatch' => 'Version mismatch. Data import may have issues. Continue?',
 			'dataBackup.exportedVersion' => ({required Object version}) => 'Exported version: ${version}',
 			'dataBackup.currentVersion' => ({required Object version}) => 'Current app version: ${version}',
-			_ => null,
-		} ?? switch (path) {
 			'dataBackup.kContinue' => 'Continue',
 			'dataBackup.importSuccess' => 'Import successful',
 			'dataBackup.restartPrompt' => 'Data imported successfully. Please restart the app to apply.',
@@ -7072,11 +7078,11 @@ extension on TranslationsEnUs {
 			'discover.tabCoverModeDesc' => 'Display tabs as book covers with information overlay',
 			'discover.webPage' => 'Web page',
 			'discover.comicDetail' => 'Details',
+			_ => null,
+		} ?? switch (path) {
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
-			_ => null,
-		} ?? switch (path) {
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',

@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:path/path.dart' as p;
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/bookshelf/service/comic_link_service.dart';
+import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
@@ -211,6 +215,70 @@ void addHistoryEntryToFavorites(UnifiedComicHistory item) {
   // 与 `collect_comic.dart` 的口径对齐：新收藏要有一条根目录链接。
   // 少了这一条，它只出现在「全部」里，书签面板的每一个列表都会跳过它。
   ComicLinkService.addComic(item.uniqueKey, null, ComicFolderType.favorite);
+}
+
+String localFavoriteUniqueKey(String path) =>
+    'local:${normalizeLocalComicPath(path)}';
+
+bool isLocalEntryFavorite(String path) {
+  try {
+    return isShelfEntryFavorite(localFavoriteUniqueKey(path));
+  } catch (_) {
+    return false;
+  }
+}
+
+/// 本地文件管理器条目 → 收藏 / 取消收藏。返回 `true` 表示当前已收藏。
+Future<bool> toggleLocalEntryFavorite({
+  required String path,
+  required String name,
+  required bool isDirectory,
+}) async {
+  final localPath = normalizeLocalComicPath(path);
+  final key = 'local:$localPath';
+  if (isShelfEntryFavorite(key)) {
+    removeShelfEntryFromFavorites(key);
+    return false;
+  }
+  final rawTitle = isDirectory ? name : p.basenameWithoutExtension(localPath);
+  final title = rawTitle.trim().isEmpty ? name : rawTitle;
+  final coverPath = await ensureLocalComicCover(localPath) ?? '';
+  final now = DateTime.now().toUtc();
+  final existing = objectbox.unifiedFavoriteBox
+      .query(UnifiedComicFavorite_.uniqueKey.equals(key))
+      .build()
+      .findFirst();
+
+  objectbox.unifiedFavoriteBox.put(
+    UnifiedComicFavorite(
+      id: existing?.id ?? 0,
+      uniqueKey: key,
+      source: 'local',
+      comicId: localPath,
+      title: title,
+      description: localPath,
+      cover: jsonEncode({
+        'id': localPath,
+        'url': '',
+        'name': title,
+        'path': coverPath,
+        'extern': {'isLocal': true, 'localPath': coverPath},
+      }),
+      creator: jsonEncode({
+        'id': 'local',
+        'name': '本地',
+        'avatar': {'id': '', 'url': '', 'name': ''},
+      }),
+      titleMeta: '[]',
+      metadata: '[]',
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      deleted: false,
+      schemaVersion: 2,
+    ),
+  );
+  ComicLinkService.addComic(key, null, ComicFolderType.favorite);
+  return true;
 }
 
 /// 取消收藏：软删 + 摘掉它在所有收藏文件夹里的成员关系 + 清掉跨文件夹链接。

@@ -17,6 +17,8 @@ class FileManagerInlineDetails extends StatefulWidget {
     required this.onOpen,
     required this.rowBuilder,
     this.statisticsLabel,
+    this.isFavorite = false,
+    this.onToggleFavorite,
     this.onDelete,
     this.onDeletePermanently,
     this.trashRestoreSupported = false,
@@ -29,6 +31,8 @@ class FileManagerInlineDetails extends StatefulWidget {
   final ValueChanged<FileManagerEntry> onOpen;
   final LibraryEntry Function(FileManagerEntry) rowBuilder;
   final String? statisticsLabel;
+  final bool isFavorite;
+  final VoidCallback? onToggleFavorite;
   final VoidCallback? onDelete;
   final VoidCallback? onDeletePermanently;
   final bool trashRestoreSupported;
@@ -99,6 +103,16 @@ class _FileManagerInlineDetailsState extends State<FileManagerInlineDetails> {
                   ),
                   label: Text(entry.isDir ? t.workspace.enterFolder : '打开'),
                 ),
+                if (widget.onToggleFavorite != null)
+                  FilledButton.tonalIcon(
+                    onPressed: widget.onToggleFavorite,
+                    icon: const GlyphIcon(AppGlyphs.star),
+                    label: Text(
+                      widget.isFavorite
+                          ? t.shelfMenu.removeFavorite
+                          : t.shelfMenu.addFavorite,
+                    ),
+                  ),
                 if (widget.onDelete != null)
                   FilledButton.tonalIcon(
                     onPressed: widget.onDelete,

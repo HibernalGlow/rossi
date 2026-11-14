@@ -6,6 +6,12 @@ extension _FileManagerCardOpenPart on _FileManagerCardState {
     FileManagerEntry entry, {
     bool forceEnter = false,
   }) async {
+    if (entry.isDir &&
+        _openFolderInNewTab &&
+        (forceEnter || !entry.penetratable)) {
+      await _apply((id) => fileManagerNewTab(id: id, path: entry.path));
+      return;
+    }
     await _openAction(
       (id) => fileManagerOpenEntry(
         id: id,

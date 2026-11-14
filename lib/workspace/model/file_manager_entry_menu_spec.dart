@@ -32,6 +32,9 @@ enum FileManagerEntryAction {
   /// 而不是剪贴板或危险组。
   revealInFileManager,
 
+  /// 加入 / 移出本地漫画收藏（写库，不动盘）。
+  toggleFavorite,
+
   /// 复制到内部剪贴板（两步式的第一步）。
   copy,
 
@@ -126,6 +129,12 @@ class FileManagerEntryMenuInput {
   /// 也不要画成能点、点下去什么都不知道。
   final bool canReveal;
 
+  /// 这一项能不能加入本地收藏（目录 / 归档 / 图片）。
+  final bool canFavorite;
+
+  /// 这一项当前是否已在本地收藏里。
+  final bool isFavorite;
+
   /// 「文件操作」那颗**写操作总开关**（设置页 `fileManagerSetting.fileOperations`）。
   ///
   /// 它只关**会动盘**的项：剪切 / 粘贴 / 重命名 / 新建文件夹 / 回收站 / 永久删除。
@@ -146,6 +155,8 @@ class FileManagerEntryMenuInput {
     this.canPaste = false,
     this.trashRestoreSupported = false,
     this.canReveal = false,
+    this.canFavorite = false,
+    this.isFavorite = false,
     this.canWrite = true,
   });
 
@@ -180,6 +191,10 @@ List<FileManagerEntryMenuItemSpec> buildFileManagerEntryMenuItems(
       action: FileManagerEntryAction.revealInFileManager,
       // 批量「显示」没有定义（一次弹 12 个访达窗口？），而且它只对桌面平台存在。
       enabled: !batch && input.canReveal,
+    ),
+    FileManagerEntryMenuItemSpec(
+      action: FileManagerEntryAction.toggleFavorite,
+      enabled: !batch && input.canFavorite,
     ),
 
     // ── 剪贴板 ──

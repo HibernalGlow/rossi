@@ -198,6 +198,10 @@ String fileManagerEntryActionLabel(
       // 「选中这一项」，就不能写成和前两家一样。措辞的单一出处在
       // `reveal_in_file_manager.dart::revealMenuLabel`。
       return revealMenuLabel(currentRevealHost());
+    case FileManagerEntryAction.toggleFavorite:
+      return input.isFavorite
+          ? t.shelfMenu.removeFavorite
+          : t.shelfMenu.addFavorite;
     case FileManagerEntryAction.copy:
       return '复制';
     case FileManagerEntryAction.cut:
@@ -231,6 +235,8 @@ Glyph fileManagerEntryActionIcon(FileManagerEntryAction action) {
       return AppGlyphs.layoutTabs;
     case FileManagerEntryAction.revealInFileManager:
       return AppGlyphs.folder;
+    case FileManagerEntryAction.toggleFavorite:
+      return AppGlyphs.star;
     case FileManagerEntryAction.copy:
       return AppGlyphs.copy;
     case FileManagerEntryAction.cut:

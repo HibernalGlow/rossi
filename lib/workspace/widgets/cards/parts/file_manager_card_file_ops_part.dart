@@ -158,6 +158,8 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       // 「在访达/资源管理器里显示」要请外部程序做事：桌面三家有，移动端没有。
       // 读的是 `Platform` 的常量，不发 I/O，符合上面那条「必须 O(1)」。
       canReveal: currentRevealHost() != RevealHost.unsupported,
+      canFavorite: entry.isDir || entry.isArchive || entry.isImage,
+      isFavorite: isLocalEntryFavorite(entry.path),
       // 「文件操作」那颗写总开关只灰项、不摘宿主：关掉之后右键照旧弹菜单，
       // 打开 / 复制 / 复制路径仍然点得动，会动盘的那几项画成灰的。
       // 从前是在外层干脆不挂手势，于是开关一关「右键没反应」（真机撞过），
@@ -225,6 +227,25 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
         // 必定只有一条。走外部程序，不动盘，所以不占 `_busy` 也不进撤销栈。
         await revealFileManagerEntry(context, path: entry.path);
         return true;
+      case FileManagerEntryAction.toggleFavorite:
+        final added = await toggleLocalEntryFavorite(
+          path: entry.path,
+          name: entry.name,
+          isDirectory: entry.isDir,
+        );
+        if (!mounted) return true;
+        // ignore: invalid_use_of_protected_member
+        setState(() {});
+        final label = entry.isDir
+            ? entry.name
+            : p.basenameWithoutExtension(entry.path);
+        showSuccessToast(
+          added
+              ? t.shelfMenu.favoriteAdded(title: label)
+              : t.shelfMenu.favoriteRemoved(title: label),
+          context: context,
+        );
+        return true;
       case FileManagerEntryAction.copy:
       case FileManagerEntryAction.cut:
         // 与操作条走同一个方法，只是目标由调用方算好带进来：在选中集合里右键
@@ -272,6 +293,7 @@ extension _FileManagerCardFileOpsPart on _FileManagerCardState {
       case FileManagerEntryAction.open:
       case FileManagerEntryAction.openInNewTab:
       case FileManagerEntryAction.revealInFileManager:
+      case FileManagerEntryAction.toggleFavorite:
       case FileManagerEntryAction.copy:
       case FileManagerEntryAction.cut:
       case FileManagerEntryAction.copyPath:

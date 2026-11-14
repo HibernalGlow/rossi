@@ -237,6 +237,17 @@ class FileManagerSettingPage extends StatelessWidget {
                   );
                 },
               ),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.folder),
+                title: Text(t.settings.fileManagerOpenFolderInNewTab),
+                subtitle: Text(
+                  t.settings.fileManagerOpenFolderInNewTabSubtitle,
+                ),
+                value: setting.openFolderInNewTab,
+                onChanged: (value) => cubit.updateFileManagerSetting(
+                  (current) => current.copyWith(openFolderInNewTab: value),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),

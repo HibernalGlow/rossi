@@ -162,6 +162,12 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     );
   }
 
+  void _setOpenFolderInNewTab(bool enabled) {
+    context.read<GlobalSettingCubit>().updateFileManagerSetting(
+      (current) => current.copyWith(openFolderInNewTab: enabled),
+    );
+  }
+
   /// 主页菜单：把「回主页 / 设为主页 / 清除主页」三个动作收在主页键自己身上。
   ///
   /// 为什么不直接把右键当「设为主页」：那样「回主页」和「清除主页」在卡片上
