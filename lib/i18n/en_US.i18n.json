@@ -3451,7 +3451,17 @@
     "scopeLane": "Swimlane header",
     "scopePanelTab": "Panel tab handle",
     "scopeFileManagerTab": "File manager tabs",
-    "scopeCard": "Workspace cards"
+    "scopeCard": "Workspace cards",
+    "dockLeft": "Left",
+    "dockRight": "Right",
+    "dockTop": "Top",
+    "dockBottom": "Bottom",
+    "widthBadge": "Show lane width badge",
+    "panelBarDockTo": "Panel bar: docked at $label",
+    "expandItem": "Expand $title",
+    "finishLayout": "Finish layout",
+    "customizeLayout": "Customize layout",
+    "toggleCard": "Expand / collapse"
   },
   "shelfMenu": {
     "open": "Open",

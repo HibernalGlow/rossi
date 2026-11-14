@@ -22,6 +22,7 @@ import 'package:zephyr/util/permission.dart';
 import 'package:zephyr/workspace/method/file_manager_actions.dart';
 import 'package:zephyr/workspace/method/shelf_entry_actions.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
+import 'package:zephyr/workspace/model/file_manager_tab_menu_definition.dart';
 import 'package:zephyr/workspace/model/file_manager_tab_session.dart';
 import 'package:zephyr/workspace/model/file_manager_tab_target.dart';
 import 'package:zephyr/workspace/registry/workspace_card_registry.dart';
@@ -37,6 +38,8 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_presenta
 import 'package:zephyr/workspace/service/library_file_statistics.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_inline_details.dart';
 import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_region.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/widgets/motion/action_bubble.dart';

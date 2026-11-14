@@ -10553,6 +10553,36 @@ class Translations$contextMenu$zh_CN {
 
 	/// zh-CN: '工作台卡片'
 	String get scopeCard => '工作台卡片';
+
+	/// zh-CN: '左侧'
+	String get dockLeft => '左侧';
+
+	/// zh-CN: '右侧'
+	String get dockRight => '右侧';
+
+	/// zh-CN: '顶部'
+	String get dockTop => '顶部';
+
+	/// zh-CN: '底部'
+	String get dockBottom => '底部';
+
+	/// zh-CN: '显示泳道宽度徽标'
+	String get widthBadge => '显示泳道宽度徽标';
+
+	/// zh-CN: '面板栏：停靠$label'
+	String panelBarDockTo({required Object label}) => '面板栏：停靠${label}';
+
+	/// zh-CN: '展开$title'
+	String expandItem({required Object title}) => '展开${title}';
+
+	/// zh-CN: '完成布局'
+	String get finishLayout => '完成布局';
+
+	/// zh-CN: '自定义布局'
+	String get customizeLayout => '自定义布局';
+
+	/// zh-CN: '展开 / 折叠'
+	String get toggleCard => '展开 / 折叠';
 }
 
 // Path: shelfMenu
@@ -14608,6 +14638,16 @@ extension on Translations {
 			'contextMenu.scopePanelTab' => '面板栏把手',
 			'contextMenu.scopeFileManagerTab' => '文件管理页签',
 			'contextMenu.scopeCard' => '工作台卡片',
+			'contextMenu.dockLeft' => '左侧',
+			'contextMenu.dockRight' => '右侧',
+			'contextMenu.dockTop' => '顶部',
+			'contextMenu.dockBottom' => '底部',
+			'contextMenu.widthBadge' => '显示泳道宽度徽标',
+			'contextMenu.panelBarDockTo' => ({required Object label}) => '面板栏：停靠${label}',
+			'contextMenu.expandItem' => ({required Object title}) => '展开${title}',
+			'contextMenu.finishLayout' => '完成布局',
+			'contextMenu.customizeLayout' => '自定义布局',
+			'contextMenu.toggleCard' => '展开 / 折叠',
 			'shelfMenu.open' => '打开',
 			'shelfMenu.resumeReading' => '继续阅读',
 			'shelfMenu.openInFileManagerTab' => '在文件管理新页签打开',
@@ -14803,6 +14843,8 @@ extension on Translations {
 			'bindingEditor.moveDown' => '下移',
 			'bindingEditor.collapse' => '收起绑定',
 			'bindingEditor.expand' => '展开绑定',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.actions' => '动作',
 			'bindingEditor.actionList' => '动作列表',
 			'bindingEditor.bindingDetails' => '绑定详情',
@@ -14813,8 +14855,6 @@ extension on Translations {
 			'plat.openBelow' => '在下方打开',
 			'plat.openLeft' => '在左侧打开',
 			'plat.openRight' => '在右侧打开',
-			_ => null,
-		} ?? switch (path) {
 			'plat.closeTab' => '关闭标签',
 			_ => null,
 		};

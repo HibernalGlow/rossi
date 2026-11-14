@@ -2,7 +2,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
+import 'package:zephyr/workspace/model/lane_menu_definition.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
@@ -93,22 +95,57 @@ class LaneMenu {
 
   /// 在**全局坐标** [position] 处弹出这份菜单（右键栏头那条路）。
   ///
-  /// 走 [showCommonPopupMenu] 的 `belowPoint` 摆位：锚点是右键那一点，
-  /// 托盘从这一点长出来，放不下会自己朝上翻。项的回调在 [buildItems] 里
+  /// 走 `showCommonPopupMenu` 的 `belowPoint` 摆位：锚点是右键那一点，
+  /// 托盘从这一点长出来，放不下会自己朝上翻。项的回调在 [_legacyItems] 里
   /// 已经闭包了这里的 `context`（页面的 context，`BlocProvider` 够得着），
   /// 所以路由里不再需要拿任何东西。
   Future<void> show(BuildContext context, Offset position) async {
+    final resolved = build(context);
     await showCommonPopupMenu(
       context: context,
       position: position,
-      items: buildItems(context),
+      items: resolved.items,
+      header: resolved.header,
+      minWidth: resolved.minWidth,
+    );
+  }
+
+  /// 按统一模型解析出这次要显示的项。
+  ///
+  /// 项的内容仍由 [_legacyItems] 手写（宽度输入框与两段子菜单不适合映射成
+  /// 纯数据），这里只把「有哪些项」按 id 对上去，再交给解析器决定次序 /
+  /// 显隐 / pin / 折叠。`_legacyItems` 去掉分隔线后的顺序必须与定义里的
+  /// entry 顺序一致（含 `available` 过滤），否则会错位。
+  ContextMenuBuildResult build(BuildContext context) {
+    final definition = buildLaneMenuDefinition(hasPanelSide: panelSide != null);
+    final legacy = _legacyItems(context);
+    if (legacy.isEmpty) {
+      return const ContextMenuBuildResult(items: <CommonPopupMenuItem>[]);
+    }
+
+    final ids = <String>[
+      for (final entry in definition.entries)
+        if (entry.available) entry.id,
+    ];
+    final byId = <String, CommonPopupMenuItem>{};
+    var index = 0;
+    for (final item in legacy) {
+      if (item.isDivider) continue;
+      if (index >= ids.length) break;
+      byId[ids[index++]] = item;
+    }
+
+    return buildContextMenuItemsWith(
+      context: context,
+      definition: definition,
+      itemOf: (entry) => byId[entry.id] ?? const CommonPopupMenuItem(label: ''),
     );
   }
 
   /// 这一份菜单的项集。**在页面的 context 里构造**（两个入口都是）：
   /// 每一项的回调闭包这里的 `context`，弹出之后项住在根路由里，
   /// 那边反而找不到 `BlocProvider<WorkspaceCubit>`。
-  List<CommonPopupMenuItem> buildItems(BuildContext context) {
+  List<CommonPopupMenuItem> _legacyItems(BuildContext context) {
     final cubit = context.read<WorkspaceCubit>();
     final state = cubit.state;
     final lane = state.layout.lanes[laneId];
@@ -206,7 +243,7 @@ class LaneMenu {
       if (panelSide != null)
         CommonPopupMenuItem(
           label: bar.mode == PanelBarMode.pinned
-              ? '面板栏：停靠${_dockLabel(bar.dock)}'
+              ? t.contextMenu.panelBarDockTo(label: _dockLabel(bar.dock))
               : t.workspace.panelBarFloating,
           glyph: bar.mode == PanelBarMode.pinned
               ? _dockGlyph(bar.dock)
@@ -255,7 +292,9 @@ class LaneMenu {
       item(
         value: 'widthBadge',
         glyph: AppGlyphs.resize,
-        label: widthBadge ? t.workspace.hideLaneWidthBadge : '显示泳道宽度徽标',
+        label: widthBadge
+            ? t.workspace.hideLaneWidthBadge
+            : t.contextMenu.widthBadge,
         checked: widthBadge,
         hint: t.workspace.theWidthBadgeNextToHeader,
       ),
@@ -352,10 +391,10 @@ class LaneMenu {
   };
 
   static String _dockLabel(PanelBarDock dock) => switch (dock) {
-    PanelBarDock.left => '左侧',
-    PanelBarDock.right => '右侧',
-    PanelBarDock.top => '顶部',
-    PanelBarDock.bottom => '底部',
+    PanelBarDock.left => t.contextMenu.dockLeft,
+    PanelBarDock.right => t.contextMenu.dockRight,
+    PanelBarDock.top => t.contextMenu.dockTop,
+    PanelBarDock.bottom => t.contextMenu.dockBottom,
   };
 }
 
@@ -375,7 +414,7 @@ class LaneMoreMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     // 项集在页面的 context 里构造好再交给弹出器：`CommonPopupMenu` 住在
     // 路由里，从它的 context 往上找不到 `BlocProvider<WorkspaceCubit>`。
-    final items = menu.buildItems(context);
+    final resolved = menu.build(context);
     return CommonPopupBox(
       targetBuilder: (open) => Tooltip(
         message:
@@ -402,7 +441,11 @@ class LaneMoreMenu extends StatelessWidget {
           ),
         ),
       ),
-      popupBuilder: (_) => CommonPopupMenu(items: items),
+      popupBuilder: (_) => CommonPopupMenu(
+        items: resolved.items,
+        header: resolved.header,
+        minWidth: resolved.minWidth,
+      ),
     );
   }
 }

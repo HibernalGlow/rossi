@@ -136,7 +136,7 @@ ContextMenuPlan resolveContextMenu({
 
   for (final id in materialized.order) {
     final entry = byId[id];
-    if (entry == null) continue;
+    if (entry == null || !entry.available) continue;
     final override =
         materialized.overrides[id] ?? const ContextMenuItemOverride();
     final visibility = _effectiveVisibility(entry, override);

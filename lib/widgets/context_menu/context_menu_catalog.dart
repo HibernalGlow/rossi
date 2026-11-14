@@ -9,8 +9,15 @@ library;
 
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/model/context_menu/context_menu.dart';
+import 'package:zephyr/page/bookshelf/model/folder_menu_definitions.dart';
+import 'package:zephyr/page/comic_info/models/comic_info_link_menu_definition.dart';
+import 'package:zephyr/widgets/plat/rossi_plat_tab_menu.dart';
+import 'package:zephyr/workspace/model/card_menu_definition.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_definition.dart';
 import 'package:zephyr/workspace/model/file_manager_entry_menu_spec.dart';
+import 'package:zephyr/workspace/model/file_manager_tab_menu_definition.dart';
+import 'package:zephyr/workspace/model/lane_menu_definition.dart';
+import 'package:zephyr/workspace/model/panel_tab_menu_definition.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_definition.dart';
 import 'package:zephyr/workspace/model/shelf_entry_menu_spec.dart';
 import 'package:zephyr/workspace/widgets/cards/file_manager_entry_context_menu.dart';
@@ -74,6 +81,108 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         fileManagerActionOfId(entry.id),
         input: _fileManagerPreview,
       ),
+    ),
+    ContextMenuScopeDescriptor(
+      definition: folderMenuDefinition,
+      title: t.contextMenu.scopeFolder,
+      labelOf: (entry) => switch (entry.id) {
+        'folder.rename' => t.common.rename,
+        'folder.moveTo' => t.bookshelf.moveTo,
+        _ => t.common.delete,
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: folderComicMenuDefinition,
+      title: t.contextMenu.scopeFolderComic,
+      labelOf: (entry) => switch (entry.id) {
+        'folderComic.multiSelect' => t.bookshelf.multiSelect,
+        _ => t.common.delete,
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: comicInfoLinkMenuDefinition,
+      title: t.contextMenu.scopeComicInfoLink,
+      labelOf: (entry) => switch (entry.id) {
+        'comicInfoLink.openExternal' => t.webview.openInExternalBrowser,
+        _ => t.common.copy,
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: buildPlatTabMenuDefinition(rail: false, hasClose: true),
+      title: t.contextMenu.scopePlatTab,
+      labelOf: (entry) => switch (entry.id) {
+        'platTab.above' => rossiPlatMenuLabel(RossiPlatMenuLabel.above),
+        'platTab.below' => rossiPlatMenuLabel(RossiPlatMenuLabel.below),
+        'platTab.leftOf' => rossiPlatMenuLabel(RossiPlatMenuLabel.leftOf),
+        'platTab.rightOf' => rossiPlatMenuLabel(RossiPlatMenuLabel.rightOf),
+        _ => t.plat.closeTab,
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: fileManagerTabMenuDefinition,
+      title: t.contextMenu.scopeFileManagerTab,
+      labelOf: (entry) => switch (entry.id) {
+        'fileManagerTab.pin' => t.workspace.pinTab,
+        'fileManagerTab.newTab' => t.workspace.newFromThisTab,
+        'fileManagerTab.duplicate' => t.workspace.duplicateTab,
+        'fileManagerTab.close' => t.workspace.closeTab,
+        'fileManagerTab.closeOthers' => t.workspace.closeOtherTabs,
+        'fileManagerTab.closeLeft' => t.workspace.closeTabsLeft,
+        _ => t.workspace.closeTabsRight,
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: panelTabMenuDefinition,
+      title: t.contextMenu.scopePanelTab,
+      labelOf: (entry) => switch (entry.id) {
+        'panelTab.pin' => t.workspace.pinHere,
+        'panelTab.constrain' => t.workspace.confineToThisLane,
+        'panelTab.sortMode' => t.workspace.sortMode,
+        'panelTab.dockLeft' => t.workspace.dockToLabel(
+          label: t.contextMenu.dockLeft,
+        ),
+        'panelTab.dockRight' => t.workspace.dockToLabel(
+          label: t.contextMenu.dockRight,
+        ),
+        'panelTab.dockTop' => t.workspace.dockToLabel(
+          label: t.contextMenu.dockTop,
+        ),
+        _ => t.workspace.dockToLabel(label: t.contextMenu.dockBottom),
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: buildLaneMenuDefinition(hasPanelSide: true),
+      title: t.contextMenu.scopeLane,
+      labelOf: (entry) => switch (entry.id) {
+        'lane.panelEditMode' => t.workspace.editLayout,
+        'lane.solo' => t.workspace.soloThisLane,
+        'lane.collapse' => t.workspace.collapseToBar,
+        'lane.width' => t.workspace.regularWidth,
+        'lane.panelBar' => t.workspace.panelBarHint,
+        'lane.widthBadge' => t.contextMenu.widthBadge,
+        'lane.topChrome' => t.workspace.showWorkspaceTopBar,
+        _ => t.workspace.exitWorkspace,
+      },
+    ),
+    ContextMenuScopeDescriptor(
+      definition: buildCardMenuDefinition(
+        canEditLayout: true,
+        canFill: true,
+        canResize: true,
+        hasHide: true,
+        hiddenCardIds: const <String>[],
+      ),
+      title: t.contextMenu.scopeCard,
+      labelOf: (entry) => switch (entry.id) {
+        'card.toggle' => t.contextMenu.toggleCard,
+        'card.editLayout' => t.workspace.editLayout,
+        'card.fill' => t.workspace.fullWidthFullHeight,
+        'card.preset1x1' => '1×1',
+        'card.preset2x1' => '2×1',
+        'card.preset2x2' => '2×2',
+        'card.presetFull' => t.workspace.fullWidth,
+        _ => t.workspace.collapseFromPanel,
+      },
     ),
   ];
 }

@@ -335,21 +335,22 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
 
     void openAt(Offset position) {
       if (_busy || !mounted) return;
-      // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）——
+      // 走 [showContextMenu]（[CommonPopupRoute] 那份 FlClash 动画）——
       // 与本卡那张「路径操作」同一套：托盘从右键 / 长按那一点长出来、
-      // 放不下时自己朝上翻，不再是 Fluent 的原地淡入缩放。
+      // 放不下时自己朝上翻。顺序/显隐/pin 由右键菜单的偏好层决定。
       unawaited(
-        showCommonPopupMenu(
+        showContextMenu(
           context: context,
           position: position,
-          items: [
-            CommonPopupMenuItem(
+          definition: fileManagerTabMenuDefinition,
+          viewOf: (entry) => switch (entry.id) {
+            'fileManagerTab.pin' => ContextMenuEntryView(
               label: tab.pinned ? t.workspace.unpin : t.workspace.pinTab,
               onPressed: () => run(
                 (id) => fileManagerToggleTabPinned(id: id, tabId: tab.id),
               ),
             ),
-            CommonPopupMenuItem(
+            'fileManagerTab.newTab' => ContextMenuEntryView(
               label: t.workspace.newFromThisTab,
               onPressed: snapshot.canCreateTab
                   ? () => run(
@@ -361,7 +362,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                     )
                   : null,
             ),
-            CommonPopupMenuItem(
+            'fileManagerTab.duplicate' => ContextMenuEntryView(
               label: t.workspace.duplicateTab,
               onPressed: snapshot.canCreateTab
                   ? () => run(
@@ -369,15 +370,14 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                     )
                   : null,
             ),
-            const CommonPopupMenuItem.divider(),
-            CommonPopupMenuItem(
+            'fileManagerTab.close' => ContextMenuEntryView(
               label: t.workspace.closeTab,
               onPressed: tab.canClose
                   ? () =>
                         run((id) => fileManagerCloseTab(id: id, tabId: tab.id))
                   : null,
             ),
-            CommonPopupMenuItem(
+            'fileManagerTab.closeOthers' => ContextMenuEntryView(
               label: t.workspace.closeOtherTabs,
               onPressed: tab.canCloseOthers
                   ? () => run(
@@ -385,7 +385,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                     )
                   : null,
             ),
-            CommonPopupMenuItem(
+            'fileManagerTab.closeLeft' => ContextMenuEntryView(
               label: t.workspace.closeTabsLeft,
               onPressed: tab.canCloseLeft
                   ? () => run(
@@ -393,7 +393,7 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                     )
                   : null,
             ),
-            CommonPopupMenuItem(
+            _ => ContextMenuEntryView(
               label: t.workspace.closeTabsRight,
               onPressed: tab.canCloseRight
                   ? () => run(
@@ -401,22 +401,16 @@ extension _FileManagerCardNavigationPart on _FileManagerCardState {
                     )
                   : null,
             ),
-          ],
+          },
         ),
       );
     }
 
-    return GestureDetector(
+    return ContextMenuRegion(
       behavior: HitTestBehavior.opaque,
-      onSecondaryTapUp: _busy
-          ? null
-          : (details) => openAt(details.globalPosition),
-      onLongPressStart: _busy
-          ? null
-          : (details) {
-              HapticFeedback.selectionClick();
-              openAt(details.globalPosition);
-            },
+      hapticOnLongPress: true,
+      enabled: !_busy,
+      onOpen: (_, position) => openAt(position),
       child: child,
     );
   }

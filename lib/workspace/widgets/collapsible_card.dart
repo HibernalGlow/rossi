@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 import 'package:material_ui/material_ui.dart';
@@ -8,7 +7,9 @@ import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
-import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_region.dart';
+import 'package:zephyr/workspace/model/card_menu_definition.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
 import 'package:zephyr/widgets/expressive/expressive_icon_button.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
@@ -449,10 +450,13 @@ class CollapsibleCard extends StatelessWidget {
         : BorderRadius.circular(radius);
 
     return CardHeaderActionsHost(
-      builder: (context, headerActions) => _HeaderlessContextMenuRegion(
+      builder: (context, headerActions) => ContextMenuRegion(
+        // 卡片内部有 `TextField` / `InkWell` / 滚动视图，次键会被它们抢走，
+        // 所以要 `robustSecondaryTap`（照搬原来那份私有 Listener 实现）。
+        robustSecondaryTap: true,
         enableLongPress: !showLayoutControls,
-        onOpenMenu: (globalPosition) =>
-            _openContextMenu(context, globalPosition, layout),
+        onOpen: (regionContext, globalPosition) =>
+            _openContextMenu(regionContext, globalPosition, layout),
         child: Padding(
           padding: margin ?? EdgeInsets.zero,
           child: Material(
@@ -724,87 +728,81 @@ class CollapsibleCard extends StatelessWidget {
     CardLayoutScope? layout,
   ) {
     final hide = layout?.onHide ?? onHide;
-    final items = <CommonPopupMenuItem>[
-      CommonPopupMenuItem(
-        label: isExpanded
-            ? t.workspace.collapseNamed(title: title)
-            : '展开$title',
-        glyph: isExpanded ? AppGlyphs.fold : AppGlyphs.unfold,
-        onPressed: onToggle,
-      ),
-      if (layout?.onToggleEditing != null)
-        CommonPopupMenuItem(
-          label: layout!.editing ? '完成布局' : '自定义布局',
-          glyph: layout.editing ? AppGlyphs.checkCircle : AppGlyphs.gridPlus,
-          onPressed: layout.onToggleEditing,
-        ),
-    ];
-
-    if (layout?.onResize != null || layout?.onFillRemainingHeight != null) {
-      items.add(const CommonPopupMenuItem.divider());
-      if (layout?.onFillRemainingHeight != null) {
-        items.add(
-          CommonPopupMenuItem(
-            label: t.workspace.fullWidthFullHeight,
-            glyph: AppGlyphs.openInFull,
-            checked: layout!.fillRemainingHeight && layout.widthSpan == 4,
-            onPressed: layout.onFillRemainingHeight,
-          ),
-        );
-      }
-      if (layout?.onResize != null) {
-        for (final preset in [
-          (1, 1, '1×1'),
-          (2, 1, '2×1'),
-          (2, 2, '2×2'),
-          (4, 2, t.workspace.fullWidth),
-        ]) {
-          items.add(
-            CommonPopupMenuItem(
-              label: preset.$3,
-              checked:
-                  !layout!.fillRemainingHeight &&
-                  layout.widthSpan == preset.$1 &&
-                  layout.heightSpan == preset.$2,
-              onPressed: () => layout.onResize!(preset.$1, preset.$2),
-            ),
-          );
-        }
-      }
-    }
-
-    if (layout != null &&
-        layout.hiddenCards.isNotEmpty &&
-        layout.onRestoreCard != null) {
-      items.add(const CommonPopupMenuItem.divider());
-      for (final hidden in layout.hiddenCards) {
-        items.add(
-          CommonPopupMenuItem(
-            label: t.workspace.restoreNamed(title: hidden.title),
-            glyph: hidden.icon,
-            onPressed: () => layout.onRestoreCard!(hidden.id),
-          ),
-        );
-      }
-    }
-
-    if (hide != null) {
-      items.add(const CommonPopupMenuItem.divider());
-      items.add(
-        CommonPopupMenuItem(
-          label: t.workspace.collapseFromPanel,
-          glyph: AppGlyphs.eyeOff,
-          danger: true,
-          onPressed: hide,
-        ),
-      );
-    }
+    final hiddenCards = layout?.hiddenCards ?? const <HiddenCardEntry>[];
+    final definition = buildCardMenuDefinition(
+      canEditLayout: layout?.onToggleEditing != null,
+      canFill: layout?.onFillRemainingHeight != null,
+      canResize: layout?.onResize != null,
+      hasHide: hide != null,
+      hiddenCardIds: <String>[for (final hidden in hiddenCards) hidden.id],
+    );
 
     unawaited(
-      showCommonPopupMenu(
+      showContextMenu(
         context: context,
         position: globalPosition,
-        items: items,
+        definition: definition,
+        viewOf: (entry) {
+          switch (entry.id) {
+            case 'card.toggle':
+              return ContextMenuEntryView(
+                label: isExpanded
+                    ? t.workspace.collapseNamed(title: title)
+                    : t.contextMenu.expandItem(title: title),
+                glyph: isExpanded ? AppGlyphs.fold : AppGlyphs.unfold,
+                onPressed: onToggle,
+              );
+            case 'card.editLayout':
+              final editing = layout!.editing;
+              return ContextMenuEntryView(
+                label: editing
+                    ? t.contextMenu.finishLayout
+                    : t.contextMenu.customizeLayout,
+                glyph: editing ? AppGlyphs.checkCircle : AppGlyphs.gridPlus,
+                onPressed: layout.onToggleEditing,
+              );
+            case 'card.fill':
+              return ContextMenuEntryView(
+                label: t.workspace.fullWidthFullHeight,
+                glyph: AppGlyphs.openInFull,
+                checked: layout!.fillRemainingHeight && layout.widthSpan == 4,
+                onPressed: layout.onFillRemainingHeight,
+              );
+            case 'card.preset1x1':
+            case 'card.preset2x1':
+            case 'card.preset2x2':
+            case 'card.presetFull':
+              final (width, height, label) = switch (entry.id) {
+                'card.preset1x1' => (1, 1, '1×1'),
+                'card.preset2x1' => (2, 1, '2×1'),
+                'card.preset2x2' => (2, 2, '2×2'),
+                _ => (4, 2, t.workspace.fullWidth),
+              };
+              return ContextMenuEntryView(
+                label: label,
+                checked:
+                    !layout!.fillRemainingHeight &&
+                    layout.widthSpan == width &&
+                    layout.heightSpan == height,
+                onPressed: () => layout.onResize!(width, height),
+              );
+            case 'card.hide':
+              return ContextMenuEntryView(
+                label: t.workspace.collapseFromPanel,
+                glyph: AppGlyphs.eyeOff,
+                onPressed: hide,
+              );
+            default:
+              // `card.restore.<id>`：每次现场生成，按 id 找回那张卡。
+              final id = entry.id.substring('card.restore.'.length);
+              final hidden = hiddenCards.firstWhere((item) => item.id == id);
+              return ContextMenuEntryView(
+                label: t.workspace.restoreNamed(title: hidden.title),
+                glyph: hidden.icon,
+                onPressed: () => layout!.onRestoreCard!(hidden.id),
+              );
+          }
+        },
       ),
     );
   }
@@ -900,73 +898,6 @@ class CollapsibleCard extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// 保证无标题栏组件在任何内部子控件（缩略图、输入框、滑块、展墙）上右键或长按都能可靠弹出菜单。
-///
-/// 原因：内部 `TextField`、`InkWell` 或滚动视图在手势竞技场中可能赢走次键点击，
-/// 导致外层 `GestureDetector.onSecondaryTapUp` 不触发。这里用 `Listener` 直接观测
-/// 鼠标右键按下与抬起（位移除小于触控阈值即判定为右键点击），并配合长按手势与去重保护。
-class _HeaderlessContextMenuRegion extends StatefulWidget {
-  final Widget child;
-  final bool enableLongPress;
-  final ValueChanged<Offset> onOpenMenu;
-
-  const _HeaderlessContextMenuRegion({
-    required this.child,
-    required this.enableLongPress,
-    required this.onOpenMenu,
-  });
-
-  @override
-  State<_HeaderlessContextMenuRegion> createState() =>
-      _HeaderlessContextMenuRegionState();
-}
-
-class _HeaderlessContextMenuRegionState
-    extends State<_HeaderlessContextMenuRegion> {
-  Offset? _secondaryDownPosition;
-  DateTime? _lastOpenedAt;
-
-  void _trigger(Offset globalPosition) {
-    final now = DateTime.now();
-    if (_lastOpenedAt != null &&
-        now.difference(_lastOpenedAt!) < const Duration(milliseconds: 120)) {
-      return;
-    }
-    _lastOpenedAt = now;
-    widget.onOpenMenu(globalPosition);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (event) {
-        if (event.buttons == kSecondaryMouseButton) {
-          _secondaryDownPosition = event.position;
-        } else {
-          _secondaryDownPosition = null;
-        }
-      },
-      onPointerUp: (event) {
-        final down = _secondaryDownPosition;
-        _secondaryDownPosition = null;
-        if (down != null && (event.position - down).distance <= kTouchSlop) {
-          _trigger(event.position);
-        }
-      },
-      onPointerCancel: (_) => _secondaryDownPosition = null,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onSecondaryTapUp: (details) => _trigger(details.globalPosition),
-        onLongPressStart: widget.enableLongPress
-            ? (details) => _trigger(details.globalPosition)
-            : null,
-        child: widget.child,
-      ),
     );
   }
 }

@@ -32,6 +32,7 @@ ContextMenuEntryDefinition _entry(
   String id, {
   int group = 0,
   bool persistent = true,
+  bool available = true,
   bool dangerous = false,
   bool destructive = false,
   ContextMenuEntryCapabilities capabilities =
@@ -40,6 +41,7 @@ ContextMenuEntryDefinition _entry(
   id: id,
   group: group,
   persistent: persistent,
+  available: available,
   dangerous: dangerous,
   destructive: destructive,
   capabilities: capabilities,
@@ -78,6 +80,7 @@ void main() {
   _collapsed();
   _badOrder();
   _newAndDeletedEntries();
+  _unavailable();
   _ephemeral();
   _reorder();
   _json();
@@ -295,6 +298,31 @@ void _newAndDeletedEntries() {
     'demo.b',
     'demo.d',
   ]);
+}
+
+void _unavailable() {
+  final definition = _definition(
+    entries: <ContextMenuEntryDefinition>[
+      _entry('demo.a'),
+      _entry('demo.railOnly', available: false),
+      _entry('demo.b'),
+    ],
+  );
+  final plan = resolveContextMenu(definition: definition, layout: null);
+  checkEq('available=false 的项不渲染', _ids(plan.list), ['demo.a', 'demo.b']);
+
+  final layout = setContextMenuPin(
+    definition,
+    null,
+    'demo.railOnly',
+    ContextMenuPin.top,
+  );
+  final pinned = resolveContextMenu(definition: definition, layout: layout);
+  check('不可用项即使 pin 了也不渲染', pinned.topRows.isEmpty);
+  check(
+    '不可用项的偏好仍保留在 order/override 里',
+    layout.overrides.containsKey('demo.railOnly'),
+  );
 }
 
 void _ephemeral() {

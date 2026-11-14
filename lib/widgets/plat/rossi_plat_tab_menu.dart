@@ -2,7 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:plat/plat.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/model/context_menu/context_menu.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 
 /// 给 plat 的一条标签套上「右键 / 长按 → 换边打开 + 关闭」「中键 → 直接关闭」
 /// 「双击 → 宿主自己决定干什么（发现页用它关标签）」。
@@ -224,17 +225,25 @@ class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
     final rail = group.side != TabBarSide.top;
 
     final close = onClose;
-    // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
-    // 托盘从右键 / 长按那一点长出来，与工作台那排「更多」菜单同一套，
-    // 不再是 M2 `showMenu` 的纯淡入。
-    final items = <CommonPopupMenuItem>[
-      if (rail)
-        for (final (label, at) in [
-          (RossiPlatMenuLabel.above, index),
-          (RossiPlatMenuLabel.below, index + 1),
-        ])
-          CommonPopupMenuItem(
-            label: rossiPlatMenuLabel(label),
+    // 走 [showContextMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
+    // 托盘从右键 / 长按那一点长出来，与工作台那排「更多」菜单同一套。
+    // 竖向轨只给「上/下」两条，但 id 仍留在偏好里（`available: false`），
+    // 切回横向时用户排的位置还在。
+    final definition = buildPlatTabMenuDefinition(
+      rail: rail,
+      hasClose: close != null,
+    );
+    await showContextMenu(
+      context: context,
+      position: globalPosition,
+      definition: definition,
+      viewOf: (entry) {
+        if (entry.id == 'platTab.above' || entry.id == 'platTab.below') {
+          final above = entry.id == 'platTab.above';
+          return ContextMenuEntryView(
+            label: rossiPlatMenuLabel(
+              above ? RossiPlatMenuLabel.above : RossiPlatMenuLabel.below,
+            ),
             onPressed: detachable
                 ? () {
                     final tab = duplicateTab();
@@ -242,38 +251,58 @@ class _RossiPlatTabMenuRegionState extends State<RossiPlatTabMenuRegion> {
                     controller.insertTab(
                       tabGroupId: groupId,
                       tab: tab,
-                      index: at,
+                      index: above ? index : index + 1,
                     );
                   }
                 : null,
-          )
-      else
-        for (final entry in rossiPlatSplitSides.entries)
-          CommonPopupMenuItem(
-            label: rossiPlatMenuLabel(entry.key),
-            // 目标是**装这条标签的那个组**，不是标签自己：plat 的 `split` 拿
-            // leaf id 会返回 true 却什么也不改（实测树仍是 TabGroupSnapshot）。
-            onPressed: _canMove(entry.value, group)
-                ? () => controller.moveTabBeside(
-                    tabId: tabId,
-                    targetId: groupId,
-                    side: entry.value,
-                  )
-                : null,
-          ),
-      if (close != null) ...[
-        const CommonPopupMenuItem.divider(),
-        CommonPopupMenuItem(label: t.plat.closeTab, onPressed: close),
-      ],
-    ];
-
-    await showCommonPopupMenu(
-      context: context,
-      position: globalPosition,
-      items: items,
+          );
+        }
+        if (entry.id == 'platTab.close') {
+          return ContextMenuEntryView(label: t.plat.closeTab, onPressed: close);
+        }
+        // 剩下的两条是四个方向里的「左 / 右」。
+        final label = entry.id == 'platTab.leftOf'
+            ? RossiPlatMenuLabel.leftOf
+            : RossiPlatMenuLabel.rightOf;
+        final side = rossiPlatSplitSides[label]!;
+        return ContextMenuEntryView(
+          label: rossiPlatMenuLabel(label),
+          // 目标是**装这条标签的那个组**，不是标签自己：plat 的 `split` 拿
+          // leaf id 会返回 true 却什么也不改（实测树仍是 TabGroupSnapshot）。
+          onPressed: _canMove(side, group)
+              ? () => controller.moveTabBeside(
+                  tabId: tabId,
+                  targetId: groupId,
+                  side: side,
+                )
+              : null,
+        );
+      },
     );
   }
 }
+
+/// 发现页标签菜单的定义。
+///
+/// 竖向轨与横向分屏是**同一份偏好**（同一个 scope）：模式不同的项用
+/// `available` 临时不渲染，用户排的位置不会因为切模式被清掉。
+ContextMenuDefinition buildPlatTabMenuDefinition({
+  required bool rail,
+  bool hasClose = true,
+}) => ContextMenuDefinition(
+  scope: 'platTab',
+  entries: <ContextMenuEntryDefinition>[
+    ContextMenuEntryDefinition(id: 'platTab.above', available: rail),
+    ContextMenuEntryDefinition(id: 'platTab.below', available: rail),
+    ContextMenuEntryDefinition(id: 'platTab.leftOf', available: !rail),
+    ContextMenuEntryDefinition(id: 'platTab.rightOf', available: !rail),
+    ContextMenuEntryDefinition(
+      id: 'platTab.close',
+      group: 1,
+      available: hasClose,
+    ),
+  ],
+);
 
 /// 四个方向的菜单项，顺序即菜单顺序（上 / 下 / 左 / 右）。
 ///

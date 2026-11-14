@@ -3792,6 +3792,16 @@ class _Translations$contextMenu$en_US extends Translations$contextMenu$zh_CN {
 	@override String get scopePanelTab => 'Panel tab handle';
 	@override String get scopeFileManagerTab => 'File manager tabs';
 	@override String get scopeCard => 'Workspace cards';
+	@override String get dockLeft => 'Left';
+	@override String get dockRight => 'Right';
+	@override String get dockTop => 'Top';
+	@override String get dockBottom => 'Bottom';
+	@override String get widthBadge => 'Show lane width badge';
+	@override String panelBarDockTo({required Object label}) => 'Panel bar: docked at ${label}';
+	@override String expandItem({required Object title}) => 'Expand ${title}';
+	@override String get finishLayout => 'Finish layout';
+	@override String get customizeLayout => 'Customize layout';
+	@override String get toggleCard => 'Expand / collapse';
 }
 
 // Path: shelfMenu
@@ -7435,6 +7445,16 @@ extension on TranslationsEnUs {
 			'contextMenu.scopePanelTab' => 'Panel tab handle',
 			'contextMenu.scopeFileManagerTab' => 'File manager tabs',
 			'contextMenu.scopeCard' => 'Workspace cards',
+			'contextMenu.dockLeft' => 'Left',
+			'contextMenu.dockRight' => 'Right',
+			'contextMenu.dockTop' => 'Top',
+			'contextMenu.dockBottom' => 'Bottom',
+			'contextMenu.widthBadge' => 'Show lane width badge',
+			'contextMenu.panelBarDockTo' => ({required Object label}) => 'Panel bar: docked at ${label}',
+			'contextMenu.expandItem' => ({required Object title}) => 'Expand ${title}',
+			'contextMenu.finishLayout' => 'Finish layout',
+			'contextMenu.customizeLayout' => 'Customize layout',
+			'contextMenu.toggleCard' => 'Expand / collapse',
 			'shelfMenu.open' => 'Open',
 			'shelfMenu.resumeReading' => 'Resume reading',
 			'shelfMenu.openInFileManagerTab' => 'Open in a new file manager tab',
@@ -7630,6 +7650,8 @@ extension on TranslationsEnUs {
 			'bindingEditor.moveDown' => 'Move down',
 			'bindingEditor.collapse' => 'Collapse binding',
 			'bindingEditor.expand' => 'Expand binding',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.actions' => 'Actions',
 			'bindingEditor.actionList' => 'Actions',
 			'bindingEditor.bindingDetails' => 'Bindings',
@@ -7640,8 +7662,6 @@ extension on TranslationsEnUs {
 			'plat.openBelow' => 'Open below',
 			'plat.openLeft' => 'Open left',
 			'plat.openRight' => 'Open right',
-			_ => null,
-		} ?? switch (path) {
 			'plat.closeTab' => 'Close tab',
 			_ => null,
 		};

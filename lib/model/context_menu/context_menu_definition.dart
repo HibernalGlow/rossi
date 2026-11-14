@@ -54,6 +54,7 @@ class ContextMenuEntryDefinition {
     this.destructive = false,
     this.checked,
     this.persistent = true,
+    this.available = true,
     this.capabilities = const ContextMenuEntryCapabilities(),
   }) : assert(id.length > 0, 'id 不能为空'),
        assert(!destructive || dangerous, 'destructive 必须同时 dangerous');
@@ -78,6 +79,14 @@ class ContextMenuEntryDefinition {
 
   /// 参与用户偏好（排序/显隐/pin）。`false` = 每次现场生成，不进偏好。
   final bool persistent;
+
+  /// 这一次菜单里有没有这一项。
+  ///
+  /// 与 [persistent] 分工不同：模式差异（竖向轨只给「上/下」两条、
+  /// 卡片没有布局时不给尺寸预设）用 `available: false` 临时不渲染，
+  /// **但 id 仍然留在 order 里** —— 切回那个模式时用户排的位置还在。
+  /// 用户主动隐藏是 [ContextMenuItemOverride.visibility]，不是这个字段。
+  final bool available;
 
   final ContextMenuEntryCapabilities capabilities;
 }

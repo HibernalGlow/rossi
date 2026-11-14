@@ -21,8 +21,9 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/page/comic_info/models/comic_info_link_menu_definition.dart';
 
-import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 import 'package:zephyr/widgets/dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -286,21 +287,25 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       return;
     }
 
-    // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
-    // 托盘从长按那一点长出来，与工作台那排「更多」菜单同一套。
-    await showCommonPopupMenu(
+    // 走 [showContextMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
+    // 托盘从长按那一点长出来，与工作台那排「更多」菜单同一套；
+    // 顺序/显隐/pin 由右键菜单的偏好层决定。
+    await showContextMenu(
       context: context,
       position: position,
-      items: [
-        CommonPopupMenuItem(
+      definition: comicInfoLinkMenuDefinition,
+      viewOf: (entry) => switch (entry.id) {
+        'comicInfoLink.openExternal' => ContextMenuEntryView(
           label: t.webview.openInExternalBrowser,
+          glyph: AppGlyphs.openExternal,
           onPressed: () => unawaited(_openSourcePageExternally(url)),
         ),
-        CommonPopupMenuItem(
+        _ => ContextMenuEntryView(
           label: t.common.copy,
+          glyph: AppGlyphs.copy,
           onPressed: () => unawaited(_copySourcePageUrl(url)),
         ),
-      ],
+      },
     );
   }
 

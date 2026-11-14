@@ -54,26 +54,85 @@ Future<void> showContextMenu({
   viewOf,
   bool allowCustomizeEntry = true,
 }) async {
-  final settings = context.read<GlobalSettingCubit>().state.contextMenuSetting;
-  final plan = resolveContextMenu(
+  final resolved = buildContextMenuItems(
+    context: context,
     definition: definition,
-    layout: settings.scopes[definition.scope],
+    viewOf: viewOf,
+    allowCustomizeEntry: allowCustomizeEntry,
   );
+  await showCommonPopupMenu(
+    context: context,
+    position: position,
+    items: resolved.items,
+    header: resolved.header,
+    minWidth: resolved.minWidth,
+  );
+}
 
-  CommonPopupMenuItem itemOf(ContextMenuPlannedEntry planned) {
-    final entry = planned.entry;
+/// 解析好的菜单：可以直接喂给 `showCommonPopupMenu`，也可以放进
+/// `CommonPopupBox` 的 `popupBuilder`（泳道栏头那颗 ⋮ 就是后者）。
+class ContextMenuBuildResult {
+  const ContextMenuBuildResult({
+    required this.items,
+    this.header,
+    this.minWidth = 160,
+  });
+
+  final List<CommonPopupMenuItem> items;
+  final Widget? header;
+  final double minWidth;
+}
+
+/// 把「定义 + 偏好」翻译成 `CommonPopupMenuItem` 清单。
+///
+/// 有触发按钮的入口（`CommonPopupBox`）用它，再自己决定在哪儿弹；
+/// 右键/长按入口直接用 [showContextMenu]。
+ContextMenuBuildResult buildContextMenuItems({
+  required BuildContext context,
+  required ContextMenuDefinition definition,
+  required ContextMenuEntryView Function(ContextMenuEntryDefinition entry)
+  viewOf,
+  bool allowCustomizeEntry = true,
+}) => buildContextMenuItemsWith(
+  context: context,
+  definition: definition,
+  itemOf: (entry) {
     final view = viewOf(entry);
     return CommonPopupMenuItem(
       label: view.label,
       glyph: view.glyph,
-      checked: view.checked,
+      // 视图层优先；定义里的 checked 是「静态勾选」的兜底。
+      checked: view.checked ?? entry.checked,
       subItems: view.subItems,
       content: view.content,
       danger: entry.dangerous,
       // null 就是禁用态：项永远在场，只是有的不可点。
       onPressed: entry.enabled ? view.onPressed : null,
     );
-  }
+  },
+  allowCustomizeEntry: allowCustomizeEntry,
+);
+
+/// 与 [buildContextMenuItems] 相同，但**项本身由调用方给**。
+///
+/// 给泳道栏头那种「项里有子菜单 / 输入框，手写比映射更稳」的菜单做薄适配：
+/// 内容仍由它自己造，排序 / 显隐 / pin / 折叠走统一模型。
+ContextMenuBuildResult buildContextMenuItemsWith({
+  required BuildContext context,
+  required ContextMenuDefinition definition,
+  required CommonPopupMenuItem Function(ContextMenuEntryDefinition entry)
+  itemOf,
+  bool allowCustomizeEntry = true,
+}) {
+  final settings = context.read<GlobalSettingCubit>().state.contextMenuSetting;
+  final plan = resolveContextMenu(
+    definition: definition,
+    layout: settings.scopes[definition.scope],
+  );
+
+  /// 计划里的一项 → 实际菜单项（内容由调用方给）。
+  CommonPopupMenuItem itemFor(ContextMenuPlannedEntry planned) =>
+      itemOf(planned.entry);
 
   /// 组内不画线、组间画线。pin / 折叠打乱原组序后，分隔线只在同一区段内生效。
   List<CommonPopupMenuItem> withGroupDividers(
@@ -85,7 +144,7 @@ Future<void> showContextMenu({
       if (lastGroup != null && entry.entry.group != lastGroup) {
         result.add(const CommonPopupMenuItem.divider());
       }
-      result.add(itemOf(entry));
+      result.add(itemFor(entry));
       lastGroup = entry.entry.group;
     }
     return result;
@@ -142,14 +201,13 @@ Future<void> showContextMenu({
   if (settings.topStripEnabled && plan.topStrip.isNotEmpty) {
     header = CommonPopupMenuIconStrip(
       actions: <ContextMenuIconAction>[
-        for (final planned in plan.topStrip) _iconAction(planned, viewOf),
+        for (final planned in plan.topStrip)
+          _iconAction(planned, itemFor(planned)),
       ],
     );
   }
 
-  await showCommonPopupMenu(
-    context: context,
-    position: position,
+  return ContextMenuBuildResult(
     items: items,
     header: header,
     // 图标条那 6 格决定了下限，否则 4 格时菜单会被 160 夹得过窄。
@@ -159,17 +217,16 @@ Future<void> showContextMenu({
 
 ContextMenuIconAction _iconAction(
   ContextMenuPlannedEntry planned,
-  ContextMenuEntryView Function(ContextMenuEntryDefinition entry) viewOf,
+  CommonPopupMenuItem item,
 ) {
   final entry = planned.entry;
-  final view = viewOf(entry);
   return ContextMenuIconAction(
-    label: view.label,
+    label: item.label,
     // 没有图标的项不该被允许变成图标（定义层应给 `canIconOnly: false`）；
     // 真漏了也不隐藏它，用「更多」兜底画出来。
-    glyph: view.glyph ?? AppGlyphs.more,
+    glyph: item.glyph ?? AppGlyphs.more,
     dangerous: entry.dangerous,
-    enabled: entry.enabled && view.onPressed != null,
-    onPressed: view.onPressed,
+    enabled: entry.enabled && item.onPressed != null,
+    onPressed: item.onPressed,
   );
 }

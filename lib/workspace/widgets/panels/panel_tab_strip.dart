@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/workspace/model/panel_tab_menu_definition.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_panel_bar.dart';
@@ -492,65 +494,79 @@ class _PanelTabStripState extends State<PanelTabStrip> {
     void setBar(PanelBarLayout next) =>
         cubit.setLanePanelBar(widget.side.laneId, next);
 
-    // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）——
+    // 走 [showContextMenu]（[CommonPopupRoute] 那份 FlClash 动画）——
     // 与栏头那颗 ⋮、文件管理器那张「更多」同一套：托盘从右键 / 长按那一点
-    // 长出来、放不下时自己朝上翻，不再是 Fluent 的原地淡入缩放。
-    await showCommonPopupMenu(
+    // 长出来、放不下时自己朝上翻。顺序/显隐/pin 由右键菜单的偏好层决定。
+    await showContextMenu(
       context: context,
       position: globalPosition,
-      items: [
-        CommonPopupMenuItem(
-          label: pinned ? t.workspace.switchToFloating : t.workspace.pinHere,
-          glyph: AppGlyphs.pin,
-          checked: pinned,
-          onPressed: () => setBar(
-            bar.copyWith(
-              mode: pinned ? PanelBarMode.floating : PanelBarMode.pinned,
-            ),
-          ),
-        ),
-        CommonPopupMenuItem(
-          label: bar.constrained
-              ? t.workspace.allowLeaveLane
-              : t.workspace.confineToThisLane,
-          glyph: bar.constrained ? AppGlyphs.lock : AppGlyphs.lockOpen,
-          onPressed: () => setBar(bar.copyWith(constrained: !bar.constrained)),
-        ),
-        const CommonPopupMenuItem.divider(),
-        CommonPopupMenuItem(
-          // 父行只留短名，解释下移到第二行 —— 菜单宽只由 `label` 定，
-          // 整段塞进单行会被截断。
-          label: t.workspace.sortMode,
-          glyph: AppGlyphs.sort,
-          checked: sortMode,
-          content: CommonPopupMenuTitle(
-            label: t.workspace.sortMode,
-            hint: sortMode
-                ? t.workspace.restoreSwipeAfterExit
-                : t.workspace.longPressDragReorder,
-          ),
-          onPressed: () {
-            // 排序模式是**工作台交互**设置（不是本条 bar 的摆放），所以走
-            // `setInteraction` 而不是 `setLanePanelBar` —— 它管的是「所有
-            // 泳道的页签条」，跟着 `workspace_layout.json` 的 `interaction` 块走。
-            final interaction = cubit.state.interaction;
-            cubit.setInteraction(
-              interaction.copyWith(
-                panelTabSortMode: !interaction.panelTabSortMode,
+      definition: panelTabMenuDefinition,
+      viewOf: (entry) {
+        switch (entry.id) {
+          case 'panelTab.pin':
+            return ContextMenuEntryView(
+              label: pinned
+                  ? t.workspace.switchToFloating
+                  : t.workspace.pinHere,
+              glyph: AppGlyphs.pin,
+              checked: pinned,
+              onPressed: () => setBar(
+                bar.copyWith(
+                  mode: pinned ? PanelBarMode.floating : PanelBarMode.pinned,
+                ),
               ),
             );
-          },
-        ),
-        const CommonPopupMenuItem.divider(),
-        for (final dock in PanelBarDock.values)
-          CommonPopupMenuItem(
-            label: t.workspace.dockToLabel(label: _dockLabel(dock)),
-            glyph: _dockIcon(dock),
-            checked: pinned && bar.dock == dock,
-            onPressed: () =>
-                setBar(bar.copyWith(mode: PanelBarMode.pinned, dock: dock)),
-          ),
-      ],
+          case 'panelTab.constrain':
+            return ContextMenuEntryView(
+              label: bar.constrained
+                  ? t.workspace.allowLeaveLane
+                  : t.workspace.confineToThisLane,
+              glyph: bar.constrained ? AppGlyphs.lock : AppGlyphs.lockOpen,
+              onPressed: () =>
+                  setBar(bar.copyWith(constrained: !bar.constrained)),
+            );
+          case 'panelTab.sortMode':
+            return ContextMenuEntryView(
+              // 父行只留短名，解释下移到第二行 —— 菜单宽只由 `label` 定，
+              // 整段塞进单行会被截断。
+              label: t.workspace.sortMode,
+              glyph: AppGlyphs.sort,
+              checked: sortMode,
+              content: CommonPopupMenuTitle(
+                label: t.workspace.sortMode,
+                hint: sortMode
+                    ? t.workspace.restoreSwipeAfterExit
+                    : t.workspace.longPressDragReorder,
+              ),
+              onPressed: () {
+                // 排序模式是**工作台交互**设置（不是本条 bar 的摆放），所以走
+                // `setInteraction` 而不是 `setLanePanelBar` —— 它管的是
+                // 「所有泳道的页签条」，跟着 `workspace_layout.json` 的
+                // `interaction` 块走。
+                final interaction = cubit.state.interaction;
+                cubit.setInteraction(
+                  interaction.copyWith(
+                    panelTabSortMode: !interaction.panelTabSortMode,
+                  ),
+                );
+              },
+            );
+          default:
+            final dock = switch (entry.id) {
+              'panelTab.dockLeft' => PanelBarDock.left,
+              'panelTab.dockRight' => PanelBarDock.right,
+              'panelTab.dockTop' => PanelBarDock.top,
+              _ => PanelBarDock.bottom,
+            };
+            return ContextMenuEntryView(
+              label: t.workspace.dockToLabel(label: _dockLabel(dock)),
+              glyph: _dockIcon(dock),
+              checked: pinned && bar.dock == dock,
+              onPressed: () =>
+                  setBar(bar.copyWith(mode: PanelBarMode.pinned, dock: dock)),
+            );
+        }
+      },
     );
   }
 
@@ -562,10 +578,10 @@ class _PanelTabStripState extends State<PanelTabStrip> {
   };
 
   static String _dockLabel(PanelBarDock dock) => switch (dock) {
-    PanelBarDock.left => '左侧',
-    PanelBarDock.right => '右侧',
-    PanelBarDock.top => '顶部',
-    PanelBarDock.bottom => '底部',
+    PanelBarDock.left => t.contextMenu.dockLeft,
+    PanelBarDock.right => t.contextMenu.dockRight,
+    PanelBarDock.top => t.contextMenu.dockTop,
+    PanelBarDock.bottom => t.contextMenu.dockBottom,
   };
 
   // ── 插入位 ─────────────────────────────────────────────────────────────

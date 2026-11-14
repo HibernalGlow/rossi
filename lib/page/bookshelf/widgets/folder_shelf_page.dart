@@ -32,7 +32,8 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_grid.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/detail_columns.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
-import 'package:zephyr/widgets/common_popup.dart';
+import 'package:zephyr/page/bookshelf/model/folder_menu_definitions.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -635,21 +636,22 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
     String folderPath,
     Offset position,
   ) {
-    // 走 [showCommonPopupMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
-    // 托盘从右键 / 长按那一点长出来，与工作台那排「更多」菜单同一套，
-    // 不再是 Fluent 的原地淡入缩放。
+    // 走 [showContextMenu]（[CommonPopupRoute] 那份 FlClash 动画）：
+    // 托盘从右键 / 长按那一点长出来，与工作台那排「更多」菜单同一套；
+    // 顺序/显隐/pin 由右键菜单的偏好层决定。
     unawaited(
-      showCommonPopupMenu(
+      showContextMenu(
         context: context,
         position: position,
-        items: [
-          CommonPopupMenuItem(
+        definition: folderMenuDefinition,
+        viewOf: (entry) => switch (entry.id) {
+          'folder.rename' => ContextMenuEntryView(
             label: t.common.rename,
             glyph: AppGlyphs.edit,
             onPressed: () =>
                 _showRenameFolderDialog(context, folder, folderPath),
           ),
-          CommonPopupMenuItem(
+          'folder.moveTo' => ContextMenuEntryView(
             label: t.bookshelf.moveTo,
             glyph: AppGlyphs.folderCopy,
             onPressed: () => unawaited(
@@ -667,12 +669,12 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
               ),
             ),
           ),
-          CommonPopupMenuItem(
+          _ => ContextMenuEntryView(
             label: t.common.delete,
             glyph: AppGlyphs.delete,
             onPressed: () => _confirmDeleteSingleFolder(context, folderPath),
           ),
-        ],
+        },
       ),
     );
   }
@@ -773,25 +775,26 @@ class _FolderShelfPageContentState extends State<_FolderShelfPageContent>
     Offset position,
   ) {
     final key = '${info.from.trim()}:${info.id}';
-    // 与 _showFolderActions 同一套弹出动画（[showCommonPopupMenu]）。
+    // 与 _showFolderActions 同一套弹出动画与偏好层。
     unawaited(
-      showCommonPopupMenu(
+      showContextMenu(
         context: context,
         position: position,
-        items: [
-          CommonPopupMenuItem(
+        definition: folderComicMenuDefinition,
+        viewOf: (entry) => switch (entry.id) {
+          'folderComic.multiSelect' => ContextMenuEntryView(
             label: t.bookshelf.multiSelect,
             glyph: AppGlyphs.checklist,
             onPressed: () => context.read<FolderShelfBloc>().add(
               FolderShelfToggleComicSelection(key),
             ),
           ),
-          CommonPopupMenuItem(
+          _ => ContextMenuEntryView(
             label: t.common.delete,
             glyph: AppGlyphs.delete,
             onPressed: () => _confirmRemoveComic(context, info),
           ),
-        ],
+        },
       ),
     );
   }

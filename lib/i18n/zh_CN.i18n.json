@@ -3451,7 +3451,17 @@
     "scopeLane": "泳道栏头",
     "scopePanelTab": "面板栏把手",
     "scopeFileManagerTab": "文件管理页签",
-    "scopeCard": "工作台卡片"
+    "scopeCard": "工作台卡片",
+    "dockLeft": "左侧",
+    "dockRight": "右侧",
+    "dockTop": "顶部",
+    "dockBottom": "底部",
+    "widthBadge": "显示泳道宽度徽标",
+    "panelBarDockTo": "面板栏：停靠$label",
+    "expandItem": "展开$title",
+    "finishLayout": "完成布局",
+    "customizeLayout": "自定义布局",
+    "toggleCard": "展开 / 折叠"
   },
   "shelfMenu": {
     "open": "打开",
