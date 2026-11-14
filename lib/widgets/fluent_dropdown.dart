@@ -224,6 +224,15 @@ class _FluentPopupMenuButtonState<T> extends State<FluentPopupMenuButton<T>>
   }
 }
 
+/// How the selected item is highlighted inside a [FluentDropdown] menu.
+enum FluentDropdownIndicator {
+  /// Material-style checkmark on the left of the selected item.
+  checkmark,
+
+  /// Fluent UI-style vertical accent bar on the left of the selected item.
+  bar,
+}
+
 /// A Fluent UI-style dropdown button.
 ///
 /// The trigger looks like a bordered input box. Tapping it opens an overlay
@@ -236,6 +245,12 @@ class FluentDropdown<T> extends StatefulWidget {
     required this.displayValue,
     required this.items,
     required this.onChanged,
+    this.indicator = FluentDropdownIndicator.checkmark,
+    this.panelColor,
+    this.selectedColor,
+    this.hoverColor,
+    this.panelBorderRadius = 16,
+    this.itemBorderRadius = 10,
   });
 
   /// Currently selected value.
@@ -249,6 +264,24 @@ class FluentDropdown<T> extends StatefulWidget {
 
   /// Called when the user selects a different value.
   final ValueChanged<T>? onChanged;
+
+  /// Selected-item highlight style. Defaults to the settings-page checkmark.
+  final FluentDropdownIndicator indicator;
+
+  /// Menu panel background. Defaults to the theme surface color.
+  final Color? panelColor;
+
+  /// Selected item background. Defaults to a translucent primary container.
+  final Color? selectedColor;
+
+  /// Hovered item background. Defaults to a lighter translucent primary container.
+  final Color? hoverColor;
+
+  /// Menu panel corner radius.
+  final double panelBorderRadius;
+
+  /// Menu item corner radius.
+  final double itemBorderRadius;
 
   @override
   State<FluentDropdown<T>> createState() => _FluentDropdownState<T>();
@@ -339,6 +372,12 @@ class _FluentDropdownState<T> extends State<FluentDropdown<T>>
         onDismiss: _close,
         scaleAnimation: _scaleAnimation,
         opacityAnimation: _opacityAnimation,
+        indicator: widget.indicator,
+        panelColor: widget.panelColor,
+        selectedColor: widget.selectedColor,
+        hoverColor: widget.hoverColor,
+        panelBorderRadius: widget.panelBorderRadius,
+        itemBorderRadius: widget.itemBorderRadius,
       ),
     );
 
@@ -370,19 +409,24 @@ class _FluentDropdownState<T> extends State<FluentDropdown<T>>
     final textStyle =
         Theme.of(context).textTheme.bodyMedium ??
         DefaultTextStyle.of(context).style;
+    final textScaler = MediaQuery.textScalerOf(context);
     var maxItemWidth = 0.0;
     for (final label in widget.items.values) {
       final painter = TextPainter(
         text: TextSpan(text: label, style: textStyle),
         textDirection: Directionality.of(context),
+        textScaler: textScaler,
       )..layout();
       if (painter.width > maxItemWidth) {
         maxItemWidth = painter.width;
       }
     }
 
-    // 18 (checkmark) + 16 (spacing) + 24 (item horizontal padding) + 16 (menu padding)
-    final contentWidth = maxItemWidth + 18 + 16 + 24 + 16;
+    // indicator (18 checkmark / 3 bar) + 12 spacing + 24 item padding + 16 menu padding
+    final indicatorWidth = widget.indicator == FluentDropdownIndicator.bar
+        ? 3.0
+        : 18.0;
+    final contentWidth = maxItemWidth + indicatorWidth + 12 + 24 + 16;
     return contentWidth.clamp(triggerWidth, 340.0);
   }
 
@@ -393,44 +437,53 @@ class _FluentDropdownState<T> extends State<FluentDropdown<T>>
 
     final textStyle = Theme.of(context).textTheme.bodyMedium;
 
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        onTap: widget.onChanged == null ? null : _toggle,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 180),
-          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.35),
+    return PopScope(
+      canPop: !_isOpen,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
+        _close();
+      },
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: GestureDetector(
+          onTap: widget.onChanged == null ? null : _toggle,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 180),
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.35),
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  widget.displayValue,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textStyle?.copyWith(
-                    color: textColor.withValues(alpha: 0.9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    widget.displayValue,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textStyle?.copyWith(
+                      color: textColor.withValues(alpha: 0.9),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              AnimatedRotation(
-                turns: _isOpen ? 0.5 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: textColor.withValues(alpha: 0.5),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: textColor.withValues(alpha: 0.5),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -492,12 +545,18 @@ class _HoverableMenuItem extends StatefulWidget {
     required this.enabled,
     required this.onTap,
     required this.child,
+    required this.selectedColor,
+    required this.hoverColor,
+    required this.borderRadius,
   });
 
   final bool isSelected;
   final bool enabled;
   final VoidCallback? onTap;
   final Widget child;
+  final Color selectedColor;
+  final Color hoverColor;
+  final double borderRadius;
 
   @override
   State<_HoverableMenuItem> createState() => _HoverableMenuItemState();
@@ -508,7 +567,6 @@ class _HoverableMenuItemState extends State<_HoverableMenuItem> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return MouseRegion(
       onEnter: widget.enabled ? (_) => setState(() => _isHovered = true) : null,
       onExit: widget.enabled ? (_) => setState(() => _isHovered = false) : null,
@@ -518,11 +576,11 @@ class _HoverableMenuItemState extends State<_HoverableMenuItem> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? colorScheme.primaryContainer.withValues(alpha: 0.5)
+                ? widget.selectedColor
                 : _isHovered
-                ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+                ? widget.hoverColor
                 : null,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
           child: widget.child,
         ),
@@ -531,30 +589,108 @@ class _HoverableMenuItemState extends State<_HoverableMenuItem> {
   }
 }
 
-class _MenuPanel<T> extends StatelessWidget {
+class _MenuPanel<T> extends StatefulWidget {
   const _MenuPanel({
     required this.menuWidth,
     required this.entries,
     required this.onSelected,
+    this.indicator = FluentDropdownIndicator.checkmark,
+    this.panelColor,
+    this.selectedColor,
+    this.hoverColor,
+    this.panelBorderRadius = 16,
+    this.itemBorderRadius = 10,
   });
 
   final double menuWidth;
   final List<_MenuEntry<T>> entries;
   final ValueChanged<T> onSelected;
+  final FluentDropdownIndicator indicator;
+  final Color? panelColor;
+  final Color? selectedColor;
+  final Color? hoverColor;
+  final double panelBorderRadius;
+  final double itemBorderRadius;
+
+  @override
+  State<_MenuPanel<T>> createState() => _MenuPanelState<T>();
+}
+
+class _MenuPanelState<T> extends State<_MenuPanel<T>> {
+  ScrollController? _scrollController;
+  List<double>? _itemHeights;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_scrollController != null) {
+      return;
+    }
+
+    final textStyle =
+        Theme.of(context).textTheme.bodyMedium ??
+        DefaultTextStyle.of(context).style;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final indicatorWidth = widget.indicator == FluentDropdownIndicator.bar
+        ? 3.0
+        : 18.0;
+    // menu padding 16 + item padding 24 + indicator + gap 12 + 4px safety
+    // (scrollbar/rounding can make the real text width a couple px narrower)
+    final textWidth = (widget.menuWidth - 16 - 24 - indicatorWidth - 12 - 4)
+        .clamp(1.0, double.infinity);
+
+    final heights = <double>[];
+    var selectedOffset = 0.0;
+    var selectedIndex = -1;
+
+    for (var i = 0; i < widget.entries.length; i++) {
+      final entry = widget.entries[i];
+      final label = _extractText(entry.title) ?? '';
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: textStyle),
+        textDirection: Directionality.of(context),
+        textScaler: textScaler,
+      )..layout(maxWidth: textWidth);
+      final contentHeight = painter.height > 20 ? painter.height : 20.0;
+      if (entry.isSelected && selectedIndex < 0) {
+        selectedIndex = i;
+        selectedOffset = heights.fold(0.0, (sum, height) => sum + height);
+      }
+      heights.add(contentHeight + 20);
+    }
+
+    _itemHeights = heights;
+    _scrollController = ScrollController(
+      initialScrollOffset: selectedIndex > 0 ? selectedOffset : 0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final panelColor = widget.panelColor ?? colorScheme.surface;
+    final selectedColor =
+        widget.selectedColor ??
+        colorScheme.primaryContainer.withValues(alpha: 0.5);
+    final hoverColor =
+        widget.hoverColor ??
+        colorScheme.primaryContainer.withValues(alpha: 0.35);
 
     return Material(
       type: MaterialType.transparency,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(widget.panelBorderRadius),
       child: Container(
-        width: menuWidth,
+        width: widget.menuWidth,
         constraints: const BoxConstraints(maxHeight: 320),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: panelColor,
+          borderRadius: BorderRadius.circular(widget.panelBorderRadius),
           border: Border.all(
             color: colorScheme.outline.withValues(alpha: 0.25),
           ),
@@ -567,18 +703,24 @@ class _MenuPanel<T> extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(widget.panelBorderRadius),
           child: ListView.builder(
+            controller: _scrollController,
             shrinkWrap: true,
             padding: const EdgeInsets.all(8),
-            itemCount: entries.length,
+            itemCount: widget.entries.length,
+            itemExtentBuilder: (index, dimensions) => _itemHeights![index],
             itemBuilder: (context, index) {
-              final entry = entries[index];
-              final showCheckmark = entry.isSelected;
+              final entry = widget.entries[index];
               return _HoverableMenuItem(
-                isSelected: showCheckmark,
+                isSelected: entry.isSelected,
                 enabled: entry.enabled,
-                onTap: entry.enabled ? () => onSelected(entry.value) : null,
+                onTap: entry.enabled
+                    ? () => widget.onSelected(entry.value)
+                    : null,
+                selectedColor: selectedColor,
+                hoverColor: hoverColor,
+                borderRadius: widget.itemBorderRadius,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -591,6 +733,18 @@ class _MenuPanel<T> extends StatelessWidget {
                         ),
                         child: entry.leading!,
                       )
+                    else if (widget.indicator == FluentDropdownIndicator.bar)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 3,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: entry.isSelected
+                              ? colorScheme.primary
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      )
                     else
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 180),
@@ -600,7 +754,7 @@ class _MenuPanel<T> extends StatelessWidget {
                             child: child,
                           );
                         },
-                        child: showCheckmark
+                        child: entry.isSelected
                             ? Icon(
                                 Icons.check,
                                 key: const ValueKey('check'),
@@ -654,6 +808,12 @@ class _MenuOverlay<T> extends StatelessWidget {
     required this.onDismiss,
     required this.scaleAnimation,
     required this.opacityAnimation,
+    this.indicator = FluentDropdownIndicator.checkmark,
+    this.panelColor,
+    this.selectedColor,
+    this.hoverColor,
+    this.panelBorderRadius = 16,
+    this.itemBorderRadius = 10,
   });
 
   final LayerLink layerLink;
@@ -666,45 +826,58 @@ class _MenuOverlay<T> extends StatelessWidget {
   final VoidCallback onDismiss;
   final Animation<double> scaleAnimation;
   final Animation<double> opacityAnimation;
+  final FluentDropdownIndicator indicator;
+  final Color? panelColor;
+  final Color? selectedColor;
+  final Color? hoverColor;
+  final double panelBorderRadius;
+  final double itemBorderRadius;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: onDismiss,
-      child: Stack(
-        children: [
-          CompositedTransformFollower(
-            link: layerLink,
-            showWhenUnlinked: false,
-            offset: alignTop
-                ? Offset(alignRight ? 0 : 0, -6)
-                : Offset(alignRight ? 0 : 0, triggerSize.height + 6),
-            targetAnchor: alignTop
-                ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
-                : (alignRight ? Alignment.topRight : Alignment.topLeft),
-            followerAnchor: alignTop
-                ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
-                : (alignRight ? Alignment.topRight : Alignment.topLeft),
-            child: FadeTransition(
-              opacity: opacityAnimation,
-              child: ScaleTransition(
-                alignment: alignTop
-                    ? (alignRight
-                          ? Alignment.bottomRight
-                          : Alignment.bottomLeft)
-                    : (alignRight ? Alignment.topRight : Alignment.topLeft),
-                scale: scaleAnimation,
-                child: _MenuPanel(
-                  menuWidth: menuWidth,
-                  entries: entries,
-                  onSelected: onSelected,
-                ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onDismiss,
+            onPanStart: (_) {},
+          ),
+        ),
+        CompositedTransformFollower(
+          link: layerLink,
+          showWhenUnlinked: false,
+          offset: alignTop
+              ? const Offset(0, -6)
+              : Offset(0, triggerSize.height + 6),
+          targetAnchor: alignTop
+              ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
+              : (alignRight ? Alignment.topRight : Alignment.topLeft),
+          followerAnchor: alignTop
+              ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
+              : (alignRight ? Alignment.topRight : Alignment.topLeft),
+          child: FadeTransition(
+            opacity: opacityAnimation,
+            child: ScaleTransition(
+              alignment: alignTop
+                  ? (alignRight ? Alignment.bottomRight : Alignment.bottomLeft)
+                  : (alignRight ? Alignment.topRight : Alignment.topLeft),
+              scale: scaleAnimation,
+              child: _MenuPanel(
+                menuWidth: menuWidth,
+                entries: entries,
+                onSelected: onSelected,
+                indicator: indicator,
+                panelColor: panelColor,
+                selectedColor: selectedColor,
+                hoverColor: hoverColor,
+                panelBorderRadius: panelBorderRadius,
+                itemBorderRadius: itemBorderRadius,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

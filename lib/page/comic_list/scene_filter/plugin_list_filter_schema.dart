@@ -73,7 +73,10 @@ class PluginChoiceField {
     );
   }
 
-  bool get isChoiceField => kind == 'choice' && key.trim().isNotEmpty;
+  bool get isChoiceField =>
+      (kind == 'choice' || kind == 'dropdown') && key.trim().isNotEmpty;
+
+  bool get isDropdownField => kind == 'dropdown';
 
   PluginChoiceOption? resolveOption({
     String? requestedValue,
