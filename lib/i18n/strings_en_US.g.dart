@@ -3757,6 +3757,9 @@ class _Translations$contextMenu$en_US extends Translations$contextMenu$zh_CN {
 	@override String get more => 'More';
 	@override String get customizeThisMenu => 'Customize this menu…';
 	@override String get customizeTitle => 'Customize context menus';
+	@override String get previewTitle => 'Preview';
+	@override String get previewHint => 'Live';
+	@override String get previewEmpty => 'All items are hidden';
 	@override String get settingsSubtitle => 'Reorder, collapse, hide and pin items';
 	@override String get topSection => 'Pinned to top';
 	@override String get listSection => 'Menu items';
@@ -7410,6 +7413,9 @@ extension on TranslationsEnUs {
 			'contextMenu.more' => 'More',
 			'contextMenu.customizeThisMenu' => 'Customize this menu…',
 			'contextMenu.customizeTitle' => 'Customize context menus',
+			'contextMenu.previewTitle' => 'Preview',
+			'contextMenu.previewHint' => 'Live',
+			'contextMenu.previewEmpty' => 'All items are hidden',
 			'contextMenu.settingsSubtitle' => 'Reorder, collapse, hide and pin items',
 			'contextMenu.topSection' => 'Pinned to top',
 			'contextMenu.listSection' => 'Menu items',
@@ -7647,11 +7653,11 @@ extension on TranslationsEnUs {
 			'bindingEditor.editor' => 'Editor',
 			'bindingEditor.modal' => 'Dialog',
 			'bindingEditor.moveUp' => 'Move up',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.moveDown' => 'Move down',
 			'bindingEditor.collapse' => 'Collapse binding',
 			'bindingEditor.expand' => 'Expand binding',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.actions' => 'Actions',
 			'bindingEditor.actionList' => 'Actions',
 			'bindingEditor.bindingDetails' => 'Bindings',

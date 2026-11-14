@@ -1,13 +1,15 @@
-/// 所有可自定义菜单的**注册表** —— 设置页与「自定义此菜单…」共用。
+/// 所有可自定义菜单的**注册表** —— 设置页、实时预览与「自定义此菜单…」共用。
 ///
 /// 放在 UI 层（而不是 `lib/model/context_menu/`）是刻意的：每个 scope 的文案
-/// 要 `t.*`，而 `lib/model/` 那一层必须保持纯 Dart、能被 `dart run` 直接跑。
+/// 与图标都要 `t.*` / `Glyph`，而 `lib/model/` 那一层必须保持纯 Dart、能被
+/// `dart run` 直接跑。
 ///
-/// 新增菜单时在这里登记一条：定义（预览用，全部可用）+ 标题 + 单行文案。
-/// 预览定义只影响设置页里能看到哪些项，不影响真实菜单的 enabled/danger。
+/// 新增菜单时在这里登记一条：定义（预览用，全部可用）+ 标题 + 文案 + 图标。
+/// 预览定义只影响设置界面里能看到哪些项，不影响真实菜单的 enabled/danger。
 library;
 
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/model/context_menu/context_menu.dart';
 import 'package:zephyr/page/bookshelf/model/folder_menu_definitions.dart';
 import 'package:zephyr/page/comic_info/models/comic_info_link_menu_definition.dart';
@@ -29,6 +31,7 @@ class ContextMenuScopeDescriptor {
     required this.definition,
     required this.title,
     required this.labelOf,
+    this.glyphOf,
   });
 
   /// 预览定义：条目齐全、全部可用，用来摆顺序与显隐。
@@ -40,6 +43,9 @@ class ContextMenuScopeDescriptor {
   /// 这一项叫什么。真实菜单的文案可能随条目状态变（「继续阅读」/「收藏」），
   /// 设置页用预览输入的措辞即可。
   final String Function(ContextMenuEntryDefinition entry) labelOf;
+
+  /// 这一项画什么图标。预览里的顶部图标条要靠它，否则只能看到占位符。
+  final Glyph? Function(ContextMenuEntryDefinition entry)? glyphOf;
 }
 
 /// 预览用的收藏/历史输入：两条只在历史卡出现的项也摆出来。
@@ -73,6 +79,10 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         kind: _shelfPreview.kind,
         isFavorite: _shelfPreview.isFavorite,
       ),
+      glyphOf: (entry) => shelfEntryActionIcon(
+        shelfEntryActionOfId(entry.id),
+        kind: _shelfPreview.kind,
+      ),
     ),
     ContextMenuScopeDescriptor(
       definition: fileManagerDefinition,
@@ -81,6 +91,8 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         fileManagerActionOfId(entry.id),
         input: _fileManagerPreview,
       ),
+      glyphOf: (entry) =>
+          fileManagerEntryActionIcon(fileManagerActionOfId(entry.id)),
     ),
     ContextMenuScopeDescriptor(
       definition: folderMenuDefinition,
@@ -90,6 +102,11 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         'folder.moveTo' => t.bookshelf.moveTo,
         _ => t.common.delete,
       },
+      glyphOf: (entry) => switch (entry.id) {
+        'folder.rename' => AppGlyphs.edit,
+        'folder.moveTo' => AppGlyphs.folderCopy,
+        _ => AppGlyphs.delete,
+      },
     ),
     ContextMenuScopeDescriptor(
       definition: folderComicMenuDefinition,
@@ -98,6 +115,10 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         'folderComic.multiSelect' => t.bookshelf.multiSelect,
         _ => t.common.delete,
       },
+      glyphOf: (entry) => switch (entry.id) {
+        'folderComic.multiSelect' => AppGlyphs.checklist,
+        _ => AppGlyphs.delete,
+      },
     ),
     ContextMenuScopeDescriptor(
       definition: comicInfoLinkMenuDefinition,
@@ -105,6 +126,10 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
       labelOf: (entry) => switch (entry.id) {
         'comicInfoLink.openExternal' => t.webview.openInExternalBrowser,
         _ => t.common.copy,
+      },
+      glyphOf: (entry) => switch (entry.id) {
+        'comicInfoLink.openExternal' => AppGlyphs.openExternal,
+        _ => AppGlyphs.copy,
       },
     ),
     ContextMenuScopeDescriptor(
@@ -117,6 +142,8 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         'platTab.rightOf' => rossiPlatMenuLabel(RossiPlatMenuLabel.rightOf),
         _ => t.plat.closeTab,
       },
+      // 这一份菜单本来就没有图标。
+      glyphOf: (entry) => null,
     ),
     ContextMenuScopeDescriptor(
       definition: fileManagerTabMenuDefinition,
@@ -130,6 +157,8 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         'fileManagerTab.closeLeft' => t.workspace.closeTabsLeft,
         _ => t.workspace.closeTabsRight,
       },
+      // 这一份菜单本来就没有图标。
+      glyphOf: (entry) => null,
     ),
     ContextMenuScopeDescriptor(
       definition: panelTabMenuDefinition,
@@ -149,6 +178,13 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         ),
         _ => t.workspace.dockToLabel(label: t.contextMenu.dockBottom),
       },
+      glyphOf: (entry) => switch (entry.id) {
+        'panelTab.pin' => AppGlyphs.pin,
+        'panelTab.constrain' => AppGlyphs.lock,
+        'panelTab.sortMode' => AppGlyphs.sort,
+        'panelTab.dockLeft' || 'panelTab.dockRight' => AppGlyphs.columnsTwo,
+        _ => AppGlyphs.rowsTwo,
+      },
     ),
     ContextMenuScopeDescriptor(
       definition: buildLaneMenuDefinition(hasPanelSide: true),
@@ -162,6 +198,16 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         'lane.widthBadge' => t.contextMenu.widthBadge,
         'lane.topChrome' => t.workspace.showWorkspaceTopBar,
         _ => t.workspace.exitWorkspace,
+      },
+      glyphOf: (entry) => switch (entry.id) {
+        'lane.panelEditMode' => AppGlyphs.sort,
+        'lane.solo' => AppGlyphs.target,
+        'lane.collapse' => AppGlyphs.fold,
+        'lane.width' => AppGlyphs.resize,
+        'lane.panelBar' => AppGlyphs.pin,
+        'lane.widthBadge' => AppGlyphs.resize,
+        'lane.topChrome' => AppGlyphs.eye,
+        _ => AppGlyphs.arrowBack,
       },
     ),
     ContextMenuScopeDescriptor(
@@ -182,6 +228,13 @@ List<ContextMenuScopeDescriptor> contextMenuScopeCatalog() {
         'card.preset2x2' => '2×2',
         'card.presetFull' => t.workspace.fullWidth,
         _ => t.workspace.collapseFromPanel,
+      },
+      glyphOf: (entry) => switch (entry.id) {
+        'card.toggle' => AppGlyphs.unfold,
+        'card.editLayout' => AppGlyphs.gridPlus,
+        'card.fill' => AppGlyphs.openInFull,
+        'card.hide' => AppGlyphs.eyeOff,
+        _ => null,
       },
     ),
   ];

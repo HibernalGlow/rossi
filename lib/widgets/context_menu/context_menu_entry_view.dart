@@ -111,6 +111,20 @@ ContextMenuBuildResult buildContextMenuItems({
     );
   },
   allowCustomizeEntry: allowCustomizeEntry,
+  // 从真实菜单进来的编辑入口：预览直接用这一份 viewOf 的文案与图标，
+  // 连「继续阅读 / 收藏」这种随状态变的措辞都是真的。
+  customizeItemBuilder: (definition) => CommonPopupMenuItem(
+    label: t.contextMenu.customizeThisMenu,
+    glyph: AppGlyphs.sliders,
+    onPressed: () => unawaited(
+      showContextMenuCustomizeDialog(
+        context,
+        definition: definition,
+        labelOf: (entry) => viewOf(entry).label,
+        glyphOf: (entry) => viewOf(entry).glyph,
+      ),
+    ),
+  ),
 );
 
 /// 与 [buildContextMenuItems] 相同，但**项本身由调用方给**。
@@ -123,6 +137,8 @@ ContextMenuBuildResult buildContextMenuItemsWith({
   required CommonPopupMenuItem Function(ContextMenuEntryDefinition entry)
   itemOf,
   bool allowCustomizeEntry = true,
+  CommonPopupMenuItem Function(ContextMenuDefinition definition)?
+  customizeItemBuilder,
 }) {
   final settings = context.read<GlobalSettingCubit>().state.contextMenuSetting;
   final plan = resolveContextMenu(
@@ -181,13 +197,14 @@ ContextMenuBuildResult buildContextMenuItemsWith({
 
   if (allowCustomizeEntry && settings.customizeEntryVisible) {
     sections.add(<CommonPopupMenuItem>[
-      CommonPopupMenuItem(
-        label: t.contextMenu.customizeThisMenu,
-        glyph: AppGlyphs.sliders,
-        onPressed: () => unawaited(
-          showContextMenuCustomizeDialog(context, definition: definition),
-        ),
-      ),
+      customizeItemBuilder?.call(definition) ??
+          CommonPopupMenuItem(
+            label: t.contextMenu.customizeThisMenu,
+            glyph: AppGlyphs.sliders,
+            onPressed: () => unawaited(
+              showContextMenuCustomizeDialog(context, definition: definition),
+            ),
+          ),
     ]);
   }
 

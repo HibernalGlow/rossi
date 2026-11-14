@@ -10449,6 +10449,15 @@ class Translations$contextMenu$zh_CN {
 	/// zh-CN: '自定义右键菜单'
 	String get customizeTitle => '自定义右键菜单';
 
+	/// zh-CN: '预览'
+	String get previewTitle => '预览';
+
+	/// zh-CN: '实时'
+	String get previewHint => '实时';
+
+	/// zh-CN: '所有项都被隐藏了'
+	String get previewEmpty => '所有项都被隐藏了';
+
 	/// zh-CN: '调整顺序、折叠、隐藏与固定位置'
 	String get settingsSubtitle => '调整顺序、折叠、隐藏与固定位置';
 
@@ -14603,6 +14612,9 @@ extension on Translations {
 			'contextMenu.more' => '更多',
 			'contextMenu.customizeThisMenu' => '自定义此菜单…',
 			'contextMenu.customizeTitle' => '自定义右键菜单',
+			'contextMenu.previewTitle' => '预览',
+			'contextMenu.previewHint' => '实时',
+			'contextMenu.previewEmpty' => '所有项都被隐藏了',
 			'contextMenu.settingsSubtitle' => '调整顺序、折叠、隐藏与固定位置',
 			'contextMenu.topSection' => '顶部固定',
 			'contextMenu.listSection' => '菜单列表',
@@ -14840,11 +14852,11 @@ extension on Translations {
 			'bindingEditor.editor' => '编辑器',
 			'bindingEditor.modal' => '对话框',
 			'bindingEditor.moveUp' => '上移',
+			_ => null,
+		} ?? switch (path) {
 			'bindingEditor.moveDown' => '下移',
 			'bindingEditor.collapse' => '收起绑定',
 			'bindingEditor.expand' => '展开绑定',
-			_ => null,
-		} ?? switch (path) {
 			'bindingEditor.actions' => '动作',
 			'bindingEditor.actionList' => '动作列表',
 			'bindingEditor.bindingDetails' => '绑定详情',
