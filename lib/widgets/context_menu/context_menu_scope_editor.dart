@@ -22,12 +22,16 @@ class ContextMenuScopeEditor extends StatelessWidget {
     super.key,
     required this.definition,
     required this.labelOf,
+    this.glyphOf,
   });
 
   final ContextMenuDefinition definition;
 
   /// 这一项叫什么（设置界面用；真实菜单的文案可能随条目状态变）。
   final String Function(ContextMenuEntryDefinition entry) labelOf;
+
+  /// 这一项画什么图标。有就给行首画出来，便于在编辑态里认出是哪一项。
+  final Glyph? Function(ContextMenuEntryDefinition entry)? glyphOf;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +49,7 @@ class ContextMenuScopeEditor extends StatelessWidget {
         ...topEntries,
         ...plan.list,
         ...plan.collapsed,
+        ...plan.bottomStrip,
         ...plan.bottomRows,
       ])
         entry.entry.id,
@@ -55,6 +60,8 @@ class ContextMenuScopeEditor extends StatelessWidget {
     ];
 
     return CustomScrollView(
+      // 卡片按内容长高（短菜单不撑成一大块），超过上限才在内部滚动。
+      shrinkWrap: true,
       slivers: <Widget>[
         _sectionHeader(context, t.contextMenu.topSection),
         _reorderableSection(
@@ -157,6 +164,8 @@ class ContextMenuScopeEditor extends StatelessWidget {
           pin: planned.pin,
           iconOnly: planned.iconOnly,
           index: index,
+          bucket: bucket,
+          count: entries.length,
         );
       },
     );
@@ -192,11 +201,14 @@ class ContextMenuScopeEditor extends StatelessWidget {
     required ContextMenuPin pin,
     required bool iconOnly,
     int? index,
+    ContextMenuBucket? bucket,
+    int? count,
   }) {
     final scheme = Theme.of(context).colorScheme;
     final hidden = visibility == ContextMenuVisibility.hidden;
-    return Container(
-      key: key ?? ValueKey('hidden/${entry.id}'),
+    final glyph = glyphOf?.call(entry);
+
+    final content = Container(
       margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
@@ -204,6 +216,7 @@ class ContextMenuScopeEditor extends StatelessWidget {
       ),
       child: ListTile(
         dense: true,
+        leading: glyph == null ? null : GlyphIcon(glyph, size: 20),
         title: Text(
           labelOf(entry),
           maxLines: 1,
@@ -232,18 +245,40 @@ class ContextMenuScopeEditor extends StatelessWidget {
                 icon: const GlyphIcon(AppGlyphs.eye, size: 18),
               ),
             if (entry.persistent)
-              _optionsMenu(context, entry, visibility, pin, iconOnly),
-            if (index != null)
-              ReorderableDragStartListener(
+              _optionsMenu(
+                context,
+                entry,
+                visibility,
+                pin,
+                iconOnly,
                 index: index,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: GlyphIcon(AppGlyphs.dragHandle, size: 18),
-                ),
+                bucket: bucket,
+                count: count,
+              ),
+            if (index != null)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: GlyphIcon(AppGlyphs.dragHandle, size: 18),
               ),
           ],
         ),
       ),
+    );
+
+    if (index == null) {
+      return KeyedSubtree(
+        key: key ?? ValueKey('hidden/${entry.id}'),
+        child: content,
+      );
+    }
+
+    // 整行都能拖，不再只认那颗小手柄：手柄仍画着当提示，但
+    // `ImmediateMultiDragGestureRecognizer` 在指针没位移时不会吃掉点击，
+    // 所以行里的「⋯」按钮照常可用。
+    return ReorderableDragStartListener(
+      key: key ?? ValueKey('${definition.scope}/${entry.id}'),
+      index: index,
+      child: content,
     );
   }
 
@@ -252,9 +287,15 @@ class ContextMenuScopeEditor extends StatelessWidget {
     ContextMenuEntryDefinition entry,
     ContextMenuVisibility visibility,
     ContextMenuPin pin,
-    bool iconOnly,
-  ) {
+    bool iconOnly, {
+    int? index,
+    ContextMenuBucket? bucket,
+    int? count,
+  }) {
     final capabilities = entry.capabilities;
+    final canMoveUp = index != null && bucket != null && index > 0;
+    final canMoveDown =
+        index != null && bucket != null && count != null && index < count - 1;
     return CommonPopupBox<void>(
       targetBuilder: (open) => IconButton(
         tooltip: t.common.edit,
@@ -328,6 +369,25 @@ class ContextMenuScopeEditor extends StatelessWidget {
               checked: iconOnly,
               onPressed: capabilities.canIconOnly
                   ? () => _setIconOnly(context, entry.id, !iconOnly)
+                  : null,
+            ),
+          ],
+          // 拖拽之外的兜底：两端就灰掉。鼠标拖不顺手（或触控板点不准）时
+          // 这两个仍然能把顺序调好。
+          if (index != null && bucket != null) ...[
+            const CommonPopupMenuItem.divider(),
+            CommonPopupMenuItem(
+              label: t.contextMenu.moveUp,
+              glyph: AppGlyphs.arrowUp,
+              onPressed: canMoveUp
+                  ? () => _reorder(context, bucket, index, index - 1)
+                  : null,
+            ),
+            CommonPopupMenuItem(
+              label: t.contextMenu.moveDown,
+              glyph: AppGlyphs.arrowDown,
+              onPressed: canMoveDown
+                  ? () => _reorder(context, bucket, index, index + 1)
                   : null,
             ),
           ],

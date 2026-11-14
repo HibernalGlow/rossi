@@ -18,6 +18,7 @@ import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/model/context_menu/context_menu.dart';
 import 'package:zephyr/widgets/common_popup.dart';
 import 'package:zephyr/widgets/context_menu/context_menu_customize_dialog.dart';
+import 'package:zephyr/widgets/context_menu/context_menu_host.dart';
 import 'package:zephyr/widgets/context_menu/context_menu_icon_strip.dart';
 
 /// 一个菜单项**长什么样**。定义层只管语义，这一层才碰 Flutter。
@@ -46,27 +47,28 @@ class ContextMenuEntryView {
 }
 
 /// 在 [position]（全局坐标）处弹出这个菜单。
+///
+/// 卡片内容是 [ContextMenuHost]：菜单里的「自定义此菜单…」会让**同一张卡**
+/// 原地切到编辑态，而不是另开一个弹窗。
 Future<void> showContextMenu({
   required BuildContext context,
   required Offset position,
   required ContextMenuDefinition definition,
   required ContextMenuEntryView Function(ContextMenuEntryDefinition entry)
   viewOf,
-  bool allowCustomizeEntry = true,
 }) async {
-  final resolved = buildContextMenuItems(
-    context: context,
-    definition: definition,
-    viewOf: viewOf,
-    allowCustomizeEntry: allowCustomizeEntry,
-  );
-  await showCommonPopupMenu(
-    context: context,
-    position: position,
-    items: resolved.items,
-    header: resolved.header,
-    footer: resolved.footer,
-    minWidth: resolved.minWidth,
+  final navigator = Navigator.of(context);
+  final renderObject = navigator.context.findRenderObject();
+  final local = renderObject is RenderBox && renderObject.attached
+      ? renderObject.globalToLocal(position)
+      : position;
+  await navigator.push<void>(
+    CommonPopupRoute<void>(
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      anchorOf: () => local & Size.zero,
+      placement: PopupPlacement.belowPoint,
+      builder: (_) => ContextMenuHost(definition: definition, viewOf: viewOf),
+    ),
   );
 }
 

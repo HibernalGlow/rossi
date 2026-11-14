@@ -3779,7 +3779,9 @@ class _Translations$contextMenu$en_US extends Translations$contextMenu$zh_CN {
 	@override String get topStripEnabled => 'Menu icon strip';
 	@override String get topStripEnabledHint => 'Items pinned to the top or bottom with "icon only" are shown as a row of small icons';
 	@override String get customizeEntryVisible => 'Show "Customize this menu…" at the bottom';
-	@override String get dragHint => 'Drag the handle on the right to reorder';
+	@override String get dragHint => 'Drag a row to reorder';
+	@override String get moveUp => 'Move up';
+	@override String get moveDown => 'Move down';
 	@override String get emptyHidden => 'Nothing hidden';
 	@override String customizedCount({required Object count}) => '${count} menus customized';
 	@override String get nothingCustomized => 'No menus customized yet';
@@ -7435,7 +7437,9 @@ extension on TranslationsEnUs {
 			'contextMenu.topStripEnabled' => 'Menu icon strip',
 			'contextMenu.topStripEnabledHint' => 'Items pinned to the top or bottom with "icon only" are shown as a row of small icons',
 			'contextMenu.customizeEntryVisible' => 'Show "Customize this menu…" at the bottom',
-			'contextMenu.dragHint' => 'Drag the handle on the right to reorder',
+			'contextMenu.dragHint' => 'Drag a row to reorder',
+			'contextMenu.moveUp' => 'Move up',
+			'contextMenu.moveDown' => 'Move down',
 			'contextMenu.emptyHidden' => 'Nothing hidden',
 			'contextMenu.customizedCount' => ({required Object count}) => '${count} menus customized',
 			'contextMenu.nothingCustomized' => 'No menus customized yet',
@@ -7651,10 +7655,10 @@ extension on TranslationsEnUs {
 			'bindingEditor.panel' => 'Panel',
 			'bindingEditor.shell' => 'Shell',
 			'bindingEditor.editor' => 'Editor',
-			'bindingEditor.modal' => 'Dialog',
-			'bindingEditor.moveUp' => 'Move up',
 			_ => null,
 		} ?? switch (path) {
+			'bindingEditor.modal' => 'Dialog',
+			'bindingEditor.moveUp' => 'Move up',
 			'bindingEditor.moveDown' => 'Move down',
 			'bindingEditor.collapse' => 'Collapse binding',
 			'bindingEditor.expand' => 'Expand binding',

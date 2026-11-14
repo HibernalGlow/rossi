@@ -10515,8 +10515,14 @@ class Translations$contextMenu$zh_CN {
 	/// zh-CN: '在菜单底部显示「自定义此菜单…」'
 	String get customizeEntryVisible => '在菜单底部显示「自定义此菜单…」';
 
-	/// zh-CN: '拖动右侧把手调整顺序'
-	String get dragHint => '拖动右侧把手调整顺序';
+	/// zh-CN: '拖动行即可调整顺序'
+	String get dragHint => '拖动行即可调整顺序';
+
+	/// zh-CN: '上移'
+	String get moveUp => '上移';
+
+	/// zh-CN: '下移'
+	String get moveDown => '下移';
 
 	/// zh-CN: '没有隐藏的项'
 	String get emptyHidden => '没有隐藏的项';
@@ -14634,7 +14640,9 @@ extension on Translations {
 			'contextMenu.topStripEnabled' => '菜单图标条',
 			'contextMenu.topStripEnabledHint' => '固定在顶部或底部并开启「只显示图标」的动作会排成一排小图标',
 			'contextMenu.customizeEntryVisible' => '在菜单底部显示「自定义此菜单…」',
-			'contextMenu.dragHint' => '拖动右侧把手调整顺序',
+			'contextMenu.dragHint' => '拖动行即可调整顺序',
+			'contextMenu.moveUp' => '上移',
+			'contextMenu.moveDown' => '下移',
 			'contextMenu.emptyHidden' => '没有隐藏的项',
 			'contextMenu.customizedCount' => ({required Object count}) => '${count} 个菜单已自定义',
 			'contextMenu.nothingCustomized' => '尚未自定义任何菜单',
@@ -14850,10 +14858,10 @@ extension on Translations {
 			'bindingEditor.panel' => '面板',
 			'bindingEditor.shell' => '界面栏',
 			'bindingEditor.editor' => '编辑器',
-			'bindingEditor.modal' => '对话框',
-			'bindingEditor.moveUp' => '上移',
 			_ => null,
 		} ?? switch (path) {
+			'bindingEditor.modal' => '对话框',
+			'bindingEditor.moveUp' => '上移',
 			'bindingEditor.moveDown' => '下移',
 			'bindingEditor.collapse' => '收起绑定',
 			'bindingEditor.expand' => '展开绑定',
