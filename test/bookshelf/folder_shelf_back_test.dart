@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/object_box/model.dart';
@@ -23,26 +22,20 @@ import '../test_helper.dart';
 /// 有 entry → 库正常 pop → entry 消费 → bloc 回退一级；
 /// 到根（entry 已清）→ 放行，库按既有逻辑切 tab/退应用。
 ///
-/// 注意：testWidgets 测试体跑在 FakeAsync zone，真异步（ObjectBox IO、
-/// worker isolate 握手/回包）必须包在 tester.runAsync 里走真实时间，
-/// 否则零 CPU 卡死；pump 只负责刷 microtask + 重建帧。
+/// 注意：testWidgets 测试体跑在 FakeAsync zone，真异步（ObjectBox IO）
+/// 必须包在 tester.runAsync 里走真实时间，否则零 CPU 卡死；
+/// pump 只负责刷 microtask + 重建帧。
 void main() {
   // setUpAll 跑在真实 zone，可以直接做真异步初始化。
   setUpAll(() async {
     await TestObjectBoxHelper.setUpTestObjectBox();
-    // worker isolate 的 ObjectBox 指向同一测试库（attach 共享），
-    // 否则 load 读不到测试建的数据。
-    debugShelfDbRootPath = TestObjectBoxHelper.tempPath;
-    await workerManager.init(isolatesCount: 1);
   });
   tearDownAll(() async {
-    await workerManager.dispose();
-    debugShelfDbRootPath = null;
     await TestObjectBoxHelper.tearDownTestObjectBox();
   });
   tearDown(TestObjectBoxHelper.cleanComicFolderBoxes);
 
-  /// 等指定文案出现：真实等待让 worker 回包，pump 刷重建。
+  /// 等指定文案出现：真实等待让后台查询回包，pump 刷重建。
   /// loading 态有 shimmer 无限动画，不能用 pumpAndSettle。
   Future<void> waitForText(WidgetTester tester, String text) async {
     for (var i = 0; i < 150; i++) {

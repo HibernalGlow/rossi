@@ -194,27 +194,16 @@ opt-level = 1
 # 减少增量编译生成的碎片文件
 incremental = true
 
-# 单独给 `image` 提优化级别。
-#
-# 为什么只给这一个 crate：本地来源（判据 A）的翻页路径上有一段
-# `DynamicImage::thumbnail_exact` 的降采样 —— 44.8 MPix 的页降到显示尺寸，
-# 它的实例化发生在 `image` **内部**，因此吃的是 `image` 自己的 opt-level。
-# `[profile.dev]` 的 opt-level = 1 下这段实测约 227 ms（降到 768 px），
-# 而它是本地来源显示路径里仅次于 dav1d 解码的第二大项。
-#
-# 不直接抬 `[profile.dev].opt-level`：那会让整个增量构建变慢，
-# 而这个项目的日常就是热重载。release 构建本来就是 opt-level 3，不受影响。
-[profile.dev.package.image]
-opt-level = 3
+# 可选功能：域名前置（IP 直连 / SNI 绕过）。
+# 默认关闭（不进 default features）。开启后宿主才会注册 __http_set/get/clear_front_hosts
+# 三个全局函数；关闭时这三个函数不会被注册，插件探测到缺失即视为「宿主不支持」，
+# 与未打补丁的行为完全一致，不会有任何 IP 改写发生。
+[features]
+# 注意：真正的 `#[cfg(feature = "host-fronting")]` 门控在 rquickjs_playground crate 里，
+# 所以这里必须**转发**该 feature，而不是只声明一个空 feature——否则 feature 打开后
+# 门控代码仍不会被编译，三个全局函数不会注册。
+host-fronting = ["rquickjs_playground/host-fronting"]
 
-# 临时 patch：rquickjs-sys 0.12.0 在 Windows 交叉编译 Android 时，
-# host 构建会错误使用 Android NDK 的 libclang 生成绑定，导致 JSValue 类型不匹配。
-# 详见：https://github.com/DelSkayn/rquickjs/issues/709
-# jpegxl-src 本地补丁：上游硬编码 `.generator_toolset("ClangCL")`，本机 VS BuildTools
-# 没装 ClangCL 组件（MSB8020），删掉该行回落默认 MSVC。补丁副本在仓库外
-# `D:/1Dev/vendor/jpegxl-src-0.12.0`（**本地路径，未随仓库分发**）——只在开
-# `jxl-probe-libjxl`（探针对照量 JXL 用，GPL）时进入依赖图；不开此 feature 的机器
-# 不受影响。若要在别的机器复现：拷 registry 里的 jpegxl-src-0.12.0、删 lib.rs:93 一行即可。
 [patch.crates-io]
-# jpegxl-src = { path = "D:/1Dev/vendor/jpegxl-src-0.12.0/jpegxl-src-0.12.0" }
-rquickjs-sys = { git = "https://github.com/deretame/rquickjs.git", branch = "fix/android-windows-bindgen" }
+# quickjs-ng 0.15.1 + 安全/性能补丁，补丁清单见 fork 仓库的 PATCHES.md。
+rquickjs-sys = { git = "https://github.com/deretame/breeze-rquickjs-sys", rev = "846889c482ee7511f558595384673f55c00c9f4a" }

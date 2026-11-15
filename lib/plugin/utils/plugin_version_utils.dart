@@ -49,9 +49,10 @@ List<Object> _tokenizeVersion(String raw) {
       RegExp(r'[0-9A-Za-z]').hasMatch(normalized[1])) {
     normalized = normalized.substring(1);
   }
-  final parts = RegExp(
-    r'[0-9]+|[A-Za-z]+',
-  ).allMatches(normalized).map((match) => match.group(0)!).toList();
+  final parts = RegExp(r'[0-9]+|[A-Za-z]+')
+      .allMatches(normalized)
+      .map((match) => match.group(0)!)
+      .toList();
   if (parts.isEmpty) {
     return <Object>[normalized.toLowerCase()];
   }

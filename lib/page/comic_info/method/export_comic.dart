@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:zephyr/config/global/global.dart';
-import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
@@ -16,6 +15,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/main.dart';
 
 const Set<String> _kWindowsReservedNames = {
   'CON',
@@ -252,12 +252,10 @@ Future<ComicExportResult> _exportComicAsFolder(
   }
   await dir.create(recursive: true);
 
-  await File(
-    p.join(comicDir, 'original_comic_info.json'),
-  ).writeAsString(jsonEncode(detail));
-  await File(
-    p.join(comicDir, 'processed_comic_info.json'),
-  ).writeAsString(jsonEncode(processedDetail));
+  await File(p.join(comicDir, 'original_comic_info.json'))
+      .writeAsString(jsonEncode(detail));
+  await File(p.join(comicDir, 'processed_comic_info.json'))
+      .writeAsString(jsonEncode(processedDetail));
 
   await _exportCover(download, comicDir, comicId, from: from);
   await _copyEpisodeFiles(chapterEntries, comicDir);
@@ -411,10 +409,29 @@ Future<String?> _tryDownloadCover(
   final cover = _decodeMap(download.cover);
   final ext = Map<String, dynamic>.from(cover['extern'] as Map? ?? const {});
   final url = cover['url']?.toString() ?? '';
-  final path = ext['path']?.toString() ?? '$comicId.jpg';
-  if (url.isEmpty && path.isEmpty) {
+  final externPath = ext['path']?.toString().trim() ?? '';
+  final coverPath = cover['path']?.toString().trim() ?? '';
+  final path = externPath.isNotEmpty
+      ? externPath
+      : (coverPath.isNotEmpty ? coverPath : '$comicId.jpg');
+  if (path.isEmpty) {
     return null;
   }
+
+  // 用户改过封面时 url 为空，先按本地 canonical 路径取文件。
+  final localPath = await findCachedPicturePath(
+    from: from,
+    path: path,
+    cartoonId: comicId,
+    pictureType: PictureType.cover,
+  );
+  if (localPath.isNotEmpty) {
+    return localPath;
+  }
+  if (url.isEmpty) {
+    return null;
+  }
+
   try {
     final downloadedPath = await downloadPicture(
       from: from,
@@ -448,11 +465,9 @@ Future<List<_ExportChapterEntry>> _collectChapterEntries(
   UnifiedComicDownload download, {
   required int maxChapterFolderLength,
 }) async {
-  // 导出顺序与详情页显示一致：按目录快照排，快照缺失保持存储顺序。
-  final chapters = sortDownloadChaptersByCatalog(
-    resolveDownloadChapters(download),
-    readChapterCatalog(download),
-  );
+  // 导出顺序与详情页显示一致：按 order 排；章节重排后 order 已重编号。
+  final chapters = resolveDownloadChapters(download)
+    ..sort((a, b) => a.order.compareTo(b.order));
 
   final usedFolderNames = <String>{};
   final result = <_ExportChapterEntry>[];

@@ -8,6 +8,7 @@ import 'package:zephyr/service/download/download_progress_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
 import 'package:zephyr/service/download/download_speed_meter.dart';
 import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/main.dart';
 
 class DownloadImageJob {
   const DownloadImageJob({
@@ -376,6 +377,10 @@ Future<DownloadImageJobsResult> downloadImageJobs({
       } catch (e) {
         stillFailedJobs.add(job);
       }
+    } catch (error, stackTrace) {
+      logger.e(error, stackTrace: stackTrace);
+      firstError ??= error;
+      firstErrorStackTrace ??= stackTrace;
     }
   }
 

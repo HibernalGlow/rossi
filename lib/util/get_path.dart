@@ -131,8 +131,16 @@ Future<String> getCachePath() async {
   }
 }
 
+/// 测试用：非空时覆盖下载根目录，避免测试写入真实应用目录。
+String? debugDownloadRootPath;
+
 /// 获取应用内部下载路径
 Future<String> getDownloadPath() async {
+  final override = debugDownloadRootPath?.trim() ?? '';
+  if (override.isNotEmpty) {
+    await _ensureDirExists(override);
+    return override;
+  }
   final fileDir = await getFilePath();
   final downloadPath = p.join(fileDir, "downloads");
   await _ensureDirExists(downloadPath);

@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
 
 import 'package:bloc/bloc.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/widgets/comic_entry/models/models.dart';
 import 'package:zephyr/object_box/model.dart';
@@ -15,22 +14,17 @@ import 'package:zephyr/page/bookshelf/service/comic_folder_service.dart';
 import 'package:zephyr/page/bookshelf/service/comic_link_service.dart';
 import 'package:zephyr/util/rust_loader.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
-import 'package:zephyr/util/worker_isolate.dart';
 import 'package:zephyr/page/bookshelf/bloc/folder_shelf_event.dart';
 import 'package:zephyr/page/bookshelf/bloc/folder_shelf_state.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
 export 'package:zephyr/page/bookshelf/bloc/folder_shelf_event.dart';
 export 'package:zephyr/page/bookshelf/bloc/folder_shelf_state.dart';
 
-/// 测试钩：widget/集成测试里把 worker isolate 的 ObjectBox 指向测试临时目录，
-/// 使其 attach 到主 isolate 已打开的测试库。默认 null，走正常应用目录。
-/// 仅测试赋值，生产代码保持 null。
-String? debugShelfDbRootPath;
-
 class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
   FolderShelfBloc({required ShelfPageMode mode})
     : super(FolderShelfState(mode: mode)) {
-    on<FolderShelfLoadRequested>(_onLoadRequested);
+    // 刷新可能和旧 load 并发；restartable 让最新一次结果生效。
+    on<FolderShelfLoadRequested>(_onLoadRequested, transformer: restartable());
     on<FolderShelfEnterFolder>(_onEnterFolder);
     on<FolderShelfGoBack>(_onGoBack);
     on<FolderShelfGoHome>(_onGoHome);
@@ -67,23 +61,31 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       final search = event.search ?? state.search;
       final currentMode = state.mode;
       final currentPath = state.currentPath;
-      final token = captureWorkerIsolateToken();
       final payload = {
         'mode': currentMode.name,
         'currentPath': currentPath,
         'keyword': search?.keyword ?? '',
         'sort': search?.sort ?? 'dd',
         'sources': search?.sources ?? const <String>[],
-        'dbRootPath': debugShelfDbRootPath,
       };
-      final result = await workerManager.execute<Map<String, dynamic>>(
-        () => _runFolderShelfLoadTask(payload, token),
-      );
+      // 查询频率低，直接用 ObjectBox 的 runAsync：后台 isolate 里 attach
+      // 同一个 store 执行回调，查完自动关闭。
+      final result = await objectbox.store
+          .runAsync<Map<String, dynamic>, Map<String, dynamic>>((
+            store,
+            payload,
+          ) async {
+            await initRustLib(silent: true);
+            objectbox = ObjectBox.fromStore(store);
+            return _runFolderShelfLoadTask(payload);
+          }, payload);
 
       final error = result['error']?.toString() ?? '';
       if (error.isNotEmpty) {
         throw Exception(error);
       }
+
+      final comics = result['comics'] as List<ComicSimplifyEntryInfo>;
 
       emit(
         state.copyWith(
@@ -91,7 +93,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
           folderComicCounts:
               (result['folderComicCounts'] as Map?)?.cast<String, int>() ??
               const <String, int>{},
-          comics: result['comics'] as List<ComicSimplifyEntryInfo>,
+          comics: comics,
           comicSearchTexts:
               (result['comicSearchTexts'] as Map?)?.cast<String, String>() ??
               const <String, String>{},
@@ -105,6 +107,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
         ),
       );
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }
   }
@@ -164,6 +167,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       );
       add(const FolderShelfLoadRequested());
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(error: e.toString()));
     }
   }
@@ -178,6 +182,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       ComicLinkService.removeLinksInFolderTree(event.path, _folderType);
       add(const FolderShelfLoadRequested());
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(error: e.toString()));
     }
   }
@@ -191,6 +196,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       ComicFolderService.renameFolder(event.path, event.newName, _folderType);
       add(const FolderShelfLoadRequested());
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(error: e.toString()));
     }
   }
@@ -317,6 +323,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       }
       _exitSelectionAndRefresh();
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(error: e.toString()));
     }
   }
@@ -341,6 +348,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       }
       _exitSelectionAndRefresh();
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(error: e.toString()));
     }
   }
@@ -370,6 +378,7 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
       );
       _exitSelectionAndRefresh();
     } catch (e) {
+      logger.e(e);
       emit(state.copyWith(error: e.toString()));
     }
   }
@@ -398,17 +407,8 @@ class FolderShelfBloc extends Bloc<FolderShelfEvent, FolderShelfState> {
   }
 }
 
-Future<Map<String, dynamic>> _runFolderShelfLoadTask(
-  Map<String, dynamic> payload,
-  RootIsolateToken? token,
-) async {
+Map<String, dynamic> _runFolderShelfLoadTask(Map<String, dynamic> payload) {
   try {
-    ensureWorkerIsolateInitialized(token);
-    await initRustLib(silent: true);
-    objectbox = await ObjectBox.create(
-      dbRootPath: payload['dbRootPath'] as String?,
-    );
-
     final mode = ShelfPageMode.values.byName(payload['mode'] as String);
     final folderType = FolderShelfBloc._toFolderType(mode);
     final currentPath = payload['currentPath'] as String;
@@ -528,7 +528,9 @@ Future<Map<String, dynamic>> _runFolderShelfLoadTask(
         final visited = <String>{};
         ComicFolder? current = folder;
         while (current != null) {
-          if (current.syncId.isNotEmpty && !visited.add(current.syncId)) break;
+          if (current.syncId.isNotEmpty && !visited.add(current.syncId)) {
+            break;
+          }
           parts.add(current.name);
           final parentId = current.parentSyncId;
           if (parentId == null || parentId.isEmpty) break;
@@ -598,9 +600,8 @@ Map<String, dynamic> _loadHistoryShelf({
     final comics = <ComicSimplifyEntryInfo>[];
     final comicSearchTexts = <String, String>{};
     for (final history in query.find()) {
-      final info = unifiedComicFromUnifiedHistory(
-        history,
-      ).toSimplifyEntryInfo();
+      final info = unifiedComicFromUnifiedHistory(history)
+          .toSimplifyEntryInfo();
       final key = '${info.from.trim()}:${info.id}';
       final searchText = _buildComicSearchText(history);
       if (isSearching && !searchText.contains(normalizedKeyword)) {

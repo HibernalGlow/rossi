@@ -39,13 +39,14 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	TranslationsEnUs $copyWith({TranslationMetadata<AppLocale, Translations>? meta}) => TranslationsEnUs(meta: meta ?? this.$meta);
 
 	// Translations
-	@override late final _Translations$workspace$en_US workspace = _Translations$workspace$en_US._(_root);
-	@override String get appName => 'Rossi';
+	@override String get appName => 'Breeze';
+	@override late final _Translations$database$en_US database = _Translations$database$en_US._(_root);
 	@override late final _Translations$common$en_US common = _Translations$common$en_US._(_root);
 	@override late final _Translations$error$en_US error = _Translations$error$en_US._(_root);
 	@override late final _Translations$navigation$en_US navigation = _Translations$navigation$en_US._(_root);
 	@override late final _Translations$settings$en_US settings = _Translations$settings$en_US._(_root);
 	@override late final _Translations$bookshelf$en_US bookshelf = _Translations$bookshelf$en_US._(_root);
+	@override late final _Translations$comicEdit$en_US comicEdit = _Translations$comicEdit$en_US._(_root);
 	@override late final _Translations$comicInfo$en_US comicInfo = _Translations$comicInfo$en_US._(_root);
 	@override late final _Translations$reader$en_US reader = _Translations$reader$en_US._(_root);
 	@override late final _Translations$plugin$en_US plugin = _Translations$plugin$en_US._(_root);
@@ -63,6 +64,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$search$en_US search = _Translations$search$en_US._(_root);
 	@override late final _Translations$discover$en_US discover = _Translations$discover$en_US._(_root);
 	@override late final _Translations$searchResult$en_US searchResult = _Translations$searchResult$en_US._(_root);
+	@override late final _Translations$searchBookmark$en_US searchBookmark = _Translations$searchBookmark$en_US._(_root);
 	@override late final _Translations$comicList$en_US comicList = _Translations$comicList$en_US._(_root);
 	@override late final _Translations$comicEntry$en_US comicEntry = _Translations$comicEntry$en_US._(_root);
 	@override late final _Translations$comicFollow$en_US comicFollow = _Translations$comicFollow$en_US._(_root);
@@ -853,6 +855,16 @@ class _Translations$workspace$en_US extends Translations$workspace$zh_CN {
 	@override String get toolsStandaloneHint => 'Synced with reading settings';
 }
 
+// Path: database
+class _Translations$database$en_US extends Translations$database$zh_CN {
+	_Translations$database$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get incompatible => 'The database is incompatible. Please update to a newer version.';
+}
+
 // Path: common
 class _Translations$common$en_US extends Translations$common$zh_CN {
 	_Translations$common$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
@@ -1169,55 +1181,12 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get amoledSubtitle => 'Use pure black background for AMOLED screens';
 	@override String get notchAdaptation => 'Notch adaptation';
 	@override String get notchAdaptationSubtitle => 'Reserve safe area to avoid content being obscured';
-	@override String get transparentDesktopTitleBar => 'Transparent title bar';
-	@override String get transparentDesktopTitleBarSubtitle => 'The title bar no longer paints a background and blends into the page (text and window buttons may be hard to read on light content). Desktop only';
-	@override String get transparentTitleBarRow => 'Separate row';
-	@override String get transparentTitleBarRowSubtitle => 'The bar keeps its own row with no background; content starts below it (default)';
-	@override String get transparentTitleBarOverlay => 'Fused overlay';
-	@override String get transparentTitleBarOverlaySubtitle => 'Content extends to the window top and the bar floats over it';
-	@override String get toastStyle => 'Toast style';
-	@override String get toastStyleSubtitle => 'Position, duration and size of in-app toasts';
-	@override String get toastSectionLayout => 'Position & size';
-	@override String get toastSectionAppearance => 'Appearance & behavior';
-	@override String get toastSectionBehavior => 'Duration & motion';
-	@override String get toastSectionStyle => 'Visuals';
-	@override String get toastPosition => 'Position';
-	@override String get toastPositionSubtitle => 'Which corner the toast sticks to';
-	@override String get toastPositionTopLeft => 'Top left';
-	@override String get toastPositionTopCenter => 'Top center';
-	@override String get toastPositionTopRight => 'Top right';
-	@override String get toastPositionMiddleLeft => 'Middle left';
-	@override String get toastPositionCenter => 'Center';
-	@override String get toastPositionMiddleRight => 'Middle right';
-	@override String get toastPositionBottomLeft => 'Bottom left';
-	@override String get toastPositionBottomCenter => 'Bottom center';
-	@override String get toastPositionBottomRight => 'Bottom right';
-	@override String get toastEdgePadding => 'Edge padding';
-	@override String get toastEdgePaddingSubtitle => 'Distance between the toast and the screen edge';
-	@override String get toastMaxWidth => 'Max width';
-	@override String get toastMaxWidthSubtitle => 'Width limit of the toast; narrow screens clamp it further';
-	@override String get toastMaxVisible => 'Visible at once';
-	@override String get toastMaxVisibleSubtitle => 'How many toasts stack on screen; extra ones push out the oldest';
-	@override String get toastDuration => 'Auto close';
-	@override String get toastDurationSubtitle => 'Drag to the far left to keep it until closed manually';
-	@override String get toastDurationPermanent => 'Persistent';
-	@override String get toastOpacity => 'Opacity';
-	@override String get toastOpacitySubtitle => 'Opacity of the whole toast, text included';
-	@override String get toastAnimation => 'Enter/exit animation';
-	@override String get toastAnimationSubtitle => 'Duration of the appear and disappear animation';
-	@override String get toastLiquidGlass => 'Liquid glass';
-	@override String get toastLiquidGlassSubtitle => 'Use a blurred translucent background for toasts';
-	@override String get toastShowProgressBar => 'Show progress bar';
-	@override String get toastShowProgressBarSubtitle => 'Show a thin line shrinking with the remaining time';
-	@override String get toastShowIcon => 'Show type icon';
-	@override String get toastShowIconSubtitle => 'Show a success/error icon on the left of the toast';
-	@override String get toastShowCloseButton => 'Show close button';
-	@override String get toastShowCloseButtonSubtitle => 'Persistent toasts always keep the close button';
-	@override String get toastPreview => 'Show a test toast';
-	@override String get toastPreviewTitle => 'Toast style preview';
-	@override String get toastPreviewLongMessage => 'This is a preview toast: long text wraps automatically instead of being truncated or turned into a dialog.';
-	@override String get toastReset => 'Reset toast style';
-	@override String get toastResetDone => 'Toast style restored to defaults';
+	@override String get showPluginHome => 'Show plugin home';
+	@override String get showPluginHomeSubtitle => 'Hide the home tab in the bottom navigation when off';
+	@override String get showPluginCloudFavorite => 'Show cloud favorites';
+	@override String get showPluginCloudFavoriteSubtitle => 'Hide the cloud favorites tab in the bottom navigation when off';
+	@override String get showSearchBookmark => 'Show search bookmarks';
+	@override String get showSearchBookmarkSubtitle => 'Hide the search bookmarks entry in More and the add button in search results when off';
 	@override String get contentAndNetwork => 'Content & Network';
 	@override String get content => 'Content';
 	@override String get fullSourceList => 'Full source list';
@@ -1311,6 +1280,19 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get proxyTypeSubtitle => 'Choose proxy protocol';
 	@override String get proxyTypeHttp => 'HTTP';
 	@override String get proxyTypeSocks5 => 'SOCKS5';
+	@override String get doh => 'DNS over HTTPS';
+	@override String get dohEnabledSubtitle => 'Resolve domains over DoH when enabled';
+	@override String get dohProviders => 'DoH endpoints';
+	@override String dohProviderCount({required Object count}) => 'Enabled · ${count} endpoints';
+	@override String get dohEmpty => 'No DoH endpoint configured';
+	@override String get dohAdd => 'Add DoH endpoint';
+	@override String get dohAddHint => 'https://doh.pub/dns-query';
+	@override String get dohIpHint => 'Prefer IP-based addresses to bypass DNS pollution, e.g. https://1.12.12.12/dns-query';
+	@override String get dohInvalidUrl => 'Enter a full address starting with https://';
+	@override String get dohReset => 'Restore default endpoints';
+	@override String get dohNote => 'DoH protects against DNS pollution. Add multiple endpoints; the first valid result is used.';
+	@override String get blockPrivateNetwork => 'Block private network';
+	@override String get blockPrivateNetworkSubtitle => 'Block requests to private / reserved addresses, including IP-direct fronting; off by default';
 	@override String get updateAccelerate => 'Update acceleration';
 	@override String get updateAccelerateSubtitle => 'Use proxy to accelerate GitHub update links';
 	@override String get retryDownloadUntilSuccess => 'Keep retrying failed downloads';
@@ -1401,12 +1383,8 @@ class _Translations$settings$en_US extends Translations$settings$zh_CN {
 	@override String get appLockSubtitle => 'Require verification when entering the app';
 	@override String get autoFollowOnCollect => 'Auto-follow on collect';
 	@override String get autoFollowOnCollectSubtitle => 'Automatically add comics to the follow list when favorited';
-	@override String get autoFavoriteOnDownload => 'Auto-favorite on download';
-	@override String get autoFavoriteOnDownloadSubtitle => 'Automatically add comics to favorites when downloading';
-	@override String get writeDownloadMetadataFile => 'Write metadata file on download';
-	@override String get writeDownloadMetadataFileSubtitle => 'After a download finishes, write original_comic_info.json and processed_comic_info.json into the comic folder so other tools can read or re-import it';
-	@override String get promptDownloadOptions => 'Prompt for download options';
-	@override String get promptDownloadOptionsSubtitle => 'Show options (whole book / latest chapters / picker) when clicking download; when disabled, downloads all chapters directly';
+	@override String get autoCloudCollectOnLocalFavorite => 'Auto cloud collect on local favorite';
+	@override String get autoCloudCollectOnLocalFavoriteSubtitle => 'After a successful local favorite, automatically trigger one cloud collect when not cloud-collected yet';
 	@override String get leftHandMode => 'Left-hand mode';
 	@override String get leftHandModeSubtitle => 'Move floating action buttons and other controls to the left side';
 	@override String get clickCoverToStartReading => 'Tap cover to start reading';
@@ -1879,6 +1857,55 @@ class _Translations$bookshelf$en_US extends Translations$bookshelf$zh_CN {
 	@override String confirmDeleteSelectedDownloads({required Object count}) => 'Delete selected ${count} download records and files?';
 }
 
+// Path: comicEdit
+class _Translations$comicEdit$en_US extends Translations$comicEdit$zh_CN {
+	_Translations$comicEdit$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Edit comic';
+	@override String get lockedTitle => 'Editing unavailable';
+	@override String get lockedMessage => 'This comic still has unfinished downloads. Finish or cancel them on the download tasks page first.';
+	@override String get basicInfo => 'Basic info';
+	@override String get chapters => 'Chapters';
+	@override String get images => 'Pages';
+	@override String get comicTitle => 'Comic title';
+	@override String get titleHint => 'Enter a new comic title';
+	@override String get changeCover => 'Change cover';
+	@override String get chooseFromComic => 'Choose from comic pages';
+	@override String get chooseCoverImage => 'Choose cover page';
+	@override String get saveTitle => 'Save title';
+	@override String get titleEmpty => 'Title cannot be empty';
+	@override String get chapterName => 'Chapter name';
+	@override String get chapterNameHint => 'Enter a chapter name';
+	@override String get chapterNameEmpty => 'Chapter name cannot be empty';
+	@override String get addChapter => 'Add chapter';
+	@override String get addChapterHint => 'Enter a new chapter name';
+	@override String get renameChapter => 'Rename chapter';
+	@override String pagesCount({required Object count}) => '${count} pages';
+	@override String get emptyChapter => 'No pages in this chapter';
+	@override String get selectChapter => 'Select chapter';
+	@override String get noChapters => 'No chapters yet';
+	@override String get moveToChapter => 'Move to chapter';
+	@override String selectedCount({required Object count}) => '${count} selected';
+	@override String movedCount({required Object count}) => 'Moved ${count} pages';
+	@override String get deleteImagesTitle => 'Delete pages';
+	@override String deleteImagesMessage({required Object count}) => 'Delete the selected ${count} pages?';
+	@override String deletedCount({required Object count}) => 'Deleted ${count} pages';
+	@override String get selectAll => 'Select all';
+	@override String get clearSelection => 'Clear selection';
+	@override String get reorderHint => 'Long-press and drag to reorder';
+	@override String get saveSuccess => 'Saved';
+	@override String get coverUpdated => 'Cover updated';
+	@override String get chapterAdded => 'Chapter added';
+	@override String get chapterRenamed => 'Chapter renamed';
+	@override String get imageMissing => 'Image file missing';
+	@override String get busy => 'Working...';
+	@override String get notFound => 'Download record not found';
+	@override String get loadFailed => 'Failed to load';
+}
+
 // Path: comicInfo
 class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	_Translations$comicInfo$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
@@ -1935,6 +1962,7 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get confirmUncollectContent => 'This will delete the comic from all folders. Continue?';
 	@override String get commentForbidden => 'This plugin does not support this feature';
 	@override String get commentForbiddenTitle => 'Comments disabled';
+	@override String get chooseLocalFavoriteFolders => 'Choose local favorite folders';
 	@override String get back => 'Back';
 	@override String get exportTitle => 'Choose export format';
 	@override String get exportSubtitle => 'Export as folder or zip archive:';
@@ -2399,6 +2427,10 @@ class _Translations$reader$en_US extends Translations$reader$zh_CN {
 	@override String get unpinBottomBar => 'Unpin the bottom bar';
 	@override String get landscapeReader => 'Landscape reading';
 	@override String get landscapeReaderSubtitle => 'Switch to landscape while reading and restore the previous direction when you leave';
+	@override String get autoDoublePage => 'Auto double page in landscape';
+	@override String get autoDoublePageSubtitle => 'Switch to double page in landscape and back to single page in portrait';
+	@override String get showStatusBar => 'Show status bar';
+	@override String get showStatusBarSubtitle => 'Keep the top status bar while reading, hide only the bottom navigation bar';
 	@override String get themeMode => 'Theme mode';
 	@override String get autoRead => 'Auto read';
 	@override String get autoReadSubtitle => 'Automatically scroll the reader';
@@ -2535,9 +2567,7 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String get searchHint => 'Search plugin name or author...';
 	@override String get localInstall => 'Local install';
 	@override String get networkInstall => 'Network install';
-	@override String get cloudComponents => 'Cloud components';
-	@override String get restrictedSourceBlocked => 'This source is not available. Enable "Full source list" in Settings → Content & Network first';
-	@override String restrictedSourcesHidden({required Object count}) => '${count} source(s) hidden';
+	@override String get cloudPlugins => 'Cloud plugins';
 	@override String get loginSuccess => 'Please complete login in the browser, the host will sync cookies automatically';
 	@override String get chromiumFallbackUnsupported => 'External Chromium auto-login fallback is not supported on this platform';
 	@override String get switchingToExternalBrowser => 'Built-in WebView login is limited, switching to external browser...';
@@ -2585,10 +2615,10 @@ class _Translations$plugin$en_US extends Translations$plugin$zh_CN {
 	@override String get githubRepo => 'GitHub Repo';
 	@override String get download => 'Download';
 	@override String get downloadUpdate => 'Download update';
-	@override String get noCloudPlugins => 'No cloud components';
+	@override String get noCloudPlugins => 'No cloud plugins';
 	@override String get noMatchingPlugins => 'No matching plugins';
 	@override String get networkInstallHint => 'Enter plugin script URL';
-	@override String cloudPluginsLoadFailed({required Object error}) => 'Failed to load cloud components: ${error}';
+	@override String cloudPluginsLoadFailed({required Object error}) => 'Failed to load cloud plugins: ${error}';
 	@override String installingFromCloud({required Object name}) => 'Downloading and installing ${name}...';
 	@override String get installingFromLocal => 'Installing local plugin...';
 	@override String get installingFromNetwork => 'Downloading network plugin...';
@@ -3188,7 +3218,9 @@ class _Translations$about$en_US extends Translations$about$zh_CN {
 	@override String get tagline => 'Cross-platform comic reader';
 	@override String get projectAddress => 'Project';
 	@override String get projectAddressDesc => 'Like this project? Give it a star on GitHub!';
-	@override String get projectLink => 'Go to GitHub repo (HibernalGlow/rossi) ⭐';
+	@override String get projectLink => 'Go to GitHub repo (breeze-project-org/Breeze) ⭐';
+	@override String get contact => 'Contact';
+	@override String get contactDesc => 'Have ideas or questions? Feel free to reach out~';
 	@override String get feedback => 'Feedback';
 	@override String get feedbackDesc => 'Found a bug or have a new idea?';
 	@override String get feedbackLink => 'Open a GitHub Issue';
@@ -3265,6 +3297,7 @@ class _Translations$more$en_US extends Translations$more$zh_CN {
 	@override String get sync => 'Sync';
 	@override String get comicFollow => 'Updates';
 	@override String get changelog => 'Changelog';
+	@override String get newBadge => 'NEW';
 }
 
 // Path: search
@@ -3304,12 +3337,7 @@ class _Translations$search$en_US extends Translations$search$zh_CN {
 	@override String get fuzzySearchDesc => 'Show results containing any keyword';
 	@override String get selectCategory => 'Select Category';
 	@override String get dataSource => 'Data Source';
-	@override String get sortBy => 'Sort By';
-	@override String get newestToOldest => 'Newest to oldest';
-	@override String get oldestToNewest => 'Oldest to newest';
-	@override String get mostLikes => 'Most likes';
-	@override String get mostViews => 'Most views';
-	@override String get selectSourceTooltip => 'Select source';
+	@override String get settings => 'Reading';
 	@override String get hasResults => 'With results';
 	@override String get showErrors => 'Show errors';
 	@override String resultCount({required Object count}) => '${count} results';
@@ -3365,6 +3393,36 @@ class _Translations$searchResult$en_US extends Translations$searchResult$zh_CN {
 	@override String get jumpToPage => 'Jump to page';
 	@override String get jump => 'Jump';
 	@override String get retry => 'Tap to retry';
+	@override String get bookmarkAdd => 'Add bookmark';
+	@override String get bookmarkPickBanner => 'Tap a cover to mark the bookmark position (scrolling paused)';
+	@override String get bookmarkAdded => 'Bookmark added';
+	@override String get bookmarkPickNone => 'Tap a cover first';
+	@override String get bookmarkPickNoResult => 'No search results to anchor a bookmark';
+}
+
+// Path: searchBookmark
+class _Translations$searchBookmark$en_US extends Translations$searchBookmark$zh_CN {
+	_Translations$searchBookmark$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Search bookmarks';
+	@override String get empty => 'No search bookmarks yet';
+	@override String get emptyHint => 'Add one from the search result page via the bottom-right button';
+	@override String get filteredEmpty => 'No bookmarks under current filter';
+	@override String get filteredEmptyHint => 'Try another filter, or add one from the search result page';
+	@override String get filter => 'Filter';
+	@override String get sort => 'Sort';
+	@override String get source => 'Source';
+	@override String get sortNewest => 'Newest first';
+	@override String get sortOldest => 'Oldest first';
+	@override String get deselectAll => 'Deselect all';
+	@override String jumped({required Object page}) => 'Jumped to page ${page}';
+	@override String anchorMissing({required Object page}) => 'Anchor not on this page, located at page ${page}';
+	@override String get probePages => 'Probe pages forward';
+	@override String get probePagesSubtitle => 'When the anchor is not on the landed page, probe at most N pages forward (then 1 page backward)';
+	@override String get deleted => 'Bookmark deleted';
 }
 
 // Path: comicList
@@ -3473,6 +3531,7 @@ class _Translations$comicFollow$en_US extends Translations$comicFollow$zh_CN {
 	@override String updatedMinutesAgo({required Object minutes}) => 'Checked ${minutes} min ago';
 	@override String updatedHoursAgo({required Object hours}) => 'Checked ${hours} h ago';
 	@override String updatedDaysAgo({required Object days}) => 'Checked ${days} d ago';
+	@override String get lastReadJustNow => 'Just read';
 	@override String lastReadMinutesAgo({required Object minutes}) => 'Read ${minutes} min ago';
 	@override String lastReadHoursAgo({required Object hours}) => 'Read ${hours} h ago';
 	@override String lastReadDaysAgo({required Object days}) => 'Read ${days} d ago';
@@ -3565,6 +3624,12 @@ class _Translations$login$en_US extends Translations$login$zh_CN {
 	@override String get captchaTapToRefresh => 'Can\'t see? Tap to refresh';
 	@override String get captchaLoading => 'Loading captcha...';
 	@override String get captchaLoadFailed => 'Failed to load captcha, tap to retry';
+	@override String get sliderTitle => 'Complete the puzzle';
+	@override String get sliderHint => 'Hold and drag the slider';
+	@override String get sliderLoading => 'Loading challenge...';
+	@override String get sliderLoadFailed => 'Failed to load, tap to retry';
+	@override String get sliderVerifying => 'Verifying...';
+	@override String get sliderFailed => 'Verification failed, try again';
 }
 
 // Path: fontSetting
@@ -3639,12 +3704,7 @@ class _Translations$download$en_US extends Translations$download$zh_CN {
 	@override String get noTasks => 'No download tasks';
 	@override String get downloading => 'Downloading';
 	@override String pending({required Object count}) => 'Pending (${count})';
-	@override String failedTasks({required Object count}) => 'Failed (${count})';
-	@override String pausedTasks({required Object count}) => 'Paused (${count})';
-	@override String get pinTask => 'Prioritize';
-	@override String get unpinTask => 'Remove priority';
-	@override String get taskPinned => 'Moved to the front of the queue';
-	@override String get taskUnpinned => 'Priority removed';
+	@override String selectedChapters({required Object count}) => 'Selected ${count} chapters';
 	@override String get taskDeleted => 'Task deleted';
 	@override String get deleteLastChapterContent => 'Deleting this chapter will also delete the download record. Continue?';
 	@override String get cancelTask => 'Cancel Task';
@@ -3729,6 +3789,8 @@ class _Translations$update$en_US extends Translations$update$zh_CN {
 
 	// Translations
 	@override String get newVersion => 'New version available';
+	@override String get snoozeWeek => 'Don\'t remind for a week';
+	@override String get snoozeWeekSuccess => 'No update reminders for the next week';
 	@override String get goToGitHub => 'Go to GitHub';
 	@override String get downloadInstall => 'Download & install';
 	@override String get apkDownloadFailed => 'Download failed, please try again later';
@@ -4059,782 +4121,8 @@ class _Translations$plat$en_US extends Translations$plat$zh_CN {
 extension on TranslationsEnUs {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'workspace.laneTapExpandHint' => ({required Object title}) => '${title} (tap to expand the lane)',
-			'workspace.laneTapCollapseHint' => ({required Object title}) => '${title} (tap to collapse the lane)',
-			'workspace.laneDragHint' => ({required Object title}) => '${title} — press and hold to drag lanes into a new order',
-			'workspace.laneSortHint' => ({required Object title}) => '${title} (pick “Edit layout” in the lane menu to reorder)',
-			'workspace.allowedRange' => ({required Object min, required Object max}) => 'Allowed ${min}–${max}',
-			'workspace.dockToName' => ({required Object label}) => 'Dock: ${label}',
-			'workspace.laneWidthPx' => ({required Object px}) => 'Lane width: ${px} px',
-			'workspace.dockToLabel' => ({required Object label}) => 'Dock to ${label}',
-			'workspace.slotCount' => ({required Object count}) => '${count} slots',
-			'workspace.columnsPerRow' => ({required Object columns}) => '${columns} slots per row now',
-			'workspace.imagesCountBadge' => ({required Object n}) => '${n} images',
-			'workspace.highestPage' => ({required Object value}) => 'Highest: ${value}',
-			'workspace.worksCount' => ({required Object n}) => '${n} works',
-			'workspace.sharePercent' => ({required Object v}) => '${v}% of the total',
-			'workspace.heatLegendLow' => 'Low',
-			'workspace.periodDetailLine' => ({required Object label, required Object count, required Object hours}) => '${label} · ${count} records\n${hours}',
-			'workspace.restoreNamed' => ({required Object title}) => 'Restore “${title}”',
-			'workspace.fullWidthFullHeight' => 'Full width and full height',
-			'workspace.resizePreview' => ({required Object w, required Object h}) => '${w} × ${h} · release to save',
-			'workspace.portSkippedLines' => ({required Object lines}) => 'Skipped entries:\n${lines}',
-			'workspace.streakNowDays' => ({required Object n}) => 'Current streak: ${n} days',
-			'workspace.mostlyAt' => ({required Object period}) => 'Mostly ${period}',
-			'workspace.monthsAgo' => ({required Object months}) => '${months} months ago',
-			'workspace.artbookCount' => ({required Object n}) => '${n} art books',
-			'workspace.seenAtPage' => ({required Object pageNum}) => 'Seen at p.${pageNum}',
-			'workspace.sourceMixItem' => ({required Object count, required Object percent}) => '${count} records · ${percent}%',
-			'workspace.sourceMixHeader' => ({required Object n}) => 'Sample records · ${n} sources',
-			'workspace.streakPointLine' => ({required Object date, required Object value}) => '${date}: ${value} days in a row',
-			'workspace.streakDaysLine' => ({required Object label, required Object value}) => '${label}: ${value} days',
-			'workspace.insightHeaderExpand' => ({required Object label, required Object position, required Object total, required Object title}) => '${label} · ${position}/${total} · expand ${title}',
-			'workspace.heatCellLine' => ({required Object weekday, required Object hour, required Object count}) => '${weekday} ${hour} · ${count} records',
-			'workspace.heatPeakLabel' => ({required Object weekday, required Object hour}) => 'Peak · ${weekday} ${hour}',
-			'workspace.heatPeakShort' => ({required Object weekday, required Object hour}) => 'Peak ${weekday} ${hour}',
-			'workspace.compactHeatmapExpandHours' => ({required Object day, required Object hours}) => '${day} · ${hours} h per cell · expand the reading heatmap',
-			'workspace.hoursPerCell' => ({required Object hours}) => '${hours} h per cell',
-			'workspace.compactHeatmapExpand' => ({required Object day}) => '${day} · expand the reading heatmap',
-			'workspace.busiestPeriodLabel' => ({required Object period}) => 'Most records in ${period}',
-			'workspace.weekdayRecordLine' => ({required Object day, required Object count}) => '${day}: ${count} records',
-			'workspace.busiestWeekdayLabel' => ({required Object day}) => 'Busiest on ${day}',
-			'workspace.selectedLastReadLines' => ({required Object key, required Object count}) => '${key} · ${count} last-read records',
-			'workspace.dayRecordLine' => ({required Object key, required Object count}) => '${key}: ${count} records',
-			'workspace.activeDaysCount' => ({required Object n}) => '${n} active days',
-			'workspace.collapseNamed' => ({required Object title}) => 'Collapse ${title}',
-			'workspace.insertTarget' => ({required Object name}) => 'Insert into: ${name}',
-			'workspace.activeSwitchCount' => ({required Object activeCount}) => '${activeCount} switches on',
-			'workspace.switchToastActiveOf3' => ({required Object activeCount}) => '${activeCount} of 3 switches on',
-			'workspace.peakAllocated' => ({required Object value}) => 'Peak ${value}',
-			'workspace.failedWith' => ({required Object error}) => 'Failed · ${error}',
-			'workspace.registeredCount' => ({required Object n}) => '${n} registered in total',
-			'workspace.readyOfTotal' => ({required Object ready, required Object total}) => '${ready} of ${total} ready',
-			'workspace.sourceCountLabel' => ({required Object n}) => '${n} sources',
-			'workspace.fileKindLabel' => ({required Object kind}) => '${kind} file',
-			'workspace.passthroughDepthLabel' => ({required Object value}) => 'Passthrough depth: ${value}',
-			'workspace.contentLayoutLabel' => ({required Object value}) => 'Content layout: ${value}',
-			'workspace.sortFieldLabel' => ({required Object value}) => 'Sort: ${value}',
-			'workspace.entryStyleLabel' => ({required Object value}) => 'Entry style: ${value}',
-			'workspace.filterTypeLabel' => ({required Object value}) => 'Type: ${value}',
-			'workspace.depthLimitLabel' => ({required Object n}) => 'Depth ≤${n}',
-			'workspace.notSearchedBelow' => ({required Object n}) => 'Below level ${n} not searched',
-			'workspace.searchScanned' => ({required Object n}) => '${n} scanned',
-			'workspace.searchHits' => ({required Object n}) => '${n} hits',
-			'workspace.tenThousandRecords' => ({required Object v}) => '${v}×10k records',
-			'workspace.slowScanNote' => ({required Object label}) => '${label} · tens of seconds on a slow disk; results appear after one pass',
-			'workspace.recursiveSearchScanned' => ({required Object scanned}) => 'Searching recursively · scanned ${scanned}',
-			'workspace.restoreTabTitle' => ({required Object title}) => 'Restore tab: ${title}',
-			'workspace.selectedCount' => ({required Object n}) => '${n} selected',
-			'workspace.filteringBy' => ({required Object query}) => 'Filter: ${query}',
-			'workspace.pageN' => ({required Object n}) => 'Page ${n}',
-			'workspace.openLocalComicFailed' => ({required Object error}) => 'Error opening the local comic: ${error}',
-			'workspace.daysAgo' => ({required Object days}) => '${days} days ago',
-			'workspace.childCount' => ({required Object n}) => '${n} items',
-			'workspace.noMatchThisLevelSuggest' => ({required Object query}) => 'Nothing at this level matches “${query}”; use “search subfolders” above to look deeper',
-			'workspace.noMatchInSubdirs' => ({required Object query}) => 'No entries in subfolders match “${query}”',
-			'workspace.tasksCount' => ({required Object n}) => '${n} tasks',
-			'workspace.booksCount' => ({required Object n}) => '${n} books',
-			'workspace.builtinWord' => 'Built-in',
-			'workspace.onlineSourceFrom' => ({required Object from}) => 'Online source · ${from}',
-			'workspace.pagesRemaining' => ({required Object n}) => '${n} pages left',
-			'workspace.currentOfTotalPages' => ({required Object total}) => 'Current page · ${total} pages',
-			'workspace.dateMD' => ({required Object month, required Object day}) => '${month}/${day}',
-			'workspace.dateYMD' => ({required Object year, required Object month, required Object day}) => '${year}-${month}-${day}',
-			'workspace.heatmapCell' => ({required Object weekday, required Object range, required Object count}) => '${weekday} ${range}: ${count} records',
-			'workspace.theseCountItems' => ({required Object count}) => 'these ${count} items',
-			'workspace.duplicateInFileCount' => ({required Object n}) => '${n} duplicated inside the file',
-			'workspace.keptLocalCount' => ({required Object n}) => '${n} kept from this device',
-			'workspace.progressUpdatedCount' => ({required Object n}) => '${n} progress entries updated',
-			'workspace.skippedCount' => ({required Object n}) => '${n} skipped',
-			'workspace.alreadyPresentCount' => ({required Object n}) => '${n} already present',
-			'workspace.revivedCount' => ({required Object n}) => '${n} revived',
-			'workspace.addedCount' => ({required Object n}) => '${n} added',
-			'workspace.keyMismatch' => ({required Object expected}) => 'uniqueKey doesn\'t match source:comicId; expected ${expected}',
-			'workspace.itemNumber' => ({required Object n}) => 'Entry #${n}',
-			'workspace.unsupportedFormatVersion' => ({required Object version}) => 'Unsupported format version ${version}',
-			'workspace.invalidJson' => ({required Object error}) => 'Not valid JSON: ${error}',
-			'workspace.portImportFailed' => ({required Object label, required Object error}) => 'Importing ${label} failed: ${error}',
-			'workspace.portFileUnreadable' => ({required Object error}) => 'Can\'t read this file: ${error}',
-			'workspace.portExportFailed' => ({required Object label, required Object error}) => 'Exporting ${label} failed: ${error}',
-			'workspace.portExportDone' => ({required Object count, required Object label, required Object target}) => 'Exported ${count} ${label} entries\n${target}',
-			'workspace.portListEmpty' => ({required Object label}) => '${label} is still empty — there is nothing to export',
-			'workspace.opFirstFailure' => ({required Object summary, required Object failure}) => '${summary} — first failure reason: ${failure}',
-			'workspace.pickPasteTarget' => ({required Object verb, required Object subject}) => '${verb}${subject} — pick a folder to paste into',
-			'workspace.movedToTrashSystem' => ({required Object subject, required Object hint}) => 'Moved ${subject} to the trash, ${hint} (in the system trash)',
-			'workspace.movedToTrash' => ({required Object subject, required Object hint}) => 'Moved ${subject} to the trash, ${hint}',
-			'workspace.cannotOpenFileManager' => ({required Object error}) => 'Can\'t open the file manager: ${error}',
-			'workspace.pathsCopied' => ({required Object count}) => 'Copied ${count} paths',
-			'workspace.deleteConfirmSubject' => ({required Object subject, required Object outcome}) => '${subject} will be deleted. ${outcome}.',
-			'workspace.deleteForeverWarning' => ({required Object subject}) => '${subject} will be deleted permanently — not sent to the trash and can\'t be undone.',
-			'workspace.loadingShort' => 'Loading',
-			'workspace.readingHubTitle' => 'Reading hub',
-			'workspace.chapterIdLabel' => 'Chapter ID',
-			'workspace.portraitFormat' => 'Portrait',
-			'workspace.peep' => 'Peek',
-			'workspace.topTags' => 'Top tags',
-			'workspace.libraryLabel' => 'Library',
-			'workspace.preloadPath' => 'Preload path',
-			'workspace.preloadStatus' => 'Preload status',
-			'workspace.topBarIsThatRow' => 'The top bar is the row with exit / title / mode switch / reset layout',
-			'workspace.pagePath' => 'Page path',
-			'workspace.pageTemplateBookVars' => 'Page templates can also use {{book.*}} variables; tap any variable chip to insert it.',
-			'workspace.pageTitleTemplate' => 'Page title template',
-			'workspace.pageFileName' => 'Page file name',
-			'workspace.pageToastTemplate' => 'Page toast template',
-			'workspace.pageDescriptionTemplate' => 'Page description template',
-			'workspace.pageNavigation' => 'Page navigation',
-			'workspace.pageListNotReady' => 'Page list not ready',
-			'workspace.pageListTotal' => 'Page-list total',
-			'workspace.pageList' => 'Page list',
-			'workspace.pageNumber' => 'Page number',
-			'workspace.pageUrl' => 'Page URL',
-			'workspace.pagesModified' => 'pages modified',
-			'workspace.audioLabel' => 'Audio',
-			'workspace.areaBasis' => 'Area basis',
-			'workspace.panelBarFloating' => 'Panel bar: floating',
-			'workspace.panelBarHint' => 'Panel bar (drag to another edge or make it floating; right-click or long-press for settings)',
-			'workspace.hideLaneWidthBadge' => 'Hide the lane width badge',
-			'workspace.hideWorkspaceTopBar' => 'Hide the workspace top bar',
-			'workspace.refreshPerPageNoGuessing' => 'Refreshes per page; anything unmeasured stays a guess-free blank',
-			'workspace.randomRoam' => 'Random browse',
-			'workspace.randomLabel' => 'Random',
-			'workspace.matchRelativePath' => 'Matches the relative path under the search root as well as the entry name',
-			'workspace.confineToLane' => 'Confine to the lane',
-			'workspace.confineToThisLane' => 'Confine to this lane',
-			'workspace.readingProgressPercent' => 'Reading progress (%)',
-			'workspace.readingProgressLabel' => 'Reading progress',
-			'workspace.readingHeat' => 'Reading heat',
-			'workspace.readingFilter' => 'Reading filter',
-			'workspace.readingInsights' => 'Reading insights',
-			'workspace.workspaceHome' => 'Workspace',
-			'workspace.continueReading' => 'Continue reading',
-			'workspace.todayReading' => 'Today',
-			'workspace.longestStreak' => 'Longest streak',
-			'workspace.readingSources' => 'Reading sources',
-			'workspace.dayUnit' => 'days',
-			'workspace.visitUnit' => 'visits',
-			'workspace.sourceUnit' => 'sources',
-			'workspace.pageUnit' => 'pages',
-			'workspace.openDetail' => 'Details',
-			'workspace.noReadingYet' => 'No reading history yet — pick one from the bookshelf',
-			'workspace.mobileCardMissing' => 'Card not found',
-			'workspace.mobileCardUnsupported' => 'This card is unavailable on this device',
-			'workspace.infoSheetEntry' => 'Comic info',
-			'workspace.readingOverview' => 'Reading overview',
-			'workspace.readingPeriods' => 'Reading time of day',
-			'workspace.readingWorkhole' => 'Reading workhole',
-			'workspace.readerLaneIdle' => 'The reader lane is idle',
-			'workspace.readerEn' => 'Reader',
-			'workspace.readingHistoryEn' => 'History',
-			'workspace.readingHistory' => 'Reading history',
-			'workspace.readingToastOverlay' => 'Reading switch overlay toast',
-			'workspace.readingLabel' => 'Reading',
-			'workspace.longPressDragReorder' => 'Long-press and drag to reorder or change lane',
-			'workspace.imageHeaderUnmeasured' => 'Can\'t read the image header',
-			'workspace.resetLayoutHint' => 'Reset the layout (doesn\'t affect the book you\'re reading)',
-			'workspace.renameBookmarkList' => 'Rename bookmark list',
-			'workspace.renameDeleteList' => 'Rename / delete this list',
-			'workspace.booksQueued' => 'books queued',
-			'workspace.layoutFitsPanel' => 'Layout and sizes that suit the current panel',
-			'workspace.exitSoloEn' => 'Exit solo',
-			'workspace.exitSolo' => 'Exit solo',
-			'workspace.exitTimeline' => 'Exit the timeline',
-			'workspace.exitSearchToFolder' => 'Leave the search results and return to this tab\'s own folder',
-			'workspace.exitWorkspaceHint' => 'Exit the workspace (Esc works too)',
-			'workspace.exitWorkspace' => 'Exit the workspace',
-			'workspace.exitMultiselect' => 'Exit multi-select',
-			'workspace.restoreSwipeAfterExit' => 'Restores horizontal swiping between panels when it exits',
-			'workspace.streakReading' => 'Reading streak',
-			'workspace.streakDays' => 'Streak days',
-			'workspace.streakLabel' => 'Streak',
-			'workspace.runningTasks' => 'Running tasks',
-			'workspace.progressLabel' => 'Progress',
-			'workspace.enterFolder' => 'Enter the folder',
-			'workspace.thisIsSwitchToastPreview' => 'This is a switch-toast preview',
-			'workspace.allCardsCollapsed' => 'Every card in this panel is collapsed',
-			'workspace.noFileManagerOnPlatform' => 'This platform has no file manager to invoke',
-			'workspace.listHasNoBookmarks' => 'This list has no bookmarks yet',
-			'workspace.itemNeedsLocalArchive' => 'This item needs to be a local archive before it can be measured',
-			'workspace.thisItem' => 'this item',
-			'workspace.thisWall' => 'this wall',
-			'workspace.noPluginsInstalled' => 'No plugins installed yet',
-			'workspace.noBookmarksYet' => 'No bookmarks yet — add one from the details page',
-			'workspace.last7ReadingTrend' => 'Reading trend (7 days)',
-			'workspace.last7Records' => 'Records (7 days)',
-			'workspace.last7Days' => 'Last 7 days',
-			'workspace.last3Days' => 'Last 3 days',
-			'workspace.last28Records' => 'Records (28 days)',
-			'workspace.last28Active' => 'Active days (28)',
-			'workspace.last28NoRecords' => 'No records in the last 28 days',
-			'workspace.last28Days' => 'Last 28 days',
-			'workspace.boundaryToastText' => 'Boundary toast text',
-			'workspace.carrierDistribution' => 'Medium distribution',
-			'workspace.carrierLabel' => 'Medium',
-			'workspace.goToFolder' => 'Go to the folder',
-			'workspace.jumpBar' => 'Jump bar',
-			'workspace.pathActions' => 'Path actions',
-			'workspace.pathLabel' => 'Path',
-			'workspace.aggregateSourceSearch' => 'Aggregate search across sources',
-			'workspace.trendLabel' => 'Trend',
-			'workspace.upscaleStage' => 'Upscale stage',
-			'workspace.upscaleSwitch' => 'Upscale switch',
-			'workspace.afterUpscale' => 'After upscaling',
-			'workspace.resourceWorkhole' => 'Resource workhole',
-			'workspace.debugSource' => 'Debug source',
-			'workspace.toastAtChapterEnd' => 'Remind when turning past the end of a chapter',
-			'workspace.detailedInformation' => 'Details',
-			'workspace.detailedLabel' => 'Detailed',
-			'workspace.laneMoreEditLayout' => 'This lane · edit layout',
-			'workspace.visits' => 'Visits',
-			'workspace.settingsAndTools' => 'Settings and tools',
-			'workspace.triggerCondition' => 'Trigger condition',
-			'workspace.triggersAllOff' => 'All triggers off',
-			'workspace.decodeBufferPlusCache' => 'Decode buffer + image cache',
-			'workspace.viewModeNotInTimeline' => 'View mode (not available in the timeline)',
-			'workspace.viewModeLabel' => 'View mode',
-			'workspace.seeDetailsBelow' => 'See the details below',
-			'workspace.decorativeShapes' => 'Decorative shapes',
-			'workspace.installNewSource' => 'Install a new source',
-			'workspace.fetching' => 'Fetching…',
-			'workspace.freeThumbnails' => 'Free thumbnails',
-			'workspace.customLayout' => 'Custom layout',
-			'workspace.pageTurnToast' => 'Page-turn toast',
-			'workspace.pageToastShowsNumber' => 'Shows the page number live when turning or jumping',
-			'workspace.pageAnimation' => 'Page-turn animation',
-			'workspace.jpTranslated' => 'Translated',
-			'workspace.networkImageCached' => 'Network image · downloaded then served from the image cache',
-			'workspace.missingTitle' => 'Missing title',
-			'workspace.missingSourceOrComicId' => 'Missing source or comicId',
-			'workspace.thumbnailsLabel' => 'Thumbnails',
-			'workspace.editPath' => 'Edit path',
-			'workspace.editLongPressHints' => 'While editing, long-press a tab to reorder or move it across lanes, or long-press the header icon to reorder lanes',
-			'workspace.editLayout' => 'Edit layout',
-			'workspace.encodedFormat' => 'Encoded format',
-			'workspace.encodedSize' => 'Encoded size',
-			'workspace.weightBlendsEverything' => 'Blends content count, recent use and reading status.',
-			'workspace.resumeLastReading' => 'Resume the last reading',
-			'workspace.counting' => 'Counting',
-			'workspace.textureReady' => 'Texture ready',
-			'workspace.texture' => 'Texture',
-			'workspace.compactList' => 'Compact list',
-			'workspace.pasteIntoItem' => 'Paste into this item',
-			'workspace.pasteHere' => 'Paste into this folder',
-			'workspace.lengthDistribution' => 'Length distribution',
-			'workspace.lengthLabel' => 'Length',
-			'workspace.emphasiseReading' => 'Emphasises what you are reading.',
-			'workspace.emphasiseRecent' => 'Emphasises recently used content.',
-			'workspace.passthroughMode' => 'Passthrough mode',
-			'workspace.gapFill' => 'Gap fill',
-			'workspace.gapComponentsTitle' => 'Gaps & components',
-			'workspace.gapComponentsDescription' => 'Random shapes and mini widgets in one place: pick an overall mode, then toggle each item — every item previews what it looks like.',
-			'workspace.gapPreviewLabel' => 'Preview',
-			'workspace.gapEnableAll' => 'Enable all',
-			'workspace.gapDisableAll' => 'Disable all',
-			'workspace.gapShapesSection' => 'Random shapes',
-			'workspace.gapWidgetsSection' => 'Mini widgets',
-			'workspace.gapShapeBlob' => 'Blob',
-			'workspace.gapShapeBurst' => 'Burst',
-			'workspace.gapShapeClover' => 'Clover',
-			'workspace.gapShapeGem' => 'Gem',
-			'workspace.gapShapeArch' => 'Arch',
-			'workspace.gapShapeFlower' => 'Flower',
-			'workspace.gapShapeRing' => 'Ring',
-			'workspace.gapShapeWave' => 'Wave',
-			'workspace.gapCompletion' => 'Completion',
-			'workspace.gapHeatmap' => 'Reading heat',
-			'workspace.gapWeekday' => 'Weekday rhythm',
-			'workspace.gapSpan' => 'Collection span',
-			'workspace.gapUnread' => 'Unread pool',
-			'workspace.gapMilestone' => 'Next milestone',
-			'workspace.gapAverageProgress' => 'average progress',
-			'workspace.gapFinishedBooks' => 'finished',
-			'workspace.gapUnreadBooks' => 'unread',
-			'workspace.gapHeatWindow' => 'Last 8 weeks',
-			'workspace.gapWeekdayRhythm' => 'Weekday split',
-			'workspace.gapSpanDaysLabel' => 'days span',
-			'workspace.gapSpanEarliest' => 'since',
-			'workspace.gapUnreadPool' => 'not started',
-			'workspace.gapMilestoneHint' => 'to go',
-			'workspace.gapComponentCount' => ({required Object on, required Object total}) => '${on} / ${total} on',
-			'workspace.gapMinSize' => ({required Object w, required Object h}) => 'min ${w} × ${h}',
-			'workspace.gapResetDefaults' => 'Reset to defaults',
-			'workspace.wallTabSize' => 'Size',
-			'workspace.wallTabLayout' => 'Layout',
-			'workspace.wallTabComponents' => 'Components',
-			'workspace.wallTabCover' => 'Cover',
-			'workspace.wallTabWeights' => 'Weights',
-			'workspace.idleState' => 'Idle',
-			'workspace.moveToTrashNoUndo' => 'Move to trash (can\'t be undone)',
-			'workspace.moveToTrash' => 'Move to trash',
-			'workspace.folderPath' => 'Folder path',
-			'workspace.folderLabel' => 'Folder',
-			'workspace.imageTuning' => 'Image tuning',
-			'workspace.aspectComposition' => 'Aspect mix',
-			'workspace.aspectFormat' => 'Aspect',
-			'workspace.fillWithExpressiveShapes' => 'Fills the gaps with random Expressive outlines and icons.',
-			'workspace.soloThisLaneEn' => 'Solo',
-			'workspace.soloThisLane' => 'Make this lane solo',
-			'workspace.statusLabel' => 'Status',
-			'workspace.clickToCollapse' => 'Tap to collapse',
-			'workspace.clickToExpand' => 'Tap to expand',
-			'workspace.tapCover' => 'Tap the cover',
-			'workspace.clickToFill' => 'Tap to fill',
-			'workspace.comicArchive' => 'Comic archive',
-			'workspace.comicIdLabel' => 'Comic ID',
-			'workspace.chineseLocalized' => 'CN-localised',
-			'workspace.renderPath' => 'Render path',
-			'workspace.clearSearchAndCollapse' => 'Clear the search and collapse',
-			'workspace.lateNight' => 'Late night',
-			'workspace.activePeak' => 'Active peak',
-			'workspace.activeDays' => 'Active days',
-			'workspace.activeState' => 'Active',
-			'workspace.noEntriesAfterFilter' => 'No entries match the search or type filter',
-			'workspace.noEntries' => 'No entries',
-			'workspace.noEnabledSource' => 'No enabled image source',
-			'workspace.nothingToDisplay' => 'Nothing to display',
-			'workspace.noMatchingPages' => 'No matching pages',
-			'workspace.noMatchingHistory' => 'No matching reading records',
-			'workspace.noMatchingBookmarks' => 'No matching bookmarks',
-			'workspace.immersiveWorkhole' => 'Immersive workhole',
-			'workspace.deleteForeverQuestion' => 'Delete permanently?',
-			'workspace.deleteForever' => 'Delete permanently',
-			'workspace.weeklyReadingRhythm' => 'Weekly reading rhythm',
-			'workspace.everyFieldIsMeasured' => 'Every value comes from a recorded field, not from "I tweaked it so it must be fine"',
-			'workspace.normalState' => 'Normal',
-			'workspace.recursiveSearchPending' => 'Searching recursively; results appear after one pass…',
-			'workspace.recursiveSearching' => 'Searching recursively…',
-			'workspace.followingProgress' => 'Following the reading progress',
-			'workspace.editingLayoutFinishInMenu' => 'Editing the layout · finish in the menu',
-			'workspace.countingReadingHistory' => 'Counting reading history',
-			'workspace.bannerLabel' => 'Banner',
-			'workspace.rootPath' => 'Root path',
-			'workspace.areaByAspectRatio' => 'Allocates card space by the source aspect ratio.',
-			'workspace.longestSampleDays' => 'Longest in sample · days',
-			'workspace.longestSample' => 'Longest in sample',
-			'workspace.theWidthBadgeNextToHeader' => 'The "400px" badge to the right of the lane header',
-			'workspace.titleLabel' => 'Title',
-			'workspace.sourceKey' => 'Source key',
-			'workspace.sourceType' => 'Source type',
-			'workspace.sourceComposition' => 'Source mix',
-			'workspace.sourceBreakdown' => 'Source breakdown',
-			'workspace.sourceModifiedAt' => 'Source modified',
-			'workspace.sourceLabel' => 'Source',
-			'workspace.entryCount' => 'Entries',
-			'workspace.itemsUpdated' => 'items updated',
-			'workspace.itemsContent' => 'items',
-			'workspace.chapterDonePreparingNext' => 'This chapter is finished · preparing the next one',
-			'workspace.platformUnsupported' => 'Not supported on this platform',
-			'workspace.localComicsEn' => 'Local Manga',
-			'workspace.localComics' => 'Local comics',
-			'workspace.localWorks' => 'Local works',
-			'workspace.localLabel' => 'Local',
-			'workspace.lastPageToast' => 'Last-page toast',
-			'workspace.notTurnedOn' => 'Off',
-			'workspace.notEnabled' => 'Not enabled',
-			'workspace.serverLabel' => 'Server',
-			'workspace.maxThirtyTwoLevels' => 'At most 32 levels',
-			'workspace.lastPageToastText' => 'Last-page toast text',
-			'workspace.noReadingHistory' => 'No reading history yet',
-			'workspace.noRecordsYet' => 'No records yet',
-			'workspace.noHeatRecords' => 'No heat records yet',
-			'workspace.noEnabledPlugins' => 'No enabled plugins yet',
-			'workspace.noVisitHistory' => 'No visit history yet',
-			'workspace.normalOneWideTwoSlots' => 'Normal cards take 1 slot, wide cards 2',
-			'workspace.eveningNight' => 'Night',
-			'workspace.eveningLabel' => 'Evening',
-			'workspace.showHiddenFiles' => 'Show hidden files',
-			'workspace.showTarget' => 'Show target',
-			'workspace.showQuickSwitchBar' => 'Show the quick-switch bar',
-			'workspace.showWorkspaceTopBar' => 'Show the workspace top bar',
-			'workspace.showSubFileNames' => 'Show sub-file names',
-			'workspace.timeInformation' => 'Time information',
-			'workspace.timePeriod' => 'Time of day',
-			'workspace.earlyFavourites' => 'Early favourites',
-			'workspace.cannotUndo' => 'Can\'t be undone',
-			'workspace.noAnimation' => 'No animation',
-			'workspace.squareFormat' => 'Square',
-			'workspace.newTab' => 'New tab',
-			'workspace.newBookmarkList' => 'New bookmark list',
-			'workspace.newName' => 'New name',
-			'workspace.fileManagement' => 'File manager',
-			'workspace.fileBrowsing' => 'File browsing',
-			'workspace.fileOperations' => 'File operations (copy / move / delete)',
-			'workspace.foldersFirst' => 'Folders first',
-			'workspace.fileNameLabel' => 'File name',
-			'workspace.weightBiggerWins' => 'Larger values stand out more; 0 disables it. When several match, the highest weight wins.',
-			'workspace.switchToFloating' => 'Switch to floating',
-			'workspace.collapseSearch' => 'Collapse search',
-			'workspace.collapseChildren' => 'Collapse children',
-			'workspace.collapseSubfolders' => 'Collapse subfolders',
-			'workspace.collapseInformation' => 'Collapse info',
-			'workspace.favouriteTime' => 'Favourited at',
-			'workspace.favouriteList' => 'Favourites',
-			'workspace.localOpenSupportDesc' => 'Supports zip, cbz, folders, PDFs and image archives. Rust unpacks quickly and feeds the D3D12/Metal composition chain directly.',
-			'workspace.undoLastStep' => 'Undo the last step',
-			'workspace.summaryLabel' => 'Summary',
-			'workspace.searchSpaceExclude' => 'Search (space-separated, - to exclude)',
-			'workspace.searchPageOrFileName' => 'Search page number or file name...',
-			'workspace.searchField' => 'Search bar',
-			'workspace.searchTitleAuthorSource' => 'Search title / author / source',
-			'workspace.pluginRunState' => 'Plugin running state',
-			'workspace.pluginMarket' => 'Plugin market',
-			'workspace.controlPanel' => 'Control panel',
-			'workspace.takeOver' => 'Take over',
-			'workspace.keepReading' => 'Continue reading',
-			'workspace.sortingTimelineFixed' => 'Sorting (the timeline always sorts by time)',
-			'workspace.sortMode' => 'Sort mode',
-			'workspace.emphasiseByTagWeights' => 'Emphasises content using your custom tag weights.',
-			'workspace.areaByDiskUsage' => 'Allocates display area by how much disk space each entry takes.',
-			'workspace.timelineByDay' => 'Timeline by day',
-			'workspace.dragTitleToReorder' => 'Press and hold the title to drag-reorder',
-			'workspace.bookmarkListDesc' => 'Organise bookmarks by topic. After creating one, bookmarks can be moved into this list.',
-			'workspace.dragResizeWorkhole' => 'Drag to resize the workhole',
-			'workspace.dragToResize' => 'Drag to resize',
-			'workspace.collapseToBarEn' => 'Collapse',
-			'workspace.collapseToBar' => 'Collapse into a compact bar',
-			'workspace.saveSearchAsTab' => 'Save these search results as a new tab',
-			'workspace.setHomeHere' => 'Make this folder the home',
-			'workspace.openReader' => 'Open the reader',
-			'workspace.openLocal' => 'Open local',
-			'workspace.toastOnOpenOrSwitch' => 'Pops when a comic is opened or switched to',
-			'workspace.openWorkhole' => 'Open the workhole',
-			'workspace.showPageNavWhenOpen' => 'Shows page navigation once a book is open',
-			'workspace.showFileTimesWhenOpen' => 'Shows file times once a book is open',
-			'workspace.showCurrentPageWhenOpen' => 'Shows current-page info once a book is open',
-			'workspace.showStorageWhenOpen' => 'Shows storage info once a book is open',
-			'workspace.showPresentPrefetchWhenOpen' => 'Shows presenter and prefetch status once a book is open',
-			'workspace.showBookInfoWhenOpen' => 'Shows book info once a book is open',
-			'workspace.imFeelingLucky' => 'I\'m feeling lucky',
-			'workspace.restoreDefaultSize' => 'Restore the default size',
-			'workspace.readerLaneSoloHint' => 'Anything opened from the shelf on the left or discover on the right is read in this lane; tap the solo button in the bar header to make it fill the viewport instantly.',
-			'workspace.footnoteSampleStreakDays' => 'Consecutive days with records in the sample · not the full reading log',
-			'workspace.footnoteSampleStreak' => 'Consecutive days within the sample · not the full reading log',
-			'workspace.footnotePeriod28' => 'Last 28 days · distributed by local time of the last read',
-			'workspace.footnoteWeekday28' => 'Last 28 days · last-reading records summed by weekday',
-			'workspace.footnoteLast500' => 'Last-reading records of the most recent 500 comics · not a total count or reading time',
-			'workspace.searchDepthTooltip' => ({required Object depths, required Object detail}) => 'Tap to cycle the recursion depth (${depths} levels). ${detail}',
-			'workspace.shortSat' => 'Sat',
-			'workspace.shortFri' => 'Fri',
-			'workspace.shortThu' => 'Thu',
-			'workspace.shortWed' => 'Wed',
-			'workspace.shortTue' => 'Tue',
-			'workspace.shortMon' => 'Mon',
-			'workspace.shortSun' => 'Sun',
-			'workspace.restoreDefaultWidth' => 'Restore the default width',
-			'workspace.restorePanelBarPosition' => 'Restore the panel bar\'s default position',
-			'workspace.restoreCollapsedCards' => 'Restore collapsed cards',
-			'workspace.restoreClosedTabs' => 'Restore closed tabs',
-			'workspace.totalPagesLabel' => 'Total pages',
-			'workspace.toContinue' => 'To continue',
-			'workspace.queueStackCards' => 'Queue stack',
-			'workspace.currentPageCost' => 'Current page time',
-			'workspace.currentPageNumber' => 'Current page number',
-			'workspace.currentPageFile' => 'Current page file',
-			'workspace.currentPageSize' => 'Current page size',
-			'workspace.currentPageModifiedAt' => 'Current page modified',
-			'workspace.currentPageHandoffMs' => 'Current page hand-off time (ms)',
-			'workspace.currentStreakDays' => 'Current streak · days',
-			'workspace.currentStreak' => 'Current streak',
-			'workspace.noHitThisLevel' => 'No hits at this level; turn on "include subfolders" and search again (a full scan takes tens of seconds on a slow disk)',
-			'workspace.folderNoMedia' => 'This folder has no browsable comics or media files',
-			'workspace.folderNoChildren' => 'This folder has nothing to show',
-			'workspace.folderNotInSnapshot' => 'This folder is not in the current search or folder snapshot. Enter it to see what is inside.',
-			'workspace.archiveLabel' => 'Archive',
-			'workspace.onComparingOriginal' => 'On (comparing with the original)',
-			'workspace.switchedOn' => 'On',
-			'workspace.fieldsFillOnOpen' => 'These cells fill in as soon as a book opens; anything unmeasurable stays —',
-			'workspace.linking' => 'Linking',
-			'workspace.avgPagesPerBook' => 'Average pages per book',
-			'workspace.regularWidth' => 'Regular width',
-			'workspace.commonTags' => 'Common tags',
-			'workspace.topCreators' => 'Top creators',
-			'workspace.market' => 'Market',
-			'workspace.limitReached' => 'Limit reached',
-			'workspace.isLastPage' => 'This is the last page',
-			'workspace.searchHistoryCleared' => 'Search history cleared',
-			'workspace.followProgressPaused' => 'Paused following the reading progress',
-			'workspace.fileManagerOpened' => 'File manager opened',
-			'workspace.gpuReadyState' => 'Ready',
-			'workspace.pathCopied' => 'Path copied',
-			'workspace.copied' => 'Copied',
-			'workspace.pagesPresented' => 'Pages presented',
-			'workspace.cutDone' => 'Cut',
-			'workspace.writtenToCacheShare' => 'Written to the cache; save it from the share sheet',
-			'workspace.aborted' => 'Aborted',
-			'workspace.workholeSize' => 'Workhole size',
-			'workspace.peakDay' => 'Peak day',
-			'workspace.peakValue' => 'Peak',
-			'workspace.expandLane' => 'Expand lane',
-			'workspace.polledEvery3s' => 'Polled every 3 s while expanded',
-			'workspace.expandChildren' => 'Expand children',
-			'workspace.expandSubfolders' => 'Expand subfolders',
-			'workspace.expandInformation' => 'Expand information',
-			'workspace.expandLabel' => 'Expand',
-			'workspace.displayWallSettings' => 'Display wall settings · long-press to toggle the wall',
-			_ => null,
-		} ?? switch (path) {
-			'workspace.displayWallCustom' => 'Display wall customise',
-			'workspace.displayWall' => 'Display wall',
-			'workspace.searchDepthCostHint' => 'More depth is slower: one full-library scan takes tens of seconds on a slow disk; too shallow misses deeper folders',
-			'workspace.readyWaiting' => 'Ready, waiting',
-			'workspace.readyState' => 'Ready',
-			'workspace.dustyReread' => 'Shelf finds',
-			'workspace.widgetsOnceThenShapes' => 'Each widget appears once per wall; the remaining gaps are filled with random shapes.',
-			'workspace.coverGrid' => 'Cover grid',
-			'workspace.coverCollage' => 'Cover collage',
-			'workspace.coverList' => 'Cover list',
-			'workspace.coverLabel' => 'Cover',
-			'workspace.exportAsJson' => 'Export as JSON',
-			'workspace.importExport' => 'Import / export',
-			'workspace.cardWidthAutoColumns' => 'Width is the target size; the column count adapts to the panel. Wide cards take two slots and can sit beside normal ones.',
-			'workspace.finishEditing' => 'Finish editing',
-			'workspace.finishLayout' => 'Finish layout',
-			'workspace.storageInformation' => 'Storage information',
-			'workspace.saveAsTab' => 'Save as tab',
-			'workspace.subFilesShowAll' => 'Sub-files: show all',
-			'workspace.subFilesShowOne' => 'Sub-files: show one',
-			'workspace.daysWithRecords' => 'days with records',
-			'workspace.sizeCompare' => 'Size comparison',
-			'workspace.sizeLabel' => 'Size',
-			'workspace.multiColumnLanes' => 'Multi-column lanes',
-			'workspace.searchAnyToken' => 'Union across tokens (by default every token must match)',
-			'workspace.multiOutlinedSelected' => 'Multiple · the outline marks the selection',
-			'workspace.duplicateTab' => 'Duplicate tab',
-			'workspace.copyPath' => 'Copy path',
-			'workspace.copyPosition' => 'Copy position',
-			'workspace.einkRefresh' => 'E-ink refresh',
-			'workspace.basedOnLast500' => 'Based on the last-reading records of the most recent 500 comics',
-			'workspace.readingProgress' => 'Reading progress',
-			'workspace.currentlyReading' => 'Reading',
-			'workspace.onlineSourceNoFileTime' => 'Online sources have no local file times',
-			'workspace.onlineSourceNoArchive' => 'Online sources have no archive',
-			'workspace.onlineSource' => 'Online source',
-			'workspace.onlineLabel' => 'Online',
-			'workspace.openInNewTab' => 'Open in a new tab',
-			'workspace.openFolderInNewTab' => 'Open folders in a new tab by default',
-			'workspace.readerLaneReadsHint' => 'Anything opened from the shelf on the left or discover on the right is read in this lane;',
-			'workspace.searchSubdirs' => 'Search inside subfolders',
-			'workspace.gallery' => 'Gallery',
-			'workspace.imageSize' => 'Image size',
-			'workspace.imagesLabel' => 'Images',
-			'workspace.sourceLocalAggregate' => 'Local source aggregate',
-			'workspace.sourceExtensions' => 'Source extensions',
-			'workspace.sourceShortcuts' => 'Source shortcuts',
-			'workspace.imageSourcesEn' => 'Extensions',
-			'workspace.imageSources' => 'Sources and extensions',
-			'workspace.sourcesToolsOcr' => 'Sources · Tools · OCR',
-			'workspace.imageProcessingStage' => 'Image processing stage',
-			'workspace.imageInformation' => 'Image information',
-			'workspace.pinTab' => 'Pin tab',
-			'workspace.pinHere' => 'Pin here',
-			'workspace.backToFolder' => 'Back to the folder',
-			'workspace.backHome' => 'Back home',
-			'workspace.backToLaneHeaderDefault' => 'Back to the default docked-in-header form',
-			'workspace.heatmapFourRowsHint' => 'Four consecutive weeks · the outline marks the selected day · stronger colour means more activity',
-			'workspace.weekdaySun' => 'Sun',
-			'workspace.weekdaySat' => 'Sat',
-			'workspace.weekdayFri' => 'Fri',
-			'workspace.weekdayThu' => 'Thu',
-			'workspace.weekdayWed' => 'Wed',
-			'workspace.weekdayTue' => 'Tue',
-			'workspace.weekdayMon' => 'Mon',
-			'workspace.presenter' => 'Presenter',
-			'workspace.includeSubdirStats' => 'Include subfolder stats',
-			'workspace.includeSubdirs' => 'Include subfolders',
-			'workspace.recursiveSearchHint' => 'Searches downward recursively; the depth cap is clamped on the Rust side',
-			'workspace.back' => 'Back',
-			'workspace.searchSyntaxHint' => 'Name and path · space-separated · -exclude · "phrases"',
-			'workspace.nameLabel' => 'Name',
-			'workspace.undoable' => 'Can be undone',
-			'workspace.onlyThisPanelDetailsBelow' => 'Applies to this panel only. The cover\'s details button always expands downward.',
-			'workspace.onlyFittingWidgetsRepeat' => 'Inserts only the summary widgets that fit the gap; the same one may repeat.',
-			'workspace.mergeOnlyHistoryDetail' => 'Merge only: no history entry is deleted; where local progress is newer than the file, local wins.',
-			'workspace.mergeOnlyHistory' => 'Merges only — existing records are never deleted or overwritten.',
-			'workspace.mergeOnlyBookmarks' => 'Merges only — existing bookmarks are never deleted or overwritten.',
-			'workspace.changesLabel' => 'Changes',
-			'workspace.discoverToolsEn' => 'Tools',
-			'workspace.switchToWorkholeEn' => 'Workhole',
-			'workspace.switchToSwimlaneEn' => 'Swimlane',
-			'workspace.closeSidebarEn' => 'Close',
-			'workspace.closeCurrentComicFull' => 'Close the current comic (back to empty)',
-			'workspace.closeCurrentComicPlain' => 'Close the current comic (back to empty)',
-			'workspace.favoritesEn' => 'Favourites',
-			'workspace.bookshelfEn' => 'Bookshelf',
-			'workspace.downloadsOfflineEn' => 'Downloads',
-			'workspace.topEntriesStillWork' => 'The three entries above still work: install a source and each one shows here',
-			'workspace.widgetsPlusShapes' => 'Widgets + shapes',
-			'workspace.miniWidgets' => 'Widgets',
-			'workspace.randomShapes' => 'Random shapes',
-			'workspace.openDetailsPage' => 'Open the details page',
-			'workspace.expandDetailsBelow' => 'Expand details below',
-			'workspace.weightBalanced' => 'Balanced',
-			'workspace.readingStatus' => 'Reading status',
-			'workspace.recentlyUsed' => 'Recently used',
-			'workspace.followSort' => 'Follow the sort',
-			'workspace.yesterday' => 'Yesterday',
-			'workspace.cancelPathEdit' => 'Cancel path editing',
-			'workspace.unpin' => 'Unpin',
-			'workspace.discoverTools' => 'Discover and tools',
-			'workspace.doubleTapResetLaneWidth' => 'Double-tap resets this column\'s width · right-click opens the lane menu',
-			'workspace.installOrImportPlugin' => 'Install a source from the plugin market, or import a local plugin package',
-			'workspace.originalRatio' => 'Original ratio',
-			'workspace.historyFile' => 'History file',
-			'workspace.historyData' => 'History data',
-			'workspace.volume' => 'Volume',
-			'workspace.cardHeight' => 'Card height',
-			'workspace.cardSpacing' => 'Card spacing',
-			'workspace.cardLayout' => 'Card layout',
-			'workspace.cardWidth' => 'Card width',
-			'workspace.cardPosition' => 'Card position',
-			'workspace.occupiedSize' => 'Occupied size',
-			'workspace.matchPath' => 'Match path',
-			'workspace.loadingState' => 'Loading',
-			'workspace.cut' => 'Cut',
-			'workspace.forward' => 'Forward',
-			'workspace.last7DaysRecords' => 'Last 7 days',
-			'workspace.refreshCurrentFolder' => 'Refresh the current folder',
-			'workspace.toastOnLastPage' => 'Show a toast on the last page',
-			'workspace.reachedLastPage' => 'That\'s the end — no more pages',
-			'workspace.deleteQuestion' => 'Delete?',
-			'workspace.creating' => 'Creating',
-			'workspace.create' => 'Create',
-			'workspace.creator' => 'Creator',
-			'workspace.listName' => 'List name',
-			'workspace.toastOnPageSwitch' => 'Show a toast when switching pages',
-			'workspace.switchToastTest' => 'Switch toast test',
-			'workspace.switchToast' => 'Switch toast',
-			'workspace.toastOnBookSwitch' => 'Show a toast when switching books',
-			'workspace.switchToWorkhole' => 'Switch to the immersive workhole',
-			'workspace.switchToSwimlane' => 'Switch to multi-column lanes',
-			'workspace.switchDescending' => 'Switch to descending',
-			'workspace.switchAscending' => 'Switch to ascending',
-			'workspace.bookSwitchToast' => 'Book-switch toast',
-			'workspace.internalThumbnails' => 'Internal thumbnails',
-			'workspace.builtin' => 'Built-in',
-			'workspace.moreContentMoreArea' => 'More content means a larger share of the area.',
-			'workspace.contentCount' => 'Content count',
-			'workspace.contentSections' => 'Content sections',
-			'workspace.otherMedia' => 'Other media',
-			'workspace.closeTab' => 'Close tab',
-			'workspace.closeSidebar' => 'Close sidebar',
-			'workspace.closePassthroughMode' => 'Turn off passthrough mode',
-			'workspace.closeCurrentComic' => 'Close the current comic (back to empty)',
-			'workspace.closeWorkhole' => 'Close the workhole',
-			'workspace.closeTabsLeft' => 'Close tabs to the left',
-			'workspace.closeTabsRight' => 'Close tabs to the right',
-			'workspace.closeOtherTabs' => 'Close other tabs',
-			'workspace.turnedOff' => 'Off',
-			'workspace.manageAll' => 'Manage all',
-			'workspace.allHealthy' => 'All healthy',
-			'workspace.allImageSources' => 'All image sources',
-			'workspace.closeAllTabs' => 'Close all',
-			'workspace.fullWidth' => 'Full width',
-			'workspace.allowLeaveLane' => 'Allow dragging out of the lane',
-			'workspace.pixelSize' => 'Pixel size',
-			'workspace.serendipity' => 'Serendipity',
-			'workspace.favouriteTagWeight' => 'Favourite tag weight',
-			'workspace.favouriteTags' => 'Favourite tags',
-			'workspace.modifiedTime' => 'Modified time',
-			'workspace.modifiedDate' => 'Modified date',
-			'workspace.modify' => 'Modify',
-			'workspace.egBookPath' => 'e.g. Path: {{book.path}}',
-			'workspace.egPageIndex' => 'e.g. Page {{page.indexDisplay}}',
-			'workspace.egLastPage' => 'e.g. This is the last page',
-			'workspace.egSwitchedToBook' => 'e.g. Switched to {{book.displayName}}',
-			'workspace.egPageName' => 'e.g. {{page.name}}',
-			'workspace.sizeVolume' => 'Size',
-			'workspace.toastStyleInSettings' => 'Position and look are set under Settings → Toast style.',
-			'workspace.emphasiseTopSorted' => 'Emphasises whatever sorts to the top.',
-			'workspace.anyToken' => 'Any token',
-			'workspace.collapseFromPanel' => 'Collapse from this panel',
-			'workspace.newFromThisTab' => 'New from this tab',
-			'workspace.pickComicFolderFromDisk' => 'Choose a comic folder on disk',
-			'workspace.importFromJson' => 'Import from JSON',
-			'workspace.today' => 'Today',
-			'workspace.desktopOnly' => 'Desktop only',
-			'workspace.bookPathLocalOnly' => 'Book path (only set for local sources)',
-			'workspace.bookTitleTemplate' => 'Book title template',
-			'workspace.bookDisplayName' => 'Book display name',
-			'workspace.bookToastTemplate' => 'Book toast template',
-			'workspace.bookDescriptionTemplate' => 'Book description template',
-			'workspace.bookInformation' => 'Book information',
-			'workspace.bookmarkFile' => 'Bookmark file',
-			'workspace.bookmarkData' => 'Bookmark data',
-			'workspace.bookmarks' => 'Bookmarks',
-			'workspace.bookshelfUpstream' => 'Bookshelf (upstream original)',
-			'workspace.bookshelfAggregateCard' => 'Bookshelf aggregate card',
-			'workspace.shelfFavoriteFiles' => 'Shelf · Favourites · Files',
-			'workspace.bookshelfTab' => 'Bookshelf',
-			'workspace.bookTitle' => 'Book title',
-			'workspace.homeNotSetYet' => 'Home: not set · tap to make the current folder the home',
-			'workspace.homeCurrentManageHint' => 'Home (current) · right-click or long-press to manage',
-			'workspace.homeSetTo' => 'Home set to',
-			'workspace.homeManageHint' => 'Home · right-click or long-press to manage',
-			'workspace.heroVisual' => 'Hero visual',
-			'workspace.mainOccupancy' => 'Main occupancy',
-			'workspace.temporarySort' => 'Temporary sort (not remembered for this folder)',
-			'workspace.abortRecursiveSearch' => 'Stop the recursive search (keep results already found)',
-			'workspace.samePathAsHeaderDoubleClick' => 'Same path as double-tapping the lane header',
-			'workspace.samePathAsBackKey' => 'Same path as Esc and the system back key',
-			'workspace.keepGapIrregularOutline' => 'Keeps blank space between irregular outlines.',
-			'workspace.notAnObject' => 'Not an object',
-			'workspace.asymmetric' => 'Asymmetric',
-			'workspace.noFill' => 'Do not fill',
-			'workspace.downloadTaskList' => 'Download task list',
-			'workspace.downloadsOffline' => 'Downloads and offline',
-			'workspace.bothWeeksNoRecord' => 'Neither week has records',
-			'workspace.earlyAfternoon' => 'Early afternoon',
-			'workspace.noon' => 'Noon',
-			'workspace.earlyMorning' => 'Early morning',
-			'workspace.afternoon' => 'Afternoon',
-			'workspace.morning' => 'Morning',
-			'workspace.parentDirectory' => 'Up one level',
-			'workspace.prevWindowNoRecord' => 'No records in the previous window',
-			'workspace.nextSegment' => 'Next segment',
-			'workspace.prevSegment' => 'Previous segment',
-			'workspace.noCreationTimeField' => 'dart:io has no creation time, so only the fields that report back are shown',
-			'workspace.rustMemoryPollHint' => 'Rust memory is only read when expanded; collapsed stops polling',
-			'workspace.rustMemory' => 'Rust memory',
-			'workspace.gpuZeroCopyEngine' => 'Zero-copy GPU engine',
-			'workspace.gpuLinking' => 'Building the GPU link',
-			'workspace.gpuReady' => 'GPU ready',
-			'workspace.gpuSharedTexture' => 'GPU shared texture',
-			'workspace.cpuDecodeFallback' => 'CPU decode fallback',
-			'workspace.cpuDecodePreload' => 'CPU decode / image cache preloading',
-			'workspace.compressedArchive' => 'Compressed archive',
-			'workspace.archiveZip' => 'ZIP archive',
-			'workspace.archiveTar' => 'TAR archive',
-			'workspace.archiveRar' => 'RAR archive',
-			'workspace.archiveCbz' => 'CBZ archive',
-			'workspace.archiveCbr' => 'CBR archive',
-			'workspace.archive7z' => '7Z archive',
-			'workspace.last12Weeks' => 'Last 12 weeks',
-			'workspace.recentReading' => 'Reading recently',
-			'workspace.downloadedLabel' => 'Downloaded',
-			'workspace.bookUnit' => 'books',
-			'workspace.todayLabel' => 'today',
-			'workspace.yesterdayLabel' => 'yesterday',
-			'workspace.daysAgoLabel' => ({required Object n}) => '${n} days ago',
-			'workspace.readingTools' => 'Reading tools',
-			'workspace.filesBrowseSubtitle' => 'Browse, search and organize local files',
-			'workspace.openFilesAction' => 'Open',
-			'workspace.noMoreHistory' => 'No earlier records',
-			'workspace.continueNextHint' => 'Pick up where you left off',
-			'workspace.openAll' => 'All',
-			'workspace.toolsStandaloneHint' => 'Synced with reading settings',
-			'appName' => 'Rossi',
-			'common.nameNoSlash' => 'The name can\'t contain / or \\',
-			'common.startupStage' => ({required Object stage}) => 'Stage: ${stage}',
-			'common.appStartupFailed' => 'The app failed to start',
-			'common.openLocalComicRossi' => 'Open a local comic (Rossi\'s own reader + zero-copy GPU)',
-			'common.neoViewWorkspace' => 'NeoView workspace',
-			'common.openWithRossi' => 'Open with Rossi',
-			'common.showInExplorer' => 'Show in Explorer',
-			'common.showInFinder' => 'Show in Finder',
-			'common.showInFileManager' => 'Show in file manager',
-			'common.revealInFileManagerFolder' => 'Open the containing folder in the file manager',
-			'common.deleteListLabel' => 'Delete list',
-			'common.pleaseEnterName' => 'Please enter a name',
+			'appName' => 'Breeze',
+			'database.incompatible' => 'The database is incompatible. Please update to a newer version.',
 			'common.ok' => 'OK',
 			'common.cancel' => 'Cancel',
 			'common.save' => 'Save',
@@ -5107,55 +4395,12 @@ extension on TranslationsEnUs {
 			'settings.amoledSubtitle' => 'Use pure black background for AMOLED screens',
 			'settings.notchAdaptation' => 'Notch adaptation',
 			'settings.notchAdaptationSubtitle' => 'Reserve safe area to avoid content being obscured',
-			'settings.transparentDesktopTitleBar' => 'Transparent title bar',
-			'settings.transparentDesktopTitleBarSubtitle' => 'The title bar no longer paints a background and blends into the page (text and window buttons may be hard to read on light content). Desktop only',
-			'settings.transparentTitleBarRow' => 'Separate row',
-			'settings.transparentTitleBarRowSubtitle' => 'The bar keeps its own row with no background; content starts below it (default)',
-			'settings.transparentTitleBarOverlay' => 'Fused overlay',
-			'settings.transparentTitleBarOverlaySubtitle' => 'Content extends to the window top and the bar floats over it',
-			'settings.toastStyle' => 'Toast style',
-			'settings.toastStyleSubtitle' => 'Position, duration and size of in-app toasts',
-			'settings.toastSectionLayout' => 'Position & size',
-			'settings.toastSectionAppearance' => 'Appearance & behavior',
-			'settings.toastSectionBehavior' => 'Duration & motion',
-			'settings.toastSectionStyle' => 'Visuals',
-			'settings.toastPosition' => 'Position',
-			'settings.toastPositionSubtitle' => 'Which corner the toast sticks to',
-			'settings.toastPositionTopLeft' => 'Top left',
-			'settings.toastPositionTopCenter' => 'Top center',
-			'settings.toastPositionTopRight' => 'Top right',
-			'settings.toastPositionMiddleLeft' => 'Middle left',
-			'settings.toastPositionCenter' => 'Center',
-			'settings.toastPositionMiddleRight' => 'Middle right',
-			'settings.toastPositionBottomLeft' => 'Bottom left',
-			'settings.toastPositionBottomCenter' => 'Bottom center',
-			'settings.toastPositionBottomRight' => 'Bottom right',
-			'settings.toastEdgePadding' => 'Edge padding',
-			'settings.toastEdgePaddingSubtitle' => 'Distance between the toast and the screen edge',
-			'settings.toastMaxWidth' => 'Max width',
-			'settings.toastMaxWidthSubtitle' => 'Width limit of the toast; narrow screens clamp it further',
-			'settings.toastMaxVisible' => 'Visible at once',
-			'settings.toastMaxVisibleSubtitle' => 'How many toasts stack on screen; extra ones push out the oldest',
-			'settings.toastDuration' => 'Auto close',
-			'settings.toastDurationSubtitle' => 'Drag to the far left to keep it until closed manually',
-			'settings.toastDurationPermanent' => 'Persistent',
-			'settings.toastOpacity' => 'Opacity',
-			'settings.toastOpacitySubtitle' => 'Opacity of the whole toast, text included',
-			'settings.toastAnimation' => 'Enter/exit animation',
-			'settings.toastAnimationSubtitle' => 'Duration of the appear and disappear animation',
-			'settings.toastLiquidGlass' => 'Liquid glass',
-			'settings.toastLiquidGlassSubtitle' => 'Use a blurred translucent background for toasts',
-			'settings.toastShowProgressBar' => 'Show progress bar',
-			'settings.toastShowProgressBarSubtitle' => 'Show a thin line shrinking with the remaining time',
-			'settings.toastShowIcon' => 'Show type icon',
-			'settings.toastShowIconSubtitle' => 'Show a success/error icon on the left of the toast',
-			'settings.toastShowCloseButton' => 'Show close button',
-			'settings.toastShowCloseButtonSubtitle' => 'Persistent toasts always keep the close button',
-			'settings.toastPreview' => 'Show a test toast',
-			'settings.toastPreviewTitle' => 'Toast style preview',
-			'settings.toastPreviewLongMessage' => 'This is a preview toast: long text wraps automatically instead of being truncated or turned into a dialog.',
-			'settings.toastReset' => 'Reset toast style',
-			'settings.toastResetDone' => 'Toast style restored to defaults',
+			'settings.showPluginHome' => 'Show plugin home',
+			'settings.showPluginHomeSubtitle' => 'Hide the home tab in the bottom navigation when off',
+			'settings.showPluginCloudFavorite' => 'Show cloud favorites',
+			'settings.showPluginCloudFavoriteSubtitle' => 'Hide the cloud favorites tab in the bottom navigation when off',
+			'settings.showSearchBookmark' => 'Show search bookmarks',
+			'settings.showSearchBookmarkSubtitle' => 'Hide the search bookmarks entry in More and the add button in search results when off',
 			'settings.contentAndNetwork' => 'Content & Network',
 			'settings.content' => 'Content',
 			'settings.fullSourceList' => 'Full source list',
@@ -5249,6 +4494,19 @@ extension on TranslationsEnUs {
 			'settings.proxyTypeSubtitle' => 'Choose proxy protocol',
 			'settings.proxyTypeHttp' => 'HTTP',
 			'settings.proxyTypeSocks5' => 'SOCKS5',
+			'settings.doh' => 'DNS over HTTPS',
+			'settings.dohEnabledSubtitle' => 'Resolve domains over DoH when enabled',
+			'settings.dohProviders' => 'DoH endpoints',
+			'settings.dohProviderCount' => ({required Object count}) => 'Enabled · ${count} endpoints',
+			'settings.dohEmpty' => 'No DoH endpoint configured',
+			'settings.dohAdd' => 'Add DoH endpoint',
+			'settings.dohAddHint' => 'https://doh.pub/dns-query',
+			'settings.dohIpHint' => 'Prefer IP-based addresses to bypass DNS pollution, e.g. https://1.12.12.12/dns-query',
+			'settings.dohInvalidUrl' => 'Enter a full address starting with https://',
+			'settings.dohReset' => 'Restore default endpoints',
+			'settings.dohNote' => 'DoH protects against DNS pollution. Add multiple endpoints; the first valid result is used.',
+			'settings.blockPrivateNetwork' => 'Block private network',
+			'settings.blockPrivateNetworkSubtitle' => 'Block requests to private / reserved addresses, including IP-direct fronting; off by default',
 			'settings.updateAccelerate' => 'Update acceleration',
 			'settings.updateAccelerateSubtitle' => 'Use proxy to accelerate GitHub update links',
 			'settings.retryDownloadUntilSuccess' => 'Keep retrying failed downloads',
@@ -5339,12 +4597,8 @@ extension on TranslationsEnUs {
 			'settings.appLockSubtitle' => 'Require verification when entering the app',
 			'settings.autoFollowOnCollect' => 'Auto-follow on collect',
 			'settings.autoFollowOnCollectSubtitle' => 'Automatically add comics to the follow list when favorited',
-			'settings.autoFavoriteOnDownload' => 'Auto-favorite on download',
-			'settings.autoFavoriteOnDownloadSubtitle' => 'Automatically add comics to favorites when downloading',
-			'settings.writeDownloadMetadataFile' => 'Write metadata file on download',
-			'settings.writeDownloadMetadataFileSubtitle' => 'After a download finishes, write original_comic_info.json and processed_comic_info.json into the comic folder so other tools can read or re-import it',
-			'settings.promptDownloadOptions' => 'Prompt for download options',
-			'settings.promptDownloadOptionsSubtitle' => 'Show options (whole book / latest chapters / picker) when clicking download; when disabled, downloads all chapters directly',
+			'settings.autoCloudCollectOnLocalFavorite' => 'Auto cloud collect on local favorite',
+			'settings.autoCloudCollectOnLocalFavoriteSubtitle' => 'After a successful local favorite, automatically trigger one cloud collect when not cloud-collected yet',
 			'settings.leftHandMode' => 'Left-hand mode',
 			'settings.leftHandModeSubtitle' => 'Move floating action buttons and other controls to the left side',
 			'settings.clickCoverToStartReading' => 'Tap cover to start reading',
@@ -5808,18 +5062,46 @@ extension on TranslationsEnUs {
 			'bookshelf.confirmDeleteSelectedFavorites' => ({required Object count}) => 'Delete selected ${count} favorite records?',
 			'bookshelf.confirmDeleteSelectedHistory' => ({required Object count}) => 'Delete selected ${count} history records?',
 			'bookshelf.confirmDeleteSelectedDownloads' => ({required Object count}) => 'Delete selected ${count} download records and files?',
-			'comicInfo.chapterCount' => ({required Object count}) => 'Chapters · ${count}',
-			'comicInfo.pageClosedFavoriteCancelled' => 'The page closed; the favourite action was cancelled',
-			'comicInfo.previewLoadFailed' => 'Preview failed to load',
-			'comicInfo.showMoreChapters' => 'Show more chapters',
-			'comicInfo.noChaptersYet' => 'No chapters yet',
-			'comicInfo.reverseOrderLabel' => 'Reverse',
-			'comicInfo.restoreForwardOrder' => 'Restore forward order',
-			'comicInfo.imagePreview' => 'Image preview',
-			'comicInfo.collapseDetails' => 'Collapse details',
-			'comicInfo.workTools' => 'Work tools',
-			'comicInfo.refreshInformation' => 'Refresh info',
-			'comicInfo.cloudFavoriteIncomplete' => 'The cloud favourite operation didn\'t finish',
+			'comicEdit.title' => 'Edit comic',
+			'comicEdit.lockedTitle' => 'Editing unavailable',
+			'comicEdit.lockedMessage' => 'This comic still has unfinished downloads. Finish or cancel them on the download tasks page first.',
+			'comicEdit.basicInfo' => 'Basic info',
+			'comicEdit.chapters' => 'Chapters',
+			'comicEdit.images' => 'Pages',
+			'comicEdit.comicTitle' => 'Comic title',
+			'comicEdit.titleHint' => 'Enter a new comic title',
+			'comicEdit.changeCover' => 'Change cover',
+			'comicEdit.chooseFromComic' => 'Choose from comic pages',
+			'comicEdit.chooseCoverImage' => 'Choose cover page',
+			'comicEdit.saveTitle' => 'Save title',
+			'comicEdit.titleEmpty' => 'Title cannot be empty',
+			'comicEdit.chapterName' => 'Chapter name',
+			'comicEdit.chapterNameHint' => 'Enter a chapter name',
+			'comicEdit.chapterNameEmpty' => 'Chapter name cannot be empty',
+			'comicEdit.addChapter' => 'Add chapter',
+			'comicEdit.addChapterHint' => 'Enter a new chapter name',
+			'comicEdit.renameChapter' => 'Rename chapter',
+			'comicEdit.pagesCount' => ({required Object count}) => '${count} pages',
+			'comicEdit.emptyChapter' => 'No pages in this chapter',
+			'comicEdit.selectChapter' => 'Select chapter',
+			'comicEdit.noChapters' => 'No chapters yet',
+			'comicEdit.moveToChapter' => 'Move to chapter',
+			'comicEdit.selectedCount' => ({required Object count}) => '${count} selected',
+			'comicEdit.movedCount' => ({required Object count}) => 'Moved ${count} pages',
+			'comicEdit.deleteImagesTitle' => 'Delete pages',
+			'comicEdit.deleteImagesMessage' => ({required Object count}) => 'Delete the selected ${count} pages?',
+			'comicEdit.deletedCount' => ({required Object count}) => 'Deleted ${count} pages',
+			'comicEdit.selectAll' => 'Select all',
+			'comicEdit.clearSelection' => 'Clear selection',
+			'comicEdit.reorderHint' => 'Long-press and drag to reorder',
+			'comicEdit.saveSuccess' => 'Saved',
+			'comicEdit.coverUpdated' => 'Cover updated',
+			'comicEdit.chapterAdded' => 'Chapter added',
+			'comicEdit.chapterRenamed' => 'Chapter renamed',
+			'comicEdit.imageMissing' => 'Image file missing',
+			'comicEdit.busy' => 'Working...',
+			'comicEdit.notFound' => 'Download record not found',
+			'comicEdit.loadFailed' => 'Failed to load',
 			'comicInfo.follow' => 'Follow updates',
 			'comicInfo.unfollow' => 'Unfollow',
 			'comicInfo.exportComic' => 'Export comic',
@@ -5857,6 +5139,7 @@ extension on TranslationsEnUs {
 			'comicInfo.confirmUncollectContent' => 'This will delete the comic from all folders. Continue?',
 			'comicInfo.commentForbidden' => 'This plugin does not support this feature',
 			'comicInfo.commentForbiddenTitle' => 'Comments disabled',
+			'comicInfo.chooseLocalFavoriteFolders' => 'Choose local favorite folders',
 			'comicInfo.back' => 'Back',
 			'comicInfo.exportTitle' => 'Choose export format',
 			'comicInfo.exportSubtitle' => 'Export as folder or zip archive:',
@@ -5881,6 +5164,8 @@ extension on TranslationsEnUs {
 			'comicInfo.tags' => 'Tags',
 			'comicInfo.works' => 'Works',
 			'comicInfo.views' => ({required Object count}) => 'Views: ${count}',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.updateTime' => ({required Object time}) => 'Updated: ${time}',
 			'comicInfo.startRead' => 'Start reading',
 			'comicInfo.continueRead' => 'Continue reading',
@@ -6314,6 +5599,10 @@ extension on TranslationsEnUs {
 			'reader.unpinBottomBar' => 'Unpin the bottom bar',
 			'reader.landscapeReader' => 'Landscape reading',
 			'reader.landscapeReaderSubtitle' => 'Switch to landscape while reading and restore the previous direction when you leave',
+			'reader.autoDoublePage' => 'Auto double page in landscape',
+			'reader.autoDoublePageSubtitle' => 'Switch to double page in landscape and back to single page in portrait',
+			'reader.showStatusBar' => 'Show status bar',
+			'reader.showStatusBarSubtitle' => 'Keep the top status bar while reading, hide only the bottom navigation bar',
 			'reader.themeMode' => 'Theme mode',
 			'reader.autoRead' => 'Auto read',
 			'reader.autoReadSubtitle' => 'Automatically scroll the reader',
@@ -6441,9 +5730,7 @@ extension on TranslationsEnUs {
 			'plugin.searchHint' => 'Search plugin name or author...',
 			'plugin.localInstall' => 'Local install',
 			'plugin.networkInstall' => 'Network install',
-			'plugin.cloudComponents' => 'Cloud components',
-			'plugin.restrictedSourceBlocked' => 'This source is not available. Enable "Full source list" in Settings → Content & Network first',
-			'plugin.restrictedSourcesHidden' => ({required Object count}) => '${count} source(s) hidden',
+			'plugin.cloudPlugins' => 'Cloud plugins',
 			'plugin.loginSuccess' => 'Please complete login in the browser, the host will sync cookies automatically',
 			'plugin.chromiumFallbackUnsupported' => 'External Chromium auto-login fallback is not supported on this platform',
 			'plugin.switchingToExternalBrowser' => 'Built-in WebView login is limited, switching to external browser...',
@@ -6491,10 +5778,10 @@ extension on TranslationsEnUs {
 			'plugin.githubRepo' => 'GitHub Repo',
 			'plugin.download' => 'Download',
 			'plugin.downloadUpdate' => 'Download update',
-			'plugin.noCloudPlugins' => 'No cloud components',
+			'plugin.noCloudPlugins' => 'No cloud plugins',
 			'plugin.noMatchingPlugins' => 'No matching plugins',
 			'plugin.networkInstallHint' => 'Enter plugin script URL',
-			'plugin.cloudPluginsLoadFailed' => ({required Object error}) => 'Failed to load cloud components: ${error}',
+			'plugin.cloudPluginsLoadFailed' => ({required Object error}) => 'Failed to load cloud plugins: ${error}',
 			'plugin.installingFromCloud' => ({required Object name}) => 'Downloading and installing ${name}...',
 			'plugin.installingFromLocal' => 'Installing local plugin...',
 			'plugin.installingFromNetwork' => 'Downloading network plugin...',
@@ -7015,7 +6302,9 @@ extension on TranslationsEnUs {
 			'about.tagline' => 'Cross-platform comic reader',
 			'about.projectAddress' => 'Project',
 			'about.projectAddressDesc' => 'Like this project? Give it a star on GitHub!',
-			'about.projectLink' => 'Go to GitHub repo (HibernalGlow/rossi) ⭐',
+			'about.projectLink' => 'Go to GitHub repo (breeze-project-org/Breeze) ⭐',
+			'about.contact' => 'Contact',
+			'about.contactDesc' => 'Have ideas or questions? Feel free to reach out~',
 			'about.feedback' => 'Feedback',
 			'about.feedbackDesc' => 'Found a bug or have a new idea?',
 			'about.feedbackLink' => 'Open a GitHub Issue',
@@ -7060,6 +6349,8 @@ extension on TranslationsEnUs {
 			'oldHome.latest' => 'Latest',
 			'oldHome.cloudFavorite' => 'Cloud Favorites',
 			'oldHome.list' => 'List',
+			_ => null,
+		} ?? switch (path) {
 			'oldHome.function' => 'Function',
 			'oldHome.close' => 'Close',
 			'oldHome.loadFailedRetry' => 'Load failed, please retry.',
@@ -7074,6 +6365,7 @@ extension on TranslationsEnUs {
 			'more.sync' => 'Sync',
 			'more.comicFollow' => 'Updates',
 			'more.changelog' => 'Changelog',
+			'more.newBadge' => 'NEW',
 			'search.title' => 'Search',
 			'search.searchHint' => 'Search...',
 			'search.selectSource' => 'Select Source',
@@ -7104,12 +6396,7 @@ extension on TranslationsEnUs {
 			'search.fuzzySearchDesc' => 'Show results containing any keyword',
 			'search.selectCategory' => 'Select Category',
 			'search.dataSource' => 'Data Source',
-			'search.sortBy' => 'Sort By',
-			'search.newestToOldest' => 'Newest to oldest',
-			'search.oldestToNewest' => 'Oldest to newest',
-			'search.mostLikes' => 'Most likes',
-			'search.mostViews' => 'Most views',
-			'search.selectSourceTooltip' => 'Select source',
+			'search.settings' => 'Reading',
 			'search.hasResults' => 'With results',
 			'search.showErrors' => 'Show errors',
 			'search.resultCount' => ({required Object count}) => '${count} results',
@@ -7132,40 +6419,33 @@ extension on TranslationsEnUs {
 			'discover.pluginEnableFailed' => ({required Object error}) => 'Failed to enable plugin: ${error}',
 			'discover.pluginCloseFailed' => ({required Object error}) => 'Failed to disable plugin: ${error}',
 			'discover.pluginDebugLoadFailed' => ({required Object error}) => 'Plugin debug load failed, reverted to database: ${error}',
-			'discover.closeTab' => 'Close tab',
-			'discover.tabDisplay' => 'Tab display',
-			'discover.tabShowIcon' => 'Show plugin icon',
-			'discover.tabShowPluginShort' => 'Show plugin short name',
-			'discover.tabDoubleClickClose' => 'Double-click to close tab',
-			'discover.tabCoverMode' => 'Cover tab mode',
-			'discover.tabCoverModeDesc' => 'Display tabs as book covers with information overlay',
-			'discover.webPage' => 'Web page',
-			'discover.comicDetail' => 'Details',
-			_ => null,
-		} ?? switch (path) {
 			'searchResult.enterPageNumber' => 'Enter page number',
 			'searchResult.pleaseEnterNumber' => 'Please enter a number',
 			'searchResult.returnToTop' => 'Return to top',
 			'searchResult.jumpToPage' => 'Jump to page',
 			'searchResult.jump' => 'Jump',
 			'searchResult.retry' => 'Tap to retry',
-			'comicList.browseMenu' => 'Browse menu',
-			'comicList.currentPage' => ({required Object page}) => 'Page ${page}',
-			'comicList.pageOfTotal' => ({required Object page, required Object total}) => 'Page ${page} of ${total}',
-			'comicList.jumpToPage' => 'Jump to page',
-			'comicList.pageInput' => 'Page number',
-			'comicList.invalidPage' => 'Enter a positive whole number',
-			'comicList.pageOutOfRange' => ({required Object total}) => 'Page cannot exceed ${total}',
-			'comicList.restorePosition' => 'Restore last position',
-			'comicList.restorePage' => ({required Object page}) => 'Last viewed page ${page}',
-			'comicList.noSavedPosition' => 'No saved position yet',
-			'comicList.positionSavedAutomatically' => 'Position is saved automatically after scrolling',
-			'comicList.previousPage' => 'Previous page',
-			'comicList.nextPage' => 'Next page',
-			'comicList.chineseLocalized' => 'CN-localised',
-			'comicList.downloadedAtLabel' => 'Downloaded at',
-			'comicList.likedArtists' => 'Favourite artists',
-			'comicList.likedTags' => 'Favourite tags',
+			'searchResult.bookmarkAdd' => 'Add bookmark',
+			'searchResult.bookmarkPickBanner' => 'Tap a cover to mark the bookmark position (scrolling paused)',
+			'searchResult.bookmarkAdded' => 'Bookmark added',
+			'searchResult.bookmarkPickNone' => 'Tap a cover first',
+			'searchResult.bookmarkPickNoResult' => 'No search results to anchor a bookmark',
+			'searchBookmark.title' => 'Search bookmarks',
+			'searchBookmark.empty' => 'No search bookmarks yet',
+			'searchBookmark.emptyHint' => 'Add one from the search result page via the bottom-right button',
+			'searchBookmark.filteredEmpty' => 'No bookmarks under current filter',
+			'searchBookmark.filteredEmptyHint' => 'Try another filter, or add one from the search result page',
+			'searchBookmark.filter' => 'Filter',
+			'searchBookmark.sort' => 'Sort',
+			'searchBookmark.source' => 'Source',
+			'searchBookmark.sortNewest' => 'Newest first',
+			'searchBookmark.sortOldest' => 'Oldest first',
+			'searchBookmark.deselectAll' => 'Deselect all',
+			'searchBookmark.jumped' => ({required Object page}) => 'Jumped to page ${page}',
+			'searchBookmark.anchorMissing' => ({required Object page}) => 'Anchor not on this page, located at page ${page}',
+			'searchBookmark.probePages' => 'Probe pages forward',
+			'searchBookmark.probePagesSubtitle' => 'When the anchor is not on the landed page, probe at most N pages forward (then 1 page backward)',
+			'searchBookmark.deleted' => 'Bookmark deleted',
 			'comicList.defaultTitle' => 'Comic List',
 			'comicList.missingSource' => 'Missing plugin source, cannot load list',
 			'comicList.reload' => 'Reload',
@@ -7230,6 +6510,7 @@ extension on TranslationsEnUs {
 			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => 'Checked ${minutes} min ago',
 			'comicFollow.updatedHoursAgo' => ({required Object hours}) => 'Checked ${hours} h ago',
 			'comicFollow.updatedDaysAgo' => ({required Object days}) => 'Checked ${days} d ago',
+			'comicFollow.lastReadJustNow' => 'Just read',
 			'comicFollow.lastReadMinutesAgo' => ({required Object minutes}) => 'Read ${minutes} min ago',
 			'comicFollow.lastReadHoursAgo' => ({required Object hours}) => 'Read ${hours} h ago',
 			'comicFollow.lastReadDaysAgo' => ({required Object days}) => 'Read ${days} d ago',
@@ -7286,6 +6567,12 @@ extension on TranslationsEnUs {
 			'login.captchaTapToRefresh' => 'Can\'t see? Tap to refresh',
 			'login.captchaLoading' => 'Loading captcha...',
 			'login.captchaLoadFailed' => 'Failed to load captcha, tap to retry',
+			'login.sliderTitle' => 'Complete the puzzle',
+			'login.sliderHint' => 'Hold and drag the slider',
+			'login.sliderLoading' => 'Loading challenge...',
+			'login.sliderLoadFailed' => 'Failed to load, tap to retry',
+			'login.sliderVerifying' => 'Verifying...',
+			'login.sliderFailed' => 'Verification failed, try again',
 			'fontSetting.title' => 'Font Settings',
 			'fontSetting.clear' => 'Clear',
 			'fontSetting.hint' => 'Pick one default font to apply everywhere; override individual weights only when needed.',
@@ -7342,12 +6629,7 @@ extension on TranslationsEnUs {
 			'download.noTasks' => 'No download tasks',
 			'download.downloading' => 'Downloading',
 			'download.pending' => ({required Object count}) => 'Pending (${count})',
-			'download.failedTasks' => ({required Object count}) => 'Failed (${count})',
-			'download.pausedTasks' => ({required Object count}) => 'Paused (${count})',
-			'download.pinTask' => 'Prioritize',
-			'download.unpinTask' => 'Remove priority',
-			'download.taskPinned' => 'Moved to the front of the queue',
-			'download.taskUnpinned' => 'Priority removed',
+			'download.selectedChapters' => ({required Object count}) => 'Selected ${count} chapters',
 			'download.taskDeleted' => 'Task deleted',
 			'download.deleteLastChapterContent' => 'Deleting this chapter will also delete the download record. Continue?',
 			'download.cancelTask' => 'Cancel Task',
@@ -7405,6 +6687,8 @@ extension on TranslationsEnUs {
 			'notification.permissionRequired' => 'Please enable notification permission',
 			'notification.macPermissionRequired' => 'Please enable notification permission in system settings',
 			'update.newVersion' => 'New version available',
+			'update.snoozeWeek' => 'Don\'t remind for a week',
+			'update.snoozeWeekSuccess' => 'No update reminders for the next week',
 			'update.goToGitHub' => 'Go to GitHub',
 			'update.downloadInstall' => 'Download & install',
 			'update.apkDownloadFailed' => 'Download failed, please try again later',

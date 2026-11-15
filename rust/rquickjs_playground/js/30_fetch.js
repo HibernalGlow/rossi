@@ -877,6 +877,10 @@
         ? null
         : Number(init.nativeBufferId);
       this.offloadedBytes = Number(init.offloadedBytes || 0);
+      // 宿主侧的测量信息（非标准扩展）：实际连接的 IP、body 字节数、分段耗时。
+      // 宿主只测量不做优选，插件可以拿这些数据自己决定前置表里哪个 IP 更好。
+      // 未走前置时 `ip` / `host` 为 null，但计时字段始终有值。
+      this.hostMeta = init.hostMeta || null;
     }
 
     clone() {
@@ -890,6 +894,7 @@
           statusText: this.statusText,
           headers: this.headers,
           url: this.url,
+          hostMeta: this.hostMeta,
         });
       }
       if (this._isBodyStateConsumed()) {
@@ -904,6 +909,7 @@
         offloaded: this.offloaded,
         nativeBufferId: this.nativeBufferId,
         offloadedBytes: this.offloadedBytes,
+        hostMeta: this.hostMeta,
       });
     }
 
@@ -1187,6 +1193,19 @@
           offloaded: true,
           nativeBufferId: payload.nativeBufferId,
           offloadedBytes: payload.offloadedBytes,
+          hostMeta: {
+            // 前置表里下发的目标 IP；未走前置时为 null。
+            ip: payload.frontIp === undefined ? null : payload.frontIp,
+            // 前置目标域名；未走前置时为 null。
+            host: payload.frontHost === undefined ? null : payload.frontHost,
+            // 实际 TCP 对端 IP：未前置时是 DNS 解析结果，走代理时是代理地址。
+            peerIp: payload.peerIp === undefined || payload.peerIp === ""
+              ? null
+              : payload.peerIp,
+            bytes: Number(payload.offloadedBytes || 0),
+            ttfbMs: Number(payload.ttfbMs || 0),
+            bodyMs: Number(payload.bodyMs || 0),
+          },
         });
       } finally {
         cleanupSignalListeners();

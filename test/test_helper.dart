@@ -44,6 +44,7 @@ class TestObjectBoxHelper {
     objectbox.unifiedFavoriteBox.removeAll();
     objectbox.unifiedHistoryBox.removeAll();
     objectbox.unifiedDownloadBox.removeAll();
+    objectbox.comicReadChapterBox.removeAll();
   }
 }
 

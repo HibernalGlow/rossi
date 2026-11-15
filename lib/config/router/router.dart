@@ -54,86 +54,23 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
     AutoRoute(page: SearchResultRoute.page),
     AutoRoute(page: SearchAggregateResultRoute.page),
     AutoRoute(page: ComicInfoRoute.page),
+    AutoRoute(page: ComicEditRoute.page),
     AutoRoute(page: CommentsRoute.page),
     AutoRoute(page: PluginCommentsScaffoldRoute.page),
     AutoRoute(page: ComicReadRoute.page),
     AutoRoute(page: WebViewRoute.page),
-    CustomRoute(
-      page: GlobalSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: AppearanceSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: ToastSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: NotifySettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: ContextMenuSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: WorkspaceLayoutSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: SwimlanePanelSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: FileManagerSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: ContentNetworkSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: FavoriteArtistSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: FavoriteTagSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: SyncSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: AppBehaviorSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: EInkSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: StorageSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: DebugSettingRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: ThemeColorRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: WebDavSyncRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
-    CustomRoute(
-      page: ShowColorRoute.page,
-      customRouteBuilder: settingAutoRoute,
-    ),
+    AutoRoute(page: GlobalSettingRoute.page),
+    AutoRoute(page: AppearanceSettingRoute.page),
+    AutoRoute(page: ContentNetworkSettingRoute.page),
+    AutoRoute(page: DohSettingRoute.page),
+    AutoRoute(page: SyncSettingRoute.page),
+    AutoRoute(page: AppBehaviorSettingRoute.page),
+    AutoRoute(page: EInkSettingRoute.page),
+    AutoRoute(page: StorageSettingRoute.page),
+    AutoRoute(page: DebugSettingRoute.page),
+    AutoRoute(page: ThemeColorRoute.page),
+    AutoRoute(page: WebDavSyncRoute.page),
+    AutoRoute(page: ShowColorRoute.page),
     AutoRoute(page: AboutRoute.page),
     AutoRoute(page: FullRouteImageRoute.page),
     AutoRoute(page: ChangelogRoute.page),
@@ -173,6 +110,7 @@ class AppRouter extends RootStackRouter with WorkspaceBackInterceptor {
       customRouteBuilder: settingAutoRoute,
     ),
     AutoRoute(page: ComicFollowRoute.page),
+    AutoRoute(page: SearchBookmarkRoute.page),
   ];
 
   /// 全站仅此一个守卫：[WorkspaceRouteGuard]。

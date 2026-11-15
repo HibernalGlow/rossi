@@ -15,7 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_socks_proxy/socks_proxy.dart';
 import 'package:logger/logger.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -33,12 +32,15 @@ import 'package:zephyr/i18n/i18n_helper.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/i18n/system_locale_service.dart';
 import 'package:zephyr/network/http/wind_http.dart';
+import 'package:zephyr/util/doh_setting.dart';
+import 'package:zephyr/util/network_policy.dart';
+import 'package:zephyr/util/process_exit.dart';
+import 'package:zephyr/util/proxy_setting.dart';
 import 'package:zephyr/network/sync/sync_device_id.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/object_box.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
-import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
-import 'package:zephyr/platform/desktop/native_window.dart';
+import 'package:zephyr/platform/desktop/desktop_window.dart';
 import 'package:zephyr/platform/desktop/system_tray.dart';
 import 'package:zephyr/platform/desktop/window_logic.dart';
 import 'package:zephyr/platform/eink/eink_device.dart';
@@ -58,15 +60,13 @@ import 'package:zephyr/util/http_proxy_env.dart';
 import 'package:zephyr/util/layout/layout_overflow_guard.dart';
 import 'package:zephyr/util/manage_cache.dart';
 import 'package:zephyr/util/rust_loader.dart';
-import 'package:zephyr/video/view/active_video_scope.dart';
-import 'package:zephyr/widgets/desktop/desktop_shell_frame.dart';
+import 'package:zephyr/widgets/database_incompatible_app.dart';
+import 'package:zephyr/widgets/desktop/custom_title_bar.dart';
 import 'package:zephyr/widgets/desktop/intent.dart';
-import 'package:zephyr/widgets/popup_panel.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/main.dart';
 
 export 'package:zephyr/network/http/wind_http.dart'
-    show WindHttp, FetchResponse, fetch, fetchDirect;
-part 'parts/main_boot_fallback_part.dart';
+    show WindHttp, FetchResponse, FetchException, fetch, fetchDirect;
 
 ObjectBox? _objectbox;
 ObjectBox get objectbox => _objectbox!;
@@ -230,6 +230,8 @@ Future<void> main(List<String> args) async {
           child: const MyApp(),
         ),
       );
+    } on ObjectBoxSchemaMismatchException {
+      await _runDatabaseIncompatibleApp();
     } catch (e, stack) {
       // 捕获初始化阶段（_initServices）可能抛出的异常
       if (kDebugMode || sentryDsn.isEmpty) {
@@ -272,6 +274,11 @@ Future<void> main(List<String> args) async {
       // 附加线程信息和堆栈，增强原生层（Rust/C++）错误分析
       options.attachThreads = true;
       options.attachStacktrace = true;
+
+      // 插件常把 `data:` URL（整张 base64 图）当 URL 传给 fetch：
+      // 失败后巨型 base64 会污染异常文本、面包屑与附件。展示层清洗，
+      // 原始异常与重试判定不受影响。
+      options.beforeSend = sanitizeSentryEvent;
     },
     appRunner: () async {
       try {
@@ -294,6 +301,8 @@ Future<void> main(List<String> args) async {
             ),
           ),
         );
+      } on ObjectBoxSchemaMismatchException {
+        await _runDatabaseIncompatibleApp();
       } catch (exception, stackTrace) {
         // 这里原来只上报 Sentry 就结束了。没配 DSN 时等于**什么都没发生**，
         // 而代价是 runApp 永远不会被调用 —— 用户看到的是一片永远不动的黑。
@@ -303,6 +312,20 @@ Future<void> main(List<String> args) async {
       }
     },
   );
+}
+
+/// 数据库版本高于当前代码时，用最小应用提示用户升级，而不是直接崩溃。
+Future<void> _runDatabaseIncompatibleApp() async {
+  try {
+    final systemInfo = await SystemLocaleService.getInfo();
+    final appLocale = I18nHelper.toAppLocale(systemInfo.locale);
+    if (appLocale != null) {
+      LocaleSettings.setLocale(appLocale);
+    }
+  } catch (_) {
+    // 语言探测失败时保持默认语言。
+  }
+  runApp(const DatabaseIncompatibleApp());
 }
 
 Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
@@ -325,11 +348,14 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
 
   if (!kReleaseMode) {
     setQjsErrorStackEnabled(enabled: true);
-    // 代理探测可能等到连接超时；它只影响开发期网络请求，不应阻塞桌面首屏。
-    // 插件预热已经移到 AppBootstrap 的后台路径，探测完成后会自动影响后续请求。
-    unawaited(tryApplyHttpProxyFromEnv());
+    // debug 下展示原样，方便调试；精简开关默认关闭。
+    setSimplifyPluginErrorDisplay(enabled: false);
+    // 配置http代理，方便开发测试
+    await _tryApplyHttpProxyFromEnv();
   } else {
     setQjsErrorStackEnabled(enabled: false);
+    // release 下 logAddress 已知后才决定是否精简，见下方日志转发分支。
+    setSimplifyPluginErrorDisplay(enabled: false);
   }
 
   // 初始化前台任务
@@ -409,44 +435,17 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
     await clearCache(await getCachePath());
   }
 
-  // 旧版把 CoreML 超分模型解在临时目录（会被每天一次的 dirhelper 清掉）。先把它搬到
-  // 持久目录，之后的就绪判定才不会把「下过的模型」看成没下过。
-  await CoreMLModelLoader.migrateFromLegacyTemp();
-
-  // 超分产物缓存现在落在持久目录里（跨启动复用），没人清了，所以启动期自己封顶一次。
-  // 不 await：淘汰几千个文件是 IO，不该把首屏压在它后面；失败只是这次不淘汰。
-  unawaited(
-    SuperResolutionLog.trimCache().catchError((Object error) {
-      logger.w('超分产物缓存淘汰失败', error: error);
-    }),
+  applyProxySetting(globalSettingCubit.state.proxySetting);
+  applyDohSetting(globalSettingCubit.state.dohSetting);
+  applyPrivateNetworkPolicy(
+    blockPrivateNetwork: globalSettingCubit.state.blockPrivateNetwork,
   );
-
-  final proxySetting = globalSettingCubit.state.proxySetting;
-  if (proxySetting.enabled && proxySetting.address.trim().isNotEmpty) {
-    final proxyAddress = proxySetting.address.trim();
-    switch (proxySetting.type) {
-      case ProxyType.http:
-        final proxyUrl =
-            proxyAddress.startsWith('http://') ||
-                proxyAddress.startsWith('https://')
-            ? proxyAddress
-            : 'http://$proxyAddress';
-        setHttpProxy(proxy: proxyUrl);
-        // Dart 侧纯 dart:io HttpClient（如 minio / S3 同步）也走 HTTP 代理
-        SocksProxy.initProxy(proxy: 'PROXY ${stripProxyScheme(proxyUrl)}');
-      case ProxyType.socks5:
-        SocksProxy.initProxy(proxy: 'SOCKS5 $proxyAddress');
-        setSocks5Proxy(proxy: proxyAddress);
-    }
-  }
 
   // 设置日志转发（包含flutter和qjs的日志）
   final logAddress = globalSettingCubit.state.logAddress;
 
-  if (logAddress.isNotEmpty) {
-    // 只有出货包才把 Dart logger 整个换成 RemoteOutput。原来判 `!kDebugMode`，
-    // 于是 `--profile` 也命中：日志从终端/DevTools 消失，只剩 HTTP 转发。
-    if (kReleaseMode) {
+  if (logAddress.trim().isNotEmpty) {
+    if (!kDebugMode) {
       logger = Logger(
         printer: TersePrettyPrinter(),
         filter: MyAlwaysLogFilter(),
@@ -455,6 +454,12 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
     }
     setLogHttpForward(url: logAddress);
     setQjsErrorStackEnabled(enabled: true);
+    // release + 配了日志转发：Rust 下发完整堆栈供远端诊断，
+    // 本地展示精简为 Error: 一行；debug 下保持原样。
+    // 调试页改动 logAddress 后重启生效。
+    if (!kDebugMode) {
+      setSimplifyPluginErrorDisplay(enabled: true);
+    }
   }
 
   // 关掉缓存定时清理(rust端)
@@ -473,6 +478,57 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
   unawaited(saveStartupDatabaseSnapshot());
 
   return (globalSettingCubit, pluginRegistryCubit);
+}
+
+Future<void> _tryApplyHttpProxyFromEnv() async {
+  if (!kDebugMode) return;
+
+  final rawProxy = await _readProxyFromEnvAsset();
+  if (rawProxy == null || rawProxy.isEmpty) return;
+
+  final proxyUrl =
+      rawProxy.startsWith('http://') || rawProxy.startsWith('https://')
+      ? rawProxy
+      : 'http://$rawProxy';
+
+  final reachable = await _probeProxyWithTimeout(proxyUrl);
+  if (!reachable) return;
+
+  applyProxySetting(
+    ProxySettingState(enabled: true, type: ProxyType.http, address: proxyUrl),
+  );
+}
+
+Future<String?> _readProxyFromEnvAsset() async {
+  try {
+    final content = await rootBundle.loadString('.env.proxy');
+    for (final rawLine in const LineSplitter().convert(content)) {
+      final line = rawLine.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
+      if (!line.startsWith('proxy=')) continue;
+      final value = line.substring('proxy='.length).trim();
+      if (value.isNotEmpty) return value;
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
+}
+
+Future<bool> _probeProxyWithTimeout(String proxyUrl) async {
+  try {
+    final response = await WindHttp(
+      httpProxy: proxyUrl,
+      connectTimeout: const Duration(seconds: 3),
+      receiveTimeout: const Duration(seconds: 3),
+      followRedirects: false,
+    ).fetch('http://www.gstatic.com/generate_204');
+    return response.status >= 200 && response.status < 500;
+  } on FetchException catch (e) {
+    return e.status >= 200 && e.status < 500;
+  } catch (_) {
+    return false;
+  }
 }
 
 Future<void> addArchitectureTagsToSentry() async {
@@ -520,25 +576,24 @@ Future<void> addArchitectureTagsToSentry() async {
   }
 }
 
-class MyApp extends StatefulWidget with WindowListener {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp>
-    with WindowListener, WidgetsBindingObserver {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  /// 主窗口事件监听句柄，dispose 时注销。
+  ListenerId? _windowListenerId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      windowManager.addListener(this);
-      _init();
-      WindowLogic.initWindow(context).then((_) {
-        windowManager.setPreventClose(true);
-      });
+      _attachWindowEvents();
+      WindowLogic.initWindow(context);
     }
     initSystemTray(
       onShowWindow: showMainWindow,
@@ -567,34 +622,53 @@ class _MyAppState extends State<MyApp>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      windowManager.removeListener(this);
+      final listenerId = _windowListenerId;
+      if (listenerId != null) {
+        mainWindow?.removeListener(listenerId);
+        _windowListenerId = null;
+      }
       disposeSystemTray();
     }
     super.dispose();
   }
 
-  @override
-  void onWindowResized() {
-    super.onWindowResized();
-    WindowLogic.saveWindowState(context);
+  /// 注册主窗口事件监听（窗口尚未创建时下一帧重试一次）。
+  void _attachWindowEvents() {
+    if (_windowListenerId != null) return;
+    final window = mainWindow;
+    if (window == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _windowListenerId != null) return;
+        final retryWindow = mainWindow;
+        if (retryWindow == null) {
+          logger.w('主窗口事件监听注册失败：窗口尚未就绪');
+          return;
+        }
+        _windowListenerId = retryWindow.addListener(_handleWindowEvent);
+      });
+      return;
+    }
+    _windowListenerId = window.addListener(_handleWindowEvent);
   }
 
-  @override
-  void onWindowMoved() {
-    super.onWindowMoved();
-    WindowLogic.saveWindowState(context);
-  }
-
-  @override
-  void onWindowMaximize() {
-    super.onWindowMaximize();
-    WindowLogic.saveWindowStateImmediately(context);
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    super.onWindowUnmaximize();
-    WindowLogic.saveWindowStateImmediately(context);
+  void _handleWindowEvent(WindowEvent event) {
+    switch (event) {
+      case WindowResizedEvent():
+      case WindowMovedEvent():
+        WindowLogic.saveWindowState(context);
+      // 最大化/还原（含从最小化恢复）都会影响保存的尺寸，立即落盘。
+      case WindowMaximizedEvent():
+      case WindowRestoredEvent():
+        WindowLogic.saveWindowStateImmediately(context);
+      case WindowFocusedEvent():
+        if (mounted) setState(() {});
+      // 关闭请求一律先拦下，由 _handleCloseRequest 决定隐藏还是退出。
+      case WindowCloseRequestedEvent(:final request):
+        request.cancel();
+        _handleCloseRequest();
+      case _:
+        break;
+    }
   }
 
   /// 应用级退出请求不一定经过窗口关闭回调，退出前补存一次窗口状态。
@@ -609,13 +683,9 @@ class _MyAppState extends State<MyApp>
   /// 立即隐藏窗口再退出，让用户感知不到 Dart VM 清理的延迟
   Future<void> _forceExit() async {
     await WindowLogic.saveWindowStateImmediately(context);
-    // 强杀，降低延迟
-    // nuclearKillProcess();
-    if (Platform.isWindows) {
-      NativeWindow.hide(); // 同步 Win32 调用，零延迟
-    } else {
-      windowManager.hide(); // 其他桌面平台
-    }
+    // 先隐藏窗口（同步 FFI 调用，零延迟），再强杀进程，
+    // 让用户感知不到 Dart VM 回收的延迟。
+    mainWindow?.hide();
     objectbox.close();
     nuclearKillProcess();
   }
@@ -625,11 +695,6 @@ class _MyAppState extends State<MyApp>
   static const MethodChannel _linuxWindowChannel = MethodChannel(
     'breeze/linux/window',
   );
-
-  @override
-  void onWindowClose() {
-    _handleCloseRequest();
-  }
 
   Future<void> _handleCloseRequest() async {
     if (_handlingCloseRequest) return;
@@ -648,7 +713,7 @@ class _MyAppState extends State<MyApp>
       }
 
       if (Platform.isLinux) {
-        await windowManager.show();
+        mainWindow?.show();
       }
       final dialogContext = appRouter.navigatorKey.currentContext;
       if (dialogContext == null || !dialogContext.mounted) {
@@ -729,28 +794,11 @@ class _MyAppState extends State<MyApp>
   /// 隐藏窗口到任务栏托盘，不退出程序
   Future<void> _hideWindow() async {
     await WindowLogic.saveWindowStateImmediately(context);
-    if (Platform.isWindows) {
-      NativeWindow.hide();
-    } else {
-      windowManager.hide();
-    }
+    mainWindow?.hide();
   }
 
   Future<void> _performGracefulExit() async {
     await _forceExit();
-  }
-
-  @override
-  void onWindowFocus() {
-    super.onWindowFocus();
-    setState(() {});
-  }
-
-  void _init() async {
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      await windowManager.setPreventClose(true);
-      setState(() {});
-    }
   }
 
   @override

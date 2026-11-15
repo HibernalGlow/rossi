@@ -220,9 +220,9 @@ UnifiedComicDownloadInfo resolveUnifiedDownloadInfo(
   }
 
   if (comicInfo is UnifiedComicDownload) {
-    final chapters = _decodeListOfMaps(
-      comicInfo.chapters,
-    ).map((chapter) => UnifiedComicDownloadChapter.fromMap(chapter)).toList();
+    final chapters = _decodeListOfMaps(comicInfo.chapters)
+        .map((chapter) => UnifiedComicDownloadChapter.fromMap(chapter))
+        .toList();
     return UnifiedComicDownloadInfo(
       source: comicInfo.source,
       comicId: comicInfo.comicId,
@@ -252,9 +252,9 @@ List<UnifiedComicDownloadStoredChapter> resolveStoredDownloadChaptersFromJson({
   required String chaptersJson,
   required String detailJson,
 }) {
-  final chaptersFromMain = _decodeListOfMaps(
-    chaptersJson,
-  ).map((e) => UnifiedComicDownloadStoredChapter.fromMap(e)).toList();
+  final chaptersFromMain = _decodeListOfMaps(chaptersJson)
+      .map((e) => UnifiedComicDownloadStoredChapter.fromMap(e))
+      .toList();
   if (chaptersFromMain.any((chapter) => chapter.images.isNotEmpty)) {
     return chaptersFromMain;
   }
@@ -275,17 +275,17 @@ List<UnifiedComicDownloadStoredChapter> resolveStoredDownloadChaptersFromJson({
 List<DownloadChapter> resolveDownloadChapters(UnifiedComicDownload comic) {
   const adapter = DownloadChapterAdapter();
 
-  final mainChapters = _decodeListOfMaps(
-    comic.chapters,
-  ).map(adapter.fromStoredMap).toList();
+  final mainChapters = _decodeListOfMaps(comic.chapters)
+      .map(adapter.fromStoredMap)
+      .toList();
 
   if (mainChapters.any((chapter) => chapter.images.isNotEmpty)) {
     return mainChapters;
   }
 
-  final detailChapters = _decodeStoredChaptersFromDetailJson(
-    comic.detailJson,
-  ).map((chapter) => adapter.fromStoredMap(chapter.toMap())).toList();
+  final detailChapters = _decodeStoredChaptersFromDetailJson(comic.detailJson)
+      .map((chapter) => adapter.fromStoredMap(chapter.toMap()))
+      .toList();
 
   if (detailChapters.isNotEmpty) {
     return detailChapters;

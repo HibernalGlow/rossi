@@ -59,9 +59,6 @@ objectbox_temp/
 .crashlytics
 # .env.proxy
 
-script/build/bin/
-windows-installer/src-tauri/resources
-
 # Flatpak related
 build-flatpak/
 repo-flatpak/
@@ -142,16 +139,9 @@ native/generated/ir.json
 # Windows 本地跑 flutter test 需要，见 test/bookshelf 相关测试
 /objectbox.dll
 
-# QNN (Qualcomm HTP) 运行库：与 qnn.sdk.dir 的头文件同源同版，由开发者按
-# docs/android_qnn_npu_verify.md §0 放入（不提交——CI 构建不含 NPU 支持）
-android/app/src/main/jniLibs/arm64-v8a/libQnn*.so
-
-# 本机插件源码副本（Breeze-plugin-ehentai / Breeze-plugin-shenShiManHua）：
-# 各自是带独立 .git 与 remote 的上游仓库，内置插件由 rust/build.rs 从 CDN 下载打包，
-# 源码不进本仓；直接 git add 会变成没有 .gitmodules 的 gitlink 空壳。
-/plugin/
-
-# Android release 签名材料：由 Infisical Cloud 托管，CI / 本机在构建前用
-# script/android/prepare_signing_from_infisical.py 现场生成，绝不入库。
-android/key.properties
-android/Breeze-key.keystore
+# Swift Package Manager 解析结果（由 Flutter/Xcode 构建时自动生成，不要提交）
+# 提交后一旦某个插件切换了 SPM 依赖源（如 sentry_flutter 10.3 从 sentry-cocoa 换成
+# sentry-apple-binaries），残留的旧 pin 会让 Xcode 同时拉取两个 manifest 同名的包
+# （两者都叫 "Sentry"），触发 SPM 解析崩溃：
+#   insertObjects:atIndexes:]: count of array (16) differs from count of index set (15)
+**/xcshareddata/swiftpm/Package.resolved

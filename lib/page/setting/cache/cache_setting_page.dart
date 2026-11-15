@@ -13,7 +13,7 @@ import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 
 import 'package:zephyr/page/setting/common/setting_ui.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/main.dart';
 
 const Map<int, String> _cacheLimitLabels = {
   536870912: '512 MB',
@@ -80,7 +80,8 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
         _cacheSizeBytes = totalSize;
         _calculating = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _cacheSizeBytes = null;
@@ -135,7 +136,8 @@ class _CacheSettingPageState extends State<CacheSettingPage> {
       await clearCache(cachePath);
       showSuccessToast(t.cache.cleared);
       _calculateCacheSize();
-    } catch (_) {
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
       showSuccessToast(t.cache.clearFailed);
     }
   }

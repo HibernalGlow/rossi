@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/comic_list/scene_filter/plugin_choice_dropdown.dart';
 import 'package:zephyr/page/comic_list/scene_filter/plugin_list_filter_schema.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
@@ -68,6 +69,37 @@ class _PluginListFilterDialogState extends State<PluginListFilterDialog> {
     final visibleLevelOptionSets = field.buildVisibleLevels(
       _selections[field.key],
     );
+
+    if (field.isDropdownField) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (field.label.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  field.label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: context.theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            PluginChoiceDropdown(
+              field: field,
+              selectedValue: _selections[field.key] ?? '',
+              onSelected: (value) {
+                setState(() {
+                  _selections[field.key] = value;
+                });
+              },
+            ),
+          ],
+        ),
+      );
+    }
 
     if (visibleLevelOptionSets.length == 1 &&
         visibleLevelOptionSets.first.options.length <= 1) {

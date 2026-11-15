@@ -41,9 +41,10 @@ class CommentItem {
   factory CommentItem.fromMap(Map<String, dynamic> map) {
     final author = asJsonMap(map['author']);
     final avatar = asJsonMap(author['avatar']);
-    final replies = asJsonList(
-      map['replies'],
-    ).map(asJsonMap).map(CommentItem.fromMap).toList();
+    final replies = asJsonList(map['replies'])
+        .map(asJsonMap)
+        .map(CommentItem.fromMap)
+        .toList();
     return CommentItem(
       id: map['id']?.toString() ?? '',
       authorName: author['name']?.toString() ?? t.comments.anonymous,

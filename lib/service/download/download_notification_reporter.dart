@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:zephyr/main.dart';
 import 'package:zephyr/i18n/strings.g.dart';
+import 'package:zephyr/main.dart';
 import 'package:zephyr/service/download/download_progress_reporter.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 /// 三端统一的下载完成/失败通知 reporter。
 ///
@@ -20,13 +21,19 @@ class DownloadNotificationReporter extends DownloadProgressReporter {
 
   @override
   Future<void> sendNotification(String title, String body) async {
-    await _plugin.show(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title: title,
-      body: body,
-      payload: 'download_complete',
-      notificationDetails: await _buildNotificationDetails(),
-    );
+    try {
+      await _plugin.show(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: title,
+        body: body,
+        payload: 'download_complete',
+        notificationDetails: await _buildNotificationDetails(),
+      );
+    } catch (e, stackTrace) {
+      // 通知是尽力而为：iOS 未授权、模拟器等场景会抛 PlatformException。
+      logger.w('发送下载通知失败', error: e, stackTrace: stackTrace);
+      showErrorToast(t.notification.permissionRequired);
+    }
   }
 
   Future<NotificationDetails> _buildNotificationDetails() async {

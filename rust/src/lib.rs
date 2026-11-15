@@ -1,5 +1,12 @@
 pub mod api;
 pub mod compressed;
+
+/// 全局 HTTP 客户端配置是进程级共享状态。
+///
+/// 读写它的测试必须串行，否则会出现「A 用例临时设了个死代理，B 用例正巧
+/// 在这期间建客户端」这种随机失败。相关用例统一先拿这把锁。
+#[cfg(test)]
+pub(crate) static HTTP_CONFIG_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 pub mod decode;
 mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
 pub mod memory;

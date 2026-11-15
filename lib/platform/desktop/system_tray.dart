@@ -1,11 +1,9 @@
 import 'dart:io';
 
 import 'package:tray_manager/tray_manager.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
-import 'package:zephyr/platform/desktop/native_window.dart';
+import 'package:zephyr/platform/desktop/desktop_window.dart';
 
 // 常驻引用：native 句柄靠 Dart 对象的 Finalizer 释放，
 // Menu/MenuItem/Image 必须一直被引用，否则托盘菜单会被提前回收。
@@ -190,10 +188,10 @@ void disposeSystemTray() {
 }
 
 Future<void> showMainWindow() async {
-  if (Platform.isWindows) {
-    NativeWindow.show();
-  } else {
-    await windowManager.show();
-    await windowManager.focus();
-  }
+  final window = mainWindow;
+  if (window == null) return;
+  // 从最小化恢复，否则直接 show 会得到一个仍处于最小化状态的窗口。
+  if (window.isMinimized) window.restore();
+  window.show();
+  window.focus();
 }

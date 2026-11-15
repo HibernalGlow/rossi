@@ -25,9 +25,36 @@ void main(List<String> args) async {
           ? BuildMode.release
           : BuildMode.debug,
       assetName: 'src/rust/frb_generated.dart',
+      features: _cargoFeatures(),
       extraCargoEnvironmentVariables: extraCargoEnvironmentVariables,
     ).run(input: input, output: output);
   });
+}
+
+/// cargo feature 开关：域名前置（`host-fronting`）默认编译进产物。
+///
+/// 默认开启只是「让宿主具备该能力」：插件不调用 `fronting.setHosts`
+/// 时前置表为空，所有请求仍走原链路。真正的启用/关闭由插件侧设置决定。
+///
+/// 需要排查网络问题时可显式关闭：
+///
+/// ```bash
+/// BREEZE_HOST_FRONTING=0 flutter run
+/// ```
+///
+/// 关闭后宿主不注册内部函数，公开的 `fronting` 对象统一返回
+/// `fronting-unsupported`，插件侧行为与未打补丁时一致。
+///
+/// 注意：native assets 的构建缓存不跟踪环境变量，切换该开关后需要
+/// `flutter clean`（或删除 `.dart_tool` 里的 hook 缓存）才会重新编译。
+List<String> _cargoFeatures() {
+  final value = Platform.environment['BREEZE_HOST_FRONTING']
+      ?.trim()
+      .toLowerCase();
+  if (value == '0' || value == 'false' || value == 'no' || value == 'off') {
+    return const [];
+  }
+  return const ['host-fronting'];
 }
 
 Map<String, String> _extraCargoEnvironmentVariables(
@@ -118,7 +145,9 @@ Map<String, String> _iosEnvironmentVariables(
   final linker = _runXcrun(['--sdk', sdk, '--find', 'clang']);
   final sdkRoot = _runXcrun(['--sdk', sdk, '--show-sdk-path']);
   final targetTripleEnv = targetTriple.replaceAll('-', '_').toUpperCase();
-  final deploymentTarget = codeConfig.iOS.targetVersion.toString();
+  final deploymentTarget = _deploymentTargetString(
+    codeConfig.iOS.deploymentVersion,
+  );
   final minimumVersionFlag = switch (sdk) {
     'iphoneos' => '-miphoneos-version-min=$deploymentTarget',
     'iphonesimulator' => '-mios-simulator-version-min=$deploymentTarget',
@@ -165,6 +194,16 @@ Map<String, String> _iosEnvironmentVariables(
   }
 
   return env;
+}
+
+/// 把 [AppleVersion] 转成 clang / Xcode 接受的部署目标字符串（`15.0`）。
+///
+/// [AppleVersion.toString] 只是诊断用的表示（`AppleVersion(15, minor: 0,
+/// patch: 0)`），不能直接喂给 `-miphoneos-version-min` 或
+/// `IPHONEOS_DEPLOYMENT_TARGET`。
+String _deploymentTargetString(AppleVersion version) {
+  final base = '${version.major}.${version.minor}';
+  return version.patch == 0 ? base : '$base.${version.patch}';
 }
 
 String _runXcrun(List<String> arguments) {
@@ -313,9 +352,8 @@ String? _readNdkVersion(String projectRoot) {
     p.join(projectRoot, 'android', 'app', 'build.gradle.kts'),
   );
   if (!gradleFile.existsSync()) return null;
-  final match = RegExp(
-    r'ndkVersion\s*=\s*"([^"]+)"',
-  ).firstMatch(gradleFile.readAsStringSync());
+  final match = RegExp(r'ndkVersion\s*=\s*"([^"]+)"')
+      .firstMatch(gradleFile.readAsStringSync());
   return match?.group(1);
 }
 

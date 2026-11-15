@@ -27,9 +27,9 @@ import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 import 'package:zephyr/widgets/dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/icons/icons.dart';
-
-part 'comic_operation_presentation.dart';
+import 'package:zephyr/object_box/model.dart';
+import 'package:zephyr/page/bookshelf/widgets/folder_target_picker.dart';
+import 'package:zephyr/main.dart';
 
 class ComicOperationWidget extends StatefulWidget {
   final NormalComicAllInfo normalInfo;
@@ -144,6 +144,54 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     );
   }
 
+  /// 本地收藏成功后自动触发一次云收藏：仅开关开启、本地刚成功、云端未收藏时执行。
+  /// 云端是否已收藏以页面初始快照 [isCloudCollected] 为准；执行失败只提示不抛错，
+  /// 不影响本地收藏结果。插件不支持云收藏时静默跳过。
+  Future<void> _autoCloudCollectIfEnabled() async {
+    if (!context
+        .read<GlobalSettingCubit>()
+        .state
+        .autoCloudCollectOnLocalFavorite) {
+      return;
+    }
+    if (isCloudCollected) return;
+    try {
+      final next = await toggleCloudComicFavorite(
+        context: context,
+        from: widget.from,
+        comicId: comicInfoView.id,
+        currentStatus: false,
+        legacyAllowCollected: normalInfo.allowCollected,
+        legacyAllowCollectedReason: normalInfo.allowCollectedReason,
+        collectionTargetId: widget.collectionTargetId,
+        collectionTargetName: widget.collectionTargetName,
+      );
+      if (!mounted) return;
+      setState(() {
+        isCloudCollected = next;
+      });
+      if (next) {
+        showSuccessToast(t.comicInfo.cloudCollectSuccess);
+      }
+    } on FavoriteWorkflowUnsupportedException catch (error) {
+      logger.e(error);
+    } on FavoriteWorkflowIncompleteException catch (error) {
+      logger.e(error);
+      if (mounted) {
+        showInfoToast(
+          error.result.message ?? t.comicInfo.cloudCollectIncomplete,
+        );
+      }
+    } catch (error) {
+      logger.e(error);
+      if (!mounted) return;
+      showErrorToast(
+        normalizeSearchErrorMessage(error),
+        duration: const Duration(seconds: 5),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 双收藏位（上游口径）：星标 = 本地收藏，粉色云 = 云端收藏。
@@ -156,6 +204,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       accentColor: const Color(0xFFE6A700),
       enabled: true,
       onTap: _toggleLocalFavorite,
+      onLongPress: _chooseLocalFavoriteFolders,
     );
     final cloudCollectItem = _OperationItemData(
       icon: isCloudCollected ? AppGlyphs.cloudDone : AppGlyphs.cloud,
@@ -445,16 +494,85 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       });
       if (next) {
         await _autoFollowIfEnabled();
-      }
-      if (next) {
+        await _autoCloudCollectIfEnabled();
+        if (!mounted) return;
         showSuccessToast(t.comicInfo.addedToCollection);
       } else {
         showSuccessToast(t.comicInfo.removedFromCollection);
       }
     } catch (error) {
+      logger.e(error);
       if (!mounted) {
         return;
       }
+      showErrorToast(
+        t.comicInfo.localCollectFailed(
+          error: normalizeSearchErrorMessage(error),
+        ),
+        duration: const Duration(seconds: 5),
+      );
+    }
+  }
+
+  /// 本地收藏长按：选择归属文件夹（支持多选，可原地新建）。
+  /// 未收藏时长按直接建收藏；已收藏时按所选重设链接。
+  /// 空选确认（仅剩根目录不勾时）视为取消收藏，需二次确认。
+  Future<void> _chooseLocalFavoriteFolders() async {
+    try {
+      final initialSelected = localComicFavoriteFolderPaths(
+        from: widget.from,
+        comicId: comicInfoView.id,
+      );
+      final picked = await showFolderTargetPicker(
+        context,
+        type: ComicFolderType.favorite,
+        initialSelectedPaths: initialSelected,
+        allowEmptyConfirm: true,
+        title: t.comicInfo.chooseLocalFavoriteFolders,
+      );
+      if (picked == null || !mounted) return;
+
+      if (picked.isEmpty) {
+        if (!isCollected) return;
+        final confirmed = await _showUncollectConfirmDialog();
+        if (!confirmed || !mounted) return;
+        final next = await toggleLocalComicFavorite(
+          from: widget.from,
+          normalInfo: normalInfo,
+        );
+        if (!mounted) return;
+        setState(() {
+          isCollected = next;
+        });
+        showSuccessToast(t.comicInfo.removedFromCollection);
+        return;
+      }
+
+      if (picked.length == 1 &&
+          initialSelected.length == 1 &&
+          picked.single == initialSelected.single &&
+          isCollected) {
+        return;
+      }
+      final next = await setLocalComicFavoriteFolders(
+        from: widget.from,
+        normalInfo: normalInfo,
+        targetPaths: picked,
+      );
+      final wasNewFavorite = !isCollected && next;
+      if (!mounted) return;
+      setState(() {
+        isCollected = next;
+      });
+      if (wasNewFavorite) {
+        await _autoFollowIfEnabled();
+        await _autoCloudCollectIfEnabled();
+        if (!mounted) return;
+      }
+      showSuccessToast(t.comicInfo.addedToCollection);
+    } catch (error) {
+      logger.e(error);
+      if (!mounted) return;
       showErrorToast(
         t.comicInfo.localCollectFailed(
           error: normalizeSearchErrorMessage(error),
@@ -496,6 +614,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
             : t.comicInfo.cloudUncollectSuccess,
       );
     } on FavoriteWorkflowUnsupportedException catch (error) {
+      logger.e(error);
       if (mounted) {
         final reason = error.reason.trim();
         showInfoToast(
@@ -503,12 +622,14 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         );
       }
     } on FavoriteWorkflowIncompleteException catch (error) {
+      logger.e(error);
       if (mounted) {
         showInfoToast(
           error.result.message ?? t.comicInfo.cloudCollectIncomplete,
         );
       }
     } catch (error) {
+      logger.e(error);
       if (!mounted) {
         return;
       }
@@ -566,6 +687,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         next ? t.comicInfo.likeSuccess : t.comicInfo.unlikeSuccess,
       );
     } catch (error) {
+      logger.e(error);
       if (!mounted) {
         return;
       }
@@ -574,5 +696,83 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         duration: const Duration(seconds: 5),
       );
     }
+  }
+}
+
+class _OperationItemData {
+  const _OperationItemData({
+    required this.icon,
+    required this.text,
+    this.onTap,
+    this.onLongPress,
+    this.enabled = true,
+    this.highlighted = false,
+    this.accentColor,
+  });
+
+  final IconData icon;
+  final String text;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final bool enabled;
+  final bool highlighted;
+  final Color? accentColor;
+}
+
+class _OperationCard extends StatelessWidget {
+  const _OperationCard({required this.item, this.compact = false});
+
+  final _OperationItemData item;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = item.accentColor ?? context.theme.colorScheme.primary;
+    final background = item.highlighted
+        ? accent.withValues(alpha: 0.14)
+        : context.theme.colorScheme.surfaceContainerLowest;
+    final foreground = !item.enabled
+        ? context.theme.colorScheme.onSurface.withValues(alpha: 0.38)
+        : item.highlighted
+        ? accent
+        : context.textColor;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: item.onTap,
+        onLongPress: item.onLongPress,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 8 : 10,
+            vertical: compact ? 10 : 11,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(item.icon, size: compact ? 18 : 20, color: foreground),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  item.text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.theme.textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                    fontSize: compact ? 13 : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

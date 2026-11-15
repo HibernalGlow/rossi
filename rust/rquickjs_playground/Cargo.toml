@@ -6,6 +6,11 @@ edition = "2024"
 [features]
 default = ["host-fs"]
 host-fs = []
+# 域名前置（IP 直连 / SNI 绕过）。默认关闭。
+# web_runtime.rs 里注册 __http_set/get/clear_front_hosts 三个全局函数的
+# `#[cfg(feature = "host-fronting")]` 就落在这个 crate，所以 feature 必须
+# 声明在这里；windcore 通过 `host-fronting = ["rquickjs_playground/host-fronting"]` 转发。
+host-fronting = []
 
 [dependencies]
 rquickjs = { version = "0.12.0", features = ["bindgen", "futures", "parallel", "loader", "macro"] }
@@ -42,11 +47,18 @@ reqwest-middleware = { version = "0.5.2", features = [
     "multipart",
     "query",
 ] }
+# DoH（DNS over HTTPS）：只用 hickory 的 DNS 报文编解码（JSON 端点没有 wireformat
+# 时自己发 RFC 8484 请求），不再用它的解析器，所以不需要 TLS / resolver 特性。
+hickory-proto = { version = "0.26", default-features = false, features = ["std"] }
+# 层内并发用 `FuturesUnordered`（已在依赖树里，不引入新编译单元）。
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
 http = "1.0"
 async-trait = "0.1.51"
 anyhow = "1.0.102"
 tracing = "0.1.44"
 base64 = "0.22.1"
+rustls = "0.23"
+webpki-roots = "1.0"
 filetime = "0.2.29"
 getrandom = "0.4.3"
 hmac = "0.12.1"
@@ -70,6 +82,18 @@ jiff-icu = "0.2.2"
 icu = "2.2.0"
 writeable = "0.6"
 
+# 读取 Windows 系统代理（Clash 的「系统代理」开关写在这里），用于缓存失效：
+# reqwest 只在建 client 时读一次系统代理，用户切换开关后必须重建 client。
+[target.'cfg(windows)'.dependencies]
+windows-registry = "0.6"
+
+# macOS 的系统代理在 SystemConfiguration 里，同样用于缓存失效。
+[target.'cfg(target_os = "macos")'.dependencies]
+system-configuration = "0.7"
+
 [dev-dependencies]
 tiny_http = "0.12.0"
 regex = "1.12.4"
+
+[patch.crates-io]
+rquickjs-sys = { git = "https://github.com/deretame/breeze-rquickjs-sys", rev = "846889c482ee7511f558595384673f55c00c9f4a" }

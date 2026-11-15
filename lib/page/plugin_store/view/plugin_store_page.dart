@@ -1,16 +1,14 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:zephyr/plugin/utils/plugin_local_file_picker.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/config/global/global_setting.dart';
-import 'package:zephyr/page/plugin_store/models/cloud_plugin_item.dart';
+import 'package:zephyr/main.dart';
 import 'package:zephyr/page/plugin_store/cubit/plugin_store_cubit.dart';
 import 'package:zephyr/plugin/source_visibility_policy.dart';
 import 'package:zephyr/page/plugin_store/widgets/cloud_plugin_card.dart';
 import 'package:zephyr/page/plugin_store/widgets/plugin_store_status_banner.dart';
-import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/plugin/utils/plugin_local_file_picker.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/search/search_history_field.dart';
@@ -114,18 +112,29 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
       runSpacing: 12,
       children: [
         OutlinedButton.icon(
+          style: _installButtonStyle,
           onPressed: installing ? null : _installFromLocal,
-          icon: const GlyphIcon(AppGlyphs.folder, size: 18),
+          icon: const Icon(Icons.folder_open_outlined, size: 16),
           label: Text(t.plugin.localInstall),
         ),
         OutlinedButton.icon(
+          style: _installButtonStyle,
           onPressed: installing ? null : _installFromNetwork,
-          icon: const GlyphIcon(AppGlyphs.translate, size: 18),
+          icon: const Icon(Icons.language_outlined, size: 16),
           label: Text(t.plugin.networkInstall),
         ),
       ],
     );
   }
+
+  /// 小圆角 chip 手感，替代 M3 默认的大圆角药丸按钮。
+  ButtonStyle get _installButtonStyle => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    minimumSize: const Size(0, 36),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  );
 
   Widget _buildCloudPluginsSection(PluginStoreState state) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -169,7 +178,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
             const GlyphIcon(AppGlyphs.cloud, size: 18),
             const SizedBox(width: 8),
             Text(
-              t.plugin.cloudComponents,
+              t.plugin.cloudPlugins,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const Spacer(),
@@ -203,9 +212,8 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
               children: [
                 Text(
                   state.cloudError,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colorScheme.error),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
@@ -223,9 +231,8 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               t.plugin.noCloudPlugins,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: colorScheme.outline),
             ),
           )
         else if (displayPlugins.isEmpty)
@@ -233,9 +240,8 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               t.plugin.noMatchingPlugins,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: colorScheme.outline),
             ),
           )
         else
@@ -265,9 +271,8 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
           const SizedBox(height: 8),
           Text(
             state.cloudError,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colorScheme.error),
           ),
         ],
       ],
@@ -305,6 +310,7 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
         fileName: file.name,
       );
     } catch (e) {
+      logger.e(e);
       showErrorToast(t.plugin.readLocalPluginFailed(error: e.toString()));
     }
   }

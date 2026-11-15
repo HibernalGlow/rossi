@@ -1469,7 +1469,8 @@ Future<void> _renameOrCopyDirectory(Directory source, Directory target) async {
   try {
     await source.rename(target.path);
     return;
-  } catch (_) {
+  } catch (e, st) {
+    logger.e(e, stackTrace: st);
     await target.create(recursive: true);
     final entities = await source.list(recursive: true).toList();
     for (final entity in entities) {
@@ -1490,7 +1491,8 @@ Future<void> _renameOrCopyFile(File source, File target) async {
   try {
     await source.rename(target.path);
     return;
-  } catch (_) {
+  } catch (e, st) {
+    logger.e(e, stackTrace: st);
     await source.copy(target.path);
     await source.delete();
   }

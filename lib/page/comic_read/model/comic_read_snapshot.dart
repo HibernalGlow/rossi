@@ -109,12 +109,9 @@ class ComicReadSnapshotChapter {
       id: map['id']?.toString() ?? map['epId']?.toString() ?? '',
       name: map['name']?.toString() ?? map['epName']?.toString() ?? '',
       order: _toInt(map['order'], 0),
-      requestId: map['requestId']?.toString().trim() ?? '',
-      logicalKey: map['logicalKey']?.toString().trim() ?? '',
-      storageChapterId: map['storageChapterId']?.toString().trim() ?? '',
-      pages: _resolvePages(
-        map,
-      ).map((item) => ComicReadSnapshotPage.fromMap(_asMap(item))).toList(),
+      pages: _resolvePages(map)
+          .map((item) => ComicReadSnapshotPage.fromMap(_asMap(item)))
+          .toList(),
       extern: _asMap(map['extern']),
     );
   }

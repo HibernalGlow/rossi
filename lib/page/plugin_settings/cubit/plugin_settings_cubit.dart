@@ -6,6 +6,7 @@ import 'package:zephyr/network/http/plugin/unified_plugin_envelope.dart';
 import 'package:zephyr/network/http/plugin/unified_comic_plugin.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/main.dart';
 
 class PluginSettingsState {
   const PluginSettingsState({
@@ -84,9 +85,9 @@ class PluginSettingsCubit extends Cubit<PluginSettingsState> {
         extern: const <String, dynamic>{},
       );
       final settingsEnvelope = UnifiedPluginEnvelope.fromMap(settingsResponse);
-      final settingsSections = asJsonList(
-        settingsEnvelope.scheme['sections'],
-      ).map((item) => asJsonMap(item)).toList();
+      final settingsSections = asJsonList(settingsEnvelope.scheme['sections'])
+          .map((item) => asJsonMap(item))
+          .toList();
       final values = asJsonMap(settingsEnvelope.data['values']);
       final canShowUserInfo = settingsEnvelope.data['canShowUserInfo'] == true;
       final loginSupported = await _resolveLoginSupported(
@@ -134,6 +135,7 @@ class PluginSettingsCubit extends Cubit<PluginSettingsState> {
         unawaited(loadUserInfo(from));
       }
     } catch (e) {
+      logger.e(e);
       if (isClosed) {
         return;
       }
@@ -190,7 +192,8 @@ class PluginSettingsCubit extends Cubit<PluginSettingsState> {
           userInfoError: '',
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
       if (isClosed) {
         return;
       }

@@ -11,6 +11,7 @@ import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/util/permission.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_info.dart';
+import 'package:zephyr/main.dart';
 
 /// 一次批量导出的结果。
 class BatchExportResult {
@@ -82,12 +83,8 @@ Future<BatchExportResult> batchExportComics({
         deleteAfterExport: choice.deleteAfterExport,
       );
       success++;
-      if (result.deleted) {
-        deleted++;
-      } else if (result.outcome == ExportDeleteOutcome.incomplete) {
-        keptForMissingPages++;
-      }
-    } catch (_) {
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
       // 继续导出下一本，避免单本失败导致整批中断。
     }
   }

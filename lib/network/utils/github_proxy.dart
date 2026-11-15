@@ -13,7 +13,7 @@ const breezeLatestReleaseApi = 'https://api.windy-78.site/breeze';
 const breezeGithubApi = 'https://api.windy-78.site/github';
 
 const _breezeLatestReleaseUrl =
-    'https://api.github.com/repos/deretame/Breeze/releases/latest';
+    'https://api.github.com/repos/breeze-project-org/Breeze/releases/latest';
 
 bool isGithubApiUrl(String fullUrl) {
   final uri = Uri.tryParse(fullUrl.trim());
@@ -28,7 +28,7 @@ bool isGithubApiUrl(String fullUrl) {
 /// - GitHub API（`api.github.com`）：自动走 gh-proxy 加速并回退直连
 /// - 其它 URL：不走加速，直接请求（要求返回结构类似 GitHub Release API）
 ///
-/// 示例输入: https://api.github.com/repos/deretame/Breeze/releases/latest
+/// 示例输入: https://api.github.com/repos/breeze-project-org/Breeze/releases/latest
 Future<Map<String, dynamic>> fetchReleaseData(String fullUrl) async {
   final resolvedUrl = fullUrl.trim();
   if (resolvedUrl.isEmpty) {
@@ -40,7 +40,7 @@ Future<Map<String, dynamic>> fetchReleaseData(String fullUrl) async {
     final repoPath = "/${resolvedUrl.split("api.github.com/")[1]}";
     final isBreezeLatest =
         resolvedUrl == _breezeLatestReleaseUrl ||
-        repoPath == '/repos/deretame/Breeze/releases/latest';
+        repoPath == '/repos/breeze-project-org/Breeze/releases/latest';
 
     urls = [
       if (isBreezeLatest) breezeLatestReleaseApi,
@@ -66,7 +66,7 @@ Future<Map<String, dynamic>> fetchReleaseData(String fullUrl) async {
 
   for (String url in urls) {
     try {
-      final response = await fetch(url, headers: headers);
+      final response = await _fetchIncludingError(url, headers: headers);
 
       if (response.ok) {
         final data = response.json;
@@ -135,6 +135,18 @@ Future<Map<String, dynamic>> fetchReleaseData(String fullUrl) async {
   );
 }
 
+/// 非 2xx 时返回响应本体，供上层按状态码与错误正文降级。
+Future<FetchResponse> _fetchIncludingError(
+  String url, {
+  required Map<String, String> headers,
+}) async {
+  try {
+    return await fetch(url, headers: headers);
+  } on FetchException catch (e) {
+    return e.response;
+  }
+}
+
 /// 从 GitHub Release 类 API 的错误正文提取 message 字段。
 ///
 /// 仓库/release 不存在返回 `{"message":"Not Found",...}`（HTTP 404）；
@@ -147,7 +159,8 @@ String? _extractGithubApiMessage(String body) {
       final message = decoded['message']?.toString().trim() ?? '';
       return message.isEmpty ? null : message;
     }
-  } catch (_) {
+  } catch (e, st) {
+    logger.e(e, stackTrace: st);
     // 非 JSON（代理的 HTML 错误页等）：无 message 可提取。
   }
   return null;

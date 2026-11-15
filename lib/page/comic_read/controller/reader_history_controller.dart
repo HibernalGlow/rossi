@@ -93,6 +93,7 @@ class ReaderHistoryController {
         epInfo: getEpInfo(),
       ),
     );
+    _service.markCurrentChapterRead();
   }
 
   Future<void> stop() async {

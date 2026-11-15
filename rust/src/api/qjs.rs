@@ -103,8 +103,24 @@ pub fn set_socks5_proxy(proxy: String) -> Result<()> {
 }
 
 #[frb(sync)]
+pub fn set_doh_config(enabled: bool, providers: Vec<String>) -> Result<()> {
+    crate::qjs::set_doh_config(enabled, providers)
+}
+
+#[frb(sync)]
 pub fn set_tls_verify_enabled(enabled: bool) -> Result<()> {
     crate::qjs::set_tls_verify_enabled(enabled)
+}
+
+/// 设置是否允许访问内网 / 保留地址段（默认允许）。
+#[frb(sync)]
+pub fn set_allow_private_network(enabled: bool) -> Result<()> {
+    crate::qjs::set_allow_private_network(enabled)
+}
+
+#[frb(sync)]
+pub fn is_allow_private_network() -> bool {
+    crate::qjs::is_allow_private_network()
 }
 
 #[frb(sync)]

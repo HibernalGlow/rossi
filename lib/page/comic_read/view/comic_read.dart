@@ -33,15 +33,7 @@ import 'package:zephyr/page/comic_read/widgets/reader_auto_translate_page.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/platform/eink/eink_refresh.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
-import 'package:zephyr/util/input/reader_input_bridge.dart';
-import 'package:zephyr/service/reader/reader_session_coordinator.dart';
-import 'package:zephyr/service/reader/local_book_navigation_controller.dart';
-import 'package:zephyr/service/reader/shelf_book_navigation.dart';
-import 'package:zephyr/util/comic/comic_quick_read.dart';
-import 'package:zephyr/config/router/router.gr.dart';
-import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/workspace/model/workspace_reader_target.dart';
-import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
+import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -249,21 +241,15 @@ class _ComicReadPageState extends State<_ComicReadPage>
       TransformationController();
   StreamSubscription<bool>? _volumeKeyPageTurnSubscription;
   StreamSubscription<dynamic>? _perComicVolumeKeySubscription;
+  StreamSubscription<bool>? _showStatusBarSubscription;
+  StreamSubscription<dynamic>? _perComicShowStatusBarSubscription;
+  StreamSubscription<bool>? _autoDoublePageSubscription;
   StreamSubscription<ReaderState>? _einkRefreshSubscription;
+  bool _lastLandscape = false;
   int _einkLastSlot = -1;
   int _einkTurnCount = 0;
   bool _isScrollLockedByMultiTouch = false;
   bool _isUserScrollActive = false; // 用户是否正在拖拽/惯性滚动列表
-
-  /// 上一次参与过「槽位配对」的版式设置（单/双页、首页留白）。
-  ///
-  /// 这两个开关不改图片**是哪一张**，改的是**槽位怎么切**：第 10 个槽位在单页下
-  /// 是第 11 张图，双页下是第 21 张图。切换后如果只是把设置写下去，`currentSlot`
-  /// 就指着另一张图了；而以前的处理更粗暴 —— 直接 `changePageIndex(0)` 把槽位清零，
-  /// 于是「切一下单双页，页数跳回开头」。这里缓存一份，用「变了没有」来判断要不要
-  /// 把位置按同一张图重算（见 [_syncPairingLayoutChange]）。
-  ReadSettingState? _lastPairingSetting;
-
   bool get _isHistory =>
       _type == ComicEntryType.history ||
       _type == ComicEntryType.historyAndDownload;
@@ -275,6 +261,9 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _type = widget.type;
     // 绑定本漫独立阅读设置（仅 readMode），供有效值计算使用。
     context.read<ComicReadPreferenceCubit>().bind(widget.from, widget.comicId);
+
+    _lastLandscape = isLandscapeWithOutContext();
+    _syncAutoDoublePageOnEntry();
 
     _initAutoReadController();
     _initSystemUiController();
@@ -295,6 +284,8 @@ class _ComicReadPageState extends State<_ComicReadPage>
     _readerKeyDispatch = _inputController.handleKeyEvent;
     ReaderInputBridge.instance.attach(_readerKeyDispatch!);
     _initVolumeKeyPageTurnSubscription();
+    _initShowStatusBarSubscription();
+    _initAutoDoublePageSubscription();
     _initEinkAutoRefresh();
 
     WidgetsBinding.instance.addObserver(this);
@@ -328,6 +319,9 @@ class _ComicReadPageState extends State<_ComicReadPage>
       ReaderInputBridge.instance.detach(readerKeyDispatch);
     }
     _perComicVolumeKeySubscription?.cancel();
+    _showStatusBarSubscription?.cancel();
+    _perComicShowStatusBarSubscription?.cancel();
+    _autoDoublePageSubscription?.cancel();
     _einkRefreshSubscription?.cancel();
     _inputController.dispose();
     _bookNavigation?.dispose();
@@ -486,6 +480,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
   );
   @override
   void didChangeMetrics() {
+    _handleOrientationMetrics();
     _lifecycleController.didChangeMetrics();
   }
 

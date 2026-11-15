@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cbor/simple.dart' as cbor;
+import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/network/http/plugin/qjs_fetch_image_result.dart';
 import 'package:zephyr/network/http/plugin/plugin_init_coordinator.dart';
@@ -77,36 +78,23 @@ Future<int> _buildQjsRuntimeIfNeeded({
     return sw.elapsedMilliseconds;
   }
 
-  if (await isQjsRuntimeInitialized(name: runtimeName)) {
-    String? currentBundle;
-    try {
-      final currentBundleRaw = await qjsCurrentBundle(runtimeName: runtimeName);
-      currentBundle = jsonDecode(currentBundleRaw) as String?;
-    } catch (_) {
-      currentBundle = null;
-    }
-    if (currentBundle != null && currentBundle.trim().isNotEmpty) {
-      return 0;
-    }
-  }
-  return installBundle();
-}
-
-/// 封面卡悬停时把「读 bundle + QuickJS 编译执行」提前做掉，点击时只剩网络那一段。
-///
-/// 刻意不含插件 `init()`：那一步会抓发布页并逐域名测速，用户只是划过一张卡片，
-/// 不该替他去戳图源站点。重复悬停由「runtime 已初始化」那条判定挡掉，不会重编。
-Future<void> prewarmQjsRuntime(String pluginId) async {
-  final normalizedPluginId = pluginId.trim();
-  if (normalizedPluginId.isEmpty) return;
-  final runtimeName = runtimeNameForPluginId(normalizedPluginId);
-  try {
-    final buildMs = await _buildQjsRuntimeIfNeeded(
-      normalizedPluginId: normalizedPluginId,
-      runtimeName: runtimeName,
-    );
-    if (buildMs > 0) {
-      logger.d('[read-start] qjs-prewarm $runtimeName build=${buildMs}ms');
+    final ready = await isQjsRuntimeInitialized(name: runtimeName);
+    if (!ready) {
+      await installBundle();
+    } else {
+      String? currentBundle;
+      try {
+        final currentBundleRaw = await qjsCurrentBundle(
+          runtimeName: runtimeName,
+        );
+        currentBundle = jsonDecode(currentBundleRaw) as String?;
+      } catch (e, st) {
+        logger.e(e, stackTrace: st);
+        currentBundle = null;
+      }
+      if (currentBundle == null || currentBundle.trim().isEmpty) {
+        await installBundle();
+      }
     }
   } catch (e) {
     logger.w('预建 QJS runtime 失败: $runtimeName', error: e);
@@ -295,6 +283,10 @@ Future<Uint8List> executeQjsFetchImageBytes({
   call: qjsTaskCall,
 );
 
+QjsFetchImageHttpResult _decodeQjsFetchImageResult(Uint8List encoded) {
+  return QjsFetchImageHttpResult.fromCbor(cbor.cbor.decode(encoded));
+}
+
 /// 调用插件图片函数，并解码 Rust reqwest 返回的 CBOR 结果信息。
 Future<QjsFetchImageHttpResult> executeQjsFetchImageResult({
   required String pluginId,
@@ -311,7 +303,10 @@ Future<QjsFetchImageHttpResult> executeQjsFetchImageResult({
     taskGroupKey: taskGroupKey,
     call: qjsFetchImage,
   );
-  return QjsFetchImageHttpResult.fromCbor(cbor.cbor.decode(encoded));
+  // 大图 CBOR 解码会阻塞 UI isolate（Sentry ANR: _readBytes），放到 worker 池。
+  return workerManager.execute<QjsFetchImageHttpResult>(
+    () => _decodeQjsFetchImageResult(encoded),
+  );
 }
 
 bool _shouldUseQjsCallOnce(String pluginId) {

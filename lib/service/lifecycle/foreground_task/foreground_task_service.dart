@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/config/global/global_setting.dart';
@@ -61,7 +62,12 @@ class ForegroundTaskService {
   Future<void> syncOnAppStart() async {
     if (!Platform.isAndroid) return;
     if (!_keepAliveEnabled && !_hasPendingDownloads) return;
-    await _ensureRunning(forDownload: _hasPendingDownloads);
+    try {
+      await _ensureRunning(forDownload: _hasPendingDownloads);
+    } catch (e, stackTrace) {
+      // 冷启动时通知权限被拒或服务启动失败属于可恢复状态，不应作为未捕获异常上报。
+      logger.w('前台服务冷启动失败', error: e, stackTrace: stackTrace);
+    }
   }
 
   /// 开启保活（设置开关打开时调用）。
@@ -219,8 +225,14 @@ class ForegroundTaskService {
 
     showInfoToast(t.foregroundTask.notificationPermissionRequired);
 
-    notificationPermission =
-        await FlutterForegroundTask.requestNotificationPermission();
+    try {
+      notificationPermission =
+          await FlutterForegroundTask.requestNotificationPermission();
+    } on PlatformException catch (e) {
+      // 用户直接关闭权限弹窗时插件会抛 PlatformException，按“未授权”处理。
+      logger.w('请求通知权限失败', error: e);
+      notificationPermission = NotificationPermission.denied;
+    }
 
     if (notificationPermission != NotificationPermission.granted) {
       throw Exception(t.foregroundTask.cannotStartWithoutPermission);

@@ -134,9 +134,9 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
       final source = envelope.source.trim().isNotEmpty
           ? envelope.source.trim()
           : pluginId;
-      final items = asJsonList(
-        data['items'],
-      ).map(_sanitizePluginItemMap).toList();
+      final items = asJsonList(data['items'])
+          .map(_sanitizePluginItemMap)
+          .toList();
       final raw = replaceNestedNullList(asJsonMap(data['raw']));
       final listLikeKeys = ['content', 'list'];
 
@@ -145,9 +145,9 @@ class PluginPagedComicListCubit extends Cubit<PluginPagedComicListState> {
           .toList();
       if (nextItems.isEmpty) {
         for (final key in listLikeKeys) {
-          final rawList = asJsonList(
-            raw[key],
-          ).map(_sanitizePluginItemMap).toList();
+          final rawList = asJsonList(raw[key])
+              .map(_sanitizePluginItemMap)
+              .toList();
           if (rawList.isNotEmpty) {
             nextItems = rawList
                 .map(

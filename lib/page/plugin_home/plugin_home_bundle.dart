@@ -45,9 +45,8 @@ class PluginHomeTab {
     final pageMap = asJsonMap(map['page']);
     final headerMap = asJsonMap(map['header']);
     // bika 新 bundle 的 header 包了层 {id,title,action}：取内层 action 供路由消费。
-    final rawActions = asJsonListOfMaps(
-      headerMap['actions'] ?? map['actions'],
-    ).toList();
+    final rawActions = asJsonListOfMaps(headerMap['actions'] ?? map['actions'])
+        .toList();
     final headerActions = rawActions.map((item) {
       final inner = asJsonMap(item['action']);
       return inner.isNotEmpty ? inner : item;

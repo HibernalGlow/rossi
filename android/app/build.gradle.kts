@@ -108,17 +108,14 @@ val qnnTrimmedLibraries = buildList {
 
 android {
     namespace = "com.zephyr.breeze"
-    compileSdk = 36
+    // androidx.core 1.19.0 起要求依赖方至少用 API 37 编译（AAR metadata 校验）
+    compileSdk = 37
     ndkVersion = "29.0.14206865"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_21.toString()
     }
 
     java {
@@ -184,10 +181,18 @@ android {
 
     packaging {
         jniLibs {
-            // 未选中的 HTP 架构整组剔除（Skel + Stub）。
-            excludes += qnnTrimmedLibraries
-            // keep 逻辑不需要：qnn-runtime AAR 的其余 so 全部保留。
+            // 等价于原来的 android:extractNativeLibs="true"（AGP 9 已禁止在
+            // manifest 里写该属性）：waifu2x CLI 的 .so 必须解包到
+            // nativeLibraryDir 才能被 Process.run 直接执行。
+            useLegacyPackaging = true
         }
+    }
+}
+
+// kotlinOptions 在 Kotlin 2.2+ 已废弃，改用 compilerOptions
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
 }
 

@@ -66,13 +66,21 @@ jobs:
       # - name: 克隆 rquickjs_playground
       #   run: git clone https://github.com/deretame/rquickjs_playground.git
 
-      - name: 释放空间 (Nuclear Mode)
+      - name: 释放空间 (free-disk-space)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          android: true
+          dotnet: true
+          haskell: false
+          large-packages: false
+          docker-images: true
+          preinstalled-runtimes: true
+          swap-storage: false
+
+      - name: 重建 Android SDK 目录
         run: |
-          sudo rm -rf /opt/hostedtoolcache /usr/local/lib/android /usr/share/dotnet /opt/codeql
           sudo mkdir -p /usr/local/lib/android/sdk
           sudo chown -R $USER:$USER /usr/local/lib/android
-          docker system prune -a -f
-          sudo apt-get clean
 
       - name: 安装编译依赖 (LLVM/Clang)
         run: |
@@ -104,6 +112,11 @@ jobs:
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v4
+
+      # compileSdk 37（androidx.core 1.19 起的 AAR metadata 要求）对应的平台与
+      # build-tools 显式预装，避免 Gradle 构建时再临时下载
+      - name: 安装 Android SDK Platform 37
+        run: yes | sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: 设置 Dart SDK
         uses: dart-lang/setup-dart@v1
@@ -320,22 +333,37 @@ jobs:
       - name: 安装 Rust 工具链
         uses: dtolnay/rust-toolchain@stable
 
-      - name: 缓存 Rust/Tauri 构建产物
+      - name: 缓存 Rust 构建产物
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             rust
-            windows-installer/src-tauri
 
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10
-
-      - name: 设置 Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
+      - name: 安装 Inno Setup 7
+        shell: pwsh
+        run: |
+          $isccCandidates = @(
+            "C:\Program Files\Inno Setup 7\ISCC.exe",
+            "C:\Program Files (x86)\Inno Setup 7\ISCC.exe"
+          )
+          if ($isccCandidates | Where-Object { Test-Path $_ }) {
+            Write-Host "Inno Setup 7 已安装"
+            exit 0
+          }
+          $installer = Join-Path $env:RUNNER_TEMP "innosetup-7.1.1-x64.exe"
+          Invoke-WebRequest -Uri "https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe" -OutFile $installer
+          $expected = "8A5A6711C3766A6E5FB74F280BA0E3551E719CE94538D901FDBD1F8F9920B3F0"
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) {
+            throw "Inno Setup 安装包 SHA256 校验失败"
+          }
+          Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait
+          $deadline = (Get-Date).AddSeconds(120)
+          while (-not ($isccCandidates | Where-Object { Test-Path $_ }) -and ((Get-Date) -lt $deadline)) {
+            Start-Sleep -Seconds 2
+          }
+          if (-not ($isccCandidates | Where-Object { Test-Path $_ })) {
+            throw "Inno Setup 7 安装失败"
+          }
 
       - name: 准备 dav1d 与 pkg-config（Windows 原生资产前置）
         uses: ./.github/actions/setup-dav1d-windows
@@ -404,7 +432,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: windows-exe
-          path: windows-installer/src-tauri/target/release/windows-installer.exe
+          path: build/windows/installer/windows-installer.exe
 
       # - name: 运行 Windows 构建脚本
       #   run: |
@@ -445,7 +473,7 @@ jobs:
       #   uses: actions/upload-artifact@v6
       #   with:
       #     name: windows-installer-exe
-      #     path: windows-installer/src-tauri/target/release/windows-installer.exe
+      #     path: build/windows/installer/windows-installer.exe
 
       # - name: SignPath 签名 Windows 安装器
       #   id: sign-installer
@@ -463,30 +491,19 @@ jobs:
       # - name: 回灌已签名 Windows 安装器
       #   shell: pwsh
       #   run: |
-      #     Copy-Item -Force "${{ runner.temp }}\signed-installer\windows-installer.exe" "windows-installer/src-tauri/target/release/windows-installer.exe"
+      #     Copy-Item -Force "${{ runner.temp }}\signed-installer\windows-installer.exe" "build/windows/installer/windows-installer.exe"
 
       # - name: 上传已签名 Windows 安装器
       #   uses: actions/upload-artifact@v6
       #   with:
       #     name: windows-installer-signed
-      #     path: windows-installer/src-tauri/target/release/windows-installer.exe
+      #     path: build/windows/installer/windows-installer.exe
 
   # ══════════════════════════════════════════
   # 4. macOS 构建
   # ══════════════════════════════════════════
   build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # 只有 arm64：GitHub 已不再提供 Intel 机器，标签 macos-15-intel 实际解析到 arm64 的
-          # macos-15 镜像（job 日志自报 Image: macos-15），钩子于是按宿主要 aarch64-apple-darwin，
-          # 而 rustup host 是 x86_64 —— pkg-config 面对真交叉合法拒答，dav1d-sys 直接 panic。
-          # 出货的 release.yml 本来就只有一个 macos-latest 任务、没有 x64 腿，这里与它对齐。
-          - arch: arm64
-            runner: macos-15
-            rust_target: aarch64-apple-darwin
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     env:
       CARGO_HOME: ${{ github.workspace }}/.cargo
       RUSTUP_HOME: ${{ github.workspace }}/.rustup
@@ -521,7 +538,7 @@ jobs:
       - name: 安装 Rust 工具链
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust_target }}
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
 
       - name: 校验并修复 rustup
         shell: bash
@@ -585,47 +602,18 @@ jobs:
         run: |
           export PATH="$CARGO_HOME/bin:$PATH"
           rustup toolchain list
-          # 镜像默认 Xcode 比本机低一档：coreml_upscale 里 Float16(...)/dataType 比较这类写法
-          # 在 Xcode 26.3 + macOS 26.2 SDK 上报 "argument passed to call that takes no arguments"
-          # 并连带崩掉类型推断，而本机 Xcode 27 编得过（同一份源码）。
-          # Flutter 只读 `xcode-select --print-path`、不读 DEVELOPER_DIR，所以这里必须真的切过去。
-          BEST_DIR=""; BEST_VER=""
-          for X in /Applications/Xcode*.app; do
-            V=$(DEVELOPER_DIR="$X/Contents/Developer" xcodebuild -version 2>/dev/null | awk 'NR==1{print $2}')
-            [ -z "$V" ] && continue
-            if [ -z "$BEST_VER" ] || [ "$(printf '%s\n%s\n' "$BEST_VER" "$V" | sort -V | tail -1)" = "$V" ]; then
-              BEST_VER="$V"; BEST_DIR="$X"
-            fi
-          done
-          echo "[rossi-macos] Xcode 候选: $(ls -d /Applications/Xcode*.app | tr '\n' ' ') | 选中: ${BEST_DIR:-无} (${BEST_VER:-未知})"
-          if [ -n "$BEST_DIR" ]; then sudo xcode-select -s "$BEST_DIR/Contents/Developer"; fi
-          xcode-select -p
-          xcodebuild -version
-          rm -rf build/macos dist/macos
-          mkdir -p dist/macos
-          fvm flutter build macos --release --split-debug-info="build/symbols/macos-${{ matrix.arch }}"
-
-          APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            echo "Failed to find built .app for ${{ matrix.arch }}"
-            exit 1
-          fi
-
-          APP_NAME=$(basename "$APP_PATH")
-          cp -R "$APP_PATH" "dist/macos/$APP_NAME"
+          fvm flutter build macos --release --split-debug-info=build/symbols
 
       - name: 制作 DMG
         run: |
-          APP_PATH=$(find dist/macos -maxdepth 1 -name "*.app" | head -n 1)
+          APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -n 1)
           if [ -z "$APP_PATH" ]; then
-            echo "Failed to find staged .app for ${{ matrix.arch }}"
+            echo "Failed to find built .app"
             exit 1
           fi
 
           APP_NAME=$(basename "$APP_PATH")
-          DMG_NAME="Breeze-macOS-${{ matrix.arch }}.dmg"
-
-          rm -f "$DMG_NAME"
+          rm -f "Breeze-macOS.dmg"
           create-dmg \
             --volname "Breeze Installer" \
             --window-pos 200 120 \
@@ -634,14 +622,14 @@ jobs:
             --icon "$APP_NAME" 150 190 \
             --hide-extension "$APP_NAME" \
             --app-drop-link 450 190 \
-            "$DMG_NAME" \
+            "Breeze-macOS.dmg" \
             "$APP_PATH"
 
       - name: 上传 macOS DMG
         uses: actions/upload-artifact@v6
         with:
-          name: macos-dmg-${{ matrix.arch }}
-          path: Breeze-macOS-${{ matrix.arch }}.dmg
+          name: macos-dmg
+          path: Breeze-macOS.dmg
 
   # ══════════════════════════════════════════
   # 5. iOS 构建 (免签)

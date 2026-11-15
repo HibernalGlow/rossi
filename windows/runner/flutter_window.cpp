@@ -70,7 +70,9 @@ bool FlutterWindow::OnCreate() {
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-
+    // Intentionally empty: the window is created hidden (no WS_VISIBLE) and is
+    // shown from Dart by WindowLogic.initWindow after it applies the saved
+    // size/position/maximized state. Showing here would cause a visible jump.
   });
 
   // Flutter can complete the first frame before the "show window" callback is

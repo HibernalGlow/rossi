@@ -20,7 +20,7 @@ import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 class EpButtonWidget extends StatelessWidget {
   static const double fixedHeight = 56;
@@ -42,6 +42,9 @@ class EpButtonWidget extends StatelessWidget {
   final String from;
   final int index;
   final bool isReversed;
+
+  /// 是否已读过该章节；已读行整体置灰，保留可点击。
+  final bool isRead;
 
   /// 下载是否被插件允许；为 false 时仍显示下载按钮，点击后由调用方弹出禁用原因。
   final bool downloadAllowed;
@@ -67,6 +70,7 @@ class EpButtonWidget extends StatelessWidget {
     required this.from,
     required this.index,
     required this.isReversed,
+    this.isRead = false,
     this.downloadAllowed = true,
     this.downloadDisabledReason = '',
     this.onAction,
@@ -97,6 +101,9 @@ class EpButtonWidget extends StatelessWidget {
           final selectionMode = controller.selectionMode;
           final selected = controller.selectedIds.contains(chapter.id);
           final colorScheme = context.theme.colorScheme;
+          final readColor = colorScheme.onSurfaceVariant.withValues(
+            alpha: 0.55,
+          );
           return InkWell(
             onTap: selectionMode ? onToggleSelect : () => _openRead(context),
             onLongPress: onEnterSelect,
@@ -108,7 +115,9 @@ class EpButtonWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected
                     ? colorScheme.primaryContainer.withValues(alpha: 0.35)
-                    : context.theme.colorScheme.surfaceContainerHigh,
+                    : isRead
+                    ? colorScheme.surfaceContainerLow
+                    : colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(8),
                 border: selected
                     ? Border.all(
@@ -148,15 +157,20 @@ class EpButtonWidget extends StatelessWidget {
                     episodeLabel,
                     style: context.theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: context.theme.colorScheme.primary,
+                      color: isRead ? readColor : colorScheme.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _EpisodeTitle(
-                      readController: readController,
-                      chapter: chapter,
-                      title: title,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                        fontSize: 15,
+                        color: isRead ? readColor : context.textColor,
+                      ),
                     ),
                   ),
                   _EpisodeTrailing(
@@ -176,13 +190,17 @@ class EpButtonWidget extends StatelessWidget {
 
   void _openRead(BuildContext context) {
     final chapter = const DownloadChapterAdapter().fromEp(doc);
+    final local = const DownloadTaskRepository().findDownloadedChapter(
+      from: from,
+      comicId: comicId,
+      chapterKey: chapter.id,
+    );
+    if (local != null && local.images.isEmpty) {
+      showErrorToast(t.comicEdit.emptyChapter);
+      return;
+    }
     // 在线入口统一查库：该章已下载则直接读本地，不再看来源 type。
     if (type == ComicEntryType.normal || type == ComicEntryType.history) {
-      final local = const DownloadTaskRepository().findDownloadedChapter(
-        from: from,
-        comicId: comicId,
-        chapterKey: chapter.id,
-      );
       final record = local == null
           ? null
           : const DownloadTaskRepository().findDownloadRecord(from, comicId);

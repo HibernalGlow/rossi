@@ -46,7 +46,8 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
   PluginStoreCubit() : super(const PluginStoreState());
 
   Future<void> loadCloudPlugins() async {
-    emit(state.copyWith(cloudLoading: true, cloudError: ''));
+    if (isClosed) return;
+    _emit(state.copyWith(cloudLoading: true, cloudError: ''));
 
     try {
       final payload = await fetchCloudPluginListWithCdnFallback();
@@ -56,7 +57,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
           .where((item) => item.manifest.uuid.trim().isNotEmpty)
           .toList();
 
-      emit(
+      _emit(
         state.copyWith(
           cloudPlugins: entries,
           cloudLoading: false,
@@ -65,7 +66,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
       );
     } catch (e, stackTrace) {
       logger.w('拉取云端插件列表失败', error: e, stackTrace: stackTrace);
-      emit(
+      _emit(
         state.copyWith(
           cloudLoading: false,
           cloudError: t.plugin.cloudPluginsLoadFailed(error: e),
@@ -75,7 +76,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
   }
 
   Future<void> installFromCloud(CloudPluginItem item) async {
-    if (state.installing) {
+    if (isClosed || state.installing) {
       return;
     }
     // 列表那层已经在关掉开关时过滤掉了受限来源，这里再挡一次：入口不止一个
@@ -100,6 +101,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
       final message = await PluginInstallService.I.installFromCloud(item);
       _reportInstallSuccess(message);
     } catch (e) {
+      logger.e(e);
       _reportInstallFailure(
         t.plugin.cloudDownloadFailed(
           error: normalizePluginInstallErrorMessage(e),
@@ -112,7 +114,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
     List<int> bytes, {
     required String fileName,
   }) async {
-    if (state.installing) {
+    if (isClosed || state.installing) {
       return;
     }
     _beginInstall(t.plugin.installingFromLocal);
@@ -124,6 +126,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
       );
       _reportInstallSuccess(message);
     } catch (e) {
+      logger.e(e);
       _reportInstallFailure(
         t.plugin.readLocalPluginFailed(
           error: normalizePluginInstallErrorMessage(e),
@@ -133,7 +136,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
   }
 
   Future<void> installFromNetworkUrl(String rawUrl) async {
-    if (state.installing) {
+    if (isClosed || state.installing) {
       return;
     }
     _beginInstall(t.plugin.installingFromNetwork);
@@ -144,6 +147,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
       );
       _reportInstallSuccess(message);
     } catch (e) {
+      logger.e(e);
       _reportInstallFailure(
         t.plugin.networkDownloadFailed(
           error: normalizePluginInstallErrorMessage(e),
@@ -153,7 +157,7 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
   }
 
   void _beginInstall(String message) {
-    emit(state.copyWith(installing: true, installMessage: message));
+    _emit(state.copyWith(installing: true, installMessage: message));
   }
 
   /// 设置读取失败时按「关闭」处理：宁可少展示，也不要因为读不到配置
@@ -171,12 +175,16 @@ class PluginStoreCubit extends Cubit<PluginStoreState> {
   }
 
   void _reportInstallFailure(String message) {
-    emit(state.copyWith(installing: false, installMessage: ''));
+    _emit(state.copyWith(installing: false, installMessage: ''));
     showErrorToast(message);
   }
 
   void _reportInstallSuccess(String message) {
-    emit(state.copyWith(installing: false, installMessage: ''));
+    _emit(state.copyWith(installing: false, installMessage: ''));
     showSuccessToast(message);
+  }
+
+  void _emit(PluginStoreState nextState) {
+    if (!isClosed) emit(nextState);
   }
 }

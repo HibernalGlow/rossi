@@ -33,6 +33,14 @@ class ComicFollowService {
 
   /// 保存或更新追更记录（直接写入数据库）
   void putFollow(ComicFollow follow) {
+    // uniqueKey 有唯一约束：新对象若与已有记录同 key，先复用已有 ID，
+    // 否则 put 会插入新行并触发 UniqueViolationException。
+    if (follow.id == 0) {
+      final existing = getFollowByUniqueKey(follow.uniqueKey);
+      if (existing != null) {
+        follow.id = existing.id;
+      }
+    }
     objectbox.comicFollowBox.put(follow);
   }
 

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:auto_route/annotations.dart';
 import 'package:desktop_webview_linux/desktop_webview_linux.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -308,12 +309,18 @@ class _WebViewPageState extends State<WebViewPage> {
               alignment: WrapAlignment.center,
               children: [
                 FilledButton.tonal(
-                  onPressed: () {
+                  onPressed: () async {
                     setState(() {
                       _mainFrameError = null;
                       _progress = 0;
                     });
-                    _controller?.reload();
+                    try {
+                      await _controller?.reload();
+                    } on MissingPluginException catch (e) {
+                      logger.w('WebView 已销毁，无法重载', error: e);
+                    } on PlatformException catch (e) {
+                      logger.w('WebView 重载失败', error: e);
+                    }
                   },
                   child: Text(t.webview.retry),
                 ),

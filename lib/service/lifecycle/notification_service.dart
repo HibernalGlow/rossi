@@ -96,9 +96,8 @@ Future<void> initializeNotifications() async {
       }
     }
   } catch (e, stackTrace) {
-    logger.e('权限请求异常', error: e, stackTrace: stackTrace);
-    if (!e.toString().contains('already running')) {
-      rethrow;
-    }
+    // 用户取消权限弹窗、系统拒绝等属于预期情况，不应作为未捕获异常上报。
+    logger.w('权限请求异常', error: e, stackTrace: stackTrace);
+    showErrorToast(t.notification.permissionRequired);
   }
 }

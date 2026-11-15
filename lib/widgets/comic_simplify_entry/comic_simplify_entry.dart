@@ -178,6 +178,10 @@ class ComicSimplifyEntry extends StatelessWidget {
   onSecondaryTapDown;
   final bool isSelected;
   final bool selectionMode;
+  final bool isHighlighted;
+
+  /// 游标揭示模式：其他条目被压暗（锚点高亮、其余盖半透明黑）。
+  final bool dimmed;
   final bool topPadding;
   final bool roundedCorner;
 
@@ -216,6 +220,8 @@ class ComicSimplifyEntry extends StatelessWidget {
     this.onSecondaryTapDown,
     this.isSelected = false,
     this.selectionMode = false,
+    this.isHighlighted = false,
+    this.dimmed = false,
     this.topPadding = true,
     this.roundedCorner = true,
     this.showDownloadAction = true,
@@ -292,6 +298,7 @@ class ComicSimplifyEntry extends StatelessWidget {
         width: width,
         isSelected: isSelected,
         selectionMode: selectionMode,
+        isHighlighted: isHighlighted,
       ),
     );
   }
@@ -300,19 +307,142 @@ class ComicSimplifyEntry extends StatelessWidget {
     BuildContext context,
     double width,
     double height,
-  ) => ComicCoverSurface(
-    info: info,
-    width: width,
-    height: height,
-    roundedCorner: roundedCorner,
-    showDownloadAction: showDownloadAction,
-    showTranslationBadge: showTranslationBadge,
-    showReadAction: showReadAction,
-    isSelected: isSelected,
-    selectionMode: selectionMode,
-    unread: unread,
-    showTitle: showTitle,
-  );
+  ) {
+    final circular = roundedCorner ? kComicCardBorderRadius : 0.0;
+    final primary = Theme.of(context).colorScheme.primary;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(circular),
+      // 选中边框常驻（透明/主色切换）+ 隐式动画：进入多选模式时边框层
+      // 本来就存在，只是颜色从透明变过来，不会出现整表同时弹边框的闪。
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(
+            color: (isSelected && selectionMode) || isHighlighted
+                ? primary
+                : Colors.transparent,
+            width: 4,
+          ),
+          borderRadius: BorderRadius.circular(circular),
+        ),
+        child: Stack(
+          children: [
+            CoverWidget(
+              fileServer: info.fileServer,
+              path: info.path,
+              id: info.id,
+              pictureType: info.pictureType,
+              from: info.from,
+              width: width,
+              height: height,
+            ),
+            // 游标揭示时压暗非锚点封面，让锚点一眼可见。
+            if (dimmed)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    color: Colors.black.withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.7],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(circular),
+                    bottomRight: Radius.circular(circular),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(5.0, 20.0, 5.0, 5.0),
+                child: Text(
+                  info.title.let(convertChineseForDisplay),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w500,
+                    shadows: [
+                      Shadow(
+                        offset: const Offset(0, 1),
+                        blurRadius: 2,
+                        color: Colors.black.withValues(alpha: 0.5),
+                      ),
+                    ],
+                  ),
+                  maxLines: 3, // 最多显示3行
+                  overflow: TextOverflow.ellipsis, // 超出部分显示省略号
+                  textAlign:
+                      TextAlign.start, // 文字对齐方式，也可以用 TextAlign.center 居中显示
+                ),
+              ),
+            ),
+            // 徽章常驻，用缩放+淡出控制显隐：进入多选模式时所有徽章
+            // 同时淡入，比凭空 if 出来少一次整表闪。
+            Positioned(
+              top: 8,
+              right: 8,
+              child: AnimatedScale(
+                scale: selectionMode || isHighlighted ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic,
+                child: AnimatedOpacity(
+                  opacity: selectionMode || isHighlighted ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOutCubic,
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: isSelected || isHighlighted
+                          ? primary
+                          : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black87,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 160),
+                      child: Icon(
+                        isSelected || isHighlighted
+                            ? Icons.check
+                            : Icons.radio_button_unchecked,
+                        key: ValueKey(isSelected),
+                        color: isSelected || isHighlighted
+                            ? Colors.white
+                            : Colors.black54,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _navigateToComicInfo(BuildContext context) {
     final pluginId = (info.source.trim().isNotEmpty ? info.source : info.from)
@@ -504,24 +634,23 @@ class _DetailedRowBody extends StatelessWidget {
     required this.width,
     required this.isSelected,
     required this.selectionMode,
+    this.isHighlighted = false,
   });
 
   final ComicSimplifyEntryInfo info;
   final double width;
   final bool isSelected;
   final bool selectionMode;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final primary = scheme.primary;
-    final titleStyle = Theme.of(
-      context,
-    ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, height: 1.3);
-    final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: scheme.onSurfaceVariant,
-      height: 1.4,
-    );
+    final titleStyle = Theme.of(context).textTheme.titleSmall
+        ?.copyWith(fontWeight: FontWeight.w700, height: 1.3);
+    final subtitleStyle = Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: scheme.onSurfaceVariant, height: 1.4);
     // Venera 式简洁风：透明底、无边框；hover 只给一层极淡底色。
     final pills = info.metadata
         .map((e) => e.trim())
@@ -542,9 +671,12 @@ class _DetailedRowBody extends StatelessWidget {
           ),
           // 选中边框常驻（透明/主色切换）+ 隐式动画：进入多选模式时
           // 边框层本来就存在，只是颜色从透明变过来，不闪。
+          // 书签揭示的高亮走同一层（网格模式同逻辑）。
           foregroundDecoration: BoxDecoration(
             border: Border.all(
-              color: isSelected && selectionMode ? primary : Colors.transparent,
+              color: (isSelected && selectionMode) || isHighlighted
+                  ? primary
+                  : Colors.transparent,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(8),
@@ -624,10 +756,8 @@ class _DetailPill extends StatelessWidget {
       ),
       child: Text(
         label.let(convertChineseForDisplay),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: scheme.onSecondaryContainer,
-          height: 1.4,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: scheme.onSecondaryContainer, height: 1.4),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

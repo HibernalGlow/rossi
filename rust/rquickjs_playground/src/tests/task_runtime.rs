@@ -1,5 +1,5 @@
 use crate::AsyncHostRuntime;
-use crate::web_runtime::{configure_http_client, current_http_client_config};
+
 use axum::{Json, Router, extract::State, routing::get};
 use serde::Deserialize;
 use serde_json::json;
@@ -9,25 +9,13 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::oneshot;
 
-struct HttpPrivateNetworkGuard {
-    previous: crate::web_runtime::HttpClientConfig,
-}
-
-impl HttpPrivateNetworkGuard {
-    fn allow() -> Self {
-        let previous = current_http_client_config();
-        let mut config = previous.clone();
-        config.allow_private_network = true;
-        configure_http_client(config).expect(&crate::tr!("failed-to-update-http-config"));
-        Self { previous }
-    }
-}
-
-impl Drop for HttpPrivateNetworkGuard {
-    fn drop(&mut self) {
-        configure_http_client(self.previous.clone())
-            .expect(&crate::tr!("failed-to-restore-http-config"));
-    }
+/// 构造一个放行内网的 runtime：配置随 runtime 传入，不改全局状态，
+/// 因此这些用例可以和其他用例并行执行。
+fn private_network_runtime(name: &str) -> crate::host_runtime::AsyncHostRuntime {
+    crate::host_runtime::AsyncHostRuntime::builder(name)
+        .http_config_override(Some(crate::tests::support::private_network_http_config()))
+        .build()
+        .expect(&crate::tr!("failed-to-create-asynchostruntime"))
 }
 
 #[test]
@@ -79,10 +67,8 @@ fn async_runtime_runs_multiple_io_tasks_concurrently() {
     const TOTAL: usize = 20;
     const DELAY_MS: u64 = 40;
 
-    let _http_guard = HttpPrivateNetworkGuard::allow();
     let (addr, shutdown_tx, handle) = spawn_delay_server(DELAY_MS);
-    let runtime = AsyncHostRuntime::new("task-runtime-concurrent-io")
-        .expect(&crate::tr!("failed-to-create-asynchostruntime"));
+    let runtime = private_network_runtime("task-runtime-concurrent-io");
 
     let script = format!(
         r#"
@@ -130,12 +116,8 @@ fn async_runtime_supports_many_independent_rust_async_waiters() {
     const TOTAL: usize = 24;
     const DELAY_MS: u64 = 35;
 
-    let _http_guard = HttpPrivateNetworkGuard::allow();
     let (addr, shutdown_tx, handle) = spawn_delay_server(DELAY_MS);
-    let runtime = Arc::new(
-        AsyncHostRuntime::new("task-runtime-many-waiters")
-            .expect(&crate::tr!("failed-to-create-asynchostruntime")),
-    );
+    let runtime = Arc::new(private_network_runtime("task-runtime-many-waiters"));
 
     let script = format!(
         r#"
@@ -201,7 +183,6 @@ fn async_runtime_wait_handle_avoids_polling() {
     const TOTAL: usize = 200;
     const DELAY_MS: u64 = 20;
 
-    let _http_guard = HttpPrivateNetworkGuard::allow();
     let (addr, shutdown_tx, handle) = spawn_delay_server(DELAY_MS);
     let runtime = AsyncHostRuntime::new("task-runtime-wait-handle")
         .expect(&crate::tr!("failed-to-create-asynchostruntime"));

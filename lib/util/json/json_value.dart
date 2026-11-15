@@ -20,9 +20,10 @@ List<dynamic> asJsonList(dynamic value) {
 }
 
 List<Map<String, dynamic>> asJsonListOfMaps(dynamic value) {
-  return asJsonList(
-    value,
-  ).whereType<Map>().map((item) => asJsonMap(item)).toList();
+  return asJsonList(value)
+      .whereType<Map>()
+      .map((item) => asJsonMap(item))
+      .toList();
 }
 
 Map<String, dynamic> requireJsonMap(
@@ -61,9 +62,10 @@ List<dynamic> decodeJsonList(String raw) {
 }
 
 List<Map<String, dynamic>> decodeJsonListOfMaps(String raw) {
-  return decodeJsonList(
-    raw,
-  ).whereType<Map>().map((item) => asJsonMap(item)).toList();
+  return decodeJsonList(raw)
+      .whereType<Map>()
+      .map((item) => asJsonMap(item))
+      .toList();
 }
 
 /// 将任意值安全转换为 int。无法转换时返回 0。

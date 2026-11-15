@@ -1,21 +1,23 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:markdown_widget/markdown_widget.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/network/http/wind_http.dart';
+import 'package:zephyr/main.dart';
 import 'package:zephyr/network/utils/github_proxy.dart';
+import 'package:zephyr/service/update/check_update.dart';
 import 'package:zephyr/service/update/json/github_release_json.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 
-const _proxyReleasesApiUrl = '$breezeGithubApi/repos/deretame/Breeze/releases';
+const _proxyReleasesApiUrl =
+    '$breezeGithubApi/repos/breeze-project-org/Breeze/releases';
 const _githubReleasesApiUrl =
-    'https://api.github.com/repos/deretame/Breeze/releases';
+    'https://api.github.com/repos/breeze-project-org/Breeze/releases';
 
 @RoutePage()
 class ChangelogPage extends StatefulWidget {
@@ -42,6 +44,8 @@ class _ChangelogPageState extends State<ChangelogPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
+    // 看过更新日志就清掉「更多」页的 NEW 徽标，同一版本不再提示。
+    markChangelogSeen();
     // 首次进入自动刷新
     _fetchReleases(refresh: true);
   }
@@ -86,11 +90,25 @@ class _ChangelogPageState extends State<ChangelogPage> {
             headers: {'Accept': 'application/vnd.github.v3+json'},
           );
 
-          if (response.ok) {
-            newData = githubReleaseJsonFromJson(response.text);
-            break;
+          final body = response.text;
+          try {
+            newData = githubReleaseJsonFromJson(body);
+          } catch (e, st) {
+            // 代理可能在 200 正文里塞入错误页，保留完整正文用于排查。
+            logger.e(
+              '更新日志解析失败 (HTTP ${response.status}): $body',
+              error: e,
+              stackTrace: st,
+            );
+            continue;
           }
-        } catch (_) {
+          break;
+        } on FetchException catch (e, st) {
+          // 代理/镜像可能返回 HTML 或错误 JSON，保留完整正文用于排查。
+          logger.e('HTTP ${e.status}: ${e.response.text}', stackTrace: st);
+          // 当前请求失败时继续尝试下一个地址。
+        } catch (e, st) {
+          logger.e(e, stackTrace: st);
           // 当前请求失败时继续尝试下一个地址。
         }
       }
@@ -119,6 +137,7 @@ class _ChangelogPageState extends State<ChangelogPage> {
         throw Exception('所有更新日志请求地址均失败');
       }
     } catch (e) {
+      logger.e(e);
       if (mounted) {
         // 如果是首次加载出错，显示全屏错误页面
         if (_releases.isEmpty && refresh) {
@@ -267,9 +286,8 @@ class _ReleaseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final dateStr = DateFormat(
-      'yyyy-MM-dd HH:mm',
-    ).format(release.publishedAt.toLocal());
+    final dateStr = DateFormat('yyyy-MM-dd HH:mm')
+        .format(release.publishedAt.toLocal());
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

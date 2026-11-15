@@ -62,7 +62,8 @@ class _PluginCommentsScaffoldState extends State<PluginCommentsScaffold> {
             previous.noticeId != current.noticeId &&
             current.noticeMessage.trim().isNotEmpty,
         listener: (context, state) {
-          showInfoToast(state.noticeMessage, context: context);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(state.noticeMessage)));
         },
         child: BlocBuilder<CommentsCubit, CommentsViewState>(
           builder: (context, state) {

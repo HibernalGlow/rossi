@@ -37,12 +37,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/video/model/video_media_kind.dart';
 import 'package:zephyr/video/view/active_video_scope.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
-import 'package:zephyr/util/debouncer.dart';
-import 'package:zephyr/util/reader/reader_top_bar_style.dart';
-import 'package:zephyr/widgets/popup_panel.dart';
-import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/widgets/spring_lens/spring_lens_bar.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/widgets/fluent_dropdown.dart';
 
 part 'reader_settings_gesture_tab.dart';
 part 'reader_settings_picture_tab.dart';
@@ -64,35 +59,28 @@ Future<void> showReaderSettingsSheet(
   BuildContext context, {
   ValueChanged<int>? changePageIndex,
   ValueChanged<bool>? onLandscapeChanged,
+  ValueChanged<bool>? onDoublePageModeChanged,
   String source = '',
   String comicId = '',
 }) {
-  final navigator = Navigator.of(context);
-  final renderObject = navigator.context.findRenderObject();
-  final origin = PopupPointerOrigin.last;
-  final size = MediaQuery.sizeOf(context);
-  final anchor = origin != null && renderObject is RenderBox
-      ? renderObject.globalToLocal(origin)
-      : Offset(size.width / 2, size.height - 48);
-  final setting = context.read<GlobalSettingCubit>().state;
-  return navigator.push<void>(
-    CommonPopupRoute<void>(
-      anchorOf: () => Rect.fromCenter(center: anchor, width: 48, height: 48),
-      placement: PopupPlacement.bottomCenter,
-      barrierLabel: t.common.close,
-      animate:
-          !setting.readSetting.noAnimation &&
-          !setting.eInkSetting.enabled &&
-          !MediaQuery.disableAnimationsOf(context),
-      builder: (context) => _ReaderSettingsSheetEscScope(
-        child: _PerComicScope(
-          perComic: false,
-          child: _ReaderSettingsSheet(
-            changePageIndex: changePageIndex ?? (_) {},
-            onLandscapeChanged: onLandscapeChanged,
-            source: source,
-            comicId: comicId,
-          ),
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierLabel: t.common.close,
+    isDismissible: true,
+    enableDrag: true,
+    builder: (context) {
+      // 外层钉死全局：前三个 tab 与全局入口恒写全局，不回退读 cubit；
+      // 第四个 tab 内层的 perComic:true 会覆盖这一层。
+      return _PerComicScope(
+        perComic: false,
+        child: _ReaderSettingsSheet(
+          changePageIndex: changePageIndex ?? (_) {},
+          onLandscapeChanged: onLandscapeChanged,
+          onDoublePageModeChanged: onDoublePageModeChanged,
+          source: source,
+          comicId: comicId,
         ),
       ),
     ),
@@ -156,12 +144,14 @@ class _ReaderSettingsSheetEscScopeState
 class _ReaderSettingsSheet extends StatelessWidget {
   final ValueChanged<int> changePageIndex;
   final ValueChanged<bool>? onLandscapeChanged;
+  final ValueChanged<bool>? onDoublePageModeChanged;
   final String source;
   final String comicId;
 
   const _ReaderSettingsSheet({
     required this.changePageIndex,
     this.onLandscapeChanged,
+    this.onDoublePageModeChanged,
     this.source = '',
     this.comicId = '',
   });
@@ -179,174 +169,102 @@ class _ReaderSettingsSheet extends StatelessWidget {
       comicId: comicId,
     );
 
-    return _ReaderSettingsOutsideTapScope(
-      child: _ReaderSettingsCard(args: args),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        child: Stack(
+          children: [
+            // 卡片外部的空白点击直接关闭（框体自身占满全屏，默认遮罩点不透）。
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).maybePop(),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SizedBox(
+                  height: maxHeight,
+                  child: _ReaderSettingsCard(
+                    changePageIndex: changePageIndex,
+                    isAndroidPhone: isAndroidPhone,
+                    onLandscapeChanged: onLandscapeChanged,
+                    onDoublePageModeChanged: onDoublePageModeChanged,
+                    source: source,
+                    comicId: comicId,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _ReaderSettingsCard extends StatefulWidget {
-  final _ReaderSettingsArgs args;
+class _ReaderSettingsCard extends StatelessWidget {
+  final ValueChanged<int> changePageIndex;
+  final bool isAndroidPhone;
+  final ValueChanged<bool>? onLandscapeChanged;
+  final ValueChanged<bool>? onDoublePageModeChanged;
+  final String source;
+  final String comicId;
 
-  const _ReaderSettingsCard({required this.args});
-
-  @override
-  State<_ReaderSettingsCard> createState() => _ReaderSettingsCardState();
-}
-
-class _ReaderSettingsCardState extends State<_ReaderSettingsCard>
-    with SingleTickerProviderStateMixin {
-  late final _extent = _ReaderSettingsExtent(this);
-  final _panelsKey = GlobalKey(debugLabel: 'reader-settings-retained-panels');
-
-  @override
-  void dispose() {
-    _extent.dispose();
-    super.dispose();
-  }
-
-  bool _showDescriptions = false;
-  bool _sidebarExpanded = true;
-  int _selectedIndex = 0;
+  const _ReaderSettingsCard({
+    required this.changePageIndex,
+    required this.isAndroidPhone,
+    this.onLandscapeChanged,
+    this.onDoublePageModeChanged,
+    this.source = '',
+    this.comicId = '',
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.theme;
-    final tabs = _visibleReaderSettingsTabs(
-      translateAvailable: ocrSupportedHere,
-      perComicAvailable: widget.args.perComicAvailable,
-    );
-    final setting = context.watch<GlobalSettingCubit>().state;
-    final animate =
-        !setting.readSetting.noAnimation &&
-        !setting.eInkSetting.enabled &&
-        !MediaQuery.disableAnimationsOf(context);
-    final media = MediaQuery.of(context).copyWith(disableAnimations: !animate);
-    return MediaQuery(
-      data: media,
-      child: SettingsPresentationScope(
-        showDescriptions: _showDescriptions,
-        animate: animate,
-        child: M3ETheme(
-          data: M3EThemeData.fromMaterial(theme),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // 留足内容宽度才切侧栏；沿用全应用的侧栏 / Dock 判据。
-              final wide =
-                  resolveNavigationLayout(
-                    sidebarCapable: true,
-                    width: constraints.maxWidth,
-                    autoSwitchOnNarrow: true,
-                    narrowWidth: 720,
-                  ) ==
-                  NavigationLayout.sidebar;
-              _extent.maxHeight = constraints.maxHeight;
-              _extent.animate = animate;
-              return AnimatedBuilder(
-                animation: _extent.motion,
-                builder: (context, _) {
-                  final fraction = constraints.maxHeight < 480
-                      ? 1.0
-                      : _extent.fraction;
-                  final fullProgress = ((fraction - .9) / .1).clamp(0.0, 1.0);
-                  final cardWidth = constraints.maxWidth.clamp(0.0, 1120.0);
-                  return _ReaderSettingsExtentScope(
-                    extent: _extent,
-                    child: SizedBox(
-                      key: const ValueKey('reader-settings-panel'),
-                      width:
-                          cardWidth +
-                          (constraints.maxWidth - cardWidth) * fullProgress,
-                      height: constraints.maxHeight * fraction,
-                      child: Material(
-                        color: theme.colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(
-                          28 * (1 - fullProgress),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: SafeArea(
-                          top: fraction > .95,
-                          child: Column(
-                            children: [
-                              _ReaderSettingsHeader(
-                                expanded: fraction > .97,
-                                onToggleExpanded: () =>
-                                    _extent.snapTo(fraction > .97 ? .72 : 1),
-                                onDragUpdate: _extent.dragBy,
-                                onDragEnd: _extent.settle,
-                                showDescriptions: _showDescriptions,
-                                onToggleDescriptions: () => setState(
-                                  () => _showDescriptions = !_showDescriptions,
-                                ),
-                              ),
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    if (wide)
-                                      NavigationSidebar(
-                                        key: const ValueKey(
-                                          'reader-settings-sidebar',
-                                        ),
-                                        destinations: [
-                                          for (final tab in tabs)
-                                            SidebarDestination(
-                                              glyph: tab.icon,
-                                              label: tab.label,
-                                            ),
-                                        ],
-                                        selectedIndex: _selectedIndex,
-                                        expanded: _sidebarExpanded,
-                                        onSelected: (index) => setState(
-                                          () => _selectedIndex = index,
-                                        ),
-                                        onToggle: () => setState(
-                                          () => _sidebarExpanded =
-                                              !_sidebarExpanded,
-                                        ),
-                                      ),
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          if (!wide)
-                                            NavigationDock(
-                                              key: const ValueKey(
-                                                'reader-settings-dock',
-                                              ),
-                                              destinations: [
-                                                for (final tab in tabs)
-                                                  NavigationDockDestination(
-                                                    glyph: tab.icon,
-                                                    label: tab.label,
-                                                  ),
-                                              ],
-                                              selectedIndex: _selectedIndex,
-                                              onSelected: (index) => setState(
-                                                () => _selectedIndex = index,
-                                              ),
-                                            ),
-                                          Expanded(
-                                            child: RetainedPanelSwitcher(
-                                              key: _panelsKey,
-                                              selectedId:
-                                                  tabs[_selectedIndex].name,
-                                              children: {
-                                                for (final tab in tabs)
-                                                  tab.name: tab.body(
-                                                    widget.args,
-                                                  ),
-                                              },
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+    final colorScheme = context.theme.colorScheme;
+
+    final perComicAvailable =
+        source.trim().isNotEmpty && comicId.trim().isNotEmpty;
+    final tabLength = perComicAvailable ? 4 : 3;
+
+    return Material(
+      color: colorScheme.surface.withValues(alpha: 0.96),
+      elevation: 16,
+      shadowColor: Colors.black.withValues(alpha: 0.24),
+      borderRadius: BorderRadius.circular(24),
+      clipBehavior: Clip.antiAlias,
+      child: DefaultTabController(
+        length: tabLength,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ReaderSettingsHeader(showPerComicTab: perComicAvailable),
+            const SizedBox(height: 8),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _ReaderSettingsReadTab(
+                    changePageIndex: changePageIndex,
+                    onLandscapeChanged: onLandscapeChanged,
+                    onDoublePageModeChanged: onDoublePageModeChanged,
+                    source: source,
+                    comicId: comicId,
+                  ),
+                  _ReaderSettingsGestureTab(isAndroidPhone: isAndroidPhone),
+                  const _ReaderSettingsInfoTab(),
+                  if (perComicAvailable)
+                    _ReaderSettingsPerComicTab(
+                      changePageIndex: changePageIndex,
+                      onLandscapeChanged: onLandscapeChanged,
+                      onDoublePageModeChanged: onDoublePageModeChanged,
+                      source: source,
+                      comicId: comicId,
+                      isAndroidPhone: isAndroidPhone,
                     ),
                   );
                 },

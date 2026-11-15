@@ -2,11 +2,11 @@ import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_socks_proxy/socks_proxy.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/src/rust/api/qjs.dart';
+import 'package:zephyr/page/setting/common/setting_ui.dart';
+import 'package:zephyr/util/proxy_setting.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -40,20 +40,15 @@ Widget proxyToggle(
         value: enabled,
         onChanged: (value) async {
           final globalSettingCubit = context.read<GlobalSettingCubit>();
-          globalSettingCubit.updateState(
-            (current) => current.copyWith(
-              proxySetting: current.proxySetting.copyWith(enabled: value),
-            ),
+          final next = globalSettingCubit.state.proxySetting.copyWith(
+            enabled: value,
           );
-
-          if (!value) {
-            try {
-              setSocks5Proxy(proxy: '');
-            } catch (_) {}
-            SocksProxy.setProxy('DIRECT');
-          }
-
-          showSuccessToast(t.common.restartToTakeEffect);
+          globalSettingCubit.updateState(
+            (current) => current.copyWith(proxySetting: next),
+          );
+          // 立刻应用到 Rust HTTP 客户端和 Dart 侧 HttpClient，不需要重启。
+          applyProxySetting(next);
+          showSuccessToast(t.common.settingSaved);
         },
       ),
       if (enabled) proxyTypeEdit(context, type),
@@ -78,12 +73,14 @@ Widget proxyTypeEdit(BuildContext context, ProxyType type) {
       onChanged: (ProxyType value) {
         if (value == type) return;
         final globalSettingCubit = context.read<GlobalSettingCubit>();
-        globalSettingCubit.updateState(
-          (current) => current.copyWith(
-            proxySetting: current.proxySetting.copyWith(type: value),
-          ),
+        final next = globalSettingCubit.state.proxySetting.copyWith(
+          type: value,
         );
-        showSuccessToast(t.common.restartToTakeEffect);
+        globalSettingCubit.updateState(
+          (current) => current.copyWith(proxySetting: next),
+        );
+        applyProxySetting(next);
+        showSuccessToast(t.common.settingSaved);
       },
     ),
   );
@@ -133,12 +130,14 @@ Widget proxyAddressEdit(BuildContext context, String currentProxy) {
       );
 
       if (result != null && result != currentProxy) {
-        globalSettingCubit.updateState(
-          (current) => current.copyWith(
-            proxySetting: current.proxySetting.copyWith(address: result),
-          ),
+        final next = globalSettingCubit.state.proxySetting.copyWith(
+          address: result,
         );
-        showSuccessToast(t.common.restartToTakeEffect);
+        globalSettingCubit.updateState(
+          (current) => current.copyWith(proxySetting: next),
+        );
+        applyProxySetting(next);
+        showSuccessToast(t.common.settingSaved);
       }
     },
   );
@@ -247,39 +246,42 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
                                 fontSize: 13,
                               ),
                             ),
-                          ),
-                        )
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: List.generate(state.maskedKeywords.length, (
-                            index,
-                          ) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              constraints: const BoxConstraints(maxWidth: 280),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      state.maskedKeywords[index],
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer,
+                          )
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: List.generate(
+                              state.maskedKeywords.length,
+                              (index) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 280,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          state.maskedKeywords[index],
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimaryContainer,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),

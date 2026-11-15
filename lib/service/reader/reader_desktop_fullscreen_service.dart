@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:zephyr/platform/desktop/desktop_window.dart';
 
 /// 桌面窗口全屏状态的**唯一记账处**（阅读器与整应用外壳共用）。
 ///
@@ -57,7 +57,7 @@ class ReaderDesktopFullscreenService with WindowListener {
   /// 查询当前窗口是否处于全屏状态（**窗口说了算**）。
   Future<bool> isFullscreen() async {
     if (!_isDesktopPlatform) return false;
-    return windowManager.isFullScreen();
+    return mainWindow?.isFullScreen ?? false;
   }
 
   /// 请求切换窗口全屏状态。
@@ -70,7 +70,9 @@ class ReaderDesktopFullscreenService with WindowListener {
   /// 这是**应用主动借**全屏的唯一入口，所以只有它动 [appRequestedFullscreen]。
   Future<void> setFullscreen(bool value) async {
     if (!_isDesktopPlatform) return;
-    _appRequestedFullscreen = value;
+    final window = mainWindow;
+    if (window == null) return;
+    window.isFullScreen = value;
     _setFullscreen(value);
     await windowManager.setFullScreen(value);
     unawaited(_reconcile(value));

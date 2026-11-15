@@ -127,15 +127,109 @@ class _InfoColumnState extends State<_InfoColumn> {
   }
 
   Future<void> _calculateStorageSize() async {
-    final stat = await measureComicDownloadStorage(
-      from: widget.from,
-      comicId: widget.comicInfo.id,
-    );
-    // 一个目录都没找到时保持 null：显示「0 B」会被读成「这本没占地方」，
-    // 而真实情况可能是布局换了或还没统计过。
-    if (stat.measured && mounted) {
-      setState(() => _storageSize = stat.bytes);
+    try {
+      final downloadPath = await getDownloadPath();
+      int totalSize = 0;
+      var foundDirectory = false;
+
+      for (final storagePath in await _storageRoots(downloadPath)) {
+        final dir = Directory(storagePath);
+        try {
+          if (!await dir.exists()) continue;
+          foundDirectory = true;
+          await for (final entity in dir.list(
+            recursive: true,
+            followLinks: false,
+          )) {
+            if (entity is File) {
+              try {
+                totalSize += await entity.length();
+              } on FileSystemException {
+                continue;
+              }
+            }
+          }
+        } on FileSystemException {
+          // 某个历史目录不可访问时，继续统计其他兼容目录。
+        }
+      }
+
+      if (foundDirectory && mounted) {
+        setState(() => _storageSize = totalSize);
+      }
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
+      // ignore errors
     }
+  }
+
+  Future<List<String>> _storageRoots(String downloadPath) async {
+    final roots = <String, String>{};
+    void addRoot(String path) {
+      final normalized = p.normalize(p.absolute(path));
+      final key = Platform.isWindows ? normalized.toLowerCase() : normalized;
+      roots[key] = normalized;
+    }
+
+    final comicId = widget.comicInfo.id.trim();
+    final sourceCandidates = <String>{
+      widget.from.trim(),
+      normalizePluginId(widget.from),
+    }..removeWhere((source) => source.isEmpty);
+
+    for (final source in sourceCandidates) {
+      // 当前下载布局：hash(from)/hash(cartoonId)。
+      try {
+        addRoot(
+          p.join(
+            downloadPath,
+            encodePath(path: source),
+            encodePath(path: comicId),
+          ),
+        );
+      } catch (e, st) {
+        logger.e(e, stackTrace: st);
+        // Rust 编码服务尚未就绪时，仍继续统计历史目录。
+      }
+
+      // c703e334 产生的旧编码目录。
+      try {
+        addRoot(
+          p.join(downloadPath, source, 'original', encodePath(path: comicId)),
+        );
+      } catch (_) {}
+
+      // 更早的未编码目录。
+      addRoot(p.join(downloadPath, source, 'original', comicId));
+    }
+
+    // 旧数据库记录可能保存了当时实际使用的绝对 storageRoot。
+    for (final source in sourceCandidates) {
+      final query = objectbox.unifiedDownloadBox
+          .query(UnifiedComicDownload_.uniqueKey.equals('$source:$comicId'))
+          .build();
+      UnifiedComicDownload? download;
+      try {
+        download = query.findFirst();
+      } finally {
+        query.close();
+      }
+      final storedRoot = download?.storageRoot.trim() ?? '';
+      if (storedRoot.isNotEmpty && p.isAbsolute(storedRoot)) {
+        addRoot(storedRoot);
+      }
+    }
+
+    return roots.values.toList();
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   @override

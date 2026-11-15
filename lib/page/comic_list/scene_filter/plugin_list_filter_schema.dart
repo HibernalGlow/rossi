@@ -67,13 +67,16 @@ class PluginChoiceField {
       key: map['key']?.toString() ?? '',
       label: map['label']?.toString() ?? '',
       kind: map['kind']?.toString() ?? '',
-      options: asJsonList(
-        map['options'],
-      ).map((item) => PluginChoiceOption.fromMap(asJsonMap(item))).toList(),
+      options: asJsonList(map['options'])
+          .map((item) => PluginChoiceOption.fromMap(asJsonMap(item)))
+          .toList(),
     );
   }
 
-  bool get isChoiceField => kind == 'choice' && key.trim().isNotEmpty;
+  bool get isChoiceField =>
+      (kind == 'choice' || kind == 'dropdown') && key.trim().isNotEmpty;
+
+  bool get isDropdownField => kind == 'dropdown';
 
   PluginChoiceOption? resolveOption({
     String? requestedValue,
@@ -178,9 +181,9 @@ class PluginChoiceOption {
       label: map['label']?.toString() ?? map['value']?.toString() ?? '',
       value: map['value']?.toString() ?? '',
       result: asJsonMap(map['result']),
-      children: asJsonList(
-        map['children'],
-      ).map((item) => PluginChoiceOption.fromMap(asJsonMap(item))).toList(),
+      children: asJsonList(map['children'])
+          .map((item) => PluginChoiceOption.fromMap(asJsonMap(item)))
+          .toList(),
     );
   }
 

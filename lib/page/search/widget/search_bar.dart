@@ -185,16 +185,14 @@ class _SearchBarState extends State<SearchBar> {
       return;
     }
 
-    final newStates = await showPopupPanel<SearchStates>(
-      presentation: PopupPresentation.relative,
+    final result = await showDialog<_SearchDialogResult>(
       context: context,
       builder: (context) =>
           _PluginAdvancedSearchDialog(initialState: state, scheme: scheme),
     );
 
-    if (newStates != null && context.mounted) {
-      searchCubit.update(newStates);
-    }
+    if (result == null || !context.mounted) return;
+    searchCubit.update(result.states);
   }
 
   Future<_AdvancedSearchScheme?> _loadAdvancedSearchScheme(
@@ -272,6 +270,13 @@ class _AdvancedSearchScheme {
   final Map<String, dynamic> values;
 }
 
+/// 搜索页高级搜索对话框的返回：应用筛选。
+class _SearchDialogResult {
+  const _SearchDialogResult({required this.states});
+
+  final SearchStates states;
+}
+
 class _PluginAdvancedSearchDialog extends StatefulWidget {
   const _PluginAdvancedSearchDialog({
     required this.initialState,
@@ -294,7 +299,6 @@ class _PluginAdvancedSearchDialogState
   void initState() {
     super.initState();
     _values = Map<String, dynamic>.from(widget.scheme.values);
-    _values['sortBy'] = _values['sortBy'] ?? widget.initialState.sortBy;
   }
 
   @override
@@ -305,9 +309,9 @@ class _PluginAdvancedSearchDialogState
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: widget.scheme.fields
-            .map((field) => _buildField(context, field))
-            .toList(),
+        children: [
+          ...widget.scheme.fields.map((field) => _buildField(context, field)),
+        ],
       ),
       actions: [
         TextButton(
@@ -316,9 +320,6 @@ class _PluginAdvancedSearchDialogState
         ),
         FilledButton(
           onPressed: () {
-            final sortBy =
-                int.tryParse(_values['sortBy']?.toString() ?? '') ??
-                widget.initialState.sortBy;
             final nextExtern = <String, dynamic>{
               ...widget.initialState.pluginExtern,
             };
@@ -337,9 +338,8 @@ class _PluginAdvancedSearchDialogState
               }
             }
             Navigator.of(context).pop(
-              widget.initialState.copyWith(
-                sortBy: sortBy,
-                pluginExtern: nextExtern,
+              _SearchDialogResult(
+                states: widget.initialState.copyWith(pluginExtern: nextExtern),
               ),
             );
           },
@@ -407,9 +407,8 @@ class _PluginAdvancedSearchDialogState
           children: [
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Row(
@@ -475,9 +474,8 @@ class _PluginAdvancedSearchDialogState
         children: [
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(

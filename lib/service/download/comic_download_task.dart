@@ -525,6 +525,8 @@ Future<void> _saveUnifiedDownloadChapter({
             'cover': existing.cover,
             'chapters': existing.chapters,
             'detailJson': existing.detailJson,
+            'titleOverride': existing.titleOverride,
+            'coverOverride': existing.coverOverride,
           },
     'selected': {
       'id': selectedChapter.id,
@@ -559,6 +561,8 @@ Future<void> _saveUnifiedDownloadChapter({
       'title': built['title'] as String,
       'description': built['description'] as String,
       'cover': built['cover'] as String,
+      'titleOverride': built['titleOverride'] as String?,
+      'coverOverride': built['coverOverride'] as String?,
       'creator': built['creator'] as String,
       'titleMeta': built['titleMeta'] as String,
       'metadata': built['metadata'] as String,
@@ -604,6 +608,8 @@ Map<String, dynamic> _buildDownloadRecordJson(Map<String, dynamic> args) {
     Map<String, dynamic>.from(args['normalInfo'] as Map),
   );
   final existingRaw = args['existing'] as Map?;
+  final titleOverride = existingRaw?['titleOverride']?.toString().trim() ?? '';
+  final coverOverride = existingRaw?['coverOverride']?.toString().trim() ?? '';
   final selectedRaw = Map<String, dynamic>.from(args['selected'] as Map);
   final selected = DownloadChapter(
     id: selectedRaw['id'] as String,
@@ -687,7 +693,8 @@ Map<String, dynamic> _buildDownloadRecordJson(Map<String, dynamic> args) {
           jsonDecode(existingRaw['cover'] as String) as Map,
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
       // 旧记录封面 JSON 损坏时继续使用当前详情的空封面。
     }
   }
@@ -700,10 +707,19 @@ Map<String, dynamic> _buildDownloadRecordJson(Map<String, dynamic> args) {
   final metadata = _normalizeMetadataForStorage(detail.comicInfo.metadata);
   final chapters = storedChapters.map((chapter) => chapter.toMap()).toList();
 
+  final effectiveTitle = titleOverride.isNotEmpty
+      ? titleOverride
+      : detail.comicInfo.title;
+  final effectiveCover = coverOverride.isNotEmpty
+      ? coverOverride
+      : jsonEncode(coverMap);
+
   return <String, dynamic>{
-    'title': detail.comicInfo.title,
+    'title': effectiveTitle,
     'description': detail.comicInfo.description,
-    'cover': jsonEncode(coverMap),
+    'cover': effectiveCover,
+    'titleOverride': titleOverride.isEmpty ? null : titleOverride,
+    'coverOverride': coverOverride.isEmpty ? null : coverOverride,
     'creator': jsonEncode(creatorMap),
     'titleMeta': jsonEncode(titleMeta),
     'metadata': metadata,
@@ -739,6 +755,8 @@ int _saveDownloadRecordOnWorker(Store store, Map<String, dynamic> args) {
     title: e['title'] as String,
     description: e['description'] as String,
     cover: e['cover'] as String,
+    titleOverride: e['titleOverride'] as String?,
+    coverOverride: e['coverOverride'] as String?,
     creator: e['creator'] as String,
     titleMeta: e['titleMeta'] as String,
     metadata: e['metadata'] as String,

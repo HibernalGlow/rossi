@@ -7,6 +7,16 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 
+/// 数据库 schema 比当前代码新（通常是用户降级安装）。
+class ObjectBoxSchemaMismatchException implements Exception {
+  const ObjectBoxSchemaMismatchException(this.details);
+
+  final String details;
+
+  @override
+  String toString() => 'ObjectBoxSchemaMismatchException: $details';
+}
+
 class ObjectBox {
   late final Store store;
 
@@ -33,11 +43,16 @@ class ObjectBox {
   late final Box<ComicLink> _comicLinkBox;
   late final Box<ComicFollow> _comicFollowBox;
   late final Box<ComicReadPreference> _comicReadPreferenceBox;
-  late final Box<ComicChapterReadMark> _comicChapterReadMarkBox;
+  late final Box<ComicReadChapter> _comicReadChapterBox;
+  late final Box<SearchBookmark> _searchBookmarkBox;
 
   void close() {
     store.close();
   }
+
+  /// 用已有的 [Store] 构造包装器（例如 `Store.runAsync` 回调里传入的 store）。
+  /// 不接管 store 生命周期，调用方负责关闭。
+  factory ObjectBox.fromStore(Store store) => ObjectBox._create(store);
 
   ObjectBox._create(this.store) {
     _bikaComicHistoryBox = store.box<BikaComicHistory>();
@@ -61,11 +76,12 @@ class ObjectBox {
     _comicLinkBox = store.box<ComicLink>();
     _comicFollowBox = store.box<ComicFollow>();
     _comicReadPreferenceBox = store.box<ComicReadPreference>();
-    _comicChapterReadMarkBox = store.box<ComicChapterReadMark>();
+    _comicReadChapterBox = store.box<ComicReadChapter>();
+    _searchBookmarkBox = store.box<SearchBookmark>();
   }
 
   static Future<ObjectBox> create({String? dbRootPath}) async {
-    // A. 同 Isolate 保护：如果已经有初始化任务在跑，直接返回同一个 Future
+    // 同 Isolate 保护：如果已经有初始化任务在跑，直接返回同一个 Future
     if (_initFuture != null) return _initFuture!;
 
     _initFuture = _doInit(dbRootPath: dbRootPath);
@@ -89,14 +105,21 @@ class ObjectBox {
         final store = Store.attach(getObjectBoxModel(), dbPath);
         return ObjectBox._create(store);
       } catch (e) {
+        logger.e(e);
         // 2. 如果 Attach 失败，尝试 Open
         try {
           final store = await openStore(directory: dbPath);
           return ObjectBox._create(store);
         } catch (innerError) {
+          final message = innerError.toString();
+          // 用户降级安装时，数据库 entity ID 会比当前代码新，无法打开。
+          if (message.contains('higher than') &&
+              message.contains('from model')) {
+            throw ObjectBoxSchemaMismatchException(message);
+          }
           // 3. 并发核心处理：如果是由于锁冲突导致的 10199 错误
-          if (innerError.toString().contains('10199') ||
-              innerError.toString().contains('Input/output error')) {
+          if (message.contains('10199') ||
+              message.contains('Input/output error')) {
             retryCount++;
             // 稍微等一下（给另一个线程一点时间完成 Open）
             await Future.delayed(Duration(milliseconds: 200 * retryCount));
@@ -144,8 +167,9 @@ class ObjectBox {
   Box<ComicReadPreference> get comicReadPreferenceBox =>
       _comicReadPreferenceBox;
 
-  Box<ComicChapterReadMark> get comicChapterReadMarkBox =>
-      _comicChapterReadMarkBox;
+  Box<ComicReadChapter> get comicReadChapterBox => _comicReadChapterBox;
+
+  Box<SearchBookmark> get searchBookmarkBox => _searchBookmarkBox;
 
   /// 在当前 isolate 中以只读事务收集所有 ObjectBox 数据并序列化为 JSON。
   ///
@@ -203,10 +227,8 @@ class ObjectBox {
       _comicReadPreferenceBox,
       "ComicReadPreference",
     );
-    _dumpBoxData<ComicChapterReadMark>(
-      _comicChapterReadMarkBox,
-      "ComicChapterReadMark",
-    );
+    _dumpBoxData<ComicReadChapter>(_comicReadChapterBox, "ComicReadChapter");
+    _dumpBoxData<SearchBookmark>(_searchBookmarkBox, "SearchBookmark");
 
     logger.d("=========  ObjectBox Data Dump End  =========");
   }
@@ -269,8 +291,12 @@ String _collectObjectBoxDataJson(Store store, bool removeIds) {
       store.box<ComicReadPreference>(),
       (item) => item.toJson(),
     ),
-    'comicChapterReadMark': readBox(
-      store.box<ComicChapterReadMark>(),
+    'comicReadChapter': readBox(
+      store.box<ComicReadChapter>(),
+      (item) => item.toJson(),
+    ),
+    'searchBookmark': readBox(
+      store.box<SearchBookmark>(),
       (item) => item.toJson(),
     ),
   };

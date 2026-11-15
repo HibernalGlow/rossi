@@ -166,9 +166,9 @@ UnifiedComicCover _coverFromDynamic(dynamic value) {
 Map<String, dynamic> _coverToDynamic(UnifiedComicCover cover) => cover.toJson();
 
 List<UnifiedComicMetadata> _metadataListFromDynamic(dynamic value) =>
-    asJsonList(
-      value,
-    ).map((item) => UnifiedComicMetadata.fromJson(asJsonMap(item))).toList();
+    asJsonList(value)
+        .map((item) => UnifiedComicMetadata.fromJson(asJsonMap(item)))
+        .toList();
 
 List<Map<String, dynamic>> _metadataListToDynamic(
   List<UnifiedComicMetadata> metadata,

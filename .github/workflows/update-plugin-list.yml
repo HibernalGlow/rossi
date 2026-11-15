@@ -17,7 +17,7 @@ jobs:
 
       - name: Fetch plugin names and update README
         run: |
-          NAMES=$(curl -sL https://raw.githubusercontent.com/deretame/Breeze-plugin-list/main/plugins_data.json | jq -r '[.[].manifest.name] | join(" ")')
+          NAMES=$(curl -sL https://raw.githubusercontent.com/breeze-project-org/Breeze-plugin-list/main/plugins_data.json | jq -r '[.[].manifest.name] | join(" ")')
           if [ -z "$NAMES" ]; then
             echo "Failed to fetch plugin names"
             exit 1
@@ -28,28 +28,29 @@ jobs:
           import sys
 
           names = sys.argv[1]
-          with open("README.md", encoding="utf-8") as f:
-              content = f.read()
-
           pattern = r"(<!-- PLUGIN-LIST-START -->).*?(<!-- PLUGIN-LIST-END -->)"
           replacement = r"\1\n" + names + r"\n\2"
-          new_content, count = re.subn(pattern, replacement, content, flags=re.DOTALL)
-          if count == 0:
-              print("Plugin list markers not found in README.md")
-              sys.exit(1)
-          if new_content == content:
-              print("No changes to README.md")
-          else:
-              with open("README.md", "w", encoding="utf-8") as f:
-                  f.write(new_content)
-              print("README.md updated")
+          for path in ("README.md", "README.en.md"):
+              with open(path, encoding="utf-8") as f:
+                  content = f.read()
+
+              new_content, count = re.subn(pattern, replacement, content, flags=re.DOTALL)
+              if count == 0:
+                  print(f"Plugin list markers not found in {path}")
+                  sys.exit(1)
+              if new_content == content:
+                  print(f"No changes to {path}")
+              else:
+                  with open(path, "w", encoding="utf-8") as f:
+                      f.write(new_content)
+                  print(f"{path} updated")
           EOF
 
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
+          git add README.md README.en.md
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0

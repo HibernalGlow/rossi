@@ -14,7 +14,7 @@ import 'package:zephyr/page/donwload_task/widgets/offline_comic_section.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/main.dart';
 
 @RoutePage()
 class DownloadTaskPage extends StatelessWidget {
@@ -280,4 +280,36 @@ class _TaskSectionHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 单章节任务标题：漫画名 + 章节名（老任务无章节名时只显示漫画名）。
+String _chapterTaskTitle(DownloadTask task) {
+  String? chapterTitle;
+  try {
+    chapterTitle = task.taskInfo?.chapterRef.title.trim();
+  } catch (e, st) {
+    logger.e(e, stackTrace: st);
+    chapterTitle = null;
+  }
+  if (chapterTitle == null || chapterTitle.isEmpty) return task.comicName;
+  return '${task.comicName} $chapterTitle';
+}
+
+void _showDownloadFailureDetails(BuildContext context, String message) {
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(t.download.notificationFailedTitle),
+      content: SizedBox(
+        width: 720,
+        child: SingleChildScrollView(child: SelectableText(message)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(t.common.ok),
+        ),
+      ],
+    ),
+  );
 }

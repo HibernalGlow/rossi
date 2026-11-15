@@ -13,8 +13,8 @@ use tokio::sync::mpsc as tokio_mpsc;
 use tokio::sync::{OnceCell, oneshot};
 
 use crate::web_runtime::{
-    WebRuntimeOptions, install_host_bindings, native_buffer_take_raw, polyfill_script,
-    timer_drop_evented, timer_start_kind_evented,
+    HttpClientConfig, WebRuntimeOptions, install_host_bindings, native_buffer_take_raw,
+    polyfill_script, timer_drop_evented, timer_start_kind_evented,
 };
 
 const BUNDLE_DISPATCHER_JS: &str = r#"(async () => {
@@ -265,6 +265,17 @@ pub struct AsyncHostRuntime {
 pub struct AsyncHostRuntimeBuilder {
     cache_scope_id: String,
     options: WebRuntimeOptions,
+    /// 是否跟随全局 HTTP 配置（代理 / 内网策略等）。
+    ///
+    /// `false`（默认）：创建时快照一份并钉住，之后全局变更不影响该 runtime。
+    /// `true`：不钉住，`configure_http_client` 之后能直接看到新配置，
+    /// 用户改代理 / 改内网策略不需要重建 runtime。
+    follow_global_http_config: bool,
+    /// 显式指定该 runtime 使用的 HTTP 配置，优先级最高。
+    ///
+    /// 主要给测试用：测试需要访问本地服务，但不应该为了这一点去改全局配置
+    /// （会让并行用例互相干扰）。
+    http_config_override: Option<HttpClientConfig>,
 }
 
 impl AsyncHostRuntimeBuilder {
@@ -272,6 +283,8 @@ impl AsyncHostRuntimeBuilder {
         Self {
             cache_scope_id: cache_scope_id.into(),
             options: WebRuntimeOptions::default(),
+            follow_global_http_config: false,
+            http_config_override: None,
         }
     }
 
@@ -285,8 +298,25 @@ impl AsyncHostRuntimeBuilder {
         self
     }
 
+    /// 让该 runtime 跟随全局 HTTP 配置，而不是创建时快照一份。
+    pub fn follow_global_http_config(mut self, follow: bool) -> Self {
+        self.follow_global_http_config = follow;
+        self
+    }
+
+    /// 显式指定该 runtime 的 HTTP 配置，不修改全局配置。
+    pub fn http_config_override(mut self, config: Option<HttpClientConfig>) -> Self {
+        self.http_config_override = config;
+        self
+    }
+
     pub fn build(self) -> Result<AsyncHostRuntime, String> {
-        AsyncHostRuntime::build_inner(self.cache_scope_id, self.options)
+        AsyncHostRuntime::build_inner(
+            self.cache_scope_id,
+            self.options,
+            self.follow_global_http_config,
+            self.http_config_override,
+        )
     }
 }
 
@@ -433,11 +463,19 @@ impl HostRuntime {
     pub async fn new_with_options_async(
         cache_scope_id: String,
         options: WebRuntimeOptions,
+        follow_global_http_config: bool,
+        http_config_override: Option<HttpClientConfig>,
     ) -> Result<Self, String> {
         if options.fs && !cfg!(feature = "host-fs") {
             return Err(crate::tr!("current-build-does-not-enable-the-host-fs-cargo").to_string());
         }
-        crate::web_runtime::set_worker_http_config(crate::web_runtime::current_http_client_config());
+        // 优先级：显式覆盖 > 创建时快照 > 跟随全局（不钉住）。
+        let pinned_config = http_config_override.or_else(|| {
+            (!follow_global_http_config).then(crate::web_runtime::current_http_client_config)
+        });
+        if let Some(config) = pinned_config {
+            crate::web_runtime::set_worker_http_config(config);
+        }
         let runtime = AsyncRuntime::new()
             .map_err(|e| crate::tr!("failed-to-initialize-asyncruntime", e = e))?;
         Self::install_promise_rejection_tracker(&runtime).await;
@@ -817,7 +855,12 @@ impl AsyncHostRuntime {
         Self::builder(cache_scope_id).with_options(options).build()
     }
 
-    fn build_inner(cache_scope_id: String, options: WebRuntimeOptions) -> Result<Self, String> {
+    fn build_inner(
+        cache_scope_id: String,
+        options: WebRuntimeOptions,
+        follow_global_http_config: bool,
+        http_config_override: Option<HttpClientConfig>,
+    ) -> Result<Self, String> {
         if options.fs && !cfg!(feature = "host-fs") {
             return Err(crate::tr!("current-build-does-not-enable-the-host-fs-cargo").to_string());
         }
@@ -857,6 +900,8 @@ impl AsyncHostRuntime {
                 let mut host = match HostRuntime::new_with_options_async(
                     cache_scope_id_for_worker,
                     options_for_worker,
+                    follow_global_http_config,
+                    http_config_override,
                 )
                 .await
                 {
@@ -1398,6 +1443,11 @@ impl AsyncHostRuntime {
 
 impl Drop for AsyncHostRuntime {
     fn drop(&mut self) {
+        // runtime 销毁时清掉该插件的前置表，避免插件卸载/重建后残留状态。
+        #[cfg(feature = "host-fronting")]
+        let _ = crate::web_runtime::clear_front_hosts(&self.cache_scope_id);
+        // 在途配额信号量按插件分开，也要跟着回收，否则插件反复重建会一直累积。
+        crate::web_runtime::release_http_io_sem(&self.cache_scope_id);
         fail_all_active_tasks(
             &self.states,
             &self.waiters,

@@ -35,10 +35,9 @@ class MorePage extends StatelessWidget {
         const BrandAppIcon(size: 88),
         const SizedBox(height: 12),
         Text(
-          appDisplayName,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          'Breeze',
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
       ],

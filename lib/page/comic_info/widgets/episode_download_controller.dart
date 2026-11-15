@@ -356,7 +356,7 @@ class EpisodeDownloadController {
           : t.comicEntry.deleteDownloadConfirm(
               title: targets.length == 1
                   ? _chapterLabel(targets.first)
-                  : t.download.pending(count: targets.length),
+                  : t.download.selectedChapters(count: targets.length),
             ),
     );
     if (!confirmed) return false;

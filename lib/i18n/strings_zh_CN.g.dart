@@ -46,11 +46,13 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// zh-CN: 'Rossi'
 	String get appName => 'Rossi';
 
+	late final Translations$database$zh_CN database = Translations$database$zh_CN.internal(_root);
 	late final Translations$common$zh_CN common = Translations$common$zh_CN.internal(_root);
 	late final Translations$error$zh_CN error = Translations$error$zh_CN.internal(_root);
 	late final Translations$navigation$zh_CN navigation = Translations$navigation$zh_CN.internal(_root);
 	late final Translations$settings$zh_CN settings = Translations$settings$zh_CN.internal(_root);
 	late final Translations$bookshelf$zh_CN bookshelf = Translations$bookshelf$zh_CN.internal(_root);
+	late final Translations$comicEdit$zh_CN comicEdit = Translations$comicEdit$zh_CN.internal(_root);
 	late final Translations$comicInfo$zh_CN comicInfo = Translations$comicInfo$zh_CN.internal(_root);
 	late final Translations$reader$zh_CN reader = Translations$reader$zh_CN.internal(_root);
 	late final Translations$plugin$zh_CN plugin = Translations$plugin$zh_CN.internal(_root);
@@ -68,6 +70,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$search$zh_CN search = Translations$search$zh_CN.internal(_root);
 	late final Translations$discover$zh_CN discover = Translations$discover$zh_CN.internal(_root);
 	late final Translations$searchResult$zh_CN searchResult = Translations$searchResult$zh_CN.internal(_root);
+	late final Translations$searchBookmark$zh_CN searchBookmark = Translations$searchBookmark$zh_CN.internal(_root);
 	late final Translations$comicList$zh_CN comicList = Translations$comicList$zh_CN.internal(_root);
 	late final Translations$comicEntry$zh_CN comicEntry = Translations$comicEntry$zh_CN.internal(_root);
 	late final Translations$comicFollow$zh_CN comicFollow = Translations$comicFollow$zh_CN.internal(_root);
@@ -2380,6 +2383,18 @@ class Translations$workspace$zh_CN {
 	String get toolsStandaloneHint => '与阅读设置同步';
 }
 
+// Path: database
+class Translations$database$zh_CN {
+	Translations$database$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '数据库不兼容，请使用更新版本的软件'
+	String get incompatible => '数据库不兼容，请使用更新版本的软件';
+}
+
 // Path: common
 class Translations$common$zh_CN {
 	Translations$common$zh_CN.internal(this._root);
@@ -3261,152 +3276,23 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后预留安全区，避免内容遮挡'
 	String get notchAdaptationSubtitle => '开启后预留安全区，避免内容遮挡';
 
-	/// zh-CN: '透明标题栏'
-	String get transparentDesktopTitleBar => '透明标题栏';
+	/// zh-CN: '显示插件首页'
+	String get showPluginHome => '显示插件首页';
 
-	/// zh-CN: '标题栏不再画底色，与页面背景连成一体（文字与窗口按钮可能因画面颜色而不易看清）；仅桌面端'
-	String get transparentDesktopTitleBarSubtitle => '标题栏不再画底色，与页面背景连成一体（文字与窗口按钮可能因画面颜色而不易看清）；仅桌面端';
+	/// zh-CN: '关闭后隐藏底部导航的首页页签'
+	String get showPluginHomeSubtitle => '关闭后隐藏底部导航的首页页签';
 
-	/// zh-CN: '独立行'
-	String get transparentTitleBarRow => '独立行';
+	/// zh-CN: '显示云收藏'
+	String get showPluginCloudFavorite => '显示云收藏';
 
-	/// zh-CN: '标题栏仍占一行，只是不带底色；内容从它下面开始（默认）'
-	String get transparentTitleBarRowSubtitle => '标题栏仍占一行，只是不带底色；内容从它下面开始（默认）';
+	/// zh-CN: '关闭后隐藏底部导航的云收藏页签'
+	String get showPluginCloudFavoriteSubtitle => '关闭后隐藏底部导航的云收藏页签';
 
-	/// zh-CN: '融合浮层'
-	String get transparentTitleBarOverlay => '融合浮层';
+	/// zh-CN: '显示搜索书签'
+	String get showSearchBookmark => '显示搜索书签';
 
-	/// zh-CN: '内容顶到窗口顶部，标题栏浮在画面之上'
-	String get transparentTitleBarOverlaySubtitle => '内容顶到窗口顶部，标题栏浮在画面之上';
-
-	/// zh-CN: '提示样式'
-	String get toastStyle => '提示样式';
-
-	/// zh-CN: '设置应用内提示条的位置、时长与大小'
-	String get toastStyleSubtitle => '设置应用内提示条的位置、时长与大小';
-
-	/// zh-CN: '位置与尺寸'
-	String get toastSectionLayout => '位置与尺寸';
-
-	/// zh-CN: '外观与行为'
-	String get toastSectionAppearance => '外观与行为';
-
-	/// zh-CN: '时长与动效'
-	String get toastSectionBehavior => '时长与动效';
-
-	/// zh-CN: '显示效果'
-	String get toastSectionStyle => '显示效果';
-
-	/// zh-CN: '位置'
-	String get toastPosition => '位置';
-
-	/// zh-CN: '提示条停靠在屏幕的哪个角'
-	String get toastPositionSubtitle => '提示条停靠在屏幕的哪个角';
-
-	/// zh-CN: '左上'
-	String get toastPositionTopLeft => '左上';
-
-	/// zh-CN: '顶部居中'
-	String get toastPositionTopCenter => '顶部居中';
-
-	/// zh-CN: '右上'
-	String get toastPositionTopRight => '右上';
-
-	/// zh-CN: '左侧居中'
-	String get toastPositionMiddleLeft => '左侧居中';
-
-	/// zh-CN: '屏幕居中'
-	String get toastPositionCenter => '屏幕居中';
-
-	/// zh-CN: '右侧居中'
-	String get toastPositionMiddleRight => '右侧居中';
-
-	/// zh-CN: '左下'
-	String get toastPositionBottomLeft => '左下';
-
-	/// zh-CN: '底部居中'
-	String get toastPositionBottomCenter => '底部居中';
-
-	/// zh-CN: '右下'
-	String get toastPositionBottomRight => '右下';
-
-	/// zh-CN: '边缘留白'
-	String get toastEdgePadding => '边缘留白';
-
-	/// zh-CN: '提示条与屏幕边缘的距离'
-	String get toastEdgePaddingSubtitle => '提示条与屏幕边缘的距离';
-
-	/// zh-CN: '最大宽度'
-	String get toastMaxWidth => '最大宽度';
-
-	/// zh-CN: '提示条宽度上限，窄屏还会再被屏幕宽度收一次'
-	String get toastMaxWidthSubtitle => '提示条宽度上限，窄屏还会再被屏幕宽度收一次';
-
-	/// zh-CN: '同屏条数'
-	String get toastMaxVisible => '同屏条数';
-
-	/// zh-CN: '屏幕上最多同时堆叠几条，多出来的挤掉最旧的一条'
-	String get toastMaxVisibleSubtitle => '屏幕上最多同时堆叠几条，多出来的挤掉最旧的一条';
-
-	/// zh-CN: '自动关闭时长'
-	String get toastDuration => '自动关闭时长';
-
-	/// zh-CN: '拖到最左边为常驻，只由关闭按钮收起'
-	String get toastDurationSubtitle => '拖到最左边为常驻，只由关闭按钮收起';
-
-	/// zh-CN: '常驻'
-	String get toastDurationPermanent => '常驻';
-
-	/// zh-CN: '不透明度'
-	String get toastOpacity => '不透明度';
-
-	/// zh-CN: '整条提示（含文字）的不透明度'
-	String get toastOpacitySubtitle => '整条提示（含文字）的不透明度';
-
-	/// zh-CN: '进出场动画'
-	String get toastAnimation => '进出场动画';
-
-	/// zh-CN: '提示出现与消失的动画时长'
-	String get toastAnimationSubtitle => '提示出现与消失的动画时长';
-
-	/// zh-CN: '液态玻璃'
-	String get toastLiquidGlass => '液态玻璃';
-
-	/// zh-CN: '开启后提示条使用模糊半透明背景'
-	String get toastLiquidGlassSubtitle => '开启后提示条使用模糊半透明背景';
-
-	/// zh-CN: '显示进度条'
-	String get toastShowProgressBar => '显示进度条';
-
-	/// zh-CN: '在底部显示一条随剩余时间收缩的细线'
-	String get toastShowProgressBarSubtitle => '在底部显示一条随剩余时间收缩的细线';
-
-	/// zh-CN: '显示类型图标'
-	String get toastShowIcon => '显示类型图标';
-
-	/// zh-CN: '在提示条左侧显示成功/错误等图标'
-	String get toastShowIconSubtitle => '在提示条左侧显示成功/错误等图标';
-
-	/// zh-CN: '显示关闭按钮'
-	String get toastShowCloseButton => '显示关闭按钮';
-
-	/// zh-CN: '常驻提示会始终显示关闭按钮'
-	String get toastShowCloseButtonSubtitle => '常驻提示会始终显示关闭按钮';
-
-	/// zh-CN: '显示测试提示'
-	String get toastPreview => '显示测试提示';
-
-	/// zh-CN: '提示样式预览'
-	String get toastPreviewTitle => '提示样式预览';
-
-	/// zh-CN: '这是一条用于预览的提示：长文本会自动换行，不会再被截断、也不会弹成对话框。'
-	String get toastPreviewLongMessage => '这是一条用于预览的提示：长文本会自动换行，不会再被截断、也不会弹成对话框。';
-
-	/// zh-CN: '恢复默认提示样式'
-	String get toastReset => '恢复默认提示样式';
-
-	/// zh-CN: '已恢复默认提示样式'
-	String get toastResetDone => '已恢复默认提示样式';
+	/// zh-CN: '关闭后隐藏更多页搜索书签入口与搜索结果页添加按钮'
+	String get showSearchBookmarkSubtitle => '关闭后隐藏更多页搜索书签入口与搜索结果页添加按钮';
 
 	/// zh-CN: '内容与网络'
 	String get contentAndNetwork => '内容与网络';
@@ -3687,6 +3573,45 @@ class Translations$settings$zh_CN {
 	/// zh-CN: 'SOCKS5'
 	String get proxyTypeSocks5 => 'SOCKS5';
 
+	/// zh-CN: 'DNS over HTTPS'
+	String get doh => 'DNS over HTTPS';
+
+	/// zh-CN: '开启后使用 DoH 解析域名'
+	String get dohEnabledSubtitle => '开启后使用 DoH 解析域名';
+
+	/// zh-CN: 'DoH 端点'
+	String get dohProviders => 'DoH 端点';
+
+	/// zh-CN: '已启用 · $count 个端点'
+	String dohProviderCount({required Object count}) => '已启用 · ${count} 个端点';
+
+	/// zh-CN: '尚未配置 DoH 端点'
+	String get dohEmpty => '尚未配置 DoH 端点';
+
+	/// zh-CN: '添加 DoH 端点'
+	String get dohAdd => '添加 DoH 端点';
+
+	/// zh-CN: 'https://doh.pub/dns-query'
+	String get dohAddHint => 'https://doh.pub/dns-query';
+
+	/// zh-CN: '建议使用 IP 形式的地址以绕过 DNS 污染，例如 https://1.12.12.12/dns-query'
+	String get dohIpHint => '建议使用 IP 形式的地址以绕过 DNS 污染，例如 https://1.12.12.12/dns-query';
+
+	/// zh-CN: '请输入以 https:// 开头的完整地址'
+	String get dohInvalidUrl => '请输入以 https:// 开头的完整地址';
+
+	/// zh-CN: '恢复默认端点'
+	String get dohReset => '恢复默认端点';
+
+	/// zh-CN: 'DoH 用于防止 DNS 污染；可添加多个端点，自动使用最先返回的有效结果。'
+	String get dohNote => 'DoH 用于防止 DNS 污染；可添加多个端点，自动使用最先返回的有效结果。';
+
+	/// zh-CN: '内网拦截'
+	String get blockPrivateNetwork => '内网拦截';
+
+	/// zh-CN: '拦截指向内网 / 保留地址段的请求（含域名前置的 IP 直连）；默认关闭'
+	String get blockPrivateNetworkSubtitle => '拦截指向内网 / 保留地址段的请求（含域名前置的 IP 直连）；默认关闭';
+
 	/// zh-CN: '更新下载加速'
 	String get updateAccelerate => '更新下载加速';
 
@@ -3957,23 +3882,11 @@ class Translations$settings$zh_CN {
 	/// zh-CN: '开启后收藏漫画时将自动加入追更列表'
 	String get autoFollowOnCollectSubtitle => '开启后收藏漫画时将自动加入追更列表';
 
-	/// zh-CN: '下载自动收藏'
-	String get autoFavoriteOnDownload => '下载自动收藏';
+	/// zh-CN: '本地收藏自动云收藏'
+	String get autoCloudCollectOnLocalFavorite => '本地收藏自动云收藏';
 
-	/// zh-CN: '开启后下载漫画时将自动加入本地收藏'
-	String get autoFavoriteOnDownloadSubtitle => '开启后下载漫画时将自动加入本地收藏';
-
-	/// zh-CN: '下载写入元数据文件'
-	String get writeDownloadMetadataFile => '下载写入元数据文件';
-
-	/// zh-CN: '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入'
-	String get writeDownloadMetadataFileSubtitle => '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入';
-
-	/// zh-CN: '下载时询问选项'
-	String get promptDownloadOptions => '下载时询问选项';
-
-	/// zh-CN: '点下载时先选「整本 / 最近章节 / 挑选章节」；关闭后直接下载全部章节'
-	String get promptDownloadOptionsSubtitle => '点下载时先选「整本 / 最近章节 / 挑选章节」；关闭后直接下载全部章节';
+	/// zh-CN: '开启后本地收藏成功、且云端未收藏时自动触发一次云收藏'
+	String get autoCloudCollectOnLocalFavoriteSubtitle => '开启后本地收藏成功、且云端未收藏时自动触发一次云收藏';
 
 	/// zh-CN: '左手优化'
 	String get leftHandMode => '左手优化';
@@ -5368,6 +5281,135 @@ class Translations$bookshelf$zh_CN {
 	String confirmDeleteSelectedDownloads({required Object count}) => '确定要删除选中的 ${count} 条下载记录及文件吗？';
 }
 
+// Path: comicEdit
+class Translations$comicEdit$zh_CN {
+	Translations$comicEdit$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '编辑漫画'
+	String get title => '编辑漫画';
+
+	/// zh-CN: '暂时不能编辑'
+	String get lockedTitle => '暂时不能编辑';
+
+	/// zh-CN: '该漫画还有未完成的下载任务，请先在下载任务页完成或取消。'
+	String get lockedMessage => '该漫画还有未完成的下载任务，请先在下载任务页完成或取消。';
+
+	/// zh-CN: '基本信息'
+	String get basicInfo => '基本信息';
+
+	/// zh-CN: '章节'
+	String get chapters => '章节';
+
+	/// zh-CN: '图片'
+	String get images => '图片';
+
+	/// zh-CN: '漫画标题'
+	String get comicTitle => '漫画标题';
+
+	/// zh-CN: '输入新的漫画标题'
+	String get titleHint => '输入新的漫画标题';
+
+	/// zh-CN: '更换封面'
+	String get changeCover => '更换封面';
+
+	/// zh-CN: '从漫画图片选择'
+	String get chooseFromComic => '从漫画图片选择';
+
+	/// zh-CN: '选择封面图片'
+	String get chooseCoverImage => '选择封面图片';
+
+	/// zh-CN: '保存标题'
+	String get saveTitle => '保存标题';
+
+	/// zh-CN: '标题不能为空'
+	String get titleEmpty => '标题不能为空';
+
+	/// zh-CN: '章节名称'
+	String get chapterName => '章节名称';
+
+	/// zh-CN: '输入章节名称'
+	String get chapterNameHint => '输入章节名称';
+
+	/// zh-CN: '章节名称不能为空'
+	String get chapterNameEmpty => '章节名称不能为空';
+
+	/// zh-CN: '新增章节'
+	String get addChapter => '新增章节';
+
+	/// zh-CN: '输入新章节名称'
+	String get addChapterHint => '输入新章节名称';
+
+	/// zh-CN: '重命名章节'
+	String get renameChapter => '重命名章节';
+
+	/// zh-CN: '$count 页'
+	String pagesCount({required Object count}) => '${count} 页';
+
+	/// zh-CN: '本章暂无图片'
+	String get emptyChapter => '本章暂无图片';
+
+	/// zh-CN: '选择章节'
+	String get selectChapter => '选择章节';
+
+	/// zh-CN: '还没有章节'
+	String get noChapters => '还没有章节';
+
+	/// zh-CN: '移动到章节'
+	String get moveToChapter => '移动到章节';
+
+	/// zh-CN: '已选 $count 张'
+	String selectedCount({required Object count}) => '已选 ${count} 张';
+
+	/// zh-CN: '已移动 $count 张图片'
+	String movedCount({required Object count}) => '已移动 ${count} 张图片';
+
+	/// zh-CN: '删除图片'
+	String get deleteImagesTitle => '删除图片';
+
+	/// zh-CN: '确定删除选中的 $count 张图片吗？'
+	String deleteImagesMessage({required Object count}) => '确定删除选中的 ${count} 张图片吗？';
+
+	/// zh-CN: '已删除 $count 张图片'
+	String deletedCount({required Object count}) => '已删除 ${count} 张图片';
+
+	/// zh-CN: '全选'
+	String get selectAll => '全选';
+
+	/// zh-CN: '取消选择'
+	String get clearSelection => '取消选择';
+
+	/// zh-CN: '长按拖动排序'
+	String get reorderHint => '长按拖动排序';
+
+	/// zh-CN: '已保存'
+	String get saveSuccess => '已保存';
+
+	/// zh-CN: '封面已更新'
+	String get coverUpdated => '封面已更新';
+
+	/// zh-CN: '章节已新增'
+	String get chapterAdded => '章节已新增';
+
+	/// zh-CN: '章节已重命名'
+	String get chapterRenamed => '章节已重命名';
+
+	/// zh-CN: '图片文件缺失'
+	String get imageMissing => '图片文件缺失';
+
+	/// zh-CN: '处理中...'
+	String get busy => '处理中...';
+
+	/// zh-CN: '下载记录不存在'
+	String get notFound => '下载记录不存在';
+
+	/// zh-CN: '加载失败'
+	String get loadFailed => '加载失败';
+}
+
 // Path: comicInfo
 class Translations$comicInfo$zh_CN {
 	Translations$comicInfo$zh_CN.internal(this._root);
@@ -5522,6 +5564,9 @@ class Translations$comicInfo$zh_CN {
 
 	/// zh-CN: '禁止评论'
 	String get commentForbiddenTitle => '禁止评论';
+
+	/// zh-CN: '选择本地收藏文件夹'
+	String get chooseLocalFavoriteFolders => '选择本地收藏文件夹';
 
 	/// zh-CN: '返回'
 	String get back => '返回';
@@ -6897,6 +6942,18 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '阅读时切换为横屏，离开后恢复原来的方向'
 	String get landscapeReaderSubtitle => '阅读时切换为横屏，离开后恢复原来的方向';
 
+	/// zh-CN: '横屏自动双页'
+	String get autoDoublePage => '横屏自动双页';
+
+	/// zh-CN: '横屏时自动切换为双页，竖屏时自动切换回单页'
+	String get autoDoublePageSubtitle => '横屏时自动切换为双页，竖屏时自动切换回单页';
+
+	/// zh-CN: '显示状态栏'
+	String get showStatusBar => '显示状态栏';
+
+	/// zh-CN: '阅读时保留顶部状态栏，仅隐藏底部导航栏'
+	String get showStatusBarSubtitle => '阅读时保留顶部状态栏，仅隐藏底部导航栏';
+
 	/// zh-CN: '系统模式'
 	String get themeMode => '系统模式';
 
@@ -7056,20 +7113,8 @@ class Translations$reader$zh_CN {
 	/// zh-CN: '横向在中间时，边缘间距不会生效。'
 	String get edgePaddingDisabled => '横向在中间时，边缘间距不会生效。';
 
-	/// zh-CN: '底部进度条'
-	String get bottomProgressBar => '底部进度条';
-
-	/// zh-CN: '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响'
-	String get bottomProgressBarSubtitle => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响';
-
-	/// zh-CN: '进度条荧光'
-	String get bottomProgressBarGlow => '进度条荧光';
-
-	/// zh-CN: '给已经走过的这一段加一圈光晕'
-	String get bottomProgressBarGlowSubtitle => '给已经走过的这一段加一圈光晕';
-
-	/// zh-CN: '阅读设置'
-	String get settings => '阅读设置';
+	/// zh-CN: '阅读'
+	String get settings => '阅读';
 
 	/// zh-CN: '上一章'
 	String get previousChapter => '上一章';
@@ -7287,8 +7332,8 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '网络安装'
 	String get networkInstall => '网络安装';
 
-	/// zh-CN: '云端组件'
-	String get cloudComponents => '云端组件';
+	/// zh-CN: '云端插件'
+	String get cloudPlugins => '云端插件';
 
 	/// zh-CN: '该来源当前不可用，请先在 设置 → 内容与网络 中开启「完整来源列表」'
 	String get restrictedSourceBlocked => '该来源当前不可用，请先在 设置 → 内容与网络 中开启「完整来源列表」';
@@ -7437,8 +7482,8 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '下载更新'
 	String get downloadUpdate => '下载更新';
 
-	/// zh-CN: '暂无云端组件'
-	String get noCloudPlugins => '暂无云端组件';
+	/// zh-CN: '暂无云端插件'
+	String get noCloudPlugins => '暂无云端插件';
 
 	/// zh-CN: '没有匹配的插件'
 	String get noMatchingPlugins => '没有匹配的插件';
@@ -7446,8 +7491,8 @@ class Translations$plugin$zh_CN {
 	/// zh-CN: '请输入插件脚本 URL'
 	String get networkInstallHint => '请输入插件脚本 URL';
 
-	/// zh-CN: '云端组件列表加载失败: $error'
-	String cloudPluginsLoadFailed({required Object error}) => '云端组件列表加载失败: ${error}';
+	/// zh-CN: '云端插件列表加载失败: $error'
+	String cloudPluginsLoadFailed({required Object error}) => '云端插件列表加载失败: ${error}';
 
 	/// zh-CN: '正在下载并安装 $name...'
 	String installingFromCloud({required Object name}) => '正在下载并安装 ${name}...';
@@ -9084,8 +9129,14 @@ class Translations$about$zh_CN {
 	/// zh-CN: '喜欢这个项目吗？点个star支持一下吧！'
 	String get projectAddressDesc => '喜欢这个项目吗？点个star支持一下吧！';
 
-	/// zh-CN: '前往 GitHub 仓库 (HibernalGlow/rossi) ⭐'
-	String get projectLink => '前往 GitHub 仓库 (HibernalGlow/rossi) ⭐';
+	/// zh-CN: '前往 GitHub 仓库 (breeze-project-org/Breeze) ⭐'
+	String get projectLink => '前往 GitHub 仓库 (breeze-project-org/Breeze) ⭐';
+
+	/// zh-CN: '联系方式'
+	String get contact => '联系方式';
+
+	/// zh-CN: '有任何想法或问题，欢迎来找我聊聊~'
+	String get contactDesc => '有任何想法或问题，欢迎来找我聊聊~';
 
 	/// zh-CN: '反馈与建议'
 	String get feedback => '反馈与建议';
@@ -9278,6 +9329,9 @@ class Translations$more$zh_CN {
 
 	/// zh-CN: '更新日志'
 	String get changelog => '更新日志';
+
+	/// zh-CN: '新'
+	String get newBadge => '新';
 }
 
 // Path: search
@@ -9377,21 +9431,6 @@ class Translations$search$zh_CN {
 
 	/// zh-CN: '数据来源'
 	String get dataSource => '数据来源';
-
-	/// zh-CN: '排序方式'
-	String get sortBy => '排序方式';
-
-	/// zh-CN: '从新到旧'
-	String get newestToOldest => '从新到旧';
-
-	/// zh-CN: '从旧到新'
-	String get oldestToNewest => '从旧到新';
-
-	/// zh-CN: '最多点赞'
-	String get mostLikes => '最多点赞';
-
-	/// zh-CN: '最多观看'
-	String get mostViews => '最多观看';
 
 	/// zh-CN: '选择漫画源'
 	String get selectSourceTooltip => '选择漫画源';
@@ -9524,6 +9563,78 @@ class Translations$searchResult$zh_CN {
 
 	/// zh-CN: '点击重试'
 	String get retry => '点击重试';
+
+	/// zh-CN: '添加书签'
+	String get bookmarkAdd => '添加书签';
+
+	/// zh-CN: '点击一个封面作为书签位置（滑动已暂停）'
+	String get bookmarkPickBanner => '点击一个封面作为书签位置（滑动已暂停）';
+
+	/// zh-CN: '书签已添加'
+	String get bookmarkAdded => '书签已添加';
+
+	/// zh-CN: '请先点击一个封面'
+	String get bookmarkPickNone => '请先点击一个封面';
+
+	/// zh-CN: '当前没有搜索结果，无法添加书签'
+	String get bookmarkPickNoResult => '当前没有搜索结果，无法添加书签';
+}
+
+// Path: searchBookmark
+class Translations$searchBookmark$zh_CN {
+	Translations$searchBookmark$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: '搜索书签'
+	String get title => '搜索书签';
+
+	/// zh-CN: '暂无搜索书签'
+	String get empty => '暂无搜索书签';
+
+	/// zh-CN: '去搜索结果页点右下角按钮添加一个吧'
+	String get emptyHint => '去搜索结果页点右下角按钮添加一个吧';
+
+	/// zh-CN: '筛选条件下暂无书签'
+	String get filteredEmpty => '筛选条件下暂无书签';
+
+	/// zh-CN: '换个筛选条件试试，或去搜索结果页添加'
+	String get filteredEmptyHint => '换个筛选条件试试，或去搜索结果页添加';
+
+	/// zh-CN: '筛选'
+	String get filter => '筛选';
+
+	/// zh-CN: '排序'
+	String get sort => '排序';
+
+	/// zh-CN: '图源'
+	String get source => '图源';
+
+	/// zh-CN: '最新在前'
+	String get sortNewest => '最新在前';
+
+	/// zh-CN: '最早在前'
+	String get sortOldest => '最早在前';
+
+	/// zh-CN: '取消全选'
+	String get deselectAll => '取消全选';
+
+	/// zh-CN: '已跳转到第 $page 页'
+	String jumped({required Object page}) => '已跳转到第 ${page} 页';
+
+	/// zh-CN: '锚点不在该页，已定位到第 $page 页'
+	String anchorMissing({required Object page}) => '锚点不在该页，已定位到第 ${page} 页';
+
+	/// zh-CN: '向后找回页数'
+	String get probePages => '向后找回页数';
+
+	/// zh-CN: '跳转后锚点不在本页时，向后最多翻几页找（再向前找 1 页）'
+	String get probePagesSubtitle => '跳转后锚点不在本页时，向后最多翻几页找（再向前找 1 页）';
+
+	/// zh-CN: '书签已删除'
+	String get deleted => '书签已删除';
 }
 
 // Path: comicList
@@ -9795,6 +9906,9 @@ class Translations$comicFollow$zh_CN {
 	/// zh-CN: '$days 天前检测'
 	String updatedDaysAgo({required Object days}) => '${days} 天前检测';
 
+	/// zh-CN: '刚刚读过'
+	String get lastReadJustNow => '刚刚读过';
+
 	/// zh-CN: '$minutes 分钟前读过'
 	String lastReadMinutesAgo({required Object minutes}) => '${minutes} 分钟前读过';
 
@@ -9998,6 +10112,24 @@ class Translations$login$zh_CN {
 
 	/// zh-CN: '验证码加载失败，点击重试'
 	String get captchaLoadFailed => '验证码加载失败，点击重试';
+
+	/// zh-CN: '请完成拼图验证'
+	String get sliderTitle => '请完成拼图验证';
+
+	/// zh-CN: '按住滑块，拖动完成拼图'
+	String get sliderHint => '按住滑块，拖动完成拼图';
+
+	/// zh-CN: '题目加载中...'
+	String get sliderLoading => '题目加载中...';
+
+	/// zh-CN: '题目加载失败，点击重试'
+	String get sliderLoadFailed => '题目加载失败，点击重试';
+
+	/// zh-CN: '验证中...'
+	String get sliderVerifying => '验证中...';
+
+	/// zh-CN: '验证失败，请重试'
+	String get sliderFailed => '验证失败，请重试';
 }
 
 // Path: fontSetting
@@ -10185,23 +10317,8 @@ class Translations$download$zh_CN {
 	/// zh-CN: '等待中 ($count)'
 	String pending({required Object count}) => '等待中 (${count})';
 
-	/// zh-CN: '失败 ($count)'
-	String failedTasks({required Object count}) => '失败 (${count})';
-
-	/// zh-CN: '已暂停 ($count)'
-	String pausedTasks({required Object count}) => '已暂停 (${count})';
-
-	/// zh-CN: '优先下载'
-	String get pinTask => '优先下载';
-
-	/// zh-CN: '取消优先'
-	String get unpinTask => '取消优先';
-
-	/// zh-CN: '已排到队首'
-	String get taskPinned => '已排到队首';
-
-	/// zh-CN: '已取消优先'
-	String get taskUnpinned => '已取消优先';
+	/// zh-CN: '已选择 $count 章'
+	String selectedChapters({required Object count}) => '已选择 ${count} 章';
 
 	/// zh-CN: '已删除任务'
 	String get taskDeleted => '已删除任务';
@@ -10400,6 +10517,12 @@ class Translations$update$zh_CN {
 
 	/// zh-CN: '发现新版本'
 	String get newVersion => '发现新版本';
+
+	/// zh-CN: '一周内不再提醒'
+	String get snoozeWeek => '一周内不再提醒';
+
+	/// zh-CN: '已设置：一周内不再提醒'
+	String get snoozeWeekSuccess => '已设置：一周内不再提醒';
 
 	/// zh-CN: '前往GitHub'
 	String get goToGitHub => '前往GitHub';
@@ -11262,782 +11385,8 @@ class Translations$plat$zh_CN {
 extension on Translations {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'workspace.laneTapExpandHint' => ({required Object title}) => '${title} (点击展开泳道)',
-			'workspace.laneTapCollapseHint' => ({required Object title}) => '${title}（点按收起泳道）',
-			'workspace.laneDragHint' => ({required Object title}) => '${title} （按住可拖动重排泳道）',
-			'workspace.laneSortHint' => ({required Object title}) => '${title}（在泳道菜单中选择“编辑布局”可排序）',
-			'workspace.allowedRange' => ({required Object min, required Object max}) => '允许 ${min}–${max}',
-			'workspace.dockToName' => ({required Object label}) => '停靠${label}',
-			'workspace.laneWidthPx' => ({required Object px}) => '泳道宽度：${px} px',
-			'workspace.dockToLabel' => ({required Object label}) => '停靠到${label}',
-			'workspace.slotCount' => ({required Object count}) => '${count} 格',
-			'workspace.columnsPerRow' => ({required Object columns}) => '当前每行 ${columns} 格',
-			'workspace.imagesCountBadge' => ({required Object n}) => '${n} 图',
-			'workspace.highestPage' => ({required Object value}) => '最高 ${value}',
-			'workspace.worksCount' => ({required Object n}) => '${n} 部',
-			'workspace.sharePercent' => ({required Object v}) => '占 ${v}%',
-			'workspace.heatLegendLow' => '少',
-			'workspace.periodDetailLine' => ({required Object label, required Object count, required Object hours}) => '${label} · ${count} 条\n${hours}',
-			'workspace.restoreNamed' => ({required Object title}) => '恢复「${title}」',
-			'workspace.fullWidthFullHeight' => '全宽并撑满高度',
-			'workspace.resizePreview' => ({required Object w, required Object h}) => '${w} × ${h} · 松开保存',
-			'workspace.portSkippedLines' => ({required Object lines}) => '跳过的条目：\n${lines}',
-			'workspace.streakNowDays' => ({required Object n}) => '当前 ${n} 天',
-			'workspace.mostlyAt' => ({required Object period}) => '多在${period}',
-			'workspace.monthsAgo' => ({required Object months}) => '${months} 个月前',
-			'workspace.artbookCount' => ({required Object n}) => '${n} 部画册',
-			'workspace.seenAtPage' => ({required Object pageNum}) => '看到 P.${pageNum}',
-			'workspace.sourceMixItem' => ({required Object count, required Object percent}) => '${count} 条 · ${percent}%',
-			'workspace.sourceMixHeader' => ({required Object n}) => '样本记录 · ${n} 个来源',
-			'workspace.streakPointLine' => ({required Object date, required Object value}) => '${date}：连续 ${value} 天',
-			'workspace.streakDaysLine' => ({required Object label, required Object value}) => '${label}：${value} 天',
-			'workspace.insightHeaderExpand' => ({required Object label, required Object position, required Object total, required Object title}) => '${label} · ${position}/${total} · 展开${title}',
-			'workspace.heatCellLine' => ({required Object weekday, required Object hour, required Object count}) => '${weekday} ${hour} · ${count} 条记录',
-			'workspace.heatPeakLabel' => ({required Object weekday, required Object hour}) => '高峰 · ${weekday} ${hour}',
-			'workspace.heatPeakShort' => ({required Object weekday, required Object hour}) => '高峰 ${weekday} ${hour}',
-			'workspace.compactHeatmapExpandHours' => ({required Object day, required Object hours}) => '${day} · 每格 ${hours} 小时 · 展开阅读热力',
-			'workspace.hoursPerCell' => ({required Object hours}) => '${hours} 小时/格',
-			'workspace.compactHeatmapExpand' => ({required Object day}) => '${day} · 展开阅读热力',
-			'workspace.busiestPeriodLabel' => ({required Object period}) => '${period}记录最多',
-			'workspace.weekdayRecordLine' => ({required Object day, required Object count}) => '周${day}：${count} 条记录',
-			'workspace.busiestWeekdayLabel' => ({required Object day}) => '周${day}最活跃',
-			'workspace.selectedLastReadLines' => ({required Object key, required Object count}) => '${key} · ${count} 条最后阅读记录',
-			'workspace.dayRecordLine' => ({required Object key, required Object count}) => '${key}：${count} 条记录',
-			'workspace.activeDaysCount' => ({required Object n}) => '${n} 天活跃',
-			'workspace.collapseNamed' => ({required Object title}) => '折叠${title}',
-			'workspace.insertTarget' => ({required Object name}) => '插入至：${name}',
-			'workspace.activeSwitchCount' => ({required Object activeCount}) => '${activeCount} 项开启',
-			'workspace.switchToastActiveOf3' => ({required Object activeCount}) => '已开 ${activeCount} / 3 项',
-			'workspace.peakAllocated' => ({required Object value}) => '峰值 ${value}',
-			'workspace.failedWith' => ({required Object error}) => '失败 · ${error}',
-			'workspace.registeredCount' => ({required Object n}) => '共 ${n} 个在册',
-			'workspace.readyOfTotal' => ({required Object ready, required Object total}) => '${ready} / ${total} 就绪',
-			'workspace.sourceCountLabel' => ({required Object n}) => '${n} 个图源',
-			'workspace.fileKindLabel' => ({required Object kind}) => '${kind} 文件',
-			'workspace.passthroughDepthLabel' => ({required Object value}) => '穿透深度：${value}',
-			'workspace.contentLayoutLabel' => ({required Object value}) => '内容布局：${value}',
-			'workspace.sortFieldLabel' => ({required Object value}) => '排序：${value}',
-			'workspace.entryStyleLabel' => ({required Object value}) => '条目样式：${value}',
-			'workspace.filterTypeLabel' => ({required Object value}) => '类型：${value}',
-			'workspace.depthLimitLabel' => ({required Object n}) => '层数 ≤${n}',
-			'workspace.notSearchedBelow' => ({required Object n}) => '第 ${n} 层以下未搜',
-			'workspace.searchScanned' => ({required Object n}) => '已看 ${n}',
-			'workspace.searchHits' => ({required Object n}) => '命中 ${n}',
-			'workspace.tenThousandRecords' => ({required Object v}) => '${v} 万条',
-			'workspace.slowScanNote' => ({required Object label}) => '${label} · 慢盘上要几十秒，结果扫完一次给出',
-			'workspace.recursiveSearchScanned' => ({required Object scanned}) => '正在递归搜索 · 已扫 ${scanned}',
-			'workspace.restoreTabTitle' => ({required Object title}) => '恢复页签：${title}',
-			'workspace.selectedCount' => ({required Object n}) => '已选 ${n} 项',
-			'workspace.filteringBy' => ({required Object query}) => '筛选: ${query}',
-			'workspace.pageN' => ({required Object n}) => '页面 ${n}',
-			'workspace.openLocalComicFailed' => ({required Object error}) => '打开本地漫画出错: ${error}',
-			'workspace.daysAgo' => ({required Object days}) => '${days} 天前',
-			'workspace.childCount' => ({required Object n}) => '${n} 项',
-			'workspace.noMatchThisLevelSuggest' => ({required Object query}) => '当前这一层没有匹配「${query}」的条目，可用上面的「在子目录里搜」往下找',
-			'workspace.noMatchInSubdirs' => ({required Object query}) => '子目录里没有匹配「${query}」的条目',
-			'workspace.tasksCount' => ({required Object n}) => '${n} 个',
-			'workspace.booksCount' => ({required Object n}) => '${n} 本',
-			'workspace.builtinWord' => '内置',
-			'workspace.onlineSourceFrom' => ({required Object from}) => '在线图源 · ${from}',
-			'workspace.pagesRemaining' => ({required Object n}) => '还剩 ${n} 页',
-			'workspace.currentOfTotalPages' => ({required Object total}) => '当前页 · 共 ${total} 页',
-			'workspace.dateMD' => ({required Object month, required Object day}) => '${month}月${day}日',
-			'workspace.dateYMD' => ({required Object year, required Object month, required Object day}) => '${year}年${month}月${day}日',
-			'workspace.heatmapCell' => ({required Object weekday, required Object range, required Object count}) => '${weekday} ${range}：${count} 条记录',
-			'workspace.theseCountItems' => ({required Object count}) => '这 ${count} 项',
-			'workspace.duplicateInFileCount' => ({required Object n}) => '文件内重复 ${n} 条',
-			'workspace.keptLocalCount' => ({required Object n}) => '保留本地 ${n} 条',
-			'workspace.progressUpdatedCount' => ({required Object n}) => '更新进度 ${n} 条',
-			'workspace.skippedCount' => ({required Object n}) => '跳过 ${n} 条',
-			'workspace.alreadyPresentCount' => ({required Object n}) => '已存在 ${n} 条',
-			'workspace.revivedCount' => ({required Object n}) => '复活 ${n} 条',
-			'workspace.addedCount' => ({required Object n}) => '新增 ${n} 条',
-			'workspace.keyMismatch' => ({required Object expected}) => 'uniqueKey 与 source:comicId 不一致，应为 ${expected}',
-			'workspace.itemNumber' => ({required Object n}) => '第 ${n} 条',
-			'workspace.unsupportedFormatVersion' => ({required Object version}) => '不支持的格式版本 ${version}',
-			'workspace.invalidJson' => ({required Object error}) => '不是合法的 JSON：${error}',
-			'workspace.portImportFailed' => ({required Object label, required Object error}) => '导入${label}失败：${error}',
-			'workspace.portFileUnreadable' => ({required Object error}) => '读不了这个文件：${error}',
-			'workspace.portExportFailed' => ({required Object label, required Object error}) => '导出${label}失败：${error}',
-			'workspace.portExportDone' => ({required Object count, required Object label, required Object target}) => '已导出 ${count} 条${label}\n${target}',
-			'workspace.portListEmpty' => ({required Object label}) => '${label}还是空的，没有可导出的内容',
-			'workspace.opFirstFailure' => ({required Object summary, required Object failure}) => '${summary}　首个失败原因：${failure}',
-			'workspace.pickPasteTarget' => ({required Object verb, required Object subject}) => '${verb}${subject}，选个目录粘贴',
-			'workspace.movedToTrashSystem' => ({required Object subject, required Object hint}) => '已把${subject}移到回收站，${hint}（在系统废纸篓里）',
-			'workspace.movedToTrash' => ({required Object subject, required Object hint}) => '已把${subject}移到回收站，${hint}',
-			'workspace.cannotOpenFileManager' => ({required Object error}) => '打不开文件管理器：${error}',
-			'workspace.pathsCopied' => ({required Object count}) => '已复制 ${count} 条路径',
-			'workspace.deleteConfirmSubject' => ({required Object subject, required Object outcome}) => '${subject}将被删除。${outcome}。',
-			'workspace.deleteForeverWarning' => ({required Object subject}) => '${subject}将被永久删除，不进入回收站，也无法撤销。',
-			'workspace.loadingShort' => '正在加载',
-			'workspace.readingHubTitle' => '阅读中枢',
-			'workspace.chapterIdLabel' => '章节 ID',
-			'workspace.portraitFormat' => '竖幅',
-			'workspace.peep' => '窥视',
-			'workspace.topTags' => '高频标签',
-			'workspace.libraryLabel' => '馆藏',
-			'workspace.preloadPath' => '预加载路径',
-			'workspace.preloadStatus' => '预加载状态',
-			'workspace.topBarIsThatRow' => '顶栏 = 退出 / 书名 / 切模式 / 重置布局那一行',
-			'workspace.pagePath' => '页面路径',
-			'workspace.pageTemplateBookVars' => '页面模板同样可以使用 {{book.*}} 变量；点击任一变量胶囊可直接插入。',
-			'workspace.pageTitleTemplate' => '页面标题模板',
-			'workspace.pageFileName' => '页面文件名',
-			'workspace.pageToastTemplate' => '页面提示模板',
-			'workspace.pageDescriptionTemplate' => '页面描述模板',
-			'workspace.pageNavigation' => '页面导航',
-			'workspace.pageListNotReady' => '页表未就绪',
-			'workspace.pageListTotal' => '页表总量',
-			'workspace.pageList' => '页表',
-			'workspace.pageNumber' => '页码',
-			'workspace.pageUrl' => '页地址',
-			'workspace.pagesModified' => '页修改',
-			'workspace.audioLabel' => '音频',
-			'workspace.areaBasis' => '面积依据',
-			'workspace.panelBarFloating' => '面板栏：悬浮',
-			'workspace.panelBarHint' => '面板栏（拖动换边或转悬浮，右键或长按设置）',
-			'workspace.hideLaneWidthBadge' => '隐藏泳道宽度徽标',
-			'workspace.hideWorkspaceTopBar' => '隐藏工作台顶栏',
-			'workspace.refreshPerPageNoGuessing' => '随翻页刷新；量不到的项不猜',
-			'workspace.randomRoam' => '随机漫游',
-			'workspace.randomLabel' => '随机',
-			'workspace.matchRelativePath' => '除条目名外，连同它在搜索根之下的相对路径一起匹配',
-			'workspace.confineToLane' => '限制在泳道内',
-			'workspace.confineToThisLane' => '限制在本泳道',
-			'workspace.readingProgressPercent' => '阅读进度（%）',
-			'workspace.readingProgressLabel' => '阅读进度',
-			'workspace.readingHeat' => '阅读热力',
-			'workspace.readingFilter' => '阅读滤镜',
-			'workspace.readingInsights' => '阅读洞察',
-			'workspace.workspaceHome' => '工作台',
-			'workspace.continueReading' => '继续阅读',
-			'workspace.todayReading' => '今日阅读',
-			'workspace.longestStreak' => '最长连续',
-			'workspace.readingSources' => '阅读来源',
-			'workspace.dayUnit' => '天',
-			'workspace.visitUnit' => '次',
-			'workspace.sourceUnit' => '个',
-			'workspace.pageUnit' => '页',
-			'workspace.openDetail' => '详情',
-			'workspace.noReadingYet' => '还没有阅读记录，去书架挑一本吧',
-			'workspace.mobileCardMissing' => '未找到这张卡片',
-			'workspace.mobileCardUnsupported' => '这张卡片在当前设备不可用',
-			'workspace.infoSheetEntry' => '漫画信息',
-			'workspace.readingOverview' => '阅读概览',
-			'workspace.readingPeriods' => '阅读时段',
-			'workspace.readingWorkhole' => '阅读工作孔',
-			'workspace.readerLaneIdle' => '阅读器泳道空闲中',
-			'workspace.readerEn' => '阅读器 (Reader)',
-			'workspace.readingHistoryEn' => '阅读历史 (History)',
-			'workspace.readingHistory' => '阅读历史',
-			'workspace.readingToastOverlay' => '阅读切换悬浮提示',
-			'workspace.readingLabel' => '阅读中',
-			'workspace.longPressDragReorder' => '长按拖动排序 / 换泳道',
-			'workspace.imageHeaderUnmeasured' => '量不到图头',
-			'workspace.resetLayoutHint' => '重置布局（不影响当前正在读的这一本）',
-			'workspace.renameBookmarkList' => '重命名书签列表',
-			'workspace.renameDeleteList' => '重命名 / 删除当前列表',
-			'workspace.booksQueued' => '部在队列',
-			'workspace.layoutFitsPanel' => '适合当前面板的布局与尺寸',
-			'workspace.exitSoloEn' => '退出独占 (Exit Solo)',
-			'workspace.exitSolo' => '退出独占',
-			'workspace.exitTimeline' => '退出时间线',
-			'workspace.exitSearchToFolder' => '退出搜索结果，回到这个页签自己的目录',
-			'workspace.exitWorkspaceHint' => '退出工作台（Esc 亦可）',
-			'workspace.exitWorkspace' => '退出工作台',
-			'workspace.exitMultiselect' => '退出多选',
-			'workspace.restoreSwipeAfterExit' => '退出后恢复横移切面板',
-			'workspace.streakReading' => '连续阅读',
-			'workspace.streakDays' => '连续天数',
-			'workspace.streakLabel' => '连续',
-			'workspace.runningTasks' => '进行中任务',
-			'workspace.progressLabel' => '进度',
-			'workspace.enterFolder' => '进入文件夹',
-			'workspace.thisIsSwitchToastPreview' => '这是一条切换提示的预览',
-			'workspace.allCardsCollapsed' => '这个面板里的卡片都被收起来了',
-			'workspace.noFileManagerOnPlatform' => '这个平台没有可调用的文件管理器',
-			'workspace.listHasNoBookmarks' => '这个列表里还没有书签',
-			'workspace.itemNeedsLocalArchive' => '这一项要落到本地归档才有量具',
-			'workspace.thisItem' => '这一项',
-			'workspace.thisWall' => '这一墙',
-			'workspace.noPluginsInstalled' => '还没有安装任何插件',
-			'workspace.noBookmarksYet' => '还没有书签，去详情页点收藏吧',
-			'workspace.last7ReadingTrend' => '近 7 日阅读趋势',
-			'workspace.last7Records' => '近 7 日记录',
-			'workspace.last7Days' => '近 7 日',
-			'workspace.last3Days' => '近 3 天',
-			'workspace.last28Records' => '近 28 日记录',
-			'workspace.last28Active' => '近 28 日活跃',
-			'workspace.last28NoRecords' => '近 28 日暂无记录',
-			'workspace.last28Days' => '近 28 日',
-			'workspace.boundaryToastText' => '边界提示文案',
-			'workspace.carrierDistribution' => '载体分布',
-			'workspace.carrierLabel' => '载体',
-			'workspace.goToFolder' => '转到目录',
-			'workspace.jumpBar' => '跳转栏',
-			'workspace.pathActions' => '路径操作',
-			'workspace.pathLabel' => '路径',
-			'workspace.aggregateSourceSearch' => '跨图源聚合搜索',
-			'workspace.trendLabel' => '趋势',
-			'workspace.upscaleStage' => '超分阶段',
-			'workspace.upscaleSwitch' => '超分开关',
-			'workspace.afterUpscale' => '超分后',
-			'workspace.resourceWorkhole' => '资源工作孔',
-			'workspace.debugSource' => '调试源',
-			'workspace.toastAtChapterEnd' => '读到章节末尾继续翻页时提醒',
-			'workspace.detailedInformation' => '详细信息',
-			'workspace.detailedLabel' => '详细',
-			'workspace.laneMoreEditLayout' => '该泳道 (More) · 编辑布局',
-			'workspace.visits' => '访问',
-			'workspace.settingsAndTools' => '设置与工具',
-			'workspace.triggerCondition' => '触发条件',
-			'workspace.triggersAllOff' => '触发全关',
-			'workspace.decodeBufferPlusCache' => '解码缓冲 + 图片缓存',
-			'workspace.viewModeNotInTimeline' => '视图模式（时间线下不适用）',
-			'workspace.viewModeLabel' => '视图模式',
-			'workspace.seeDetailsBelow' => '见下方明细',
-			'workspace.decorativeShapes' => '装饰图形',
-			'workspace.installNewSource' => '装新图源',
-			'workspace.fetching' => '获取中…',
-			'workspace.freeThumbnails' => '自由缩略图',
-			'workspace.customLayout' => '自定义布局',
-			'workspace.pageTurnToast' => '翻页提示',
-			'workspace.pageToastShowsNumber' => '翻页或跳页时实时反馈页码',
-			'workspace.pageAnimation' => '翻页动画',
-			'workspace.jpTranslated' => '翻訳',
-			'workspace.networkImageCached' => '网络图片 · 下载后走图片缓存',
-			'workspace.missingTitle' => '缺少标题',
-			'workspace.missingSourceOrComicId' => '缺少 source 或 comicId',
-			'workspace.thumbnailsLabel' => '缩略图',
-			'workspace.editPath' => '编辑路径',
-			'workspace.editLongPressHints' => '编辑时长按页签排序、跨泳道移动，或长按栏头图标重排泳道',
-			'workspace.editLayout' => '编辑布局',
-			'workspace.encodedFormat' => '编码格式',
-			'workspace.encodedSize' => '编码大小',
-			'workspace.weightBlendsEverything' => '综合内容数量、最近使用与阅读状态。',
-			'workspace.resumeLastReading' => '继续上次阅读',
-			'workspace.counting' => '统计中',
-			'workspace.textureReady' => '纹理就绪',
-			'workspace.texture' => '纹理',
-			'workspace.compactList' => '紧凑列表',
-			'workspace.pasteIntoItem' => '粘贴到这一项',
-			'workspace.pasteHere' => '粘贴到当前目录',
-			'workspace.lengthDistribution' => '篇幅分布',
-			'workspace.lengthLabel' => '篇幅',
-			'workspace.emphasiseReading' => '突出正在阅读的内容。',
-			'workspace.emphasiseRecent' => '突出最近使用的内容。',
-			'workspace.passthroughMode' => '穿透模式',
-			'workspace.gapFill' => '空隙填充',
-			'workspace.gapComponentsTitle' => '空隙与组件',
-			'workspace.gapComponentsDescription' => '随机图形与小组件同在一处调整：先选总口径，再逐项开关；每一项都能直接看到实际样子。',
-			'workspace.gapPreviewLabel' => '预览',
-			'workspace.gapEnableAll' => '全部开启',
-			'workspace.gapDisableAll' => '全部关闭',
-			'workspace.gapShapesSection' => '随机图形',
-			'workspace.gapWidgetsSection' => '小组件',
-			'workspace.gapShapeBlob' => '有机团',
-			'workspace.gapShapeBurst' => '星芒',
-			'workspace.gapShapeClover' => '四叶草',
-			'workspace.gapShapeGem' => '宝石',
-			'workspace.gapShapeArch' => '拱门',
-			'workspace.gapShapeFlower' => '花形',
-			'workspace.gapShapeRing' => '圆环',
-			'workspace.gapShapeWave' => '波纹',
-			'workspace.gapCompletion' => '收官进度',
-			'workspace.gapHeatmap' => '阅读热力',
-			'workspace.gapWeekday' => '星期节律',
-			'workspace.gapSpan' => '收藏跨度',
-			'workspace.gapUnread' => '待读存量',
-			'workspace.gapMilestone' => '下一里程碑',
-			'workspace.gapAverageProgress' => '平均进度',
-			'workspace.gapFinishedBooks' => '读完',
-			'workspace.gapUnreadBooks' => '未读',
-			'workspace.gapHeatWindow' => '近 8 周',
-			'workspace.gapWeekdayRhythm' => '星期分布',
-			'workspace.gapSpanDaysLabel' => '天跨度',
-			'workspace.gapSpanEarliest' => '最早',
-			'workspace.gapUnreadPool' => '待开始',
-			'workspace.gapMilestoneHint' => '还差',
-			'workspace.gapComponentCount' => ({required Object on, required Object total}) => '${on} / ${total} 开启',
-			'workspace.gapMinSize' => ({required Object w, required Object h}) => '最小 ${w} × ${h}',
-			'workspace.gapResetDefaults' => '恢复默认',
-			'workspace.wallTabSize' => '尺寸',
-			'workspace.wallTabLayout' => '布局',
-			'workspace.wallTabComponents' => '组件',
-			'workspace.wallTabCover' => '封面',
-			'workspace.wallTabWeights' => '权重',
-			'workspace.idleState' => '空闲',
-			'workspace.moveToTrashNoUndo' => '移到回收站（无法撤销）',
-			'workspace.moveToTrash' => '移到回收站',
-			'workspace.folderPath' => '目录路径',
-			'workspace.folderLabel' => '目录',
-			'workspace.imageTuning' => '画面调节',
-			'workspace.aspectComposition' => '画幅构成',
-			'workspace.aspectFormat' => '画幅',
-			'workspace.fillWithExpressiveShapes' => '用随机的 Expressive 轮廓与图标补满空隙。',
-			'workspace.soloThisLaneEn' => '独占该栏 (Solo 聚焦)',
-			'workspace.soloThisLane' => '独占该栏',
-			'workspace.statusLabel' => '状态',
-			'workspace.clickToCollapse' => '点击折叠',
-			'workspace.clickToExpand' => '点击展开',
-			'workspace.tapCover' => '点击封面',
-			'workspace.clickToFill' => '点击填入',
-			'workspace.comicArchive' => '漫画归档',
-			'workspace.comicIdLabel' => '漫画 ID',
-			'workspace.chineseLocalized' => '漢化',
-			'workspace.renderPath' => '渲染路径',
-			'workspace.clearSearchAndCollapse' => '清除搜索并收起',
-			'workspace.lateNight' => '深夜',
-			'workspace.activePeak' => '活跃峰值',
-			'workspace.activeDays' => '活跃天数',
-			'workspace.activeState' => '活跃',
-			'workspace.noEntriesAfterFilter' => '没有符合搜索或类型筛选的条目',
-			'workspace.noEntries' => '没有条目',
-			'workspace.noEnabledSource' => '没有已启用的图源',
-			'workspace.nothingToDisplay' => '没有可显示的条目',
-			'workspace.noMatchingPages' => '没有匹配的页面',
-			'workspace.noMatchingHistory' => '没有匹配的阅读记录',
-			'workspace.noMatchingBookmarks' => '没有匹配的书签',
-			'workspace.immersiveWorkhole' => '沉浸工作孔',
-			'workspace.deleteForeverQuestion' => '永久删除？',
-			'workspace.deleteForever' => '永久删除',
-			'workspace.weeklyReadingRhythm' => '每周阅读节奏',
-			'workspace.everyFieldIsMeasured' => '每一项都来自记账字段，不来自「我调过所以应该好了」',
-			'workspace.normalState' => '正常',
-			'workspace.recursiveSearchPending' => '正在递归搜索，结果扫完一次给出…',
-			'workspace.recursiveSearching' => '正在递归搜索…',
-			'workspace.followingProgress' => '正在跟随阅读进度',
-			'workspace.editingLayoutFinishInMenu' => '正在编辑布局 · 菜单内完成编辑',
-			'workspace.countingReadingHistory' => '正在统计阅读历史',
-			'workspace.bannerLabel' => '横幅',
-			'workspace.rootPath' => '根路径',
-			'workspace.areaByAspectRatio' => '根据原图横竖比例分配卡片空间。',
-			'workspace.longestSampleDays' => '样本最长 · 天',
-			'workspace.longestSample' => '样本最长',
-			'workspace.theWidthBadgeNextToHeader' => '栏头标题右边那颗「400px」',
-			'workspace.titleLabel' => '标题',
-			'workspace.sourceKey' => '来源键',
-			'workspace.sourceType' => '来源类型',
-			'workspace.sourceComposition' => '来源构成',
-			'workspace.sourceBreakdown' => '来源拆分',
-			'workspace.sourceModifiedAt' => '来源修改于',
-			'workspace.sourceLabel' => '来源',
-			'workspace.entryCount' => '条目数',
-			'workspace.itemsUpdated' => '条有更新',
-			'workspace.itemsContent' => '条内容',
-			'workspace.chapterDonePreparingNext' => '本话已读完 · 准备下一话',
-			'workspace.platformUnsupported' => '本平台不支持',
-			'workspace.localComicsEn' => '本地漫画 (Local Manga)',
-			'workspace.localComics' => '本地漫画',
-			'workspace.localWorks' => '本地作品',
-			'workspace.localLabel' => '本地',
-			'workspace.lastPageToast' => '末页提示',
-			'workspace.notTurnedOn' => '未开启',
-			'workspace.notEnabled' => '未启用',
-			'workspace.serverLabel' => '服务器',
-			'workspace.maxThirtyTwoLevels' => '最多 32 层',
-			'workspace.lastPageToastText' => '最后一页提示文案',
-			'workspace.noReadingHistory' => '暂无阅读历史',
-			'workspace.noRecordsYet' => '暂无记录',
-			'workspace.noHeatRecords' => '暂无热力记录',
-			'workspace.noEnabledPlugins' => '暂无启用的插件',
-			'workspace.noVisitHistory' => '暂无历史访问记录',
-			'workspace.normalOneWideTwoSlots' => '普通卡占 1 格，宽卡占 2 格',
-			'workspace.eveningNight' => '晚间',
-			'workspace.eveningLabel' => '晚上',
-			'workspace.showHiddenFiles' => '显示隐藏文件',
-			'workspace.showTarget' => '显示目标',
-			'workspace.showQuickSwitchBar' => '显示快速切换栏',
-			'workspace.showWorkspaceTopBar' => '显示工作台顶栏',
-			'workspace.showSubFileNames' => '显示子文件名',
-			'workspace.timeInformation' => '时间信息',
-			'workspace.timePeriod' => '时段',
-			'workspace.earlyFavourites' => '早期收藏',
-			'workspace.cannotUndo' => '无法撤销',
-			'workspace.noAnimation' => '无动画',
-			'workspace.squareFormat' => '方幅',
-			'workspace.newTab' => '新建页签',
-			'workspace.newBookmarkList' => '新建书签列表',
-			'workspace.newName' => '新名称',
-			'workspace.fileManagement' => '文件管理',
-			'workspace.fileBrowsing' => '文件浏览',
-			'workspace.fileOperations' => '文件操作（复制 / 移动 / 删除）',
-			'workspace.foldersFirst' => '文件夹优先',
-			'workspace.fileNameLabel' => '文件名',
-			'workspace.weightBiggerWins' => '数值越大越突出；0 关闭该项。多项命中时取最高权重。',
-			'workspace.switchToFloating' => '改为悬浮',
-			'workspace.collapseSearch' => '收起搜索',
-			'workspace.collapseChildren' => '收起子项',
-			'workspace.collapseSubfolders' => '收起子文件夹',
-			'workspace.collapseInformation' => '收起信息',
-			'workspace.favouriteTime' => '收藏时间',
-			'workspace.favouriteList' => '收藏夹',
-			'workspace.localOpenSupportDesc' => '支持 zip, cbz, 文件夹、PDF 及图片打包归档。Rust 侧快速解压并直入 D3D12/Metal 合成链。',
-			'workspace.undoLastStep' => '撤销上一步',
-			'workspace.summaryLabel' => '摘要',
-			'workspace.searchSpaceExclude' => '搜索（空格分词，-排除）',
-			'workspace.searchPageOrFileName' => '搜索页码或文件名...',
-			'workspace.searchField' => '搜索栏',
-			'workspace.searchTitleAuthorSource' => '搜索标题 / 作者 / 来源',
-			'workspace.pluginRunState' => '插件运行状态',
-			'workspace.pluginMarket' => '插件市场',
-			'workspace.controlPanel' => '控制面板',
-			'workspace.takeOver' => '接管',
-			'workspace.keepReading' => '接着看',
-			'workspace.sortingTimelineFixed' => '排序（时间线固定按时间排）',
-			'workspace.sortMode' => '排序模式',
-			'workspace.emphasiseByTagWeights' => '按自定义标签权重突出内容。',
-			'workspace.areaByDiskUsage' => '按文件占用空间分配展示面积。',
-			'workspace.timelineByDay' => '按天看时间线',
-			'workspace.dragTitleToReorder' => '按住标题拖动排序',
-			'workspace.bookmarkListDesc' => '按主题整理书签。创建后可以把书签移动到这个列表。',
-			'workspace.dragResizeWorkhole' => '拖动调整工作孔尺寸',
-			'workspace.dragToResize' => '拖动调整大小',
-			'workspace.collapseToBarEn' => '折叠为紧凑条 (Collapse)',
-			'workspace.collapseToBar' => '折叠为紧凑条',
-			'workspace.saveSearchAsTab' => '把这次搜索结果另存一个页签',
-			'workspace.setHomeHere' => '把当前目录设为主页',
-			'workspace.openReader' => '打开阅读器',
-			'workspace.openLocal' => '打开本地',
-			'workspace.toastOnOpenOrSwitch' => '打开或切到另一本漫画时弹出',
-			'workspace.openWorkhole' => '打开工作孔',
-			'workspace.showPageNavWhenOpen' => '打开书本后显示页面导航',
-			'workspace.showFileTimesWhenOpen' => '打开书本后显示文件时间',
-			'workspace.showCurrentPageWhenOpen' => '打开书本后显示当前页信息',
-			'workspace.showStorageWhenOpen' => '打开书本后显示存储信息',
-			'workspace.showPresentPrefetchWhenOpen' => '打开书本后显示呈现与预取状态',
-			'workspace.showBookInfoWhenOpen' => '打开一本书后显示书籍信息',
-			'workspace.imFeelingLucky' => '手气不错',
-			'workspace.restoreDefaultSize' => '恢复默认尺寸',
-			'workspace.readerLaneSoloHint' => '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；点栏顶的独占按钮可让它瞬间撑满视口。',
-			'workspace.footnoteSampleStreakDays' => '样本内有记录的连续日期 · 不代表完整阅读日志',
-			'workspace.footnoteSampleStreak' => '样本内连续日期 · 不代表完整阅读日志',
-			'workspace.footnotePeriod28' => '近 28 日 · 按最后阅读的本地时间分布',
-			'workspace.footnoteWeekday28' => '近 28 日 · 按星期汇总最后阅读记录',
-			'workspace.footnoteLast500' => '最近 500 本漫画的最后阅读记录 · 不代表总次数或阅读时长',
-			'workspace.searchDepthTooltip' => ({required Object depths, required Object detail}) => '点按切换递归层数（${depths} 层）。${detail}',
-			'workspace.shortSat' => '六',
-			'workspace.shortFri' => '五',
-			'workspace.shortThu' => '四',
-			'workspace.shortWed' => '三',
-			'workspace.shortTue' => '二',
-			'workspace.shortMon' => '一',
-			'workspace.shortSun' => '日',
-			'workspace.restoreDefaultWidth' => '恢复默认宽度',
-			'workspace.restorePanelBarPosition' => '恢复面板栏默认位置',
-			'workspace.restoreCollapsedCards' => '恢复被收起的卡片',
-			'workspace.restoreClosedTabs' => '恢复已关闭页签',
-			'workspace.totalPagesLabel' => '总页数',
-			'workspace.toContinue' => '待续',
-			'workspace.queueStackCards' => '待看叠卡',
-			'workspace.currentPageCost' => '当前页耗时',
-			'workspace.currentPageNumber' => '当前页码',
-			'workspace.currentPageFile' => '当前页文件',
-			'workspace.currentPageSize' => '当前页大小',
-			'workspace.currentPageModifiedAt' => '当前页修改于',
-			'workspace.currentPageHandoffMs' => '当前页交页耗时 (ms)',
-			'workspace.currentStreakDays' => '当前连续 · 天',
-			'workspace.currentStreak' => '当前连续',
-			'workspace.noHitThisLevel' => '当前这一层没有命中；开着「含子目录」再搜一次（整库遍历在慢盘上要几十秒）',
-			'workspace.folderNoMedia' => '当前目录没有可浏览的漫画或媒体文件',
-			'workspace.folderNoChildren' => '当前文件夹没有可显示的子项',
-			'workspace.folderNotInSnapshot' => '当前搜索或目录快照未包含此文件夹。可进入文件夹查看内部内容。',
-			'workspace.archiveLabel' => '归档',
-			'workspace.onComparingOriginal' => '开着（原图对比中）',
-			'workspace.switchedOn' => '开着',
-			'workspace.fieldsFillOnOpen' => '开书后这几格会当场填上，量不到的留 —',
-			'workspace.linking' => '建链中',
-			'workspace.avgPagesPerBook' => '平均页/话数',
-			'workspace.regularWidth' => '常规宽度',
-			'workspace.commonTags' => '常见标签',
-			'workspace.topCreators' => '常看创作者',
-			'workspace.market' => '市场',
-			'workspace.limitReached' => '已达上限',
-			'workspace.isLastPage' => '已经是最后一页',
-			'workspace.searchHistoryCleared' => '已清空搜索历史',
-			'workspace.followProgressPaused' => '已暂停跟随阅读进度',
-			'workspace.fileManagerOpened' => '已打开文件管理器',
-			'workspace.gpuReadyState' => '已就绪',
-			'workspace.pathCopied' => '已复制路径',
-			'workspace.copied' => '已复制',
-			'workspace.pagesPresented' => '已呈现页数',
-			'workspace.cutDone' => '已剪切',
-			'workspace.writtenToCacheShare' => '已写入缓存，请在分享面板里保存',
-			'workspace.aborted' => '已中止',
-			'workspace.workholeSize' => '工作孔尺寸',
-			'workspace.peakDay' => '峰值日',
-			'workspace.peakValue' => '峰值',
-			'workspace.expandLane' => '展开泳道',
-			'workspace.polledEvery3s' => '展开时每 3 秒取一次',
-			'workspace.expandChildren' => '展开子项',
-			'workspace.expandSubfolders' => '展开子文件夹',
-			'workspace.expandInformation' => '展开信息',
-			'workspace.expandLabel' => '展开',
-			'workspace.displayWallSettings' => '展墙设置 · 长按开关展墙',
-			_ => null,
-		} ?? switch (path) {
-			'workspace.displayWallCustom' => '展墙自定义',
-			'workspace.displayWall' => '展墙',
-			'workspace.searchDepthCostHint' => '层数越大越慢：一次整库遍历在慢盘上要几十秒；太浅会漏掉更深的目录',
-			'workspace.readyWaiting' => '就绪等待',
-			'workspace.readyState' => '就绪',
-			'workspace.dustyReread' => '尘封重温',
-			'workspace.widgetsOnceThenShapes' => '小组件每面墙各出现一次，其余空隙用随机图形补。',
-			'workspace.coverGrid' => '封面网格',
-			'workspace.coverCollage' => '封面拼贴',
-			'workspace.coverList' => '封面列表',
-			'workspace.coverLabel' => '封面',
-			'workspace.exportAsJson' => '导出为 JSON',
-			'workspace.importExport' => '导入 / 导出',
-			'workspace.cardWidthAutoColumns' => '宽度为目标尺寸，列数随面板可用空间自动调整。宽卡占两格，可与普通卡并排。',
-			'workspace.finishEditing' => '完成编辑',
-			'workspace.finishLayout' => '完成布局',
-			'workspace.storageInformation' => '存储信息',
-			'workspace.saveAsTab' => '存为页签',
-			'workspace.subFilesShowAll' => '子文件：显示全部',
-			'workspace.subFilesShowOne' => '子文件：显示一个',
-			'workspace.daysWithRecords' => '天有记录',
-			'workspace.sizeCompare' => '大小对比',
-			'workspace.sizeLabel' => '大小',
-			'workspace.multiColumnLanes' => '多列泳道',
-			'workspace.searchAnyToken' => '多个词元之间取并集（默认全部都要命中）',
-			'workspace.multiOutlinedSelected' => '多 · 描边为选中项',
-			'workspace.duplicateTab' => '复制页签',
-			'workspace.copyPath' => '复制路径',
-			'workspace.copyPosition' => '复制位置',
-			'workspace.einkRefresh' => '墨水屏刷屏',
-			'workspace.basedOnLast500' => '基于最近 500 本漫画的最后阅读记录',
-			'workspace.readingProgress' => '在读进度',
-			'workspace.currentlyReading' => '在读',
-			'workspace.onlineSourceNoFileTime' => '在线图源没有本地文件时间',
-			'workspace.onlineSourceNoArchive' => '在线图源没有归档',
-			'workspace.onlineSource' => '在线图源',
-			'workspace.onlineLabel' => '在线',
-			'workspace.openInNewTab' => '在新页签打开',
-			'workspace.openFolderInNewTab' => '默认在新页签打开文件夹',
-			'workspace.readerLaneReadsHint' => '在左侧书架或右侧发现里点开任意一本，都会读在这条泳道里；',
-			'workspace.searchSubdirs' => '在子目录里搜',
-			'workspace.gallery' => '图集',
-			'workspace.imageSize' => '图片尺寸',
-			'workspace.imagesLabel' => '图片',
-			'workspace.sourceLocalAggregate' => '图源本地聚合',
-			'workspace.sourceExtensions' => '图源扩展',
-			'workspace.sourceShortcuts' => '图源快捷入口',
-			'workspace.imageSourcesEn' => '图源与扩展 (Extensions)',
-			'workspace.imageSources' => '图源与扩展',
-			'workspace.sourcesToolsOcr' => '图源 · 工具 · OCR',
-			'workspace.imageProcessingStage' => '图像处理阶段',
-			'workspace.imageInformation' => '图像信息',
-			'workspace.pinTab' => '固定页签',
-			'workspace.pinHere' => '固定到当前位置',
-			'workspace.backToFolder' => '回到目录',
-			'workspace.backHome' => '回到主页',
-			'workspace.backToLaneHeaderDefault' => '回到「挂进栏头」这个默认形态',
-			'workspace.heatmapFourRowsHint' => '四行连续日期 · 描边为选中日 · 颜色越强，记录越多',
-			'workspace.weekdaySun' => '周日',
-			'workspace.weekdaySat' => '周六',
-			'workspace.weekdayFri' => '周五',
-			'workspace.weekdayThu' => '周四',
-			'workspace.weekdayWed' => '周三',
-			'workspace.weekdayTue' => '周二',
-			'workspace.weekdayMon' => '周一',
-			'workspace.presenter' => '呈现器',
-			'workspace.includeSubdirStats' => '含子目录统计',
-			'workspace.includeSubdirs' => '含子目录',
-			'workspace.recursiveSearchHint' => '向下递归搜索，层数上限由 Rust 侧夹紧',
-			'workspace.back' => '后退',
-			'workspace.searchSyntaxHint' => '名称与路径 · 空格分词 · -排除 · “短语”',
-			'workspace.nameLabel' => '名称',
-			'workspace.undoable' => '可以撤销',
-			'workspace.onlyThisPanelDetailsBelow' => '只调整当前面板。封面右下角的详情按钮始终向下展开。',
-			'workspace.onlyFittingWidgetsRepeat' => '只插入尺寸相符的汇总小组件，同一款可以重复。',
-			'workspace.mergeOnlyHistoryDetail' => '只合并：一条历史都不会删除；本地进度比文件里更新的，保留本地。',
-			'workspace.mergeOnlyHistory' => '只合并，不会删除或覆盖已有的记录。',
-			'workspace.mergeOnlyBookmarks' => '只合并，不会删除或覆盖已有的书签。',
-			'workspace.changesLabel' => '变更',
-			'workspace.discoverToolsEn' => '发现与工具 (Tools)',
-			'workspace.switchToWorkholeEn' => '切换为沉浸工作孔 (Workhole)',
-			'workspace.switchToSwimlaneEn' => '切换为多列泳道 (Swimlane)',
-			'workspace.closeSidebarEn' => '关闭边栏 (Close)',
-			'workspace.closeCurrentComicFull' => '关闭当前漫画（回到空态）',
-			'workspace.closeCurrentComicPlain' => '关闭当前漫画 (回到空态)',
-			'workspace.favoritesEn' => '书签 (Favorites)',
-			'workspace.bookshelfEn' => '书架 (Bookshelf)',
-			'workspace.downloadsOfflineEn' => '下载与离线 (Downloads)',
-			'workspace.topEntriesStillWork' => '上面三颗入口仍然可用：装一个图源后这里会一格一个列出来',
-			'workspace.widgetsPlusShapes' => '组件 + 图形',
-			'workspace.miniWidgets' => '小组件',
-			'workspace.randomShapes' => '随机图形',
-			'workspace.openDetailsPage' => '打开详情页',
-			'workspace.expandDetailsBelow' => '向下展开详情',
-			'workspace.weightBalanced' => '综合',
-			'workspace.readingStatus' => '阅读状态',
-			'workspace.recentlyUsed' => '最近使用',
-			'workspace.followSort' => '跟随排序',
-			'workspace.yesterday' => '昨天',
-			'workspace.cancelPathEdit' => '取消路径编辑',
-			'workspace.unpin' => '取消固定',
-			'workspace.discoverTools' => '发现与工具',
-			'workspace.doubleTapResetLaneWidth' => '双击重置该栏宽度　·　右键打开该泳道的菜单',
-			'workspace.installOrImportPlugin' => '去「插件市场」装一个图源，或导入本地插件包',
-			'workspace.originalRatio' => '原图比例',
-			'workspace.historyFile' => '历史记录文件',
-			'workspace.historyData' => '历史数据',
-			'workspace.volume' => '卷',
-			'workspace.cardHeight' => '卡片高度',
-			'workspace.cardSpacing' => '卡片间距',
-			'workspace.cardLayout' => '卡片布局',
-			'workspace.cardWidth' => '卡片宽度',
-			'workspace.cardPosition' => '卡片位置',
-			'workspace.occupiedSize' => '占用体积',
-			'workspace.matchPath' => '匹配路径',
-			'workspace.loadingState' => '加载中',
-			'workspace.cut' => '剪切',
-			'workspace.forward' => '前进',
-			'workspace.last7DaysRecords' => '前 7 日记录',
-			'workspace.refreshCurrentFolder' => '刷新当前目录',
-			'workspace.toastOnLastPage' => '到达最后一页时显示提示',
-			'workspace.reachedLastPage' => '到底啦 ~ 没有更多页面',
-			'workspace.deleteQuestion' => '删除？',
-			'workspace.creating' => '创建中',
-			'workspace.create' => '创建',
-			'workspace.creator' => '创作者',
-			'workspace.listName' => '列表名称',
-			'workspace.toastOnPageSwitch' => '切换页面时显示提示',
-			'workspace.switchToastTest' => '切换提示测试',
-			'workspace.switchToast' => '切换提示',
-			'workspace.toastOnBookSwitch' => '切换书籍时显示提示',
-			'workspace.switchToWorkhole' => '切换为沉浸工作孔',
-			'workspace.switchToSwimlane' => '切换为多列泳道',
-			'workspace.switchDescending' => '切换为降序',
-			'workspace.switchAscending' => '切换为升序',
-			'workspace.bookSwitchToast' => '切书提示',
-			'workspace.internalThumbnails' => '内部缩略图',
-			'workspace.builtin' => '内置',
-			'workspace.moreContentMoreArea' => '内容数量越多，展示面积越大。',
-			'workspace.contentCount' => '内容数量',
-			'workspace.contentSections' => '内容分区',
-			'workspace.otherMedia' => '其他媒体',
-			'workspace.closeTab' => '关闭页签',
-			'workspace.closeSidebar' => '关闭边栏',
-			'workspace.closePassthroughMode' => '关闭穿透模式',
-			'workspace.closeCurrentComic' => '关闭当前漫画',
-			'workspace.closeWorkhole' => '关闭工作孔',
-			'workspace.closeTabsLeft' => '关闭左侧页签',
-			'workspace.closeTabsRight' => '关闭右侧页签',
-			'workspace.closeOtherTabs' => '关闭其他页签',
-			'workspace.turnedOff' => '关着',
-			'workspace.manageAll' => '全部管理',
-			'workspace.allHealthy' => '全部正常',
-			'workspace.allImageSources' => '全部图源',
-			'workspace.closeAllTabs' => '全部关闭',
-			'workspace.fullWidth' => '全宽',
-			'workspace.allowLeaveLane' => '允许移出泳道',
-			'workspace.pixelSize' => '像素尺寸',
-			'workspace.serendipity' => '偶遇',
-			'workspace.favouriteTagWeight' => '偏好标签权重',
-			'workspace.favouriteTags' => '偏好标签',
-			'workspace.modifiedTime' => '修改时间',
-			'workspace.modifiedDate' => '修改日期',
-			'workspace.modify' => '修改',
-			'workspace.egBookPath' => '例如：路径：{{book.path}}',
-			'workspace.egPageIndex' => '例如：第 {{page.indexDisplay}} 页',
-			'workspace.egLastPage' => '例如：已经是最后一页',
-			'workspace.egSwitchedToBook' => '例如：已切换到 {{book.displayName}}',
-			'workspace.egPageName' => '例如：{{page.name}}',
-			'workspace.sizeVolume' => '体积',
-			'workspace.toastStyleInSettings' => '位置与外观在「设置 → 提示样式」里调整。',
-			'workspace.emphasiseTopSorted' => '优先突出当前排序靠前的内容。',
-			'workspace.anyToken' => '任一词元',
-			'workspace.collapseFromPanel' => '从该面板收起',
-			'workspace.newFromThisTab' => '从此页签新建',
-			'workspace.pickComicFolderFromDisk' => '从本地磁盘选择漫画文件夹',
-			'workspace.importFromJson' => '从 JSON 导入',
-			'workspace.today' => '今天',
-			'workspace.desktopOnly' => '仅桌面',
-			'workspace.bookPathLocalOnly' => '书籍路径（本地来源才有值）',
-			'workspace.bookTitleTemplate' => '书籍标题模板',
-			'workspace.bookDisplayName' => '书籍显示名',
-			'workspace.bookToastTemplate' => '书籍提示模板',
-			'workspace.bookDescriptionTemplate' => '书籍描述模板',
-			'workspace.bookInformation' => '书籍信息',
-			'workspace.bookmarkFile' => '书签文件',
-			'workspace.bookmarkData' => '书签数据',
-			'workspace.bookmarks' => '书签',
-			'workspace.bookshelfUpstream' => '书架（上游原版）',
-			'workspace.bookshelfAggregateCard' => '书架聚合卡片',
-			'workspace.shelfFavoriteFiles' => '书架 · 收藏 · 文件',
-			'workspace.bookshelfTab' => '书架',
-			'workspace.bookTitle' => '书名',
-			'workspace.homeNotSetYet' => '主页：还没设置 · 单击把当前目录设为主页',
-			'workspace.homeCurrentManageHint' => '主页（当前）· 右键/长按管理',
-			'workspace.homeSetTo' => '主页已设为',
-			'workspace.homeManageHint' => '主页 · 右键/长按管理',
-			'workspace.heroVisual' => '主视觉',
-			'workspace.mainOccupancy' => '主要占用',
-			'workspace.temporarySort' => '临时排序（不记住本目录）',
-			'workspace.abortRecursiveSearch' => '中止递归搜索（保留已找到的结果）',
-			'workspace.samePathAsHeaderDoubleClick' => '与双击栏头标题同一条路',
-			'workspace.samePathAsBackKey' => '与 Esc、系统返回键同一条路',
-			'workspace.keepGapIrregularOutline' => '不规则轮廓之间保留空白。',
-			'workspace.notAnObject' => '不是对象',
-			'workspace.asymmetric' => '不对称',
-			'workspace.noFill' => '不填充',
-			'workspace.downloadTaskList' => '下载任务列表',
-			'workspace.downloadsOffline' => '下载与离线',
-			'workspace.bothWeeksNoRecord' => '两周均无记录',
-			'workspace.earlyAfternoon' => '午后',
-			'workspace.noon' => '午',
-			'workspace.earlyMorning' => '凌晨',
-			'workspace.afternoon' => '下午',
-			'workspace.morning' => '上午',
-			'workspace.parentDirectory' => '上一级',
-			'workspace.prevWindowNoRecord' => '上一窗口无记录',
-			'workspace.nextSegment' => '下一段',
-			'workspace.prevSegment' => '上一段',
-			'workspace.noCreationTimeField' => 'dart:io 没有创建时间，只报量得到的这几项',
-			'workspace.rustMemoryPollHint' => 'Rust 内存只在展开时取，收起不轮询',
-			'workspace.rustMemory' => 'Rust 内存',
-			'workspace.gpuZeroCopyEngine' => 'GPU 零拷贝直通引擎',
-			'workspace.gpuLinking' => 'GPU 建链中',
-			'workspace.gpuReady' => 'GPU 就绪',
-			'workspace.gpuSharedTexture' => 'GPU 共享纹理',
-			'workspace.cpuDecodeFallback' => 'CPU 解码兜底',
-			'workspace.cpuDecodePreload' => 'CPU 解码 / 图片缓存预加载',
-			'workspace.compressedArchive' => '压缩归档',
-			'workspace.archiveZip' => 'ZIP 归档',
-			'workspace.archiveTar' => 'TAR 归档',
-			'workspace.archiveRar' => 'RAR 归档',
-			'workspace.archiveCbz' => 'CBZ 归档',
-			'workspace.archiveCbr' => 'CBR 归档',
-			'workspace.archive7z' => '7Z 归档',
-			'workspace.last12Weeks' => '近 12 周',
-			'workspace.recentReading' => '近期在读',
-			'workspace.downloadedLabel' => '已下载',
-			'workspace.bookUnit' => '本',
-			'workspace.todayLabel' => '今天',
-			'workspace.yesterdayLabel' => '昨天',
-			'workspace.daysAgoLabel' => ({required Object n}) => '${n} 天前',
-			'workspace.readingTools' => '阅读工具',
-			'workspace.filesBrowseSubtitle' => '浏览、搜索与整理本地档案',
-			'workspace.openFilesAction' => '打开',
-			'workspace.noMoreHistory' => '没有更早的记录了',
-			'workspace.continueNextHint' => '接着上次的看',
-			'workspace.openAll' => '全部',
-			'workspace.toolsStandaloneHint' => '与阅读设置同步',
-			'appName' => 'Rossi',
-			'common.nameNoSlash' => '名称不能包含 / 或 \\',
-			'common.startupStage' => ({required Object stage}) => '阶段: ${stage}',
-			'common.appStartupFailed' => '应用启动失败',
-			'common.openLocalComicRossi' => '打开本地漫画（Rossi 原版阅读器 + GPU 零拷贝）',
-			'common.neoViewWorkspace' => '泳道/工作孔工作台 (NeoView Workspace)',
-			'common.openWithRossi' => '用 Rossi 打开',
-			'common.showInExplorer' => '在资源管理器中显示',
-			'common.showInFinder' => '在访达中显示',
-			'common.showInFileManager' => '在文件管理器中显示',
-			'common.revealInFileManagerFolder' => '在文件管理器中打开所在目录',
-			'common.deleteListLabel' => '删除列表',
-			'common.pleaseEnterName' => '请输入名称',
+			'appName' => 'Breeze',
+			'database.incompatible' => '数据库不兼容，请使用更新版本的软件',
 			'common.ok' => '确定',
 			'common.cancel' => '取消',
 			'common.save' => '保存',
@@ -12310,55 +11659,12 @@ extension on Translations {
 			'settings.amoledSubtitle' => '开启后使用纯黑背景，适配 AMOLED',
 			'settings.notchAdaptation' => '异形屏适配',
 			'settings.notchAdaptationSubtitle' => '开启后预留安全区，避免内容遮挡',
-			'settings.transparentDesktopTitleBar' => '透明标题栏',
-			'settings.transparentDesktopTitleBarSubtitle' => '标题栏不再画底色，与页面背景连成一体（文字与窗口按钮可能因画面颜色而不易看清）；仅桌面端',
-			'settings.transparentTitleBarRow' => '独立行',
-			'settings.transparentTitleBarRowSubtitle' => '标题栏仍占一行，只是不带底色；内容从它下面开始（默认）',
-			'settings.transparentTitleBarOverlay' => '融合浮层',
-			'settings.transparentTitleBarOverlaySubtitle' => '内容顶到窗口顶部，标题栏浮在画面之上',
-			'settings.toastStyle' => '提示样式',
-			'settings.toastStyleSubtitle' => '设置应用内提示条的位置、时长与大小',
-			'settings.toastSectionLayout' => '位置与尺寸',
-			'settings.toastSectionAppearance' => '外观与行为',
-			'settings.toastSectionBehavior' => '时长与动效',
-			'settings.toastSectionStyle' => '显示效果',
-			'settings.toastPosition' => '位置',
-			'settings.toastPositionSubtitle' => '提示条停靠在屏幕的哪个角',
-			'settings.toastPositionTopLeft' => '左上',
-			'settings.toastPositionTopCenter' => '顶部居中',
-			'settings.toastPositionTopRight' => '右上',
-			'settings.toastPositionMiddleLeft' => '左侧居中',
-			'settings.toastPositionCenter' => '屏幕居中',
-			'settings.toastPositionMiddleRight' => '右侧居中',
-			'settings.toastPositionBottomLeft' => '左下',
-			'settings.toastPositionBottomCenter' => '底部居中',
-			'settings.toastPositionBottomRight' => '右下',
-			'settings.toastEdgePadding' => '边缘留白',
-			'settings.toastEdgePaddingSubtitle' => '提示条与屏幕边缘的距离',
-			'settings.toastMaxWidth' => '最大宽度',
-			'settings.toastMaxWidthSubtitle' => '提示条宽度上限，窄屏还会再被屏幕宽度收一次',
-			'settings.toastMaxVisible' => '同屏条数',
-			'settings.toastMaxVisibleSubtitle' => '屏幕上最多同时堆叠几条，多出来的挤掉最旧的一条',
-			'settings.toastDuration' => '自动关闭时长',
-			'settings.toastDurationSubtitle' => '拖到最左边为常驻，只由关闭按钮收起',
-			'settings.toastDurationPermanent' => '常驻',
-			'settings.toastOpacity' => '不透明度',
-			'settings.toastOpacitySubtitle' => '整条提示（含文字）的不透明度',
-			'settings.toastAnimation' => '进出场动画',
-			'settings.toastAnimationSubtitle' => '提示出现与消失的动画时长',
-			'settings.toastLiquidGlass' => '液态玻璃',
-			'settings.toastLiquidGlassSubtitle' => '开启后提示条使用模糊半透明背景',
-			'settings.toastShowProgressBar' => '显示进度条',
-			'settings.toastShowProgressBarSubtitle' => '在底部显示一条随剩余时间收缩的细线',
-			'settings.toastShowIcon' => '显示类型图标',
-			'settings.toastShowIconSubtitle' => '在提示条左侧显示成功/错误等图标',
-			'settings.toastShowCloseButton' => '显示关闭按钮',
-			'settings.toastShowCloseButtonSubtitle' => '常驻提示会始终显示关闭按钮',
-			'settings.toastPreview' => '显示测试提示',
-			'settings.toastPreviewTitle' => '提示样式预览',
-			'settings.toastPreviewLongMessage' => '这是一条用于预览的提示：长文本会自动换行，不会再被截断、也不会弹成对话框。',
-			'settings.toastReset' => '恢复默认提示样式',
-			'settings.toastResetDone' => '已恢复默认提示样式',
+			'settings.showPluginHome' => '显示插件首页',
+			'settings.showPluginHomeSubtitle' => '关闭后隐藏底部导航的首页页签',
+			'settings.showPluginCloudFavorite' => '显示云收藏',
+			'settings.showPluginCloudFavoriteSubtitle' => '关闭后隐藏底部导航的云收藏页签',
+			'settings.showSearchBookmark' => '显示搜索书签',
+			'settings.showSearchBookmarkSubtitle' => '关闭后隐藏更多页搜索书签入口与搜索结果页添加按钮',
 			'settings.contentAndNetwork' => '内容与网络',
 			'settings.content' => '内容',
 			'settings.fullSourceList' => '完整来源列表',
@@ -12452,6 +11758,19 @@ extension on Translations {
 			'settings.proxyTypeSubtitle' => '选择代理协议',
 			'settings.proxyTypeHttp' => 'HTTP',
 			'settings.proxyTypeSocks5' => 'SOCKS5',
+			'settings.doh' => 'DNS over HTTPS',
+			'settings.dohEnabledSubtitle' => '开启后使用 DoH 解析域名',
+			'settings.dohProviders' => 'DoH 端点',
+			'settings.dohProviderCount' => ({required Object count}) => '已启用 · ${count} 个端点',
+			'settings.dohEmpty' => '尚未配置 DoH 端点',
+			'settings.dohAdd' => '添加 DoH 端点',
+			'settings.dohAddHint' => 'https://doh.pub/dns-query',
+			'settings.dohIpHint' => '建议使用 IP 形式的地址以绕过 DNS 污染，例如 https://1.12.12.12/dns-query',
+			'settings.dohInvalidUrl' => '请输入以 https:// 开头的完整地址',
+			'settings.dohReset' => '恢复默认端点',
+			'settings.dohNote' => 'DoH 用于防止 DNS 污染；可添加多个端点，自动使用最先返回的有效结果。',
+			'settings.blockPrivateNetwork' => '内网拦截',
+			'settings.blockPrivateNetworkSubtitle' => '拦截指向内网 / 保留地址段的请求（含域名前置的 IP 直连）；默认关闭',
 			'settings.updateAccelerate' => '更新下载加速',
 			'settings.updateAccelerateSubtitle' => '开启后优先使用代理加速 GitHub 更新链接',
 			'settings.retryDownloadUntilSuccess' => '下载失败后持续重试',
@@ -12542,12 +11861,8 @@ extension on Translations {
 			'settings.appLockSubtitle' => '开启后进入应用需要验证',
 			'settings.autoFollowOnCollect' => '收藏自动追更',
 			'settings.autoFollowOnCollectSubtitle' => '开启后收藏漫画时将自动加入追更列表',
-			'settings.autoFavoriteOnDownload' => '下载自动收藏',
-			'settings.autoFavoriteOnDownloadSubtitle' => '开启后下载漫画时将自动加入本地收藏',
-			'settings.writeDownloadMetadataFile' => '下载写入元数据文件',
-			'settings.writeDownloadMetadataFileSubtitle' => '下载完成后在漫画目录写入 original_comic_info.json 与 processed_comic_info.json，便于其他工具识别与再次导入',
-			'settings.promptDownloadOptions' => '下载时询问选项',
-			'settings.promptDownloadOptionsSubtitle' => '点下载时先选「整本 / 最近章节 / 挑选章节」；关闭后直接下载全部章节',
+			'settings.autoCloudCollectOnLocalFavorite' => '本地收藏自动云收藏',
+			'settings.autoCloudCollectOnLocalFavoriteSubtitle' => '开启后本地收藏成功、且云端未收藏时自动触发一次云收藏',
 			'settings.leftHandMode' => '左手优化',
 			'settings.leftHandModeSubtitle' => '开启后将悬浮按钮等操作按钮移到屏幕左侧',
 			'settings.clickCoverToStartReading' => '点击封面开始阅读',
@@ -13011,18 +12326,46 @@ extension on Translations {
 			'bookshelf.confirmDeleteSelectedFavorites' => ({required Object count}) => '确定要删除选中的 ${count} 条收藏记录吗？',
 			'bookshelf.confirmDeleteSelectedHistory' => ({required Object count}) => '确定要删除选中的 ${count} 条历史记录吗？',
 			'bookshelf.confirmDeleteSelectedDownloads' => ({required Object count}) => '确定要删除选中的 ${count} 条下载记录及文件吗？',
-			'comicInfo.chapterCount' => ({required Object count}) => '章节 · ${count}',
-			'comicInfo.pageClosedFavoriteCancelled' => '页面已关闭，收藏操作已取消',
-			'comicInfo.previewLoadFailed' => '预览加载失败',
-			'comicInfo.showMoreChapters' => '显示更多章节',
-			'comicInfo.noChaptersYet' => '暂无章节',
-			'comicInfo.reverseOrderLabel' => '倒序',
-			'comicInfo.restoreForwardOrder' => '恢复正序',
-			'comicInfo.imagePreview' => '画面预览',
-			'comicInfo.collapseDetails' => '收起详情',
-			'comicInfo.workTools' => '作品工具',
-			'comicInfo.refreshInformation' => '刷新信息',
-			'comicInfo.cloudFavoriteIncomplete' => '云端收藏操作未完成',
+			'comicEdit.title' => '编辑漫画',
+			'comicEdit.lockedTitle' => '暂时不能编辑',
+			'comicEdit.lockedMessage' => '该漫画还有未完成的下载任务，请先在下载任务页完成或取消。',
+			'comicEdit.basicInfo' => '基本信息',
+			'comicEdit.chapters' => '章节',
+			'comicEdit.images' => '图片',
+			'comicEdit.comicTitle' => '漫画标题',
+			'comicEdit.titleHint' => '输入新的漫画标题',
+			'comicEdit.changeCover' => '更换封面',
+			'comicEdit.chooseFromComic' => '从漫画图片选择',
+			'comicEdit.chooseCoverImage' => '选择封面图片',
+			'comicEdit.saveTitle' => '保存标题',
+			'comicEdit.titleEmpty' => '标题不能为空',
+			'comicEdit.chapterName' => '章节名称',
+			'comicEdit.chapterNameHint' => '输入章节名称',
+			'comicEdit.chapterNameEmpty' => '章节名称不能为空',
+			'comicEdit.addChapter' => '新增章节',
+			'comicEdit.addChapterHint' => '输入新章节名称',
+			'comicEdit.renameChapter' => '重命名章节',
+			'comicEdit.pagesCount' => ({required Object count}) => '${count} 页',
+			'comicEdit.emptyChapter' => '本章暂无图片',
+			'comicEdit.selectChapter' => '选择章节',
+			'comicEdit.noChapters' => '还没有章节',
+			'comicEdit.moveToChapter' => '移动到章节',
+			'comicEdit.selectedCount' => ({required Object count}) => '已选 ${count} 张',
+			'comicEdit.movedCount' => ({required Object count}) => '已移动 ${count} 张图片',
+			'comicEdit.deleteImagesTitle' => '删除图片',
+			'comicEdit.deleteImagesMessage' => ({required Object count}) => '确定删除选中的 ${count} 张图片吗？',
+			'comicEdit.deletedCount' => ({required Object count}) => '已删除 ${count} 张图片',
+			'comicEdit.selectAll' => '全选',
+			'comicEdit.clearSelection' => '取消选择',
+			'comicEdit.reorderHint' => '长按拖动排序',
+			'comicEdit.saveSuccess' => '已保存',
+			'comicEdit.coverUpdated' => '封面已更新',
+			'comicEdit.chapterAdded' => '章节已新增',
+			'comicEdit.chapterRenamed' => '章节已重命名',
+			'comicEdit.imageMissing' => '图片文件缺失',
+			'comicEdit.busy' => '处理中...',
+			'comicEdit.notFound' => '下载记录不存在',
+			'comicEdit.loadFailed' => '加载失败',
 			'comicInfo.follow' => '加入追更',
 			'comicInfo.unfollow' => '不再追更',
 			'comicInfo.exportComic' => '导出漫画',
@@ -13060,6 +12403,7 @@ extension on Translations {
 			'comicInfo.confirmUncollectContent' => '此项操作会删除该漫画在所有文件夹的记录，是否确认删除？',
 			'comicInfo.commentForbidden' => '该插件暂不支持此功能',
 			'comicInfo.commentForbiddenTitle' => '禁止评论',
+			'comicInfo.chooseLocalFavoriteFolders' => '选择本地收藏文件夹',
 			'comicInfo.back' => '返回',
 			'comicInfo.exportTitle' => '选择导出方式',
 			'comicInfo.exportSubtitle' => '请选择将漫画导出为压缩包还是文件夹：',
@@ -13084,6 +12428,8 @@ extension on Translations {
 			'comicInfo.tags' => '标签',
 			'comicInfo.works' => '作品',
 			'comicInfo.views' => ({required Object count}) => '浏览：${count}',
+			_ => null,
+		} ?? switch (path) {
 			'comicInfo.updateTime' => ({required Object time}) => '更新时间：${time}',
 			'comicInfo.startRead' => '开始阅读',
 			'comicInfo.continueRead' => '继续阅读',
@@ -13517,6 +12863,10 @@ extension on Translations {
 			'reader.unpinBottomBar' => '取消钉住底栏',
 			'reader.landscapeReader' => '横屏阅读',
 			'reader.landscapeReaderSubtitle' => '阅读时切换为横屏，离开后恢复原来的方向',
+			'reader.autoDoublePage' => '横屏自动双页',
+			'reader.autoDoublePageSubtitle' => '横屏时自动切换为双页，竖屏时自动切换回单页',
+			'reader.showStatusBar' => '显示状态栏',
+			'reader.showStatusBarSubtitle' => '阅读时保留顶部状态栏，仅隐藏底部导航栏',
 			'reader.themeMode' => '系统模式',
 			'reader.autoRead' => '自动阅读',
 			'reader.autoReadSubtitle' => '开启后自动滚动',
@@ -13570,11 +12920,7 @@ extension on Translations {
 			'reader.fontSize' => '字体大小',
 			'reader.allHiddenNotice' => '当前已全部关闭，阅读页中的信息条会完全隐藏。',
 			'reader.edgePaddingDisabled' => '横向在中间时，边缘间距不会生效。',
-			'reader.bottomProgressBar' => '底部进度条',
-			'reader.bottomProgressBarSubtitle' => '在画面底边画一条常驻细条表示翻页进度。它不随上下栏收起，与左下角信息条各开各的、互不影响',
-			'reader.bottomProgressBarGlow' => '进度条荧光',
-			'reader.bottomProgressBarGlowSubtitle' => '给已经走过的这一段加一圈光晕',
-			'reader.settings' => '阅读设置',
+			'reader.settings' => '阅读',
 			'reader.previousChapter' => '上一章',
 			'reader.nextChapter' => '下一章',
 			'reader.backToHome' => '返回首页',
@@ -13644,9 +12990,7 @@ extension on Translations {
 			'plugin.searchHint' => '搜索插件名称或作者...',
 			'plugin.localInstall' => '本地安装',
 			'plugin.networkInstall' => '网络安装',
-			'plugin.cloudComponents' => '云端组件',
-			'plugin.restrictedSourceBlocked' => '该来源当前不可用，请先在 设置 → 内容与网络 中开启「完整来源列表」',
-			'plugin.restrictedSourcesHidden' => ({required Object count}) => '已隐藏 ${count} 个来源',
+			'plugin.cloudPlugins' => '云端插件',
 			'plugin.loginSuccess' => '请在网页中完成登录，宿主会自动同步 Cookie',
 			'plugin.chromiumFallbackUnsupported' => '当前平台不支持外部 Chromium 自动登录回退',
 			'plugin.switchingToExternalBrowser' => '内置 WebView 登录受限，正在切换外部浏览器...',
@@ -13694,10 +13038,10 @@ extension on Translations {
 			'plugin.githubRepo' => 'GitHub 仓库',
 			'plugin.download' => '下载',
 			'plugin.downloadUpdate' => '下载更新',
-			'plugin.noCloudPlugins' => '暂无云端组件',
+			'plugin.noCloudPlugins' => '暂无云端插件',
 			'plugin.noMatchingPlugins' => '没有匹配的插件',
 			'plugin.networkInstallHint' => '请输入插件脚本 URL',
-			'plugin.cloudPluginsLoadFailed' => ({required Object error}) => '云端组件列表加载失败: ${error}',
+			'plugin.cloudPluginsLoadFailed' => ({required Object error}) => '云端插件列表加载失败: ${error}',
 			'plugin.installingFromCloud' => ({required Object name}) => '正在下载并安装 ${name}...',
 			'plugin.installingFromLocal' => '正在安装本地插件...',
 			'plugin.installingFromNetwork' => '正在下载网络插件...',
@@ -14218,7 +13562,9 @@ extension on Translations {
 			'about.tagline' => '跨平台漫画阅读器',
 			'about.projectAddress' => '项目地址',
 			'about.projectAddressDesc' => '喜欢这个项目吗？点个star支持一下吧！',
-			'about.projectLink' => '前往 GitHub 仓库 (HibernalGlow/rossi) ⭐',
+			'about.projectLink' => '前往 GitHub 仓库 (breeze-project-org/Breeze) ⭐',
+			'about.contact' => '联系方式',
+			'about.contactDesc' => '有任何想法或问题，欢迎来找我聊聊~',
 			'about.feedback' => '反馈与建议',
 			'about.feedbackDesc' => '发现BUG或者有新的点子？',
 			'about.feedbackLink' => '在 GitHub Issues 中提出',
@@ -14262,6 +13608,8 @@ extension on Translations {
 			'oldHome.recommend' => '推荐',
 			'oldHome.latest' => '最新',
 			'oldHome.cloudFavorite' => '云收藏',
+			_ => null,
+		} ?? switch (path) {
 			'oldHome.list' => '列表',
 			'oldHome.function' => '功能',
 			'oldHome.close' => '关闭',
@@ -14277,6 +13625,7 @@ extension on Translations {
 			'more.sync' => '同步',
 			'more.comicFollow' => '追更',
 			'more.changelog' => '更新日志',
+			'more.newBadge' => '新',
 			'search.title' => '搜索',
 			'search.searchHint' => '搜索...',
 			'search.selectSource' => '选择漫画源',
@@ -14307,11 +13656,6 @@ extension on Translations {
 			'search.fuzzySearchDesc' => '显示包含任意一个关键词的结果',
 			'search.selectCategory' => '选择分类',
 			'search.dataSource' => '数据来源',
-			'search.sortBy' => '排序方式',
-			'search.newestToOldest' => '从新到旧',
-			'search.oldestToNewest' => '从旧到新',
-			'search.mostLikes' => '最多点赞',
-			'search.mostViews' => '最多观看',
 			'search.selectSourceTooltip' => '选择漫画源',
 			'search.hasResults' => '有结果',
 			'search.showErrors' => '显示错误',
@@ -14352,23 +13696,27 @@ extension on Translations {
 			'searchResult.jumpToPage' => '跳转页面',
 			'searchResult.jump' => '跳转',
 			'searchResult.retry' => '点击重试',
-			'comicList.browseMenu' => '浏览菜单',
-			'comicList.currentPage' => ({required Object page}) => '第 ${page} 页',
-			'comicList.pageOfTotal' => ({required Object page, required Object total}) => '第 ${page} / ${total} 页',
-			'comicList.jumpToPage' => '快速跳页',
-			'comicList.pageInput' => '目标页码',
-			'comicList.invalidPage' => '请输入大于 0 的整数',
-			'comicList.pageOutOfRange' => ({required Object total}) => '页码不能超过 ${total}',
-			'comicList.restorePosition' => '恢复上次浏览位置',
-			'comicList.restorePage' => ({required Object page}) => '上次看到第 ${page} 页',
-			'comicList.noSavedPosition' => '还没有浏览记录',
-			'comicList.positionSavedAutomatically' => '滚动后自动保存位置',
-			'comicList.previousPage' => '上一页',
-			'comicList.nextPage' => '下一页',
-			'comicList.chineseLocalized' => '漢化',
-			'comicList.downloadedAtLabel' => '下载时间',
-			'comicList.likedArtists' => '喜欢的画师',
-			'comicList.likedTags' => '喜欢的 tag',
+			'searchResult.bookmarkAdd' => '添加书签',
+			'searchResult.bookmarkPickBanner' => '点击一个封面作为书签位置（滑动已暂停）',
+			'searchResult.bookmarkAdded' => '书签已添加',
+			'searchResult.bookmarkPickNone' => '请先点击一个封面',
+			'searchResult.bookmarkPickNoResult' => '当前没有搜索结果，无法添加书签',
+			'searchBookmark.title' => '搜索书签',
+			'searchBookmark.empty' => '暂无搜索书签',
+			'searchBookmark.emptyHint' => '去搜索结果页点右下角按钮添加一个吧',
+			'searchBookmark.filteredEmpty' => '筛选条件下暂无书签',
+			'searchBookmark.filteredEmptyHint' => '换个筛选条件试试，或去搜索结果页添加',
+			'searchBookmark.filter' => '筛选',
+			'searchBookmark.sort' => '排序',
+			'searchBookmark.source' => '图源',
+			'searchBookmark.sortNewest' => '最新在前',
+			'searchBookmark.sortOldest' => '最早在前',
+			'searchBookmark.deselectAll' => '取消全选',
+			'searchBookmark.jumped' => ({required Object page}) => '已跳转到第 ${page} 页',
+			'searchBookmark.anchorMissing' => ({required Object page}) => '锚点不在该页，已定位到第 ${page} 页',
+			'searchBookmark.probePages' => '向后找回页数',
+			'searchBookmark.probePagesSubtitle' => '跳转后锚点不在本页时，向后最多翻几页找（再向前找 1 页）',
+			'searchBookmark.deleted' => '书签已删除',
 			'comicList.defaultTitle' => '漫画列表',
 			'comicList.missingSource' => '缺少插件来源，无法加载列表',
 			'comicList.reload' => '重新加载',
@@ -14433,6 +13781,7 @@ extension on Translations {
 			'comicFollow.updatedMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前检测',
 			'comicFollow.updatedHoursAgo' => ({required Object hours}) => '${hours} 小时前检测',
 			'comicFollow.updatedDaysAgo' => ({required Object days}) => '${days} 天前检测',
+			'comicFollow.lastReadJustNow' => '刚刚读过',
 			'comicFollow.lastReadMinutesAgo' => ({required Object minutes}) => '${minutes} 分钟前读过',
 			'comicFollow.lastReadHoursAgo' => ({required Object hours}) => '${hours} 小时前读过',
 			'comicFollow.lastReadDaysAgo' => ({required Object days}) => '${days} 天前读过',
@@ -14489,6 +13838,12 @@ extension on Translations {
 			'login.captchaTapToRefresh' => '看不清？点击刷新',
 			'login.captchaLoading' => '验证码加载中...',
 			'login.captchaLoadFailed' => '验证码加载失败，点击重试',
+			'login.sliderTitle' => '请完成拼图验证',
+			'login.sliderHint' => '按住滑块，拖动完成拼图',
+			'login.sliderLoading' => '题目加载中...',
+			'login.sliderLoadFailed' => '题目加载失败，点击重试',
+			'login.sliderVerifying' => '验证中...',
+			'login.sliderFailed' => '验证失败，请重试',
 			'fontSetting.title' => '字体设置',
 			'fontSetting.clear' => '清空',
 			'fontSetting.hint' => '选一个默认字体即可应用到全局；需要微调个别字重时再单独覆盖。',
@@ -14545,12 +13900,7 @@ extension on Translations {
 			'download.noTasks' => '暂无下载任务',
 			'download.downloading' => '正在下载',
 			'download.pending' => ({required Object count}) => '等待中 (${count})',
-			'download.failedTasks' => ({required Object count}) => '失败 (${count})',
-			'download.pausedTasks' => ({required Object count}) => '已暂停 (${count})',
-			'download.pinTask' => '优先下载',
-			'download.unpinTask' => '取消优先',
-			'download.taskPinned' => '已排到队首',
-			'download.taskUnpinned' => '已取消优先',
+			'download.selectedChapters' => ({required Object count}) => '已选择 ${count} 章',
 			'download.taskDeleted' => '已删除任务',
 			'download.deleteLastChapterContent' => '删除当前章节后，会删除下载记录，是否确认删除？',
 			'download.cancelTask' => '取消任务',
@@ -14608,6 +13958,8 @@ extension on Translations {
 			'notification.permissionRequired' => '请开启通知权限',
 			'notification.macPermissionRequired' => '请在系统设置中开启通知权限',
 			'update.newVersion' => '发现新版本',
+			'update.snoozeWeek' => '一周内不再提醒',
+			'update.snoozeWeekSuccess' => '已设置：一周内不再提醒',
 			'update.goToGitHub' => '前往GitHub',
 			'update.downloadInstall' => '下载安装',
 			'update.apkDownloadFailed' => '下载失败，请稍后再试！',

@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
-import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/object_box.dart';
@@ -13,7 +10,7 @@ import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart'
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
-import 'package:zephyr/util/worker_isolate.dart';
+import 'package:zephyr/service/reader/comic_read_chapter_repository.dart';
 
 /// 供 [ReaderHistoryService] 周期性保存时使用的快照。
 class HistorySnapshot {
@@ -30,7 +27,7 @@ class HistorySnapshot {
 
 /// 阅读器历史记录服务。
 ///
-/// 封装 ObjectBox 历史记录查询、worker isolate 写入与序列化逻辑，
+/// 封装 ObjectBox 历史记录查询、后台写入与序列化逻辑，
 /// 通过 [statusStream] 把左下角状态文本暴露给 controller，自身不依赖任何 cubit。
 ///
 /// **一个阅读会话一份实例**（由 `ReaderHistoryController` 持有），不是单例。
@@ -52,6 +49,7 @@ class ReaderHistoryService {
   bool _isInserting = false;
   bool _isLoading = true;
   HistorySnapshot Function()? _snapshotProvider;
+  String? _markedChapterId;
 
   /// 绑定代次：每 [loadHistory] 加一。
   ///
@@ -81,6 +79,7 @@ class ReaderHistoryService {
     if (generation != _generation) return;
     _comicInfo = resolvedComicInfo;
     _isLoading = true;
+    _markedChapterId = null;
 
     final query = objectbox.unifiedHistoryBox
         .query(
@@ -88,10 +87,7 @@ class ReaderHistoryService {
         )
         .build();
     try {
-      final found = query.findFirst();
-      if (generation == _generation) {
-        _history = found;
-      }
+      _history = await query.findFirstAsync();
     } finally {
       query.close();
     }
@@ -102,6 +98,36 @@ class ReaderHistoryService {
 
   /// 标记数据加载完成，可以开始写入。
   void markLoaded() => _isLoading = false;
+
+  /// 阅读器首屏就绪后立即记录当前章节已读。
+  void markCurrentChapterRead() {
+    final snapshot = _snapshotProvider?.call();
+    if (snapshot == null) return;
+    _markChapterRead(snapshot.epInfo, snapshot.chapterOrder);
+  }
+
+  /// 章节切换时由周期保存顺带记录；同一章只写一次。
+  void _markChapterRead(NormalComicEpInfo epInfo, int chapterOrder) {
+    final source = _source;
+    final comicId = _comicId;
+    final chapterId = epInfo.epId.trim();
+    if (source == null || comicId == null || chapterId.isEmpty) return;
+    if (_markedChapterId == chapterId) return;
+
+    try {
+      ComicReadChapterRepository.instance.markRead(
+        source: source,
+        comicId: comicId,
+        chapterId: chapterId,
+        chapterTitle: epInfo.epName,
+        chapterOrder: chapterOrder,
+      );
+      _markedChapterId = chapterId;
+    } catch (e, s) {
+      logger.w('mark chapter read failed', error: e);
+      logger.d(s);
+    }
+  }
 
   /// 启动周期性保存。
   ///
@@ -133,10 +159,7 @@ class ReaderHistoryService {
     final snapshot = _snapshotProvider?.call();
     if (snapshot == null) return;
 
-    // 这次写入属于哪一代绑定：回来时若已经换了一代，落盘照旧（键/内容都是
-    // 发起那一刻抓的），但**不再写回内存** —— 新会话的内存值由它自己的
-    // `loadHistory` 说了算。
-    final int generation = _generation;
+    _markChapterRead(snapshot.epInfo, snapshot.chapterOrder);
 
     final currentTime = DateTime.now().toLocal().toString().substring(0, 19);
     _statusController.add(
@@ -148,25 +171,26 @@ class ReaderHistoryService {
     try {
       final timestamp = DateTime.now().toUtc();
       final payload = <String, dynamic>{
-        'dbRootPath': p.dirname(objectbox.store.directoryPath),
         'source': _source,
         'comicId': _comicId,
-        'normalInfo': _serializeComicInfoForWorker(_comicInfo!),
+        'normalInfo': _serializeComicInfo(_comicInfo!),
         'chapterId': snapshot.epInfo.epId,
         'chapterTitle': snapshot.epInfo.epName,
         'chapterOrder': snapshot.chapterOrder,
         'pageIndex': snapshot.pageIndex,
         'timestamp': timestamp.toIso8601String(),
       };
-      final rootIsolateToken = captureWorkerIsolateToken();
-      final historyJson = await workerManager.execute<Map<String, dynamic>>(
-        () => _upsertUnifiedHistoryOnWorker(payload, rootIsolateToken),
-      );
-      if (generation == _generation) {
-        _history = UnifiedComicHistory.fromJson(historyJson);
-      }
+      final historyJson = await objectbox.store
+          .runAsync<Map<String, dynamic>, Map<String, dynamic>>(
+            (store, payload) => _upsertUnifiedHistoryOnWorker(
+              ObjectBox.fromStore(store),
+              payload,
+            ),
+            payload,
+          );
+      _history = UnifiedComicHistory.fromJson(historyJson);
     } catch (e, s) {
-      logger.w('history write offloaded to worker failed', error: e);
+      logger.w('后台写入历史记录失败', error: e);
       logger.d(s);
     } finally {
       _isInserting = false;
@@ -254,26 +278,19 @@ class ReaderHistoryService {
         map['creator'] is Map;
   }
 
-  Map<String, dynamic> _serializeComicInfoForWorker(normal.ComicInfo info) {
+  Map<String, dynamic> _serializeComicInfo(normal.ComicInfo info) {
     final normalized = jsonDecode(jsonEncode(info.toJson()));
     if (normalized is Map) {
       return Map<String, dynamic>.from(normalized);
     }
-    throw StateError('Failed to serialize ComicInfo for worker isolate');
+    throw StateError('Failed to serialize ComicInfo');
   }
 }
 
 Future<Map<String, dynamic>> _upsertUnifiedHistoryOnWorker(
+  ObjectBox objectbox,
   Map<String, dynamic> payload,
-  RootIsolateToken? rootIsolateToken,
 ) async {
-  ensureWorkerIsolateInitialized(rootIsolateToken);
-
-  final dbRootPath = payload['dbRootPath']?.toString() ?? '';
-  if (dbRootPath.trim().isEmpty) {
-    throw StateError('missing dbRootPath for history worker write');
-  }
-
   final source = payload['source']?.toString() ?? '';
   final comicId = payload['comicId']?.toString() ?? '';
   final normalInfo = normal.ComicInfo.fromJson(
@@ -288,23 +305,42 @@ Future<Map<String, dynamic>> _upsertUnifiedHistoryOnWorker(
         DateTime.now().toUtc().toIso8601String(),
   ).toUtc();
 
-  final box = await ObjectBox.create(dbRootPath: dbRootPath);
   final key = '$source:$comicId';
-  final query = box.unifiedHistoryBox
+  final downloadQuery = objectbox.unifiedDownloadBox
+      .query(UnifiedComicDownload_.uniqueKey.equals(key))
+      .build();
+  final download = downloadQuery.findFirst();
+  downloadQuery.close();
+  final titleOverride = download != null && !download.deleted
+      ? download.titleOverride?.trim() ?? ''
+      : '';
+  final coverOverride = download != null && !download.deleted
+      ? download.coverOverride?.trim() ?? ''
+      : '';
+  final effectiveTitle = titleOverride.isNotEmpty
+      ? download!.title
+      : normalInfo.title;
+  final effectiveCover = coverOverride.isNotEmpty
+      ? download!.cover
+      : _normalizeWorkerFlexMapString(normalInfo.cover);
+  final query = objectbox.unifiedHistoryBox
       .query(UnifiedComicHistory_.uniqueKey.equals(key))
       .build();
 
   try {
     final existing = query.findFirst();
+    final nextCover = existing != null && _isLocalCover(existing.cover)
+        ? existing.cover
+        : effectiveCover;
     final entity =
         existing ??
         UnifiedComicHistory(
           uniqueKey: key,
           source: source,
           comicId: comicId,
-          title: normalInfo.title,
+          title: effectiveTitle,
           description: normalInfo.description,
-          cover: _normalizeWorkerFlexMapString(normalInfo.cover),
+          cover: nextCover,
           creator: _normalizeWorkerFlexMapString(normalInfo.creator),
           titleMeta: _normalizeWorkerFlexListString(normalInfo.titleMeta),
           metadata: _normalizeWorkerMetadataString(normalInfo.metadata),
@@ -320,9 +356,9 @@ Future<Map<String, dynamic>> _upsertUnifiedHistoryOnWorker(
         );
 
     entity
-      ..title = normalInfo.title
+      ..title = effectiveTitle
       ..description = normalInfo.description
-      ..cover = _normalizeWorkerFlexMapString(normalInfo.cover)
+      ..cover = nextCover
       ..creator = _normalizeWorkerFlexMapString(normalInfo.creator)
       ..titleMeta = _normalizeWorkerFlexListString(normalInfo.titleMeta)
       ..metadata = _normalizeWorkerMetadataString(normalInfo.metadata)
@@ -334,11 +370,22 @@ Future<Map<String, dynamic>> _upsertUnifiedHistoryOnWorker(
       ..updatedAt = timestamp
       ..deleted = false;
 
-    entity.id = box.unifiedHistoryBox.put(entity);
+    entity.id = objectbox.unifiedHistoryBox.put(entity);
     return entity.toJson();
   } finally {
     query.close();
   }
+}
+
+bool _isLocalCover(String raw) {
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map) {
+      final extern = decoded['extern'];
+      return extern is Map && extern['local'] == true;
+    }
+  } catch (_) {}
+  return false;
 }
 
 Map<String, dynamic> _toWorkerMap(dynamic value) {

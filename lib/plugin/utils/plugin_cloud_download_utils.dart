@@ -12,7 +12,7 @@ import 'package:zephyr/src/rust/api/simple.dart';
 import 'package:zephyr/util/json/json_value.dart';
 
 const _cloudPluginListDirectUrl =
-    'https://raw.githubusercontent.com/deretame/Breeze-plugin-list/main/plugins_data.json';
+    'https://raw.githubusercontent.com/breeze-project-org/Breeze-plugin-list/main/plugins_data.json';
 
 const cloudPluginListApi = 'https://api.windy-78.site/plugin-list';
 
@@ -45,7 +45,7 @@ Future<String> fetchCloudPluginListWithCdnFallback() async {
       headers: {'Accept': 'application/json, text/plain, */*'},
     );
     final body = response.text.trim();
-    if (response.ok && body.isNotEmpty) {
+    if (body.isNotEmpty) {
       return body;
     }
   } catch (e, stackTrace) {
@@ -65,13 +65,12 @@ Future<String> fetchCloudPluginListWithCdnFallback() async {
     final data = temp.json;
     version = (data is Map ? data['version'] : null) ?? 'latest';
   } catch (e) {
-    logger.e(e);
     return fetchCloudPluginListPayload(_cloudPluginListDirectUrl);
   }
 
   for (final mirror in _ghCdnMirrors) {
     final url =
-        '${mirror}gh/deretame/Breeze-plugin-list@$version/plugins_data.json';
+        '${mirror}gh/breeze-project-org/Breeze-plugin-list@$version/plugins_data.json';
     logger.d('尝试使用 GitHub CDN 镜像: $url');
     try {
       final response = await client.fetch(
@@ -79,7 +78,7 @@ Future<String> fetchCloudPluginListWithCdnFallback() async {
         headers: {'Accept': 'application/json, text/plain, */*'},
       );
       final body = response.text.trim();
-      if (response.ok && body.isNotEmpty) {
+      if (body.isNotEmpty) {
         return body;
       }
     } catch (e, stackTrace) {
@@ -105,16 +104,11 @@ Future<String> fetchCloudPluginListPayload(String sourceUrl) async {
         headers: {'Accept': 'application/json, text/plain, */*'},
       );
       final body = response.text.trim();
-      if (response.ok && body.isNotEmpty) {
+      if (body.isNotEmpty) {
         return body;
       }
-      lastError = response.ok
-          ? StateError('空响应: $requestUrl')
-          : StateError('HTTP ${response.status}: $requestUrl');
-      logger.w(
-        '云端插件列表通道失败: $requestUrl status=${response.status} '
-        'ok=${response.ok}',
-      );
+      lastError = StateError('空响应: $requestUrl');
+      logger.w('云端插件列表通道失败: $requestUrl 空响应');
     } catch (e, stackTrace) {
       lastError = e;
       logger.w('云端插件列表通道失败: $requestUrl', error: e, stackTrace: stackTrace);
@@ -217,11 +211,6 @@ Future<FetchResponse> downloadPluginAssetWithFallback(String sourceUrl) async {
         requestUrl,
         headers: {'Accept': '*/*'},
       );
-      if (!response.ok) {
-        lastError = StateError('HTTP ${response.status}: $requestUrl');
-        logger.w('插件资源下载通道 HTTP 异常: $requestUrl status=${response.status}');
-        continue;
-      }
       if (response.body.isEmpty) {
         lastError = StateError('空响应: $requestUrl');
         continue;

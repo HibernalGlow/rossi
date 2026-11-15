@@ -218,28 +218,24 @@ class ComicSyncCore {
     final localReadPreferences = readPreferenceBox.getAll();
     final localReadMarks = readMarkBox.getAll();
 
-    final cloudFavorites = _parseJsonList(
-      data['favorites'],
-    ).map(UnifiedComicFavorite.fromJson).toList();
-    final cloudHistories = _parseJsonList(
-      data['histories'],
-    ).map(UnifiedComicHistory.fromJson).toList();
-    final cloudFollows = _parseJsonList(
-      data['follows'],
-    ).map(ComicFollow.fromJson).toList();
-    var cloudFolders = _parseJsonList(
-      data['folders'],
-    ).map(ComicFolder.fromJson).toList();
-    var cloudLinks = _parseJsonList(
-      data['links'],
-    ).map(ComicLink.fromJson).toList();
-    final cloudReadPreferences = _parseJsonList(
-      data['readPreferences'],
-    ).map(ComicReadPreference.fromJson).toList();
-    // 旧客户端上传的载荷里没有这一项，取到空列表：合并结果就等于保留本地。
-    final cloudReadMarks = _parseJsonList(
-      data['chapterReadMarks'],
-    ).map(ComicChapterReadMark.fromJson).toList();
+    final cloudFavorites = _parseJsonList(data['favorites'])
+        .map(UnifiedComicFavorite.fromJson)
+        .toList();
+    final cloudHistories = _parseJsonList(data['histories'])
+        .map(UnifiedComicHistory.fromJson)
+        .toList();
+    final cloudFollows = _parseJsonList(data['follows'])
+        .map(ComicFollow.fromJson)
+        .toList();
+    var cloudFolders = _parseJsonList(data['folders'])
+        .map(ComicFolder.fromJson)
+        .toList();
+    var cloudLinks = _parseJsonList(data['links'])
+        .map(ComicLink.fromJson)
+        .toList();
+    final cloudReadPreferences = _parseJsonList(data['readPreferences'])
+        .map(ComicReadPreference.fromJson)
+        .toList();
 
     // 旧数据可能没有 syncId，先兜底补一遍，确保后续按 syncId 合并能正常进行。
     for (final folder in [...localFolders, ...cloudFolders]) {

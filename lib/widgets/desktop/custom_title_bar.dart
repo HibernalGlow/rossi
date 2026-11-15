@@ -2,9 +2,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:zephyr/config/global/global.dart';
-import 'package:zephyr/platform/desktop/native_window.dart';
-import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/platform/desktop/desktop_window.dart';
 
 /// Material 3 风格的自定义标题栏（仅桌面平台使用）
 ///
@@ -22,58 +20,59 @@ class CustomTitleBar extends StatefulWidget {
   State<CustomTitleBar> createState() => _CustomTitleBarState();
 }
 
-class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
+class _CustomTitleBarState extends State<CustomTitleBar> {
   bool _isMaximized = false;
+  ListenerId? _windowListenerId;
 
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
-    if (Platform.isWindows && NativeWindow.isReady) {
-      _isMaximized = NativeWindow.isMaximized;
-    }
+    _windowListenerId = mainWindow?.addListener(_handleWindowEvent);
+    _isMaximized = mainWindow?.isMaximized ?? false;
   }
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    final listenerId = _windowListenerId;
+    if (listenerId != null) {
+      mainWindow?.removeListener(listenerId);
+      _windowListenerId = null;
+    }
     super.dispose();
   }
 
-  @override
-  void onWindowMaximize() {
-    if (mounted) setState(() => _isMaximized = true);
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    if (mounted) setState(() => _isMaximized = false);
-  }
-
-  void _minimize() {
-    if (Platform.isWindows) {
-      NativeWindow.minimize();
-    } else {
-      windowManager.minimize();
+  void _handleWindowEvent(WindowEvent event) {
+    switch (event) {
+      // nativeapi 的「还原」同时覆盖取消最大化和从最小化恢复，
+      // 因此统一回读窗口真实状态，而不是靠事件类型推断。
+      case WindowMaximizedEvent():
+      case WindowRestoredEvent():
+        final maximized = mainWindow?.isMaximized ?? false;
+        if (mounted && maximized != _isMaximized) {
+          setState(() => _isMaximized = maximized);
+        }
+      case _:
+        break;
     }
   }
 
+  void _minimize() => mainWindow?.minimize();
+
   void _toggleMaximize() {
-    if (Platform.isWindows) {
-      NativeWindow.toggleMaximize();
-    } else if (_isMaximized) {
-      windowManager.unmaximize();
+    final window = mainWindow;
+    if (window == null) return;
+    // 以窗口真实状态为准，避免本地 _isMaximized 与窗口脱节。
+    if (window.isMaximized) {
+      window.unmaximize();
     } else {
-      windowManager.maximize();
+      window.maximize();
     }
   }
 
   void _handleClose() {
-    if (Platform.isWindows) {
-      NativeWindow.close();
-    } else {
-      windowManager.close();
-    }
+    // 必须走 window.close() 而不是直接发 WM_CLOSE：只有前者会先询问
+    // 关闭监听（nativeapi 把裸 WM_CLOSE 当作不可取消的强制关闭）。
+    mainWindow?.close();
   }
 
   @override
@@ -94,7 +93,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onPanStart: (_) => windowManager.startDragging(),
+              onPanStart: (_) => mainWindow?.startDragging(),
               onDoubleTap: _toggleMaximize,
               child: Row(
                 children: [

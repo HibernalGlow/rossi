@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:worker_manager/worker_manager.dart';
 import 'package:zephyr/page/bookshelf/bloc/folder_shelf_bloc.dart';
 import 'package:zephyr/page/bookshelf/models/shelf_page_mode.dart';
 
@@ -8,21 +7,11 @@ import 'package:zephyr/page/bookshelf/models/shelf_page_mode.dart';
 /// 这是书架返回链的底座：UI 层的 LocalHistoryEntry 被返回消费后，
 /// 调的正是这里的 GoBack；根目录时 UI 层不清 entry、直接放行给导航。
 ///
-/// 说明：bloc 构造即发 LoadRequested，走 worker isolate + 真实 ObjectBox
-/// 路径，在测试里只会落到 error 状态。这里不断言列表内容，只断言
-/// 导航事件同步发出的 currentPath（先于 load 结果发出，不受影响）。
+/// 说明：bloc 构造即发 LoadRequested，测试里没有初始化 ObjectBox，
+/// 查询会落到 error 状态。这里不断言列表内容，只断言导航事件同步发出的
+/// currentPath（先于 load 结果发出，不受影响）。
 void main() {
-  setUpAll(() async {
-    // 让 worker 任务真正跑完（测试里落到 error），否则 LoadRequested
-    // handler 挂起会堵住 bloc 的顺序事件队列。
-    await workerManager.init(isolatesCount: 1);
-  });
-
-  tearDownAll(() async {
-    await workerManager.dispose();
-  });
-
-  /// 等构造时自带的 LoadRequested 在 worker 里失败返回，队列排空。
+  /// 等构造时自带的 LoadRequested 失败返回，队列排空。
   /// 失败后必 emit（isLoading=false + error 非空），轮询等它而不是死等；
   /// 超时则继续（导航事件同步 emit path，不依赖 load 结果）。
   Future<void> pumpEvents(FolderShelfBloc bloc) async {

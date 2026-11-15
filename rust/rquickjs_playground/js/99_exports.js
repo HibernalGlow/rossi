@@ -22,6 +22,7 @@
     TextDecoder,
     Buffer,
     structuredClone,
+    fronting,
   } = globalThis.__web;
 
   // Temporal is installed by 70_temporal.js onto globalThis directly.
@@ -51,4 +52,5 @@
   globalThis.TextDecoder = TextDecoder;
   globalThis.Buffer = Buffer;
   globalThis.structuredClone = structuredClone;
+  globalThis.fronting = fronting;
 })();

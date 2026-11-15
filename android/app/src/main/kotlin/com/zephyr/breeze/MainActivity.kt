@@ -155,6 +155,10 @@ class MainActivity: FlutterFragmentActivity() {
                     setInstantSystemUiVisibility(immersive = true)
                     result.success(null)
                 }
+                "hideNavigationBarOnly" -> {
+                    setNavigationBarOnlyVisibility()
+                    result.success(null)
+                }
                 "showSystemBars" -> {
                     setInstantSystemUiVisibility(immersive = false)
                     result.success(null)
@@ -384,6 +388,22 @@ class MainActivity: FlutterFragmentActivity() {
         fallbackSystemUiVisibility(immersive)
     }
 
+    /// 只隐藏底部导航栏，保留顶部状态栏（阅读器“显示状态栏”开关用）。
+    private fun setNavigationBarOnlyVisibility() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val controller = window.decorView.windowInsetsController ?: run {
+                fallbackNavigationBarOnlyVisibility()
+                return
+            }
+            controller.systemBarsBehavior =
+                WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.show(WindowInsets.Type.statusBars())
+            controller.hide(WindowInsets.Type.navigationBars())
+            return
+        }
+        fallbackNavigationBarOnlyVisibility()
+    }
+
     @Suppress("DEPRECATION")
     private fun fallbackSystemUiVisibility(immersive: Boolean) {
         var flags = (
@@ -399,5 +419,15 @@ class MainActivity: FlutterFragmentActivity() {
             )
         }
         window.decorView.systemUiVisibility = flags
+    }
+
+    @Suppress("DEPRECATION")
+    private fun fallbackNavigationBarOnlyVisibility() {
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            or View.SYSTEM_UI_FLAG_IMMERSIVE
+        )
     }
 }

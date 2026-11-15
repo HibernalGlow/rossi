@@ -1,200 +1,281 @@
-<a id="top"></a>
+# Breeze
 
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%"
-       alt="Rossi — a cross-platform manga reader. Any third-party comic source, one shared bookshelf. Android, iOS, Windows, macOS and Linux, MPL-2.0.">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
 
-<p align="center">
-  <a href="README.md"><b>中文</b></a> · <b>English</b>
-</p>
+> The Chinese README is the primary version; this English translation is provided for convenience.
 
-## What Rossi is
+## 💖 Acknowledgements & Sponsorship
 
-A cross-platform manga reader written in **Flutter + Rust**.
+Thanks to the following organizations for supporting the open-source community:
 
-It ships **no comic content at all** — where the comics come from is entirely up to **plugins**. One JS file describes how to list, how to search and how to restore the images; a QuickJS sandbox on the Rust side runs it. Install a plugin and that source becomes readable; install none and it stays a clean bookshelf for local CBZ files.
+| [![Sentry Logo](asset/sentry-wordmark-dark-400x119.png)](https://sentry.io/) | This project is sponsored by **[Sentry](https://sentry.io/)** for comprehensive error monitoring. Its Sponsored Business plan helps us catch and fix crashes faster and improve the user experience. |
+| :--------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
 
-Two example source plugins ship built in: `rust/build.rs` downloads their bundles at compile time, so the first run already works.
+We also thank **[Aidoku](https://github.com/Aidoku/Aidoku)** — our iOS / macOS image upscaling implementation references its approach and model handling.
 
-### Capabilities
+### ☕ Personal Sponsorship (Afdian)
 
-#### Sources and search
+☕ Thank you to everyone who sponsors this project. Your support is a major driving force behind its continued maintenance.
 
-- Two example source plugins are built in; install your own `.js` / `.cjs` / `.br` plugins, with one-tap download, manual update and drag-to-reorder.
-- **Aggregate search** asks several sources in one go. Tag syntax and excluded terms are supported, and searches are kept in history.
-- Local CBZ / ZIP archives read directly, with no extraction step.
+👉 **[Sponsor the author on Afdian: afdian.com/a/deretame](https://afdian.com/a/deretame)**
 
-#### Reading
+<img src="asset/aifadian.jpg" alt="Afdian sponsorship QR code" width="260" />
 
-- Six modes: right to left (Japanese order, unmirrored), left to right, webtoon top to bottom, double page (seamless, optional leading blank), split landscape pages, auto read.
-- **Every comic can override the settings** without touching the global set.
-- E-ink tuning, volume-key page turns, left/right hand mode, ambient background colour, thumbnail scrubbing, persistent control bar.
-- Desktop bindings are fully editable: keyboard, mouse, side buttons, wheel, gamepad, touch and region gestures, in separate global and reader contexts.
+> - Sponsorship does not grant specific benefits, such as requesting a feature or priority bug fixes. All requests and feedback follow the normal process and are not treated differently based on sponsorship.
+> - The project's direction, feature planning, and release cadence are decided by the author. Sponsorship does not come with decision-making power.
+> - Sponsorship is a voluntary gift. Please give only what you can afford; donations are non-refundable.
+> - Finally, the author will do their best to keep maintaining the project but cannot promise it will never slow down. If updates slow down someday, thank you for your understanding; your support will always keep the project going.
 
-#### Bookshelf and downloads
+## Project Development Guide
 
-- Favorites come in **local** and **cloud** kinds, and can be grouped.
-- The follow tab lists exactly what updated but has not been read yet.
-- A custom download queue: task manager, incremental retry of failures, read while downloading, export to ZIP / gallery / folder, and re-import.
-- **WebDAV and S3 sync** (with a path-style toggle), plus manual upload and download.
+Plugin development documentation: <https://breeze-project-org.github.io/plugin-dev-docs/>
 
-#### Picture quality
+Plugin list: <https://github.com/breeze-project-org/Breeze-plugin-list>
 
-- Picks a working super-resolution backend per platform, runs only below the resolution you set, and downloads weights on first use.
+<details>
+<summary>Currently included plugins (click to expand)</summary>
 
-#### Manga translation (finished pages)
+<!-- PLUGIN-LIST-START -->
+包子漫画 Plus e-hentai 禁漫天堂 漫画柜 NoyAcg 如漫画 蛙漫3 包子漫画 哔咔漫画 拷贝漫画 hitomi JJ漫画 Komiic nhentai 绅士漫画 WEBTOON 再漫画 拷贝漫画 Copy4000 코사이트 MangaDex WeebCentral zero搬运网 禁漫天堂(mumushu0501-boop) Toomics
+<!-- PLUGIN-LIST-END -->
 
-- Detect → recognize → erase → translate → re-typeset, producing a **redrawn page**, not subtitles laid over the original.
-- Three translation engines to choose from: an API endpoint (cloud, or local Ollama / Foundry Local), local Hunyuan Hy-MT2, and Apple's system translation (on-device, offline, free).
-- Glossary: one `source=target` per line, so proper nouns stay where you put them.
-- Windows / Linux / macOS only for now — see [this section](#translation-details).
+</details>
 
-#### Elsewhere
+> **Note:** Plugin support is still in beta and may change significantly. It is not recommended to build plugins on it for production; it is intended for learning purposes only.
 
-- In-app update check and changelog; 20 preset theme colours (the default one is the mask red from the icon), light/dark following the system, and dynamic colour.
-- Custom reading font; data backup import and export; cache management; GitHub / jsdelivr acceleration proxies; gesture and PIN app lock.
-- System tray on macOS and Linux.
+### 1. Core Toolchain Installation
 
----
+Before you start, make sure the base tools are installed and up to date:
 
-### Screens
+- **Flutter SDK**: verify with `flutter doctor`.
+- **Rust Toolchain**: install via `rustup` and add the required cross-compilation targets (e.g. `aarch64-linux-android`).
+- **LLVM / Clang**: libraries such as `rustqjs` need to parse C headers, so LLVM is required (on Windows, `choco install llvm` or the official installer is recommended). Make sure the `LIBCLANG_PATH` environment variable is set.
 
-<table>
-  <tr>
-    <th align="left" width="18%">Screen</th>
-    <th align="left" width="48%">Desktop</th>
-    <th align="left" width="34%">Mobile</th>
-  </tr>
-  <tr>
-    <td>Shelf & layout</td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/shelf-desktop.webp" width="460" alt="Desktop shelf and gallery layout: a card grid with the gallery customisation panel open."></td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/shelf-mobile.webp" width="220" alt="Mobile shelf: continue-reading and currently-reading cards."></td>
-  </tr>
-  <tr>
-    <td>Reader settings (light)</td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-desktop-light.webp" width="460" alt="Desktop reader settings: reading mode, double-page reading, system theme and reading background."></td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-mobile-light.webp" width="220" alt="Mobile reader settings: bottom navigation and vertically stacked options."></td>
-  </tr>
-  <tr>
-    <td>Reader settings (dark)</td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-desktop-dark.webp" width="460" alt="Desktop dark reader settings: the same reading mode and background options."></td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/settings-mobile-dark.webp" width="220" alt="Mobile dark reader settings: bottom navigation and vertically stacked options."></td>
-  </tr>
-  <tr>
-    <td>Info panel</td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/info-desktop.webp" width="460" alt="Desktop info panel: book, image, storage and preload state."></td>
-    <td align="center" valign="top"><img src="./assets/readme/screenshots/info-mobile.webp" width="220" alt="Narrow info panel: book, image and storage sections stacked vertically."></td>
-  </tr>
-</table>
+### 2. Environment Variables
 
-These are in-app screens; titles and covers in the shots are sample data, with no third-party comic content.
+Depending on what you build, configure the following environment variables:
 
----
+| Variable             | Purpose                                                     | Example path (reference)                          |
+| :------------------- | :---------------------------------------------------------- | :------------------------------------------------ |
+| **JAVA_HOME**        | Required for Android, Windows, and Linux builds             | `C:\Program Files\Android\Android Studio\jbr`     |
+| **ANDROID_NDK_HOME** | Required for cross-compiling the Android Rust library       | `...\AppData\Local\Android\Sdk\ndk\29.0.14206865` |
+| **LIBCLANG_PATH**    | Used by `bindgen` (Rust) to generate FFI bindings           | `C:\Program Files\LLVM\bin`                       |
 
-### How it runs
+> **Note**: Make sure the `PATH` variable includes the directories containing `javac` and `clang`.
 
-<p align="center">
-  <img src="./assets/readme/plugin-architecture.en.svg" width="100%"
-       alt="Flow diagram: comic sources (built-in example plugins, plus custom JS plugins) feed into the Rust-side windcore sandbox, where QuickJS executes plugin code, reqwest performs requests, and decoding, de-obfuscation and archive handling happen; flutter_rust_bridge then hands everything to the Flutter UI layer — discovery, aggregate search, bookshelf and reader.">
-</p>
+### 3. Dependency Initialization
 
-The chain is `Dart → Flutter Rust Bridge → Rust → QuickJS`. Plugin code never runs inside Dart and never touches platform APIs: it can only describe which request to send, how to parse the answer and how to restore the image. Network and file capabilities are granted per feature by the host.
+1. **Root project dependencies**:
+   Run from the project root to download Flutter dependencies:
+   ```bash
+   flutter pub get
+   ```
 
-> ⚠️ **Plugins are still beta** — the API may change substantially, and today it suits learning better than shipping.
-> But remember: inside the sandbox a plugin can still make network requests and read or write files. **Installing a plugin means trusting the code it contains.**
+### 4. Platform-Specific Notes
 
----
+- **Android**: Make sure `local.properties` points to the correct SDK path.
+- **Windows/Linux**: Make sure Visual Studio (C++) or the appropriate GCC toolchain is installed so Rust can compile natively.
 
-### Six ways to read
+# 🚀 Installation
 
-<p align="center">
-  <img src="./assets/readme/reading-experience.en.svg" width="100%"
-       alt="Six cells: right to left, left to right, webtoon top to bottom, seamless double page, split landscape pages, auto read. Each one can apply to the current comic only.">
-</p>
+### 📱 Android / HarmonyOS
 
-Direction, page turning, double-page pairing and auto-scroll intervals each have more than one switch, so the model is one global set plus a per-comic override. Desktop adds a complete binding editor where keyboard, mouse, side buttons, wheel, gamepad, touch and region gestures can all be remapped.
+- Go to the [Releases page](https://github.com/breeze-project-org/Breeze/releases) and download `app-arm64-v8a-release.apk`.
 
----
+  > **Note**: In mainland China, apps that have not gone through app-store review may fail to install. You can bypass the system installer with [GBox](https://gboxlab.com/i18n/zh-Hant/), [Chujingyi](https://www.chujingapp.com/), or [GSpace](https://gspaceteam.com/) (HarmonyOS users can download it from the app store).
 
-<a id="translation-details"></a>
+### 🪟 Windows
 
-### Manga translation (finished pages)
+- Download `windows-installer.exe` and run it to install.
 
-<p align="center">
-  <img src="./assets/readme/ocr-translate.en.svg" width="100%"
-       alt="Six-step pipeline: 01 detect text boxes with PP-OCRv4 det, 02 recognize speech with manga-ocr, 03 erase the original text with LaMa, 04 translate with one of three engines, 05 re-typeset with LXGW WenKai, 06 finished page, toggled per page in the reader. Below, the three translation engines, and a note that this is Windows, Linux and macOS only.">
-</p>
+### 🐧 Linux
 
-Unlike overlaying a translation, this path **erases the original text from the image** and re-typesets the translation into the shape of the bubble, so what you get is a page you can simply read. In the reader toolbar, tap Translate to switch the current page only.
+Linux builds are available as both Flatpak and DEB packages. Choose the one that fits your distribution.
 
-Limits worth knowing:
+#### Option 1: Install the DEB (recommended for Debian/Ubuntu and derivatives)
 
-- **Desktop only.** Android and iOS are excluded on purpose, not left on a backlog: this repo's ONNX Runtime registers no accelerator EP for the linux/android sections, and the recognizer is an fp32 ViT + BERT — making it usable on mobile needs an int8 re-export first. So the entry point is not drawn at all on mobile, rather than drawn and then erroring.
-- Weights are not bundled: about **660 MB**, downloaded from the settings page on first use (PP-OCRv4 det + manga-ocr recognition + LaMa erase).
-- Each engine trades something off: the API endpoint needs network or a local service and supports the glossary; Hunyuan Hy-MT2 needs you to start `llama-server` yourself; Apple system translation is on-device, offline and free, but **exposes no glossary API**, so on that route proper nouns get the generic translation.
-- If the endpoint is unavailable at that moment the page **degrades**: it is erased and re-typeset with the source text instead of stalling the whole chapter.
-- Finished pages are cached, and there is a one-tap clear after changing model or font (your originals are never touched).
-- All six stages write one log line per page, so when something goes wrong the settings page shows you which stage.
+Releases currently provide an `amd64` DEB package. Go to the [Releases page](https://github.com/breeze-project-org/Breeze/releases), download the file ending in `.deb`, and run:
 
----
+> **Note**: The DEB package is not guaranteed to work on every Debian/Ubuntu derivative. If installation or startup fails, use the Flatpak build instead.
 
-### Download and install
-
-Get the installer for your platform from [Rossi Releases](https://github.com/HibernalGlow/rossi/releases).
-
----
-
-### Building from source
-
-> For anyone changing the code. If you only want to read, you can stop above.
-
-#### 1. Core toolchain
-
-- **Flutter SDK**: must pass `flutter doctor`.
-- **Rust toolchain**: install via `rustup` and add the cross-compilation targets you need (for example `aarch64-linux-android`).
-- **LLVM / Clang**: libraries such as `rustqjs` parse C headers, so LLVM is required (on Windows, `choco install llvm` or the upstream installer).
-
-#### 2. Dependencies and code generation
-
-```bash
-# root project Flutter dependencies
-flutter pub get
-
-# required again after touching auto_route / freezed / json_serializable / objectbox / FRB
-dart ./script/code_generate.dart
+```shell
+# If the downloaded Breeze DEB is the only package in the current directory, the wildcard works directly
+sudo apt install ./breeze_*.deb
 ```
 
-#### 3. Platform notes
+`apt` resolves the required system dependencies automatically. After installation, launch **Breeze** from the application menu or run:
 
-- **Android**: point `local.properties` at the right SDK path.
-- **Windows / Linux**: install Visual Studio (C++) or an equivalent GCC toolchain so the Rust parts can compile locally.
-- **Repository layout, build scripts and conventions**: see [`AGENTS.md`](./AGENTS.md) and [`docs/`](./docs/).
+```shell
+breeze
+```
+
+To uninstall:
+
+```shell
+sudo apt remove breeze
+```
+
+#### Option 2: Install Flatpak (recommended; supports one-step install and updates)
+
+The Flatpak build is distributed through a self-hosted repository to ensure compatibility across distributions. Add the repository once, then follow releases with `flatpak update`.
+
+#### 1. Prepare the environment
+
+If Flatpak is not configured on your system, follow the [Flatpak setup guide](https://flathub.org/setup) first.
+
+> **Speed-up tip**: Users in mainland China may configure the [CERNET mirror](https://help.mirrors.cernet.edu.cn/flathub/) to improve download speed.
+
+#### 2. One-step installation
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/breeze-project-org/Breeze-flathub/main/install.sh | bash
+```
+
+Or add the repository manually and install:
+
+```shell
+flatpak remote-add --user --if-not-exists breeze \
+  https://raw.githubusercontent.com/breeze-project-org/Breeze-flathub/main/breeze.flatpakrepo
+flatpak install --user -y breeze io.github.windy.breeze
+```
+
+> If you previously added the old repository (`deretame.github.io/Breeze-flathub`), run
+> `flatpak remote-modify --user --url=https://breeze-project-org.github.io/Breeze-flathub/repo/ breeze`
+> once, or re-run the one-step script; otherwise `flatpak update` will fail because the old address is gone.
+
+> The GNOME 50 Runtime is pulled automatically during installation; no manual step is needed.
+
+#### 3. Update the app
+
+```shell
+flatpak update --user io.github.windy.breeze
+```
+
+#### 4. Run the app
+
+After installation, find **Breeze** in the application menu or run:
+
+```shell
+flatpak run io.github.windy.breeze
+```
+
+> The old single-file `breeze-*.flatpak` is still available on the Releases page for manual installation, but it cannot be updated with `flatpak update`; the repository method above is recommended.
+
+### 💻 macOS
+
+macOS users are recommended to install and manage Breeze with Homebrew. You can also download the DMG and install manually.
+
+#### Method 1: Install with Homebrew (recommended)
+
+**1. Add the tap**
+First, add this repository to your Homebrew taps:
+
+```bash
+brew tap deretame/breeze
+```
+
+**2. Install Breeze**
+Homebrew downloads and installs the latest version into your Applications folder:
+
+```bash
+brew install --cask breeze
+```
+
+**3. Update Breeze**
+When a new version is released, upgrade with:
+
+```bash
+brew upgrade breeze
+```
+
+**4. Uninstall completely**
+To uninstall Breeze and also remove its database, caches, and configuration files, add the `--zap` flag (**note: this does not delete files you exported manually, but it clears the app's internal data**):
+
+```bash
+brew uninstall --zap breeze
+```
+
+#### Method 2: Download the DMG manually
+
+1. Go to the [Releases page](https://github.com/breeze-project-org/Breeze/releases) and download the latest `Breeze-macOS.dmg`.
+2. Open the `.dmg` and drag `Breeze.app` into the `Applications` folder.
+
+> ⚠️ **First launch (macOS Gatekeeper)**
+> This is a free, open-source project without an Apple Developer signature. If macOS reports **"The app is damaged"** or **"Cannot verify the developer"** on first launch, run the following command in Terminal to allow it:
+>
+> ```bash
+> xattr -cr /Applications/Breeze.app
+> ```
+>
+> _(Alternative: find Breeze in the Applications folder, Control-click the icon, and choose "Open" from the menu.)_
+
+### 📱 iOS / iPadOS
+
+Because iOS is closed, apps that are not on the App Store must be sideloaded and self-signed. Go to the [Releases page](https://github.com/breeze-project-org/Breeze/releases), download the unsigned `Breeze-iOS.ipa`, and install it with one of the following tools:
+
+#### 🌟 Recommended: AltStore
+
+AltStore is currently the most stable and beginner-friendly sideloading tool for iOS. It can automatically re-sign the app through a computer on the same LAN.
+
+- **Download**: [AltStore official site](https://altstore.io/)
+- **Guides**:
+- [AltStore official FAQ (English)](https://faq.altstore.io/)
+- [Zhihu: AltStore-based self-signing guide (Chinese)](https://zhuanlan.zhihu.com/p/143936759)
+- [Bilibili: unlimited iOS IPA self-signing (Chinese)](https://b23.tv/UbuuJTZ)
+
+#### 🔧 Other self-signing / no-signing options
+
+If AltStore is not an option, consider:
+
+- **Sideloadly**: a powerful desktop self-signing tool for Windows and macOS that works without jailbreak. ([Official site and guides](https://sideloadly.io/))
+- **TrollStore**: if your iOS version falls within a supported vulnerability range, **strongly recommended** for permanent, non-expiring installation. ([TrollStore supported versions and installation guide](https://ios.cfw.guide/installing-trollstore/))
 
 ---
 
-> A short English summary of the project disclaimer, for convenience. **The authoritative text is the Chinese version in [README.md](README.md#开源项目免责声明).**
-> The app is provided as-is with no warranty of any kind; the developer is not liable for any damage from using, modifying or redistributing it. You are responsible for checking that your use is lawful where you are, and for the content any third-party plugin fetches — the app itself ships none. External contributions represent their authors only. Keep working on a plugin's source before installing it: it runs code you did not write.
+# **Open Source Disclaimer**
+
+1. **Nature of the project**
+   This is an open-source project developed and maintained independently by the author. It is provided "as is", and the developer makes no express or implied warranties regarding its completeness, stability, security, or fitness for any purpose.
+2. **Limitation of liability**
+   The developer is not liable for any direct, indirect, special, incidental, or consequential damages arising from the use, modification, or distribution of this project (including but not limited to direct use, secondary development, or integration into other projects). Such damages may include, without limitation, data loss, device damage, business interruption, loss of profits, or other economic losses.
+3. **User responsibility**
+   Users must evaluate the suitability of the project themselves and bear all risks. Users are responsible for ensuring their use complies with the laws, regulations, and ethical standards of their country or region. The developer is not responsible for any consequences of illegal or improper use.
+4. **Third-party dependencies and resources**
+   This project may depend on or reference third-party libraries, tools, services, or other resources. The developer is not responsible for the content, functionality, security, or legality of those third-party resources. Users must evaluate and bear the risks of using them.
+5. **No warranty**
+   The developer expressly disclaims all warranties, including but not limited to:
+
+- merchantability;
+- fitness for a particular purpose;
+- non-infringement of third-party rights;
+- error-free or uninterrupted operation.
+
+6. **Modification and termination**
+   The developer reserves the right to modify, suspend, or terminate the project at any time without prior notice and is not liable for any consequences.
+7. **Contributor responsibility**
+   If the project accepts external contributions, contributors act in their personal capacity and do not represent the developer's views. The developer is not responsible for contributors' actions or contributions.
+8. **Legal compliance**
+   Users must ensure their use complies with the laws and regulations of their country or region. The developer is not responsible for any consequences of non-compliance.
 
 ---
 
----
-
-## Credits
-
-| [![Sentry Logo](asset/sentry-wordmark-dark-400x119.png)](https://sentry.io/) | This project is supported by **[Sentry](https://sentry.io/)**; its Sponsored Business plan helps us catch and fix crashes faster and keep the app stable. |
-| :--- | :--- |
-
-Thanks also to **[Aidoku](https://github.com/Aidoku/Aidoku)** — the iOS / macOS image upscaling work here follows its approach and model handling.
-
-## License
-
-This project is licensed under the **Mozilla Public License 2.0** — see [LICENSE](./LICENSE).
-
-The app ships no comic content; everything is fetched by third-party plugins from their own sources. Follow the laws of your region when developing and using it.
+**Important**
+Read and understand this disclaimer before using the project. If you disagree with any part of it, stop using the project immediately. Continuing to use the project means you have read, understood, and accepted the entire disclaimer.
 
 ---
 
-**Repository**
+**Developer**
 
-- [HibernalGlow/rossi](https://github.com/HibernalGlow/rossi)
+- Developer: **[windy](https://github.com/deretame)**
+- Repository: **[Breeze](https://github.com/breeze-project-org/Breeze)**
+- Contact: **[Telegram](https://t.me/breeze_zh_cn)**
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=breeze-project-org/Breeze&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=breeze-project-org/Breeze&type=Date" />
+    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=breeze-project-org/Breeze&type=Date" />
+  </picture>
+</p>

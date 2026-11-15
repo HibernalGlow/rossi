@@ -74,38 +74,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Future<void> _fetchContributors() async {
-    final customLoader = AboutPage.debugContributorsLoader;
-    if (customLoader != null) {
-      try {
-        final data = await customLoader();
-        if (!mounted) return;
-        setState(() {
-          _contributors = data;
-          _contributorsLoading = false;
-          _contributorsError = null;
-        });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() {
-          _contributorsError = t.about.fetchFailed;
-          _contributorsLoading = false;
-        });
-      }
-      return;
-    }
-
-    // 单元/组件测试默认不走真实外网请求，避免无 Rust 桥或离线环境下悬挂。
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
-      if (!mounted) return;
-      setState(() {
-        _contributors = const [];
-        _contributorsLoading = false;
-        _contributorsError = null;
-      });
-      return;
-    }
-
-    const repoPath = '/repos/$kProjectRepo/contributors';
+    const repoPath = '/repos/breeze-project-org/Breeze/contributors';
     final urls = [
       ...mirrorBaseUrls.map((base) => '${base}https://api.github.com$repoPath'),
       'https://api.github.com$repoPath',
@@ -121,7 +90,7 @@ class _AboutPageState extends State<AboutPage> {
             },
             query: const {'per_page': 20},
           );
-          if (response.ok && mounted) {
+          if (mounted) {
             final data = response.json;
             setState(() {
               _contributors = List<Map<String, dynamic>>.from(
@@ -142,7 +111,8 @@ class _AboutPageState extends State<AboutPage> {
           _contributorsLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      logger.e(e);
       if (mounted) {
         setState(() {
           _contributorsError = t.about.networkError;
@@ -267,33 +237,61 @@ class _AboutPageState extends State<AboutPage> {
           final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
           final compact = constraints.maxWidth < 420 * scale.clamp(1.0, 1.5);
 
-          final avatar = ElasticPress(
-            enabled: animate,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                BrandAppIcon(
-                  key: const ValueKey('about-brand-icon'),
-                  size: 84,
-                  foregroundColor: scheme.primary,
-                  backgroundColor: scheme.primaryContainer,
-                  borderColor: scheme.primary.withValues(alpha: 0.28),
-                ),
-                Positioned(
-                  right: -6,
-                  bottom: -6,
-                  child: M3EShapeContainer(
-                    kind: M3EShapeKind.cookie6Sided,
-                    width: 28,
-                    height: 28,
-                    color: scheme.primary,
-                    child: Center(
-                      child: GlyphIcon(
-                        AppGlyphs.sparkle,
-                        size: 15,
-                        color: scheme.onPrimary,
+                      // --- Sections ---
+                      _buildSection(
+                        icon: "🚀",
+                        title: t.about.projectAddress,
+                        desc: t.about.projectAddressDesc,
+                        linkText: t.about.projectLink,
+                        url: "https://github.com/breeze-project-org/Breeze",
+                        delay: 200,
                       ),
-                    ),
+
+                      // --- Contributors Section ---
+                      _buildContributorsSection(),
+
+                      _buildSection(
+                        icon: "💬",
+                        title: t.about.contact,
+                        desc: t.about.contactDesc,
+                        linkText: "Telegram: @breeze_zh_cn",
+                        url: "https://t.me/breeze_zh_cn",
+                        delay: 400,
+                      ),
+                      _buildSection(
+                        icon: "🛠️",
+                        title: t.about.feedback,
+                        desc: t.about.feedbackDesc,
+                        linkText: t.about.feedbackLink,
+                        url: "https://github.com/breeze-project-org/Breeze/issues",
+                        delay: 600,
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // --- Disclaimer Button ---
+                      OutlinedButton(
+                        onPressed: _showDisclaimerDialog,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: kAccentColor,
+                          side: const BorderSide(color: kAccentColor, width: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(kBorderRadius),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        child: Text(t.about.disclaimer),
+                      ),
+                      const SizedBox(height: 50),
+                    ],
                   ),
                 ),
               ],

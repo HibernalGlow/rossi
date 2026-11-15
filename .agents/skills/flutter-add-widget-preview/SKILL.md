@@ -9,6 +9,7 @@ metadata:
 
 ## Contents
 - [Preview Guidelines](#preview-guidelines)
+- [Preview Parameters](#preview-parameters)
 - [Handling Limitations](#handling-limitations)
 - [Workflows](#workflows)
 - [Examples](#examples)
@@ -19,18 +20,32 @@ Use the Flutter Widget Previewer to render widgets in real-time, isolated from t
 
 - **Target Elements:** Apply the `@Preview` annotation to top-level functions, static methods within a class, or public widget constructors/factories that have no required arguments and return a `Widget` or `WidgetBuilder`.
 - **Imports:** Always import `package:flutter/widget_previews.dart` to access the preview annotations.
-- **Custom Annotations:** Extend the `Preview` class to create custom annotations that inject common properties (e.g., themes, wrappers) across multiple widgets.
+- **Custom Annotations:** Extend the `Preview` class to create custom annotations that inject common properties (e.g., custom themes, wrappers, sizes) across multiple widgets.
 - **Multiple Configurations:** Apply multiple `@Preview` annotations to a single target to generate multiple preview instances. Alternatively, extend `MultiPreview` to encapsulate common multi-preview configurations.
-- **Runtime Transformations:** Override the `transform()` method in custom `Preview` or `MultiPreview` classes to modify preview configurations dynamically at runtime (e.g., generating names based on dynamic values, which is impossible in a `const` context).
+- **Runtime Transformations:** Override the `transform()` method in custom `Preview` or `MultiPreview` classes to modify preview configurations dynamically at runtime (e.g., building names dynamically based on parameters, which is impossible in a `const` constructor).
+
+## Preview Parameters
+
+The `@Preview` annotation supports the following parameters for tailoring preview environments:
+
+- `name`: A descriptive name for the preview instance.
+- `group`: A name used to group related previews together in the previewer.
+- `size`: Artificial constraints using a `Size` object.
+- `textScaleFactor`: Custom font scale factor.
+- `wrapper`: A function that wraps the previewed widget in a specific widget tree (e.g., to inject state or inherited widgets).
+- `theme`: A function returning a `PreviewThemeData` subclass instance to provide custom theming with support for sequential theme layering.
+- `brightness`: The initial theme `Brightness` (`Brightness.light` or `Brightness.dark`).
+- `localizations`: A function applying a localization configuration.
 
 ## Handling Limitations
 
 Adhere to the following constraints when authoring previewable widgets, as the Widget Previewer runs in a web environment:
 
-- **No Native APIs:** Do not use native plugins or APIs from `dart:io` or `dart:ffi`. Widgets with transitive dependencies on `dart:io` or `dart:ffi` will throw exceptions upon invocation. Use conditional imports to mock or bypass these in preview mode.
+- **No Native APIs:** Do not use native plugins or APIs from `dart:io` or `dart:ffi`. Widgets with transitive dependencies on `dart:io` or `dart:ffi` will throw exceptions upon invocation. Use conditional imports or wrappers to mock or bypass these in preview mode.
 - **Asset Paths:** Use package-based paths for assets loaded via `dart:ui` `fromAsset` APIs (e.g., `packages/my_package_name/assets/my_image.png` instead of `assets/my_image.png`).
 - **Public Callbacks:** Ensure all callback arguments provided to preview annotations are public and constant to satisfy code generation requirements.
-- **Constraints:** Apply explicit constraints using the `size` parameter in the `@Preview` annotation if your widget is unconstrained, as the previewer defaults to constraining them to approximately half the viewport.
+- **Constraints:** Apply explicit constraints using the `size` parameter in the `@Preview` annotation if your widget is unconstrained, as unconstrained widgets default to roughly half the viewport.
+- **Build Caching:** The previewer caches builds in a `.widget_preview/` folder in the project root.
 
 ## Workflows
 
@@ -40,13 +55,13 @@ Copy and track this checklist when implementing a new widget preview:
 - [ ] Import `package:flutter/widget_previews.dart`.
 - [ ] Identify a valid target (top-level function, static method, or parameter-less public constructor).
 - [ ] Apply the `@Preview` annotation to the target.
-- [ ] Configure preview parameters (`name`, `group`, `size`, `theme`, `brightness`, etc.) as needed.
-- [ ] If applying the same configuration to multiple widgets, extract the configuration into a custom class extending `Preview`.
+- [ ] Configure preview parameters (`name`, `group`, `size`, `textScaleFactor`, `wrapper`, `theme`, `brightness`, `localizations`) as needed.
+- [ ] If applying the same configuration to multiple widgets, extract the configuration into a custom class extending `Preview` or `MultiPreview`.
 
 ### Interacting with Previews
 Follow the appropriate conditional workflow to launch and interact with the Widget Previewer:
 
-**If using a supported IDE (Android Studio, IntelliJ, VS Code with Flutter 3.38+):**
+**If using a supported IDE (Android Studio, IntelliJ, VS Code with Flutter 3.47+):**
 1. Launch the IDE. The Widget Previewer starts automatically.
 2. Open the "Flutter Widget Preview" tab in the sidebar.
 3. Toggle "Filter previews by selected file" at the bottom left if you want to view previews outside the currently active file.
@@ -70,45 +85,72 @@ Follow the appropriate conditional workflow to launch and interact with the Widg
 import 'package:flutter/widget_previews.dart';
 import 'package:flutter/material.dart';
 
-@Preview(name: 'My Sample Text', group: 'Typography')
-Widget mySampleText() {
-  return const Text('Hello, World!');
-}
+@Preview(name: 'Submit Button', group: 'Form Controls')
+Widget submitButtonPreview() => const ElevatedButton(
+      onPressed: null,
+      child: Text('Submit'),
+    );
 ```
 
-### Custom Preview with Runtime Transformation
+### Custom Preview with PreviewThemeData and Transformation
 ```dart
 import 'package:flutter/widget_previews.dart';
 import 'package:flutter/material.dart';
 
-final class TransformativePreview extends Preview {
-  const TransformativePreview({
+final class ThemedPreview extends Preview {
+  const ThemedPreview({
     super.name,
     super.group,
+    super.brightness,
   });
 
-  PreviewThemeData _themeBuilder() {
-    return PreviewThemeData(
-      materialLight: ThemeData.light(),
-      materialDark: ThemeData.dark(),
-    );
-  }
+  PreviewThemeData _themeBuilder() =>
+      CustomThemeData(brightness: brightness);
 
   @override
   Preview transform() {
     final originalPreview = super.transform();
-    final builder = originalPreview.toBuilder();
+    final themeVariant = switch (brightness) {
+      null => 'Responsive',
+      final b => b.name,
+    };
 
+    final builder = originalPreview.toBuilder();
+    final baseName = originalPreview.name ?? 'Preview';
     builder
-      ..name = 'Transformed - ${originalPreview.name}'
+      ..name = '$baseName [$themeVariant]'
       ..theme = _themeBuilder;
 
-    return builder.toPreview();
+    return builder.build();
   }
 }
 
-@TransformativePreview(name: 'Custom Themed Button')
-Widget myButton() => const ElevatedButton(onPressed: null, child: Text('Click'));
+final class CustomThemeData extends PreviewThemeData {
+  const CustomThemeData({this.brightness});
+
+  final Brightness? brightness;
+
+  @override
+  Widget apply(BuildContext context, Widget child) {
+    return Theme(
+      data: ThemeData.from(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: brightness ??
+              MediaQuery.maybePlatformBrightnessOf(context) ??
+              Brightness.light,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+@ThemedPreview(name: 'Themed Action Button', brightness: Brightness.dark)
+Widget themedButtonPreview() => const ElevatedButton(
+      onPressed: null,
+      child: Text('Action'),
+    );
 ```
 
 ### MultiPreview Implementation
@@ -141,5 +183,10 @@ final class MultiBrightnessPreview extends MultiPreview {
 }
 
 @MultiBrightnessPreview(name: 'Primary Card')
-Widget cardPreview() => const Card(child: Padding(padding: EdgeInsets.all(8.0), child: Text('Content')));
+Widget cardPreview() => const Card(
+      child: Padding(
+        padding: EdgeInsets.all(8.0),
+        child: Text('Content'),
+      ),
+    );
 ```

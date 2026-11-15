@@ -9,7 +9,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
-import 'package:zephyr/platform/desktop/native_window.dart';
+import 'package:zephyr/platform/desktop/desktop_window.dart';
 
 bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
@@ -48,8 +48,11 @@ class WindowLogic {
     if (!isDesktop) {
       return;
     }
-    // 必须先确保绑定初始化
-    await windowManager.ensureInitialized();
+    final window = mainWindow;
+    if (window == null) {
+      logger.w('initWindow: 主窗口尚未就绪，跳过窗口初始化');
+      return;
+    }
     if (!context.mounted) return;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     final state = globalSettingCubit.state;
@@ -74,33 +77,25 @@ class WindowLogic {
       'initWindow: $width x $height @ $savedX,$savedY (valid=$isPositionValid), maximized=$wasMaximized',
     );
 
-    WindowOptions windowOptions = WindowOptions(
-      size: Size(width, height),
-      center: !isPositionValid,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden,
-    );
-
-    // 等待窗口准备好再显示
-    await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      // 先设置位置（窗口此时还不可见），再 show，避免闪烁跳动
-      if (isPositionValid) {
-        await windowManager.setPosition(Offset(savedX, savedY));
-      }
-      if (wasMaximized) {
-        await windowManager.maximize();
-      }
-      // 等 Flutter 的加载页完成首帧再显示原生窗口，避免用户先看到一片黑。
-      await WidgetsBinding.instance.endOfFrame;
-      await windowManager.show();
-      await windowManager.focus();
-
-      // 窗口可见后缓存 HWND，供同步操作使用
-      if (Platform.isWindows) {
-        NativeWindow.init();
-      }
-    });
+    // runner 用 CreateWindow 创建的是隐藏窗口（没有 WS_VISIBLE），
+    // FlutterWindow::OnCreate 的 SetNextFrameCallback 也是空的；真正 show 的是
+    // 这里的 window.show()。先把尺寸/位置/最大化摆好再 show，避免闪烁跳动。
+    window.titleBarStyle = TitleBarStyle.hidden;
+    window.isWindowControlButtonsVisible = true;
+    window.backgroundColor = Colors.transparent.toNative();
+    window.isVisibleInTaskbar = true;
+    window.setSize(Size(width, height).toNative(), false);
+    // 先设置位置（窗口此时还不可见），再 show，避免闪烁跳动
+    if (isPositionValid) {
+      window.position = Offset(savedX, savedY).toNative();
+    } else {
+      window.center();
+    }
+    if (wasMaximized) {
+      window.maximize();
+    }
+    window.show();
+    window.focus();
   }
 
   /// 保存当前窗口状态
@@ -124,21 +119,24 @@ class WindowLogic {
       return;
     }
 
+    final window = mainWindow;
+    if (window == null) return;
+
     if (!context.mounted) return;
     final globalSettingCubit = context.read<GlobalSettingCubit>();
     // 窗口最小化时，Windows、macOS 和 Linux 可能会返回虚拟的屏幕外坐标。
     // 直接跳过保存，保留最近一次正常窗口状态，避免下次启动窗口跑到屏幕外。
-    if (await windowManager.isMinimized()) return;
+    if (window.isMinimized) return;
 
-    final maximized = await windowManager.isMaximized();
+    final maximized = window.isMaximized;
     await _saveWindowMaximized(maximized);
     final current = globalSettingCubit.state;
     final size = maximized
         ? Size(current.windowWidth, current.windowHeight)
-        : await windowManager.getSize();
+        : window.size.toSize();
     final pos = maximized
         ? Offset(current.windowX, current.windowY)
-        : await windowManager.getPosition();
+        : window.position.toOffset();
 
     globalSettingCubit.updateState(
       (current) => current.copyWith(
@@ -172,21 +170,13 @@ class WindowLogic {
 
     try {
       final windowRect = Rect.fromLTWH(x, y, width, height);
-      final displays = await screenRetriever.getAllDisplays();
+      final displays = DisplayManager.instance.getAll();
       return displays.any((display) {
-        final visiblePosition = display.visiblePosition;
-        final visibleSize = display.visibleSize ?? display.size;
-        if (visiblePosition == null ||
-            visibleSize.width <= 0 ||
-            visibleSize.height <= 0) {
+        // workArea 即去掉任务栏/菜单栏后的可见区域。
+        final visibleRect = display.workArea.toRect();
+        if (visibleRect.width <= 0 || visibleRect.height <= 0) {
           return false;
         }
-        final visibleRect = Rect.fromLTWH(
-          visiblePosition.dx,
-          visiblePosition.dy,
-          visibleSize.width,
-          visibleSize.height,
-        );
         return visibleRect.contains(windowRect.center);
       });
     } catch (error, stackTrace) {

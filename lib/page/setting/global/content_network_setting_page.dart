@@ -3,10 +3,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/page/setting/global/widgets.dart';
-import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/util/network_policy.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/icons/icons.dart';
 
@@ -97,33 +98,86 @@ class ContentNetworkSettingPage extends StatelessWidget {
               ),
             ],
           ),
-          SettingSectionCard(
-            title: t.settings.network,
-            icon: AppGlyphs.wifi,
-            children: [
-              proxyToggle(
-                context,
-                enabled: state.proxySetting.enabled,
-                type: state.proxySetting.type,
-                currentProxy: state.proxySetting.address,
-              ),
-              SettingGroup.switchTile(
-                leading: const GlyphIcon(AppGlyphs.download),
-                title: Text(t.settings.retryDownloadUntilSuccess),
-                subtitle: Text(t.settings.retryDownloadUntilSuccessSubtitle),
-                value: state.retryDownloadUntilSuccess,
-                onChanged: (value) {
-                  cubit.updateState(
-                    (current) =>
-                        current.copyWith(retryDownloadUntilSuccess: value),
-                  );
-                },
-              ),
-              // _updateAccelerate(state, cubit),
-            ],
+          editMaskedKeywords(context),
+          if (state.showSearchBookmark) _searchBookmarkProbePages(state, cubit),
+          _chineseConvertMode(state, cubit),
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 0.3),
+          settingSectionTitle(
+            context,
+            t.settings.network,
+            icon: Icons.wifi_outlined,
           ),
+          proxyToggle(
+            context,
+            enabled: state.proxySetting.enabled,
+            type: state.proxySetting.type,
+            currentProxy: state.proxySetting.address,
+          ),
+          settingCategoryTile(
+            icon: Icons.dns_outlined,
+            title: t.settings.doh,
+            subtitle: state.dohSetting.enabled
+                ? t.settings.dohProviderCount(
+                    count: state.dohSetting.providers.length,
+                  )
+                : t.common.disabled,
+            onTap: () => context.pushRoute(const DohSettingRoute()),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.lan_outlined),
+            title: Text(t.settings.blockPrivateNetwork),
+            subtitle: Text(t.settings.blockPrivateNetworkSubtitle),
+            thumbIcon: kSettingSwitchThumbIcon,
+            value: state.blockPrivateNetwork,
+            onChanged: (value) {
+              cubit.updateState(
+                (current) => current.copyWith(blockPrivateNetwork: value),
+              );
+              // 立刻生效：配置变更会同步到已加载的插件。
+              applyPrivateNetworkPolicy(blockPrivateNetwork: value);
+            },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.download_outlined),
+            title: Text(t.settings.retryDownloadUntilSuccess),
+            subtitle: Text(t.settings.retryDownloadUntilSuccessSubtitle),
+            thumbIcon: kSettingSwitchThumbIcon,
+            value: state.retryDownloadUntilSuccess,
+            onChanged: (value) {
+              cubit.updateState(
+                (current) => current.copyWith(retryDownloadUntilSuccess: value),
+              );
+            },
+          ),
+          // _updateAccelerate(state, cubit),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  Widget _searchBookmarkProbePages(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    const options = [0, 1, 2, 3, 5];
+    final current = options.contains(state.searchBookmarkProbePages)
+        ? state.searchBookmarkProbePages
+        : 3;
+    return ListTile(
+      leading: const Icon(Icons.manage_search_outlined),
+      title: Text(t.searchBookmark.probePages),
+      subtitle: Text(t.searchBookmark.probePagesSubtitle),
+      trailing: FluentDropdown<int>(
+        value: current,
+        displayValue: '$current',
+        items: {for (final v in options) v: '$v'},
+        onChanged: (int value) {
+          cubit.updateState(
+            (current) => current.copyWith(searchBookmarkProbePages: value),
+          );
+        },
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:zephyr/plugin/plugin_registry_service.dart';
 import 'package:zephyr/plugin/source_visibility.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/main.dart';
 
 /// Discover 页状态：插件列表 + 全局 info 快照引用 + 开关状态。
 ///
@@ -46,7 +47,10 @@ class DiscoverCubit extends Cubit<DiscoverState> {
   }) : _service = service ?? PluginRegistryService.I,
        super(
          DiscoverState(
-           plugins: _visiblePlugins(registry.state.plugins),
+           plugins: _visiblePlugins(
+             service ?? PluginRegistryService.I,
+             registry.state.plugins,
+           ),
            infos: _withDbFallback(
              service ?? PluginRegistryService.I,
              registry.state.infos,
@@ -60,7 +64,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
       }
       emit(
         state.copyWith(
-          plugins: _visiblePlugins(registryState.plugins),
+          plugins: _visiblePlugins(_service, registryState.plugins),
           infos: _withDbFallback(_service, registryState.infos),
           infoErrors: registryState.infoErrors,
         ),
@@ -75,7 +79,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     Map<String, Map<String, dynamic>> infos,
   ) {
     final merged = Map<String, Map<String, dynamic>>.from(infos);
-    for (final uuid in _visiblePlugins(service.snapshot).keys) {
+    for (final uuid in _visiblePlugins(service, service.snapshot).keys) {
       if (!merged.containsKey(uuid)) {
         final cached = service.getCachedPluginInfo(uuid);
         if (cached != null) {
@@ -86,15 +90,17 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     return merged;
   }
 
-  /// 已删除的不显示（逻辑删除后立即消失）。以前在 _syncPluginsAndLoad 里过滤，
-  /// 改全局化时漏了，导致已删插件残留成无限加载。
+  /// 已删除的不显示（逻辑删除后立即消失）。e826 全局化重构时把旧
+  /// _syncPluginsAndLoad 里的 sortPlugins 弄丢了，这里补回：按用户自定义
+  /// 顺序排，未排序的回退安装时间（与排序弹窗/搜索/书架一致）。
   static Map<String, PluginRuntimeState> _visiblePlugins(
+    PluginRegistryService service,
     Map<String, PluginRuntimeState> all,
   ) {
-    return {
-      for (final entry in all.entries)
-        if (!entry.value.isDeleted) entry.key: entry.value,
-    };
+    final sorted = service.sortPlugins(
+      all.values.where((plugin) => !plugin.isDeleted),
+    );
+    return {for (final plugin in sorted) plugin.uuid: plugin};
   }
 
   late final StreamSubscription<PluginRegistryState> _registrySubscription;
@@ -133,6 +139,7 @@ class DiscoverCubit extends Cubit<DiscoverState> {
     try {
       await _service.setEnabled(uuid, enabled);
     } catch (e) {
+      logger.e(e);
       showErrorToast(
         enabled
             ? t.discover.pluginEnableFailed(error: e)

@@ -5,12 +5,12 @@ use dashmap::DashMap;
 use ferrous_opencc::{OpenCC, config::BuiltinConfig};
 use flutter_rust_bridge::DartFnFuture;
 use rquickjs_playground::{
-    AsyncHostRuntime, AsyncHostRuntimeBuilder, BridgeRuntimeConfig, HttpClientConfig,
-    WebRuntimeOptions, configure_bridge_runtime as configure_bridge_runtime_global,
-    configure_http_client, configure_js_error_stack, configure_log_http_endpoint,
-    current_http_client_config, is_http_requests_blocked as is_http_requests_blocked_global,
-    js_error_stack_enabled, register_bridge_route_async_handler,
-    register_bridge_route_blocking_handler, register_bridge_route_sync_handler,
+    AsyncHostRuntime, AsyncHostRuntimeBuilder, BridgeRuntimeConfig, WebRuntimeOptions,
+    configure_bridge_runtime as configure_bridge_runtime_global, configure_http_client,
+    configure_js_error_stack, configure_log_http_endpoint, current_http_client_config,
+    is_http_requests_blocked as is_http_requests_blocked_global, js_error_stack_enabled,
+    register_bridge_route_async_handler, register_bridge_route_blocking_handler,
+    register_bridge_route_sync_handler,
     set_http_requests_blocked as set_http_requests_blocked_global, wrap_http_client,
 };
 use serde::{Deserialize, Serialize};
@@ -704,6 +704,9 @@ async fn create_qjs_runtime_with_options(
 ) -> Result<AsyncHostRuntime> {
     let runtime = AsyncHostRuntimeBuilder::new(runtime_name)
         .filesystem(options.fs)
+        // 跟随全局配置：用户改代理 / 改内网策略后，已加载的插件立刻生效，
+        // 不需要重建 runtime。
+        .follow_global_http_config(true)
         .build()
         .map_err(|err: String| anyhow!(err))?;
     let init_script = r#"(async () => {
@@ -1566,15 +1569,21 @@ pub async fn qjs_cancel_tasks_by_group(
 }
 
 pub fn set_http_proxy(proxy: String) -> Result<()> {
-    configure_http_client(HttpClientConfig {
-        use_http_proxy: true,
-        use_socks5_proxy: false,
-        http_proxy: Some(proxy),
-        socks5_proxy: None,
-        disable_tls_verify: true,
-        allow_private_network: false,
-    })
-    .map_err(|err| anyhow!("设置 http 代理失败: {err}"))
+    // 与 `set_socks5_proxy` 保持一致：只改代理相关字段，其它设置（TLS 校验、
+    // 内网策略）保持用户当前值。以前这里硬编码 `disable_tls_verify: true` /
+    // `allow_private_network: false`，设个代理会顺手把这两项覆盖掉。
+    let mut config = current_http_client_config();
+    let proxy = proxy.trim();
+    if proxy.is_empty() {
+        config.use_http_proxy = false;
+        config.http_proxy = None;
+    } else {
+        config.use_http_proxy = true;
+        config.http_proxy = Some(proxy.to_string());
+        config.use_socks5_proxy = false;
+        config.socks5_proxy = None;
+    }
+    configure_http_client(config).map_err(|err| anyhow!("设置 http 代理失败: {err}"))
 }
 
 pub fn set_socks5_proxy(proxy: String) -> Result<()> {
@@ -1592,10 +1601,39 @@ pub fn set_socks5_proxy(proxy: String) -> Result<()> {
     configure_http_client(config).map_err(|err| anyhow!("设置 socks5 代理失败: {err}"))
 }
 
+/// 设置 DoH（DNS over HTTPS）。
+///
+/// `providers` 是完整端点 URL 列表（例如 `https://doh.pub/dns-query`）。
+/// 开启且有端点时，普通 HTTP 请求与 ECH 引导都会用 DoH 解析，与是否配置代理无关。
+pub fn set_doh_config(enabled: bool, providers: Vec<String>) -> Result<()> {
+    let mut config = current_http_client_config();
+    config.doh_enabled = enabled;
+    config.doh_providers = providers
+        .into_iter()
+        .map(|url| url.trim().to_string())
+        .filter(|url| !url.is_empty())
+        .collect();
+    configure_http_client(config).map_err(|err| anyhow!("设置 DoH 失败: {err}"))
+}
+
 pub fn set_tls_verify_enabled(enabled: bool) -> Result<()> {
     let mut config = current_http_client_config();
     config.disable_tls_verify = !enabled;
     configure_http_client(config).map_err(|err| anyhow!("设置 TLS 校验开关失败: {err}"))
+}
+
+/// 设置是否允许访问内网 / 保留地址段。
+///
+/// `true` 放行（默认），`false` 拦截。与 `set_tls_verify_enabled` 一样只改这一个
+/// 字段，配置变更会通过代际机制立刻同步到已加载的插件。
+pub fn set_allow_private_network(enabled: bool) -> Result<()> {
+    let mut config = current_http_client_config();
+    config.allow_private_network = enabled;
+    configure_http_client(config).map_err(|err| anyhow!("设置内网访问开关失败: {err}"))
+}
+
+pub fn is_allow_private_network() -> bool {
+    current_http_client_config().allow_private_network
 }
 
 pub fn set_http_requests_blocked(blocked: bool) -> Result<()> {
@@ -1817,6 +1855,7 @@ mod tests {
     };
     use ciborium::de::from_reader;
     use image::{DynamicImage, ImageFormat, RgbaImage};
+    use rquickjs_playground::{configure_http_client, current_http_client_config};
     use serde_json::{Value, json};
     use std::io::{Cursor, Read, Write};
     use std::net::TcpListener;
@@ -1824,10 +1863,40 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{
-        configure_http_client, current_http_client_config, init_rust_functions, qjs_drop_runtime,
-        qjs_fetch_image, qjs_task_call,
+        init_rust_functions, qjs_drop_runtime, qjs_fetch_image, qjs_task_call, set_http_proxy,
     };
     use rquickjs_playground::HttpClientConfig;
+
+    /// 设置代理只能改代理相关字段，不能顺手覆盖 TLS 校验 / 内网策略。
+    #[test]
+    fn set_http_proxy_preserves_unrelated_config() {
+        let _guard = crate::HTTP_CONFIG_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let previous = current_http_client_config();
+
+        let mut seeded = previous.clone();
+        seeded.disable_tls_verify = true;
+        seeded.allow_private_network = true;
+        configure_http_client(seeded).expect("seed http config");
+
+        set_http_proxy("http://127.0.0.1:7890".to_string()).expect("set http proxy");
+        let after = current_http_client_config();
+        assert!(after.use_http_proxy);
+        assert_eq!(after.http_proxy.as_deref(), Some("http://127.0.0.1:7890"));
+        assert!(after.disable_tls_verify, "TLS 校验设置被覆盖了");
+        assert!(after.allow_private_network, "内网策略被覆盖了");
+
+        // 空地址等于关闭代理，同样不能动其它字段。
+        set_http_proxy(String::new()).expect("clear http proxy");
+        let cleared = current_http_client_config();
+        assert!(!cleared.use_http_proxy);
+        assert!(cleared.http_proxy.is_none());
+        assert!(cleared.disable_tls_verify);
+        assert!(cleared.allow_private_network);
+
+        configure_http_client(previous).expect("restore http config");
+    }
 
     #[test]
     fn opencc_convert_caches_converters_and_rejects_bad_config() {
@@ -1885,6 +1954,9 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    // 全局 HTTP 配置必须在整个请求期间保持被改写状态（客户端是调用时按配置建的），
+    // 所以这把测试串行锁确实要跨 await 持有。
+    #[allow(clippy::await_holding_lock)]
     async fn qjs_fetch_image_should_forward_reqwest_404_to_result() {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind local HTTP test server");
         listener
@@ -1934,6 +2006,9 @@ mod tests {
             }
         });
 
+        let _config_guard = crate::HTTP_CONFIG_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let previous_config = current_http_client_config();
         let test_config = HttpClientConfig {
             use_http_proxy: false,
@@ -1942,6 +2017,8 @@ mod tests {
             socks5_proxy: None,
             disable_tls_verify: previous_config.disable_tls_verify,
             allow_private_network: true,
+            doh_enabled: false,
+            doh_providers: Vec::new(),
         };
         configure_http_client(test_config.clone()).expect("configure local HTTP test client");
 

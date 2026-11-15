@@ -12,7 +12,7 @@ import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/picture_bloc/bloc/picture_bloc.dart';
 import 'package:zephyr/icons/icons.dart';
 
-class Cover extends StatelessWidget {
+class Cover extends StatefulWidget {
   final PictureInfo pictureInfo;
   final double height;
   final double borderRadius;
@@ -27,15 +27,50 @@ class Cover extends StatelessWidget {
   });
 
   @override
+  State<Cover> createState() => _CoverState();
+}
+
+class _CoverState extends State<Cover> {
+  late final PictureBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = PictureBloc()..add(GetPicture(widget.pictureInfo));
+  }
+
+  @override
+  void didUpdateWidget(covariant Cover oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldInfo = oldWidget.pictureInfo;
+    final nextInfo = widget.pictureInfo;
+    if (oldInfo.from != nextInfo.from ||
+        oldInfo.cartoonId != nextInfo.cartoonId ||
+        oldInfo.path != nextInfo.path ||
+        oldInfo.url != nextInfo.url ||
+        oldInfo.chapterId != nextInfo.chapterId ||
+        oldInfo.pictureType != nextInfo.pictureType) {
+      // 详情页编辑返回后封面路径会变；复用同一个 bloc，但必须发新请求。
+      _bloc.add(GetPicture(nextInfo));
+    }
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final width = height / 4 * 3;
-    final radius = BorderRadius.circular(borderRadius);
+    final width = widget.height / 4 * 3;
+    final radius = BorderRadius.circular(widget.borderRadius);
 
     return SizedBox(
-      height: height,
+      height: widget.height,
       width: width,
-      child: BlocProvider(
-        create: (context) => PictureBloc()..add(GetPicture(pictureInfo)),
+      child: BlocProvider.value(
+        value: _bloc,
         child: BlocBuilder<PictureBloc, PictureLoadState>(
           builder: (context, state) {
             switch (state.status) {
@@ -59,7 +94,7 @@ class Cover extends StatelessWidget {
               case PictureLoadStatus.success:
                 return InkWell(
                   onTap:
-                      onTap ??
+                      widget.onTap ??
                       () {
                         context.pushRoute(
                           FullRouteImageRoute(imagePath: state.imagePath!),
@@ -67,13 +102,11 @@ class Cover extends StatelessWidget {
                       },
                   child: ClipRRect(
                     borderRadius: radius,
-                    child: ImageSleep(
-                      child: Image.file(
-                        File(state.imagePath!),
-                        fit: BoxFit.cover,
-                        width: width,
-                        height: height,
-                      ),
+                    child: Image.file(
+                      File(state.imagePath!),
+                      fit: BoxFit.cover,
+                      width: width,
+                      height: widget.height,
                     ),
                   ),
                 );
@@ -89,7 +122,9 @@ class Cover extends StatelessWidget {
                 } else {
                   return InkWell(
                     onTap: () {
-                      context.read<PictureBloc>().add(GetPicture(pictureInfo));
+                      context.read<PictureBloc>().add(
+                        GetPicture(widget.pictureInfo),
+                      );
                     },
                     child: DecoratedBox(
                       decoration: BoxDecoration(

@@ -420,12 +420,20 @@ mod tests {
 
     #[tokio::test]
     async fn fetch_example_com() {
-        let client = HttpClient::create(Some(HttpClientOptions {
-            no_proxy: Some(true),
-            timeout_ms: Some(15_000),
-            ..Default::default()
-        }))
-        .expect("create client");
+        // 建客户端会读全局 HTTP 配置，必须避开正在改它的用例。
+        // 只在建客户端期间持锁：配置是建客户端那一刻读的，请求阶段不再读，
+        // 所以锁不需要跨 await。
+        let client = {
+            let _guard = crate::HTTP_CONFIG_TEST_LOCK
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            HttpClient::create(Some(HttpClientOptions {
+                no_proxy: Some(true),
+                timeout_ms: Some(15_000),
+                ..Default::default()
+            }))
+            .expect("create client")
+        };
 
         let response = client
             .fetch("https://example.com".into(), None)

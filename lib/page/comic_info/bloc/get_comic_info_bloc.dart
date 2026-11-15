@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
-import 'package:stream_transform/stream_transform.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
@@ -18,20 +17,10 @@ import 'package:zephyr/util/error_filter.dart';
 export 'package:zephyr/page/comic_info/bloc/get_comic_info_event.dart';
 export 'package:zephyr/page/comic_info/bloc/get_comic_info_state.dart';
 
-const _throttleDuration = Duration(milliseconds: 100);
-
-EventTransformer<E> _throttleDroppable<E>(Duration duration) {
-  return (events, mapper) {
-    return droppable<E>().call(events.throttle(duration), mapper);
-  };
-}
-
 class GetComicInfoBloc extends Bloc<GetComicInfoEvent, GetComicInfoState> {
   GetComicInfoBloc() : super(const GetComicInfoState()) {
-    on<GetComicInfoEvent>(
-      _fetchComicInfo,
-      transformer: _throttleDroppable(_throttleDuration),
-    );
+    // 编辑返回后的刷新必须生效；最新一次请求覆盖旧结果。
+    on<GetComicInfoEvent>(_fetchComicInfo, transformer: restartable());
   }
 
   Future<void> _fetchComicInfo(

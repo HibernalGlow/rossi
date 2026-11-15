@@ -2,7 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/cubit/string_select.dart';
-import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/objectbox.g.dart';
 import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
@@ -17,6 +16,8 @@ import 'package:zephyr/config/router/router.gr.dart' show ComicReadRoute;
 import 'package:zephyr/service/reader/shelf_book_navigation.dart';
 
 import 'package:zephyr/page/comic_info/models/read_launch_adapter.dart';
+import 'package:zephyr/main.dart';
+import 'package:zephyr/widgets/toast.dart';
 
 /// 从详情页的「开始阅读」进阅读器。
 ///
@@ -29,40 +30,27 @@ void goToComicRead(
   String comicId,
   ComicEntryType type,
   dynamic allInfo,
-  String from, [
-  String? navigationToken,
-]) {
-  pushComicReadRoute(
-    context,
-    allInfo: allInfo,
-    comicId: comicId,
-    from: from,
-    isDownload:
-        type == ComicEntryType.download ||
-        type == ComicEntryType.historyAndDownload,
-    hasHistory: context.read<StringSelectCubit>().state.isNotEmpty,
-    stringSelectCubit: context.read<StringSelectCubit>(),
-    navigationToken: navigationToken,
-  );
+  String from,
+) {
+  try {
+    _goToComicRead(context, comicId, type, allInfo, from);
+  } catch (e) {
+    // 插件详情数据异常时不要让点击无反应，也不要冒到 FlutterError。
+    logger.e(e);
+    showErrorToast(e.toString());
+  }
 }
 
-/// 起读的唯一解析口径：章节目录、续读章节、eps 数、路由参数都在这里算一次。
-///
-/// [allInfo] 可以是插件详情（`PluginComicDetailSource`）或下载记录
-/// （`UnifiedComicDownload`），两者的章节解析都由
-/// [resolveUnifiedComicChapters] 负责，所以两条路的续读语义完全一致。
-/// 在线入口还会统一查库：目标章节已下载就直接读本地，见下面的 `readInfo` 分支。
-void pushComicReadRoute(
-  BuildContext context, {
-  required dynamic allInfo,
-  required String comicId,
-  required String from,
-  required bool isDownload,
-  required bool hasHistory,
-  required StringSelectCubit stringSelectCubit,
-  String? navigationToken,
-  bool replaceCurrent = false,
-}) {
+void _goToComicRead(
+  BuildContext context,
+  String comicId,
+  ComicEntryType type,
+  dynamic allInfo,
+  String from,
+) {
+  final isDownload =
+      type == ComicEntryType.download ||
+      type == ComicEntryType.historyAndDownload;
   final historyForChapter = objectbox.unifiedHistoryBox
       .query(UnifiedComicHistory_.uniqueKey.equals('$from:$comicId'))
       .build()

@@ -4,22 +4,8 @@ import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
 import 'package:zephyr/page/comic_read/method/image_header_size.dart';
 import 'package:zephyr/page/comic_read/widgets/layout/read_layout.dart';
-
-/// 本地路径解析缝：默认走 `findCachedPicturePath`，测试注入一个能计数的假解析器。
-typedef CachedPicturePathResolver =
-    Future<String> Function({
-      required String from,
-      required String path,
-      required String cartoonId,
-      required String chapterId,
-      required String storageChapterId,
-    });
-
-/// 攒够几页命中就发一次通知。
-///
-/// 太小（1）等于回到逐页 emit；太大则高度铺得太晚，自动滚动的跳动窗口变宽。
-/// 8 页 ≈ 一屏多一点，批与批之间还能让出帧。
-const int _prefetchFlushBatch = 8;
+import 'package:zephyr/type/enum.dart';
+import 'package:zephyr/main.dart';
 
 /// 后台预解析章节图片尺寸并写入 [ImageSizeCubit]。
 ///
@@ -94,13 +80,10 @@ Future<void> prefetchChapterImageSizes({
 
       // 与 ImageDisplay 上报保持一致：存渲染宽度 + 等比高度。
       final displayHeight = contentWidth * (rawSize.height / rawSize.width);
-      pending[cacheIndex] = Size(contentWidth, displayHeight);
-      if (pending.length >= _prefetchFlushBatch) {
-        imageSizeCubit.updateSizes(pending);
-        pending.clear();
-      }
-    } catch (_) {
-      // 单张失败不影响其余图片；坑已占，本会话不再重试这一页。
+      imageSizeCubit.updateSize(cacheIndex, Size(contentWidth, displayHeight));
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
+      // 单张失败不影响其余图片。
     }
   }
 

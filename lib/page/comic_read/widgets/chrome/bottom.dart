@@ -48,7 +48,7 @@ class BottomWidget extends StatefulWidget {
   final String from;
   final JumpChapter jumpChapter;
   final ValueChanged<bool>? onLandscapeChanged;
-  final ValueChanged<int>? onJumpToSlot;
+  final ValueChanged<bool>? onDoublePageModeChanged;
 
   const BottomWidget({
     super.key,
@@ -61,7 +61,7 @@ class BottomWidget extends StatefulWidget {
     required this.from,
     required this.jumpChapter,
     this.onLandscapeChanged,
-    this.onJumpToSlot,
+    this.onDoublePageModeChanged,
   });
 
   @override
@@ -296,6 +296,7 @@ class _BottomWidgetState extends State<BottomWidget> {
         readerCubit.updateSliderChanged(0.0);
       },
       onLandscapeChanged: widget.onLandscapeChanged,
+      onDoublePageModeChanged: widget.onDoublePageModeChanged,
       source: widget.from,
       comicId: widget.comicId,
     );

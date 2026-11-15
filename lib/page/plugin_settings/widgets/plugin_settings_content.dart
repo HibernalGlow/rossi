@@ -317,9 +317,9 @@ class PluginSettingsContent extends StatelessWidget {
       from: from,
       avatarUrl: asJsonMap(state.userInfo['avatar'])['url']?.toString() ?? '',
       avatarPath: asJsonMap(state.userInfo['avatar'])['path']?.toString() ?? '',
-      lines: asJsonList(
-        state.userInfo['lines'],
-      ).map((item) => item?.toString() ?? '').toList(),
+      lines: asJsonList(state.userInfo['lines'])
+          .map((item) => item?.toString() ?? '')
+          .toList(),
     );
   }
 

@@ -119,9 +119,9 @@ class FavoriteWorkflowInput {
       createField: createFieldJson == null
           ? null
           : FavoriteWorkflowField.fromJson(createFieldJson),
-      fields: _readMaps(
-        json['fields'],
-      ).map(FavoriteWorkflowField.fromJson).toList(growable: false),
+      fields: _readMaps(json['fields'])
+          .map(FavoriteWorkflowField.fromJson)
+          .toList(growable: false),
     );
   }
 

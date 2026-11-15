@@ -759,18 +759,24 @@ Map<String, Map<String, dynamic>> _extractSyncableSettingsBlocks(
 ) {
   final json = _materializeJsonMap(state.toJson());
   return <String, Map<String, dynamic>>{
-    // 表驱动：想同步一个字段只在 `_settingsBlockKeys` 里加一个键，
-    // 抽块与应用两侧自动同时生效（从前是两份手工列表，漏改一边会得到
-    // 「上传带上去了、下载却不生效」）。
-    for (final entry in _settingsBlockKeys.entries)
-      entry.key: <String, dynamic>{
-        for (final key in entry.value)
-          if (json.containsKey(key))
-            key: _stripNestedExclusions(key, json[key]),
-      },
-    // reader 块的载荷形状是**冻结**的：老版本直接拿整个 `readSetting` 对象当块数据。
-    // 详见 `_settingsBlockKeys` 上那段说明 —— 统一成顶层键映射会让旧客户端
-    // 把所有阅读设置静默读成默认值。
+    _appearanceBlockName: <String, dynamic>{
+      'dynamicColor': json['dynamicColor'],
+      'themeMode': json['themeMode'],
+      'isAMOLED': json['isAMOLED'],
+      'seedColor': json['seedColor'],
+      'locale': json['locale'],
+      'showPluginHome': json['showPluginHome'],
+      'showPluginCloudFavorite': json['showPluginCloudFavorite'],
+      'welcomePageNum': json['welcomePageNum'],
+    },
+    _libraryBlockName: <String, dynamic>{
+      'maskedKeywords': json['maskedKeywords'],
+      'comicChoice': json['comicChoice'],
+      'disableBika': json['disableBika'],
+      'updateAccelerate': json['updateAccelerate'],
+      'retryDownloadUntilSuccess': json['retryDownloadUntilSuccess'],
+      'searchHistory': json['searchHistory'],
+    },
     _readerBlockName: _toJsonMap(json['readSetting']),
   };
 }

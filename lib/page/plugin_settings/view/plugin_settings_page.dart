@@ -535,6 +535,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       }
       showSuccessToast(updated ? t.plugin.syncSuccess : t.plugin.alreadyLatest);
     } catch (e) {
+      logger.e(e);
       showErrorToast(
         t.plugin.syncFailed(error: normalizePluginInstallErrorMessage(e)),
       );
@@ -601,6 +602,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       }
       showSuccessToast(message.isNotEmpty ? message : t.plugin.updateSuccess);
     } catch (e) {
+      logger.e(e);
       showErrorToast(
         t.plugin.updateFailed(error: normalizePluginInstallErrorMessage(e)),
       );
@@ -655,6 +657,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
       }
       showSuccessToast(message.isNotEmpty ? message : t.plugin.updateSuccess);
     } catch (e) {
+      logger.e(e);
       showErrorToast(
         t.plugin.updateFailed(error: normalizePluginInstallErrorMessage(e)),
       );
@@ -685,6 +688,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
         deleteRelatedData: deleteRelatedData,
       );
     } catch (e) {
+      logger.e(e);
       if (!mounted) {
         return;
       }
@@ -726,6 +730,7 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
         this.context.router.push(LoginRoute(from: widget.from));
       }
     } catch (e) {
+      logger.e(e);
       showErrorToast(t.plugin.executeFailed(error: e.toString()));
     }
   }
@@ -736,21 +741,29 @@ class _PluginSettingsPageViewState extends State<_PluginSettingsPageView> {
     final persist = field['persist'] != false;
     var startedWebLogin = false;
 
-    if (fnPath.isNotEmpty) {
-      final result = await callUnifiedComicPlugin(
-        from: widget.from,
-        fnPath: fnPath,
-        core: {'key': key, 'value': value},
-        extern: const <String, dynamic>{},
-      );
-      startedWebLogin = await _maybeHandleWebLoginResult(result);
-    }
+    try {
+      if (fnPath.isNotEmpty) {
+        final result = await callUnifiedComicPlugin(
+          from: widget.from,
+          fnPath: fnPath,
+          core: {'key': key, 'value': value},
+          extern: const <String, dynamic>{},
+        );
+        startedWebLogin = await _maybeHandleWebLoginResult(result);
+      }
 
-    if (persist && key.isNotEmpty) {
-      await savePluginConfigValue(widget.pluginRuntimeName, key, value);
-    }
+      if (persist && key.isNotEmpty) {
+        await savePluginConfigValue(widget.pluginRuntimeName, key, value);
+      }
 
-    await _saveFieldState(key, value, showToast: !startedWebLogin);
+      await _saveFieldState(key, value, showToast: !startedWebLogin);
+    } catch (e) {
+      // 插件登录失败/校验失败属于业务错误，不应冒到全局未捕获异常。
+      logger.e(e);
+      if (mounted) {
+        showErrorToast(t.plugin.executeFailed(error: e.toString()));
+      }
+    }
   }
 
   Future<void> _saveFieldState(

@@ -88,6 +88,28 @@ class DownloadTaskRepository {
     }
   }
 
+  /// 查找某本漫画的未完成任务（章节级任务也包含）。
+  ///
+  /// [findByPayload] 用的是漫画级 taskKey，而实际下载任务是章节级 key，
+  /// 不能用来判断“这本漫画是否还有下载在跑”。
+  List<DownloadTask> findIncompleteByComic({
+    required String from,
+    required String comicId,
+  }) {
+    final normalizedFrom = from.trim();
+    final normalizedComicId = comicId.trim();
+    if (normalizedFrom.isEmpty || normalizedComicId.isEmpty) {
+      return const <DownloadTask>[];
+    }
+    return getAll().where((task) {
+      if (task.isCompleted && !task.isDownloading) return false;
+      if (task.comicId.trim() != normalizedComicId) return false;
+      final payload = readPayload(task);
+      if (payload == null) return true;
+      return payload.from.trim() == normalizedFrom;
+    }).toList();
+  }
+
   /// 按章节 key 查找本地已下载章节，找不到返回 null。
   ///
   /// [chapterKey] 可以是逻辑 id / requestId / order 字符串中的任意一个。
@@ -220,9 +242,9 @@ class DownloadTaskRepository {
   }
 
   void resetInterruptedTasks() {
-    final interrupted = getAll(
-      incompleteOnly: true,
-    ).where((task) => task.isDownloading).toList();
+    final interrupted = getAll(incompleteOnly: true)
+        .where((task) => task.isDownloading)
+        .toList();
     if (interrupted.isEmpty) return;
 
     for (final task in interrupted) {
@@ -286,7 +308,8 @@ String downloadTaskKeyOf(DownloadTask task) {
   try {
     final payload = task.taskInfo;
     if (payload != null) return payload.taskKey;
-  } catch (_) {
+  } catch (e, st) {
+    logger.e(e, stackTrace: st);
     // 旧任务 payload 损坏时仍使用实体中的 comicId 作为最后回退。
   }
   return task.comicId.trim();

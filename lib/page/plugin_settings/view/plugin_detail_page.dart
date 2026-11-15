@@ -11,6 +11,7 @@ import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/json/json_value.dart';
 import 'package:zephyr/widgets/plugin_icon.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/main.dart';
 
 /// 新插件详情页：简介 + 作者 + md 长文 + 主页入口。
 /// 长文按需调 `getPluginDetail` 获取，不在列表/设置页预取。
@@ -72,6 +73,7 @@ class _PluginDetailPageState extends State<PluginDetailPage> {
         _loading = false;
       });
     } catch (e) {
+      logger.e(e);
       if (!mounted) return;
       setState(() {
         _error = normalizeSearchErrorMessage(e);
@@ -202,9 +204,8 @@ class _PluginDetailPageState extends State<PluginDetailPage> {
         Text(
           widget.pluginDisplayName,
           textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         if (_version.isNotEmpty) ...[
           const SizedBox(height: 4),

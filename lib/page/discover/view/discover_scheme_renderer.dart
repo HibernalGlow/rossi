@@ -264,9 +264,9 @@ class DiscoverSchemeRenderer {
         final section = sections[index];
         final title = section['title']?.toString() ?? '';
         final subtitle = section['subtitle']?.toString() ?? '';
-        final items = asJsonList(
-          section['items'],
-        ).map((item) => asJsonMap(item)).toList();
+        final items = asJsonList(section['items'])
+            .map((item) => asJsonMap(item))
+            .toList();
         final entries = mapToUnifiedComicSimplifyEntryInfoList(items);
 
         return Padding(

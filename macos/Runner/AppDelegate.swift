@@ -146,10 +146,14 @@ class AppDelegate: FlutterAppDelegate {
       }
     }
 
-    // 让 Dart 那边一起来就能把已经攒下的路径取走（不等到首帧之后再晚一步）。
-    attachOpenIntentChannelIfNeeded()
-
-    super.applicationDidFinishLaunching(notification)
+    // FlutterAppDelegate 在部分 macOS/Flutter 组合下并未实现该 selector，
+    // 直接 super 调用会触发 unrecognized selector 崩溃。
+    let launchSelector = #selector(
+      NSApplicationDelegate.applicationDidFinishLaunching(_:)
+    )
+    if FlutterAppDelegate.instancesRespond(to: launchSelector) {
+      super.applicationDidFinishLaunching(notification)
+    }
   }
 
   private func startActivity(result: @escaping FlutterResult) {

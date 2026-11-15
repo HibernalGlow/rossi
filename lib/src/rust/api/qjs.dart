@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import '../qjs.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 Future<void> qjsReplaceBundle({
@@ -87,8 +88,21 @@ void setHttpProxy({required String proxy}) =>
 void setSocks5Proxy({required String proxy}) =>
     RustLib.instance.api.crateApiQjsSetSocks5Proxy(proxy: proxy);
 
+void setDohConfig({required bool enabled, required List<String> providers}) =>
+    RustLib.instance.api.crateApiQjsSetDohConfig(
+      enabled: enabled,
+      providers: providers,
+    );
+
 void setTlsVerifyEnabled({required bool enabled}) =>
     RustLib.instance.api.crateApiQjsSetTlsVerifyEnabled(enabled: enabled);
+
+/// 设置是否允许访问内网 / 保留地址段（默认允许）。
+void setAllowPrivateNetwork({required bool enabled}) =>
+    RustLib.instance.api.crateApiQjsSetAllowPrivateNetwork(enabled: enabled);
+
+bool isAllowPrivateNetwork() =>
+    RustLib.instance.api.crateApiQjsIsAllowPrivateNetwork();
 
 void setHttpRequestsBlocked({required bool blocked}) =>
     RustLib.instance.api.crateApiQjsSetHttpRequestsBlocked(blocked: blocked);

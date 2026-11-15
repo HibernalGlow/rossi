@@ -99,17 +99,15 @@ class _ComicFollowPageContent extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               t.comicFollow.empty,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
               t.comicFollow.emptyHint,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -156,9 +154,8 @@ class _ComicFollowPageContent extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             t.comicFollow.noUnread,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: scheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -769,7 +766,7 @@ class _FollowCard extends StatelessWidget {
     }
     final diff = DateTime.now().toLocal().difference(lastRead.toLocal());
     if (diff.inMinutes < 1) {
-      return t.comicFollow.updatedJustNow;
+      return t.comicFollow.lastReadJustNow;
     }
     if (diff.inHours < 1) {
       return t.comicFollow.lastReadMinutesAgo(minutes: diff.inMinutes);
@@ -844,10 +841,8 @@ class _UnreadPill extends StatelessWidget {
       ),
       child: Text(
         t.comicFollow.newChaptersShort(diff: count),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: scheme.onPrimary,
-          fontWeight: FontWeight.w700,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: scheme.onPrimary, fontWeight: FontWeight.w700),
       ),
     );
   }

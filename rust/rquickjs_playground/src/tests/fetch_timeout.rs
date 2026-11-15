@@ -230,6 +230,8 @@ fn direct_config() -> HttpClientConfig {
         socks5_proxy: None,
         disable_tls_verify: false,
         allow_private_network: true,
+        doh_enabled: false,
+        doh_providers: Vec::new(),
     }
 }
 
@@ -439,27 +441,37 @@ fn wallclock_timeout_race_direct_succeeds_js_succeeds_too() {
     let (base, tx, handle) = spawn_delay_server();
     let url = format!("{}/delay/1200", base); // 服务器响应 1200ms
 
-    // 直连：timeout 1500ms，从请求开始计时 → 1200 < 1500，应当成功
-    match direct_get(&url, 1500) {
+    // 余量刻意留宽：并行跑全量测试时 CPU 被其他用例占满，300ms 级别的余量
+    // 会被调度开销吃掉，导致本应成功的请求偶发超时。
+    // 判别力靠 pre_delay 保证：pre_delay + 网络 > timeout，而网络部分 < timeout。
+    // 若 fetch 计时按墙钟算就会超时，按派发算则成功。
+    const TIMEOUT_MS: u64 = 2500;
+    const PRE_DELAY_MS: u64 = 2000;
+
+    // 直连：从请求开始计时 → 1200 < 2500，应当成功
+    match direct_get(&url, TIMEOUT_MS) {
         Ok(elapsed) => {
-            println!("[direct] timeout=1500 delay=1200 -> OK in {:?}", elapsed);
-            assert!(elapsed.as_millis() < 1500);
+            println!(
+                "[direct] timeout={TIMEOUT_MS} delay=1200 -> OK in {:?}",
+                elapsed
+            );
+            assert!(elapsed.as_millis() < TIMEOUT_MS as u128);
         }
         Err(e) => panic!("直连竟然超时了: {e}"),
     }
 
-    // JS：请求派发前先 sleep 600ms，再 fetch timeout 1500ms。
-    // 结论：fetch 计时从派发开始，网络部分 1200ms+~200ms 开销 < 1500ms → 应成功。
-    let v = js_fetch(&url, 1500, 600);
-    println!("[js]     timeout=1500 delay=1200 pre=600 -> {v}");
+    // JS：请求派发前先 sleep 2000ms，再 fetch timeout 2500ms。
+    // 墙钟 = 2000 + 1200 = 3200 > 2500；网络部分 1200+开销 < 2500 → 应成功。
+    let v = js_fetch(&url, TIMEOUT_MS, PRE_DELAY_MS);
+    println!("[js]     timeout={TIMEOUT_MS} delay=1200 pre={PRE_DELAY_MS} -> {v}");
     assert_eq!(
         v["ok"], true,
-        "JS fetch 应在自身 1500ms 预算内完成（1200+开销<1500），不存在墙钟提前超时: {v}"
+        "JS fetch 应在自身 {TIMEOUT_MS}ms 预算内完成（1200+开销<{TIMEOUT_MS}），不存在墙钟提前超时: {v}"
     );
     let fetch_ms = v["fetchMs"].as_u64().unwrap_or(0);
     assert!(
-        fetch_ms < 1500,
-        "fetch 网络部分应 <1500ms: fetchMs={fetch_ms}"
+        fetch_ms < TIMEOUT_MS,
+        "fetch 网络部分应 <{TIMEOUT_MS}ms: fetchMs={fetch_ms}"
     );
 
     shutdown(handle, tx);
@@ -513,33 +525,41 @@ fn redirect_slow_target_timeout_accounting() {
     // /redirect/1200 -> 302 -> /delay/1200（模拟 read-image 302 到 hath.network）
     let url = format!("{}/redirect/1200", base);
 
-    // 直连 timeout 1500：302 + 1200 < 1500 → 成功
-    match direct_get(&url, 1500) {
+    // 成功路径的余量留宽（302 + 1200 + 调度开销 < 2500）；超时路径靠
+    // 「302 + 1200 > 1000」判定，与负载无关，保持 1000 不变。
+    const OK_TIMEOUT_MS: u64 = 2500;
+    const TIMEOUT_MS: u64 = 1000;
+
+    // 直连 timeout 2500：302 + 1200 < 2500 → 成功
+    match direct_get(&url, OK_TIMEOUT_MS) {
         Ok(elapsed) => {
-            println!("[direct redirect] timeout=1500 -> OK in {:?}", elapsed);
-            assert!(elapsed.as_millis() < 1500);
+            println!(
+                "[direct redirect] timeout={OK_TIMEOUT_MS} -> OK in {:?}",
+                elapsed
+            );
+            assert!(elapsed.as_millis() < OK_TIMEOUT_MS as u128);
         }
         Err(e) => panic!("直连跟随重定向失败: {e}"),
     }
     // 直连 timeout 1000：302 + 1200 > 1000 → 超时
     assert!(
-        direct_get(&url, 1000).is_err(),
-        "直连 timeout=1000 应超时（302+1200>1000）"
+        direct_get(&url, TIMEOUT_MS).is_err(),
+        "直连 timeout={TIMEOUT_MS} 应超时（302+1200>{TIMEOUT_MS}）"
     );
 
-    // JS 侧同样：timeout 1500 成功、1000 超时 → 重定向口径两边一致
-    let v_ok = js_fetch(&url, 1500, 0);
-    println!("[js redirect] timeout=1500 -> {v_ok}");
+    // JS 侧同样：timeout 2500 成功、1000 超时 → 重定向口径两边一致
+    let v_ok = js_fetch(&url, OK_TIMEOUT_MS, 0);
+    println!("[js redirect] timeout={OK_TIMEOUT_MS} -> {v_ok}");
     assert_eq!(
         v_ok["ok"], true,
-        "JS 跟随重定向 timeout=1500 应成功: {v_ok}"
+        "JS 跟随重定向 timeout={OK_TIMEOUT_MS} 应成功: {v_ok}"
     );
 
-    let v_timeout = js_fetch(&url, 1000, 0);
-    println!("[js redirect] timeout=1000 -> {v_timeout}");
+    let v_timeout = js_fetch(&url, TIMEOUT_MS, 0);
+    println!("[js redirect] timeout={TIMEOUT_MS} -> {v_timeout}");
     assert_eq!(
         v_timeout["ok"], false,
-        "JS 跟随重定向 timeout=1000 应超时: {v_timeout}"
+        "JS 跟随重定向 timeout={TIMEOUT_MS} 应超时: {v_timeout}"
     );
 
     shutdown(handle, tx);
@@ -741,20 +761,49 @@ fn trickle_body_js_vs_direct() {
 // 防止 http_promise_cancel_senders 无限增长（之前每次请求都留一个悬空 sender）。
 #[test]
 fn cancel_senders_are_cleaned_up_after_completion() {
-    let before = crate::web_runtime::http_promise_cancel_senders_len();
     let (base, tx, handle) = spawn_delay_server();
     let url = format!("{}/delay/50", base);
 
-    // 连续做几个请求，每个完成后 map 应该回到 before 大小
-    for _ in 0..3 {
-        let v = js_fetch_no_timeout(&url, 0);
-        assert_eq!(v["ok"], true, "{v}");
+    // 只断言「本次这几个请求的 sender 被清掉」，而不是比较全局总数：
+    // 并行跑全量测试时，其他用例的在途请求会让总数一直在变。
+    let script = format!(
+        r#"
+        (async () => {{
+          const ids = [];
+          for (let i = 0; i < 3; i++) {{
+            const promise = __http_request_promise("GET", "{url}", "{{}}", null, null);
+            ids.push(Number(promise.__hostRequestId));
+            const data = JSON.parse(await promise);
+            if (!data.ok) {{
+              return JSON.stringify({{ ok: false, error: data.error, ids }});
+            }}
+          }}
+          return JSON.stringify({{ ok: true, ids }});
+        }})()
+        "#
+    );
+    let result = run_async_script(&script).expect("failed to execute script");
+    let parsed: Value = serde_json::from_str(&result).expect("failed to parse result");
+    assert_eq!(parsed["ok"], true, "{parsed}");
+
+    let ids: Vec<u64> = parsed["ids"]
+        .as_array()
+        .expect("ids should be an array")
+        .iter()
+        .filter_map(Value::as_u64)
+        .collect();
+    assert_eq!(ids.len(), 3, "should have issued 3 requests: {parsed}");
+
+    let remaining = crate::web_runtime::http_promise_cancel_senders_ids();
+    for id in &ids {
+        assert!(
+            !remaining.contains(id),
+            "请求 {id} 完成后取消 sender 未清理: remaining={remaining:?}"
+        );
     }
-    let after = crate::web_runtime::http_promise_cancel_senders_len();
-    println!("[cancel-senders] before={before} after={after}（请求完成后不应增长）");
-    assert_eq!(
-        after, before,
-        "取消 sender 未在请求完成后清理: before={before} after={after}"
+    println!(
+        "[cancel-senders] 3 个请求的 sender 均已清理（当前挂起 {} 个）",
+        remaining.len()
     );
 
     shutdown(handle, tx);

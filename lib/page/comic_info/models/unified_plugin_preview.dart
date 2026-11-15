@@ -85,9 +85,9 @@ class UnifiedPluginPreviewResponse {
         : data.isNotEmpty
         ? data
         : map;
-    final items = asJsonList(
-      body['items'],
-    ).map((item) => UnifiedPluginPreviewItem.fromMap(asJsonMap(item))).toList();
+    final items = asJsonList(body['items'])
+        .map((item) => UnifiedPluginPreviewItem.fromMap(asJsonMap(item)))
+        .toList();
 
     return UnifiedPluginPreviewResponse(
       source: map['source']?.toString() ?? '',

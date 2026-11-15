@@ -1,9 +1,10 @@
 <a id="top"></a>
 
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%"
-       alt="Rossi —— 跨平台漫画阅读器。把任意第三方图源，装进同一个书架。支持 Android、iOS、Windows、macOS、Linux，MPL-2.0 授权。">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
+
+## 💖 鸣谢与赞助
 
 <p align="center">
   <b>中文</b> · <a href="README.en.md">English</a>
@@ -13,9 +14,222 @@
 
 一个用 **Flutter + Rust** 写的跨平台漫画阅读器。
 
-它自己**不带任何漫画内容**。书从哪来，全靠**插件**：一个 JS 文件描述清楚「列表怎么取、搜索怎么发、图片怎么还原」，Rust 侧的 QuickJS 沙箱负责把它跑起来。装什么插件，就读什么源；不装，它就是个读本地 CBZ 的干净书架。
+### ☕ 个人赞助（爱发电）
 
-内置两个示例源插件，编译时打包进二进制，用于验证插件 ABI；装什么源，由插件决定。
+☕ 感谢每一位愿意赞助的朋友，你们的支持是持续维护下去的重要动力。
+
+👉 **[前往爱发电赞助作者：afdian.com/a/deretame](https://afdian.com/a/deretame)**
+
+<img src="asset/aifadian.jpg" alt="爱发电赞助二维码" width="260" />
+
+> - 赞助不能兑换具体权益，比如指定开发某个功能、要求优先修复问题，所有的需求和反馈都会按正常流程处理，不会因为赞助而区别对待。
+> - 项目的发展方向、功能规划和更新节奏由作者综合决定，赞助不附带决策权，还请理解。
+> - 赞助是出于自愿的赠与，请根据自身情况量力而行，赞助后无法退还。
+> - 最后，作者会尽力保持维护，但无法承诺永远不断更。如果某天更新放缓，还请多包涵；你的支持一定会让更新更有动力。
+
+## 项目开发指南
+
+插件开发相关文档请参阅：<https://breeze-project-org.github.io/plugin-dev-docs/>
+
+插件列表：<https://github.com/breeze-project-org/Breeze-plugin-list>
+
+<details>
+<summary>当前已收录插件（点击展开）</summary>
+
+<!-- PLUGIN-LIST-START -->
+包子漫画 Plus e-hentai 禁漫天堂 漫画柜 NoyAcg 如漫画 蛙漫3 包子漫画 哔咔漫画 拷贝漫画 hitomi JJ漫画 Komiic nhentai 绅士漫画 WEBTOON 再漫画 拷贝漫画 Copy4000 코사이트 MangaDex WeebCentral zero搬运网 禁漫天堂(mumushu0501-boop) Toomics
+<!-- PLUGIN-LIST-END -->
+
+</details>
+
+> **注：** 插件功能仍在beta阶段，可能会有较大改动，不建议基于此开发插件，仅适合学习用途。
+
+### 1. 核心工具链安装
+
+在开始之前，请确保基础工具已正确安装并处于最新稳定版：
+
+- **Flutter SDK**: 需通过 `flutter doctor` 验证。
+- **Rust Toolchain**: 通过 `rustup` 安装，并添加相应的交叉编译 Target（如 `aarch64-linux-android`）。
+- **LLVM / Clang**: 由于涉及 `rustqjs` 等需要解析 C 头的库，必须安装 LLVM 环境（Windows 下推荐使用 `choco install llvm` 或从官网下载），并确保 `LIBCLANG_PATH` 环境变量已配置。
+
+### 2. 环境变量配置
+
+针对不同的编译需求，必须在系统中配置以下环境变量：
+
+| 变量名               | 说明                                  | 示例路径 (参考)                                   |
+| :------------------- | :------------------------------------ | :------------------------------------------------ |
+| **JAVA_HOME**        | 编译 Android windows 和 Linux必需     | `C:\Program Files\Android\Android Studio\jbr`     |
+| **ANDROID_NDK_HOME** | Rust 交叉编译 Android 库必需          | `...\AppData\Local\Android\Sdk\ndk\29.0.14206865` |
+| **LIBCLANG_PATH**    | 供 `bindgen` (Rust) 生成 FFI 绑定使用 | `C:\Program Files\LLVM\bin`                       |
+
+> **注意**：请确保 `PATH` 变量中包含 `javac` 和 `clang` 的二进制文件路径。
+
+### 3. 依赖初始化流程
+
+1.  **根项目依赖**:
+    在项目根目录下执行，下载 Flutter 相关依赖：
+    ```bash
+    flutter pub get
+    ```
+
+### 4. 各平台特定说明
+
+- **Android**: 确保 `local.properties` 中已指向正确的 SDK 路径。
+- **Windows/Linux**: 确保安装了 Visual Studio (C++) 或相应的 GCC 工具链，以支持 Rust 的本地编译。
+
+# 🚀 如何安装
+
+### 📱 Android/鸿蒙
+
+- 前往 [Releases 页面](https://github.com/breeze-project-org/Breeze/releases) 下载 `app-arm64-v8a-release.apk`。
+
+  > **注意**：中国大陆内因未经审核应用可能无法安装，可以使用[GBox](https://gboxlab.com/i18n/zh-Hant/)、[出境易](https://www.chujingapp.com/)或[GSpace](https://gspaceteam.com/)（鸿蒙系统可通过应用商店下载）的方式绕过系统安装器，以安装应用。
+
+### 🪟 Windows
+
+- 下载 `windows-installer.exe` 后直接运行即可完成安装。
+
+### 🐧 Linux
+
+Linux 版本同时提供 Flatpak 和 DEB 两种安装包。请根据你的发行版选择对应的安装方式。
+
+#### 方式 1：安装 DEB（推荐 Debian/Ubuntu 及其衍生版）
+
+当前 Release 提供 `amd64` 架构的 DEB 安装包。前往 [Releases 页面](https://github.com/breeze-project-org/Breeze/releases) 下载带有 `.deb` 后缀的文件，然后在终端执行：
+
+> **注意**：DEB 包不保证在所有 Debian/Ubuntu 衍生发行版上的兼容性和可用性。如果安装或运行异常，请改用 Flatpak 版本。
+
+```shell
+# 如果当前目录中只有刚下载的 Breeze DEB 包，可以直接使用通配符
+sudo apt install ./breeze_*.deb
+```
+
+`apt` 会自动处理所需的系统依赖。安装完成后，可以从应用菜单启动 **Breeze**，也可以在终端运行：
+
+```shell
+breeze
+```
+
+如需卸载：
+
+```shell
+sudo apt remove breeze
+```
+
+#### 方式 2：安装 Flatpak（推荐，支持一键安装与更新）
+
+Flatpak 版本通过自建软件源分发，以确保在不同发行版上的兼容性。添加一次软件源，之后即可用 `flatpak update` 跟随 Release 更新。
+
+#### 1. 准备环境
+
+如果你的系统尚未配置 Flatpak，请先参考 [Flatpak 快速设置指南](https://flathub.org/zh-Hans/setup) 完成基础安装。
+
+> **加速建议**：中国大陆用户建议配置 [CERNET 镜像源](https://help.mirrors.cernet.edu.cn/flathub/) 以提升下载速度。
+
+#### 2. 一键安装
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/breeze-project-org/Breeze-flathub/main/install.sh | bash
+```
+
+或手动添加软件源后安装：
+
+```shell
+flatpak remote-add --user --if-not-exists breeze \
+  https://raw.githubusercontent.com/breeze-project-org/Breeze-flathub/main/breeze.flatpakrepo
+flatpak install --user -y breeze io.github.windy.breeze
+```
+
+> 已添加过旧软件源（`deretame.github.io/Breeze-flathub`）的用户，先执行一次
+> `flatpak remote-modify --user --url=https://breeze-project-org.github.io/Breeze-flathub/repo/ breeze`
+> 或重新运行一键安装脚本，否则 `flatpak update` 会因旧地址失效而报错。
+
+> GNOME 50 Runtime 会随安装自动拉取，无需手动安装。
+
+#### 3. 更新应用
+
+```shell
+flatpak update --user io.github.windy.breeze
+```
+
+#### 4. 运行程序
+
+安装完成后，你可以通过应用菜单找到 **Breeze**，或者在终端输入：
+
+```shell
+flatpak run io.github.windy.breeze
+```
+
+> 旧的单文件 `breeze-*.flatpak` 仍可在 Release 页面下载手动安装，但无法通过 `flatpak update` 更新，建议改用上面的软件源方式。
+
+### 💻 macOS
+
+macOS 用户推荐使用 Homebrew 来安装和管理 Breeze。当然，你也可以直接下载 DMG 文件手动安装。
+
+#### 方法 1: 使用 Homebrew 安装（推荐）
+
+**1. 添加软件源 (Tap)**
+首先，将本仓库添加到你的 Homebrew 源列表中：
+
+```bash
+brew tap deretame/breeze
+```
+
+**2. 安装 Breeze**
+执行以下命令，Homebrew 会自动下载并安装最新版本到你的“应用程序”目录：
+
+```bash
+brew install --cask breeze
+```
+
+**3. 更新 Breeze**
+当 Breeze 发布新版本后，你可以通过以下命令一键升级：
+
+```bash
+brew upgrade breeze
+```
+
+**4. 彻底卸载**
+如果你需要卸载 Breeze，并希望同时清理底层的数据库、缓存和配置文件，请务必加上 `--zap` 参数（**注意：这不会删除你手动导出的文件，但会清空 App 内部数据**）：
+
+```bash
+brew uninstall --zap breeze
+```
+
+#### 方法 2: 手动下载 DMG 安装
+
+1. 前往 [Releases 页面](https://github.com/breeze-project-org/Breeze/releases) 下载最新的 `Breeze-macOS.dmg`。
+2. 双击打开 `.dmg` 文件，将 `Breeze.app` 拖入 `Applications`（应用程序）文件夹。
+
+> ⚠️ **首次启动注意事项 (macOS Gatekeeper)**
+> 由于本项目为开源免费软件，未进行 Apple 开发者签名。首次打开时，如果系统提示 **“应用已损坏”** 或 **“无法验证开发者”**，请在终端中执行以下命令予以放行，之后即可正常使用：
+>
+> ```bash
+> xattr -cr /Applications/Breeze.app
+> ```
+>
+> _(备选方法：在“应用程序”文件夹中找到 Breeze，按住 `Control` 键点击应用图标，然后在弹出的菜单中选择“打开”。)_
+
+### 📱 iOS / iPadOS
+
+由于 iOS 系统的封闭性，未上架 App Store 的应用需要通过“侧载 (Sideloading)”并自行签名才能安装。请前往 [Releases 页面](https://github.com/breeze-project-org/Breeze/releases) 下载无签名的 `Breeze-iOS.ipa` 文件，并使用以下工具之一进行安装：
+
+#### 🌟 推荐方案：AltStore
+
+AltStore 是目前最稳定且对新手友好的 iOS 侧载工具，支持通过同一局域网下的电脑实现应用自动续签。
+
+- **官网下载**：[AltStore 官方网站](https://altstore.io/)
+- **使用教程**：
+- [AltStore 官方图文指南（英文）](https://faq.altstore.io/)
+- [知乎：基于 AltStore 的越狱工具自签教程](https://zhuanlan.zhihu.com/p/143936759)
+- [哔哩哔哩：iOS无限自签IPA玩法](https://b23.tv/UbuuJTZ)
+
+#### 🔧 其他自签/免签备选方案
+
+如果你由于某些原因无法使用 AltStore，也可以考虑以下途径：
+
+- **Sideloadly**：免越狱、支持 Windows 和 macOS 的强大桌面自签工具。([官网与教程](https://sideloadly.io/))
+- **TrollStore (巨魔商店)**：如果你的 iOS 系统版本在特定的漏洞支持范围内，**强烈推荐**使用巨魔商店实现永久免签安装，永不掉签。([TrollStore 支持版本及安装指南](https://ios.cfw.guide/installing-trollstore/))
 
 ---
 
@@ -221,12 +435,14 @@ dart ./script/code_generate.dart
 
 ## 许可证
 
-本项目以 **Mozilla Public License 2.0** 授权，详见 [LICENSE](./LICENSE)。
+- 开发者：**[windy](https://github.com/deretame)**
+- 项目仓库：**[Breeze](https://github.com/breeze-project-org/Breeze)**
+- 联系方式：**[telegram(电报)](https://t.me/breeze_zh_cn)**
 
-应用本身不包含任何漫画内容，所有内容由第三方插件从其各自的来源获取。开发与使用时需遵守所在地区法律法规。
-
----
-
-**项目仓库**
-
-- [HibernalGlow/rossi](https://github.com/HibernalGlow/rossi)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=breeze-project-org/Breeze&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=breeze-project-org/Breeze&type=Date" />
+    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=breeze-project-org/Breeze&type=Date" />
+  </picture>
+</p>

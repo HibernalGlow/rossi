@@ -29,34 +29,31 @@ class PluginUnauthorizedException implements Exception {
   String toString() => message;
 }
 
-/// 从插件调用抛出的错误里嗅探「登录态失效」载荷。
+/// 插件调用抛出的原始错误文本。
 ///
-/// # 为什么这里**不能**写 `(error as AnyhowException)`
-///
-/// 只有**跨过 FRB 回来的**插件错误才是 [AnyhowException]；Dart 侧自己抛的
-/// 一律不是 —— `StateError`（插件/runtime 不可用、bundle 缺失）、
-/// `FormatException`（插件返回值不是 JSON map）、`DownloadTaskCancelledException`
-/// 都可能出现在这里。
-///
-/// 硬转会抛 `TypeError`，而这个 `TypeError` 是在调用方
-/// （[callUnifiedComicPlugin] 的 `catch`）里抛出来的 → **真实错误被顶替**：
-/// 界面上只剩一句
-/// 「type 'StateError' is not a subtype of type 'AnyhowException' in type cast」，
-/// 真正的原因（例如 `plugin_not_found:bika`）一个字都不剩，连日志都跟着失真。
-/// 嗅探函数是**旁路判断**：它没资格改写错误本身，拿不准就该安静地返回 null，
-/// 让调用方 `rethrow` 把原错误原样交出去。
-///
-/// 非 [AnyhowException] 的错误里不会出现这段载荷（载荷由插件 JS 抛出、经 Rust
-/// `anyhow` 回来），所以只认 [AnyhowException] 既不会漏判，也避免把普通错误的
-/// 文本误判成「登录过期」而弹一次假的重新登录。
+/// QJS/Rust 抛回的一定是 [AnyhowException]，取其 `message` 原文；
+/// 其他 Dart 异常（如 FormatException）返回 null，调用方走普通失败。
+/// 登录解析（[parseUnauthorizedPayload]）永远走原文，
+/// 不受展示层精简开关影响。
+String? extractPluginErrorRawText(Object error) {
+  if (error is! AnyhowException) {
+    return null;
+  }
+  return error.message;
+}
+
 UnauthorizedPayload? parseUnauthorizedPayload(
   Object error, {
   required String fallbackPluginId,
 }) {
-  if (error is! AnyhowException) {
+  // 登录识别永远走原文：release + 配了日志转发时展示层会精简堆栈，
+  // 但这里必须用完整原文做 JSON 匹配，否则 need-login 会被吞掉。
+  final raw = extractPluginErrorRawText(error);
+  if (raw == null) {
     return null;
   }
-  final text = error.message.trim().split('\n').first;
+  // cubit 侧只认 PluginUnauthorizedException，不再调本函数。
+  final text = raw.trim().split('\n').first;
   final regExp = RegExp(
     r'(?:bundle:.*?cjs\]|source:.*?cjs\])\s*(\{.*\})',
     dotAll: true,

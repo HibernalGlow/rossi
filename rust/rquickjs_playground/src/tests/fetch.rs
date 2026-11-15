@@ -1,5 +1,5 @@
 use crate::tests::{run_async_script, spawn_test_server};
-use crate::web_runtime::{configure_http_client, current_http_client_config};
+use crate::web_runtime::current_http_client_config;
 use serde_json::Value;
 
 #[test]
@@ -422,19 +422,17 @@ fn fetch_abort_concurrent_requests_do_not_leave_pending_http_tasks() {
 }
 
 // 说明：
-// 这些用例会显式修改全局 HTTP client 配置（allow_private_network）。
-// 在并发全量测试下可能与其它 fetch 用例竞争同一全局状态，导致偶发失败。
-// 若出现抖动，优先单独执行本用例，或使用 --test-threads=1 串行执行 fetch 测试集。
+// 这个用例验证默认配置（不允许内网）下的行为。配置通过 runtime 自带的一份
+// 传入，不改全局状态，因此可以和其他用例并行执行。
 #[test]
 fn fetch_block_private_network_by_default() {
-    let previous = current_http_client_config();
     let mut config = current_http_client_config();
     config.allow_private_network = false;
-    configure_http_client(config).expect(&crate::tr!("failed-to-update-http-config"));
 
-    let runtime = crate::host_runtime::AsyncHostRuntime::new("test-web-runtime-private-block")
+    let runtime = crate::host_runtime::AsyncHostRuntime::builder("test-web-runtime-private-block")
+        .http_config_override(Some(config))
+        .build()
         .expect(&crate::tr!("failed-to-create-runtime"));
-    configure_http_client(previous).expect(&crate::tr!("failed-to-restore-http-config"));
 
     let task = runtime
         .spawn(
@@ -456,17 +454,8 @@ fn fetch_block_private_network_by_default() {
     assert!(result.contains(&crate::tr!("blocked-intranet-request-2")));
 }
 
-// 说明：
-// 这些用例会显式修改全局 HTTP client 配置（allow_private_network）。
-// 在并发全量测试下可能与其它 fetch 用例竞争同一全局状态，导致偶发失败。
-// 若出现抖动，优先单独执行本用例，或使用 --test-threads=1 串行执行 fetch 测试集。
 #[test]
 fn fetch_allow_private_network_when_config_enabled() {
-    let previous = current_http_client_config();
-    let mut config = current_http_client_config();
-    config.allow_private_network = true;
-    configure_http_client(config).expect(&crate::tr!("failed-to-update-http-config"));
-
     let (base_url, tx, handle) = spawn_test_server(2);
     let script = format!(
         r#"
@@ -483,8 +472,11 @@ fn fetch_allow_private_network_when_config_enabled() {
         base_url
     );
 
-    let runtime = crate::host_runtime::AsyncHostRuntime::new("test-web-runtime-private-allowed")
-        .expect(&crate::tr!("failed-to-create-runtime"));
+    let runtime =
+        crate::host_runtime::AsyncHostRuntime::builder("test-web-runtime-private-allowed")
+            .http_config_override(Some(crate::tests::support::private_network_http_config()))
+            .build()
+            .expect(&crate::tr!("failed-to-create-runtime"));
     let task = runtime
         .spawn(&script)
         .expect(&crate::tr!("failed-to-execute-script"));
@@ -498,7 +490,6 @@ fn fetch_allow_private_network_when_config_enabled() {
     assert_eq!(parsed["path"], "/hello?from=private-enabled");
     assert!(!result.contains(&crate::tr!("blocked-intranet-request-2")));
 
-    configure_http_client(previous).expect(&crate::tr!("failed-to-restore-http-config"));
     let _ = tx.send(());
     let _ = handle.join();
 }

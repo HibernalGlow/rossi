@@ -76,9 +76,8 @@ class CloudPluginCard extends StatelessWidget {
                       isInstalled && localVersion.isNotEmpty
                           ? '${t.plugin.cloudVersion(version: manifest.version)}  ·  ${t.plugin.localVersion(version: localVersion)}'
                           : t.plugin.cloudVersion(version: manifest.version),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                     if (manifest.describe.trim().isNotEmpty) ...[
                       const SizedBox(height: 4),

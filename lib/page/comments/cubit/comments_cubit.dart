@@ -6,6 +6,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comments/model/model.dart';
 import 'package:zephyr/util/error_filter.dart';
 import 'package:zephyr/util/json/json_value.dart';
+import 'package:zephyr/main.dart';
 
 part 'comments_cubit.freezed.dart';
 
@@ -73,6 +74,7 @@ class CommentsCubit extends Cubit<CommentsViewState> {
         ),
       );
     } catch (e) {
+      logger.e(e);
       _safeEmit(
         state.copyWith(loading: false, error: normalizeSearchErrorMessage(e)),
       );
@@ -96,6 +98,7 @@ class CommentsCubit extends Cubit<CommentsViewState> {
         ),
       );
     } catch (e) {
+      logger.e(e);
       _safeEmit(
         state.copyWith(
           loadingMore: false,
@@ -195,6 +198,7 @@ class CommentsCubit extends Cubit<CommentsViewState> {
         await loadInitial();
       }
     } catch (e) {
+      logger.e(e);
       _emitNotice(t.comments.postFailed(error: e));
     } finally {
       _safeEmit(state.copyWith(posting: false));
@@ -283,9 +287,10 @@ class CommentsCubit extends Cubit<CommentsViewState> {
       );
       final envelope = UnifiedPluginEnvelope.fromMap(response);
       final data = envelope.data;
-      final items = asJsonList(
-        data['items'],
-      ).map(asJsonMap).map(CommentItem.fromMap).toList();
+      final items = asJsonList(data['items'])
+          .map(asJsonMap)
+          .map(CommentItem.fromMap)
+          .toList();
       final paging = asJsonMap(data['paging']);
       final hasReachedMax = paging['hasReachedMax'] == true;
 
@@ -311,7 +316,8 @@ class CommentsCubit extends Cubit<CommentsViewState> {
           replyPage: replyPage,
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      logger.e(e, stackTrace: st);
       final nextReplyLoading = Map<String, bool>.from(state.replyLoading)
         ..[item.id] = false;
       _safeEmit(state.copyWith(replyLoading: nextReplyLoading));
@@ -327,12 +333,14 @@ class CommentsCubit extends Cubit<CommentsViewState> {
     );
     final envelope = UnifiedPluginEnvelope.fromMap(response);
     final data = envelope.data;
-    final topItems = asJsonList(
-      data['topItems'],
-    ).map(asJsonMap).map(CommentItem.fromMap).toList();
-    final items = asJsonList(
-      data['items'],
-    ).map(asJsonMap).map(CommentItem.fromMap).toList();
+    final topItems = asJsonList(data['topItems'])
+        .map(asJsonMap)
+        .map(CommentItem.fromMap)
+        .toList();
+    final items = asJsonList(data['items'])
+        .map(asJsonMap)
+        .map(CommentItem.fromMap)
+        .toList();
     final paging = asJsonMap(data['paging']);
     return _CommentFeed(
       topItems: topItems,

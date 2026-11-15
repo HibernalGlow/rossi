@@ -40,9 +40,8 @@ class PluginStoreStatusBanner extends StatelessWidget {
           Expanded(
             child: SelectableText(
               trimmedMessage,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: foregroundColor),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: foregroundColor),
             ),
           ),
         ],
