@@ -382,9 +382,10 @@ Android 端另有**实验性 QNN（Qualcomm HTP NPU）超分后端**（移植自
 
 ### 8.3 敏感文件
 
-- `android/key.properties` 与 `android/Breeze-key.keystore` 使用 **git-crypt** 加密。
-- CI 中通过 `secrets.GIT_CRYPT_KEY` 解密。
-- 未解密前请勿修改这些文件，避免破坏加密状态。
+- Android release 签名材料由 **Infisical Cloud** 托管，仓库内不存任何副本；`android/key.properties` 与 `android/Breeze-key.keystore` 已加入 `.gitignore`。
+- CI 通过 `Infisical/secrets-action@v1.0.9` 的 GitHub **OIDC** 换取短期 token 拉取 secret（job 需 `permissions: id-token: write`，无静态密钥），再由 `script/android/prepare_signing_from_infisical.py` 在 gradle 前写出文件。所需 GitHub Variables：`INFISICAL_IDENTITY_ID`、`INFISICAL_PROJECT_SLUG`、`INFISICAL_ENV_SLUG`（默认 `prod`）。
+- Infisical 侧 secret：`ANDROID_KEYSTORE_B64`（keystore 的 base64）、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`、`ANDROID_STORE_PASSWORD`。
+- 本机构建先跑 `infisical run --env=prod -- python3 script/android/prepare_signing_from_infisical.py`，再执行 `dart ./script/build/build_apk.dart`；与 CI 同源，签名不会漂移。
 
 ### 8.4 Sentry 配置
 

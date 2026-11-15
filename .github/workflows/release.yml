@@ -17,24 +17,14 @@ env:
     secrets.BREEZE_PLUGIN_GITHUB_TOKEN || github.token }}
 
 jobs:
-  # Fork 仓库通常没有签名/发布 secrets。job 级 if 读不到 secrets，先在 step 内检测：
-  # 缺 GIT_CRYPT_KEY 跳过 Android，缺 HOMEBREW_GITHUB_TOKEN 跳过 Homebrew 更新。
+  # job 级 if 读不到 secrets，先在 step 内检测：
+  # 缺 HOMEBREW_GITHUB_TOKEN 跳过 Homebrew 更新。
+  # Android 签名不再依赖 GitHub secret——Infisical 走 GitHub OIDC 换短期 token。
   check-secrets:
     runs-on: ubuntu-latest
     outputs:
-      has_git_crypt: ${{ steps.gitcrypt.outputs.has }}
       has_homebrew: ${{ steps.homebrew.outputs.has }}
     steps:
-      - name: 检查 GIT_CRYPT_KEY
-        id: gitcrypt
-        env:
-          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
-        run: |
-          if [ -n "$GIT_CRYPT_KEY" ]; then
-            echo "has=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has=false" >> "$GITHUB_OUTPUT"
-          fi
       - name: 检查 HOMEBREW_GITHUB_TOKEN
         id: homebrew
         env:
@@ -156,11 +146,14 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   # ══════════════════════════════════════════
-  # 1. Android 构建 (含 git-crypt & Sentry)
+  # 1. Android 构建 (含 Infisical OIDC 签名 & Sentry)
   # ══════════════════════════════════════════
   build-android:
     needs: [ preflight, check-secrets ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -188,27 +181,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y llvm-dev libclang-dev clang
 
-      - name: 解密敏感文件 (git-crypt)
-        env:
-          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+      - name: 从 Infisical 拉取签名密钥 (OIDC)
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: "oidc"
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ vars.INFISICAL_ENV_SLUG || 'prod' }}
+          domain: "https://app.infisical.com"
+
+      - name: 写入 Android 签名材料
         run: |
-          if [ -z "$GIT_CRYPT_KEY" ]; then
-            # 本仓是独立 fork，没有 GIT_CRYPT_KEY 这个 secret。以前整条 Android 腿被
-            # `if: has_git_crypt` 直接跳过，于是 Release 里永远没有 APK。
-            # 现在照常出包：android/app/build.gradle.kts 的 releaseSigningAvailable 探到
-            # key.properties 未解锁时，release 构建回退 debug 签名 —— 装得上也能跑，只是不是发布 key。
-            echo "未配置 GIT_CRYPT_KEY：跳过解密，release 构建将回退 debug 签名（fork 的既成口径）。"
-          else
-            sudo apt-get update && sudo apt-get install -y git-crypt
-            echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
-            git-crypt unlock ./git-crypt-key && rm ./git-crypt-key
-          fi
-          # 无论走哪条路，都把 gradle 用来决定签名的判据当场读一遍，
-          # 别让「其实没解密」变成跑完 30 分钟才从安装包签名上看出来的秘密。
+          python3 script/android/prepare_signing_from_infisical.py
+          # 把 gradle 用来决定签名的判据当场读一遍，别让「其实没取到 secret」
+          # 变成跑完 30 分钟才从安装包签名上看出来的秘密。
           if [ -f android/key.properties ] && grep -q '^keyAlias=' android/key.properties; then
             echo "[rossi-android] key.properties 可读 ⇒ release 用发布 key 签名"
           else
-            echo "[rossi-android] key.properties 未解锁或缺 keyAlias ⇒ release 回退 debug 签名"
+            echo "::error::未写出 key.properties，release 会回退 debug 签名"
+            exit 1
           fi
 
       - name: 设置 Java 21 & SDK

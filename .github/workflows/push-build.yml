@@ -18,25 +18,25 @@ env:
     secrets.BREEZE_PLUGIN_GITHUB_TOKEN || github.token }}
 
 jobs:
-  # secrets 上下文在 job 层 if 中不可用（该层只认 github/vars/needs 等），
-  # 所以先用一个轻量 job 在 step 内检测 secret，再经 needs 输出给下游 job 做 if 判断
+  # Fork PR 拿不到 GitHub Variables，直接提示跳过原因，避免 UI 上只有一排灰色
+  # Skipped 让人困惑。Android 签名走 Infisical 的 GitHub OIDC，不需要 GitHub secret。
   check-android-secret:
     runs-on: ubuntu-latest
     outputs:
       has_key: ${{ steps.check.outputs.has_key }}
     steps:
-      - name: 检查 GIT_CRYPT_KEY 是否存在
+      - name: 检查 Infisical OIDC 配置
         id: check
         env:
-          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
         run: |
-          if [ -z "$GIT_CRYPT_KEY" ]; then
+          if [ -z "$INFISICAL_IDENTITY_ID" ]; then
             echo "has_key=false" >> "$GITHUB_OUTPUT"
           else
             echo "has_key=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # Fork 仓库 / Fork PR 拿不到 secrets，直接提示跳过原因，避免 UI 上只有一排灰色 Skipped 让人困惑
+  # Fork 仓库 / Fork PR 拿不到 Variables，其他平台正常构建
   android-skip-notice:
     runs-on: ubuntu-latest
     needs: check-android-secret
@@ -44,16 +44,19 @@ jobs:
     steps:
       - name: 提示跳过 Android 构建
         run: |
-          echo "跳过 Android 构建：未检测到 GIT_CRYPT_KEY（Fork 仓库推送 / Fork PR 无此 secret），其他平台正常构建。"
+          echo "跳过 Android 构建：GitHub Variables 里缺 INFISICAL_IDENTITY_ID（Fork PR 无此变量），其他平台正常构建。"
 
   # ══════════════════════════════════════════
   # 1. Android 构建
   # ══════════════════════════════════════════
   build-android:
-    # 需要 git-crypt 解密签名文件，无 GIT_CRYPT_KEY（Fork 仓库推送 / Fork PR）时直接跳过整个 job
+    # 需要 Infisical OIDC 拉签名材料，无 INFISICAL_IDENTITY_ID（Fork PR）时跳过整个 job
     needs: check-android-secret
     if: ${{ needs.check-android-secret.outputs.has_key == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -76,14 +79,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y llvm-dev libclang-dev clang
 
-      - name: 解密敏感文件 (git-crypt)
+      - name: 从 Infisical 拉取签名密钥 (OIDC)
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: "oidc"
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ vars.INFISICAL_ENV_SLUG || 'prod' }}
+          domain: "https://app.infisical.com"
+
+      - name: 写入 Android 签名材料
         id: crypt
-        env:
-          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
         run: |
-          sudo apt-get update && sudo apt-get install -y git-crypt
-          echo "$GIT_CRYPT_KEY" | base64 -d > ./git-crypt-key
-          git-crypt unlock ./git-crypt-key && rm ./git-crypt-key
+          python3 script/android/prepare_signing_from_infisical.py
           echo "android_flavor=release" >> "$GITHUB_OUTPUT"
           echo "ANDROID_FLAVOR=release" >> "$GITHUB_ENV"
 

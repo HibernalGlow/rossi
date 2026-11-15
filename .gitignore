@@ -150,3 +150,8 @@ android/app/src/main/jniLibs/arm64-v8a/libQnn*.so
 # 各自是带独立 .git 与 remote 的上游仓库，内置插件由 rust/build.rs 从 CDN 下载打包，
 # 源码不进本仓；直接 git add 会变成没有 .gitmodules 的 gitlink 空壳。
 /plugin/
+
+# Android release 签名材料：由 Infisical Cloud 托管，CI / 本机在构建前用
+# script/android/prepare_signing_from_infisical.py 现场生成，绝不入库。
+android/key.properties
+android/Breeze-key.keystore
