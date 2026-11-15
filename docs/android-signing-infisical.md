@@ -153,15 +153,49 @@ access token 放进 `INFISICAL_TOKEN`（`infisical run` 会优先用它，绕过
 
 ## 5. 日常构建
 
+**本机一次性前置**（2026-11-15 macOS 实测；全是环境变量 / 被忽略的本机文件，不入库）：
+
+| 项 | 值 / 修法 |
+|---|---|
+| `android/local.properties` 的 `sdk.dir` | 必须指完整 SDK `/opt/homebrew/share/android-commandlinetools`。曾误指 `/opt/homebrew/Caskroom/android-platform-tools/37.0.2`（只有 platform-tools），`flutter doctor` 报 `cmdline-tools component is missing` |
+| `ANDROID_HOME` / `ANDROID_NDK_HOME` | `/opt/homebrew/share/android-commandlinetools` / `.../ndk/29.0.14206865`（版本从 `android/app/build.gradle.kts` 的 `ndkVersion` 读） |
+| `JAVA_HOME` | JDK 21 |
+| **Rust 1.96.1 的 PATH** | `export PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH"` |
+
+最后一条是最隐蔽的坑：`~/.cargo/config.toml` 全局设了
+`build.rustc-wrapper = "/opt/homebrew/bin/sccache"`，sccache 转发时解析到
+Homebrew rustc 1.99.1（**没有 android std**），于是 cargo 在编译 `libc`/`cfg-if`
+这类最基础依赖时就报 `can't find crate for core/std`，看起来像没装 target，
+其实 `rustup target list --installed --toolchain 1.96.1` 里 `aarch64-linux-android` 是有的。
+把 1.96.1 的 bin 前置到 PATH 后 sccache 才会用对 rustc；
+`SCCACHE_DISABLE=1` / `RUSTC_WRAPPER=""` 都绕不开（wrapper 写在 cargo config 里）。
+`rust/rust-toolchain.toml` 钉 1.96.1，判据看
+`~/.rustup/toolchains/1.96.1-aarch64-apple-darwin/lib/rustlib/aarch64-linux-android/` 在不在
+——**要看 1.96.1 这条，不是默认 toolchain**。
+
 ```bash
 cd /Users/glow/Base/Code/Freya/rossi
+
+export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.14206865"
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+export PATH="$HOME/.rustup/toolchains/1.96.1-aarch64-apple-darwin/bin:$PATH"
 
 # 从 Infisical 现场写出 android/ 下两个签名文件
 infisical run --env=prod -- python3 script/android/prepare_signing_from_infisical.py
 
-# 然后照常构建 / 安装
+# 然后照常构建（无参数 = release / arm64）；产物 110.8MB 实测约 6.5 分钟
 dart ./script/build/build_apk.dart
 adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+```
+
+构建后核对签名（应是 `CN=Breeze Release`，不是 `CN=Android Debug`）：
+
+```bash
+/opt/homebrew/share/android-commandlinetools/build-tools/37.0.0/apksigner verify --print-certs \
+  build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | grep 'SHA-256 digest'
+# d0e198f57caa454a7e9424cc7595bfb434513f96c93a035c7b5f6d21e47e6ba1
+# 且 gradle 日志里不能出现 "release signing unavailable"
 ```
 
 `infisical run` 会把 `prod` 的 secret 注入子进程环境变量（实测 `Injecting 4 Infisical secrets`）。
