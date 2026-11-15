@@ -1,5 +1,9 @@
 # Breeze
 
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
+</p>
+
 ## 💖 鸣谢与赞助
 
 感谢以下组织对开源社区的支持：
