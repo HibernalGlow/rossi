@@ -78,23 +78,36 @@ Future<int> _buildQjsRuntimeIfNeeded({
     return sw.elapsedMilliseconds;
   }
 
-    final ready = await isQjsRuntimeInitialized(name: runtimeName);
-    if (!ready) {
-      await installBundle();
-    } else {
-      String? currentBundle;
-      try {
-        final currentBundleRaw = await qjsCurrentBundle(
-          runtimeName: runtimeName,
-        );
-        currentBundle = jsonDecode(currentBundleRaw) as String?;
-      } catch (e, st) {
-        logger.e(e, stackTrace: st);
-        currentBundle = null;
-      }
-      if (currentBundle == null || currentBundle.trim().isEmpty) {
-        await installBundle();
-      }
+  if (await isQjsRuntimeInitialized(name: runtimeName)) {
+    String? currentBundle;
+    try {
+      final currentBundleRaw = await qjsCurrentBundle(runtimeName: runtimeName);
+      currentBundle = jsonDecode(currentBundleRaw) as String?;
+    } catch (_) {
+      currentBundle = null;
+    }
+    if (currentBundle != null && currentBundle.trim().isNotEmpty) {
+      return 0;
+    }
+  }
+  return installBundle();
+}
+
+/// 封面卡悬停时把「读 bundle + QuickJS 编译执行」提前做掉，点击时只剩网络那一段。
+///
+/// 刻意不含插件 `init()`：那一步会抓发布页并逐域名测速，用户只是划过一张卡片，
+/// 不该替他去戳图源站点。重复悬停由「runtime 已初始化」那条判定挡掉，不会重编。
+Future<void> prewarmQjsRuntime(String pluginId) async {
+  final normalizedPluginId = pluginId.trim();
+  if (normalizedPluginId.isEmpty) return;
+  final runtimeName = runtimeNameForPluginId(normalizedPluginId);
+  try {
+    final buildMs = await _buildQjsRuntimeIfNeeded(
+      normalizedPluginId: normalizedPluginId,
+      runtimeName: runtimeName,
+    );
+    if (buildMs > 0) {
+      logger.d('[read-start] qjs-prewarm $runtimeName build=${buildMs}ms');
     }
   } catch (e) {
     logger.w('预建 QJS runtime 失败: $runtimeName', error: e);

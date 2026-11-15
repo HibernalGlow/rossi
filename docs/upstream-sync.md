@@ -1,5 +1,61 @@
 # 上游同步记录
 
+## Breeze v3.0.38 同步（2026-11-15）
+
+| 来源 | 先前内容基准 | 本次内容基准 |
+|---|---|---|
+| Breeze | `10a0a4d70`（v3.0.35 线） | `836e3581b`（v3.0.38） |
+| Rossi merge | `96884690b` | `c66774fdf`（真实 merge，第二父节点为上游） |
+
+本轮实际使用了 `git merge --no-commit -X theirs upstream/main`，随后解决 modify/delete 冲突。
+后续发现自动合并仍留下 QJS 语法损坏、Rossi 词条缺失及应用编译错误，因此这次执行方式
+不作为后续同步流程的推荐。复用技能已改为普通三方合并，并要求检查自动合并模块的行为和语法。
+合并提交保留真实上游父节点，`git merge-base` 已推进到 `836e3581b`；历史推进不代表验证通过。
+
+**采用的上游能力**：
+
+- Flutter 3.50 / Dart 3.14、Gradle 9.5 / AGP 9.3、compileSdk 37 与依赖锁定更新；
+- 搜索游标与搜索书签、拼图验证码、详情页已读样式、收藏/追更修复、漫画编辑；
+- DoH 自定义端点与开关、域名前置与 ECH、代理缓存重建、WindHttp 非 2xx 错误语义；
+- `Store.runAsync` 数据库访问、阅读预取与窗口句柄修复、FluentDropdown 长列表筛选；
+- Windows 安装器从 Tauri/Svelte 迁移到 `windows-installer/breeze.iss`（Inno Setup 7），
+  同时删除旧 Tauri 前端、Rust 安装器和两份 SPM `Package.resolved`；
+- 上游新增的 Dart skills 与仓库地址迁移。
+
+**Rossi 扩展接线**：
+
+- Android/iOS/macOS/Linux/Windows 的 Rossi 包名、可执行文件、Flatpak 标识和 GPU/OCR
+  接口继续保留；身份迁移代码在合并后重新回填，未混入 merge commit；
+- 新 Inno Setup 脚本改用 `rossi.exe`、独立 `{localappdata}\\rossi` 目录和
+  `com.hibernalglow.rossi_shutdown_signal`，旧 Breeze 安装、卸载项和数据保留，首启迁移
+  由 `lib/service/app_identity/` 负责；
+- `plugin/` 本机插件源码、QNN 库和 Android 签名材料继续由 `.gitignore` 排除；
+- Rossi 的工作台、GPU 呈现、RealSR/QNN、OCR、操作绑定、展墙与本地核心扩展沿用本仓实现，
+  上游重叠逻辑接入上游的新接口，不新增第二套实现。
+
+**冲突与验证**：
+
+- 已解决 5 个 modify/delete 冲突：两份 macOS SPM 锁文件和三份旧 Tauri 安装器文件按上游迁移删除；
+- 当前验证使用 mise 的 Flutter 3.50.0 / Dart 3.14.0。先前全仓 Dart 分析报告 3,312 条 error，
+  结果未通过，尚未逐项归因，不能称为既有失败或“无新增问题”。本次没有重复全仓分析或统一代码生成；
+  先前统一生成日志成功不证明之后改动的合并树和工作树一致。
+- 保留合并后的上游词条与 Rossi 翻译，补齐六处语言键差异（四条中文底部进度条词条、
+  中文 `search.settings`、英文 `search.selectSourceTooltip`）。只重新执行
+  `mise exec flutter@3.50.0 -- flutter pub run slang`，工作区生成结果为 3,703 条/语言（含在途身份迁移的四条文案；纯修复树为 3,699 条），
+  中英文源键集合相同，生成映射与输入一致（Dart 保留字 `continue` 按生成器映射为 `kContinue`）。
+  `slang analyze --full` 的缺失报告为空；没有应用其未使用词条建议或删除 Rossi 翻译。
+- 修复合并树 `qjs_download_runtime.dart` 遗留的悬空 `catch` 和缺失的 `prewarmQjsRuntime`：
+  保留 Rossi `PluginInitCoordinator` 的并发初始化、代际失效及失败重试适配，接回封面预热，
+  同时保留上游通过 worker 池解码 CBOR 的改进，避免 UI isolate 解码大图。
+- 工作区的 QJS runtime、初始化协调器与国际化入口定向 `dart analyze` 无问题；
+  技能 `quick_validate.py` 通过。定向 `flutter test` 的 CBOR 两项通过，
+  `plugin_init_coordinator_test.dart` 因应用编译错误未能加载：包括 `main.dart` 的 export/part
+  顺序、缺失导入、Material 形状导入冲突、阅读设置生成声明与输入不一致，以及导航/设置代码
+  中遗失的局部状态。该测试失败仍未解决，不能以文件分析通过代替应用编译或行为验收。
+- 全平台构建、真实插件初始化与其它上游模块回归尚未通过本轮验证，整体同步仍未验收完成。
+- merge commit：`c66774fdfdb094da80e9d241777d3d0a99a18d2a`。
+
+
 ## mImageViewer v4.8.1 同步（2026-10-25）
 
 | 来源 | 先前内容基准 | 本次内容基准 |
