@@ -154,6 +154,11 @@ jobs:
           echo "ANDROID_NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
           echo "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
 
+      # libwindcore.so 依赖 NDK 的 libc++_shared.so，但 native-assets 不会自动打包它。
+      # jniLibs/ 被 .gitignore 忽略，CI checkout 里没有，缺了就会启动闪退。
+      - name: 补齐 libc++_shared.so
+        run: python3 script/android/prepare_android_libcpp_shared.py
+
       - name: 接受 Android Licenses
         run: yes | fvm flutter doctor --android-licenses || true
 
