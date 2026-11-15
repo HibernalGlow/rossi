@@ -122,7 +122,7 @@ brew install infisical
 # 1) 浏览器授权登录（会打印 https://app.infisical.com/login?callback_port=... 并监听 localhost）
 infisical login
 #    已登录态查：infisical login status
-#    会话存在系统 keyring，profile 形如 <邮箱>--<组织>--<后缀>；token 有效期 10 天，过期重跑 login
+#    会话存在系统 keyring，profile 形如 <邮箱>--<组织>--<后缀>
 
 # 2) 绑定项目（非交互，写 .infisical.yaml）
 infisical init --project-id 1e80d249-9750-43b0-9c0e-16a2b74ef65d
@@ -130,6 +130,21 @@ infisical init --project-id 1e80d249-9750-43b0-9c0e-16a2b74ef65d
 
 `.infisical.yaml` 只有 `project-id`，**不含任何凭据，已入库**；团队 clone 后各自跑一次
 `infisical login` 即可，不用重跑 `init`。
+
+**CLI 会话固定 10 天，调不长**（2026-11-15 实测）：`login status` 显示
+`Token expiration: 9d 23h`。组织 Settings → Security → **Session Length**
+（默认 `90 Days`，可设到 `52 Weeks`）保存时提示 `Successfully updated user token
+expiration`，但实测改成 52 周后**重新 `infisical login` 签发的仍是 10 天**——
+这个设置不作用于 GitHub OAuth 登录的 CLI 会话；CLI 也没有任何 TTL 参数。
+改完已恢复原值 `90 Days`。
+
+所以过期就重跑一次 `infisical login`：浏览器保持 Infisical 登录态时，
+CLI 自动开浏览器完成 localhost 回调，几秒钟结束，不用手输凭据。
+CI 走 OIDC，**完全不受这 10 天影响**。
+
+若确实要本机长期免登录，只能另建 **Token Auth 机器身份**、生成一个最长 90 天的
+access token 放进 `INFISICAL_TOKEN`（`infisical run` 会优先用它，绕过 login 会话）。
+代价是本机多一份长期凭据，需要自行放进 Keychain 并定期轮换；当前未采用。
 
 `infisical login` 是交互式命令：不带参数会先让选 region（US/EU/自托管），
 非 TTY 环境会 EOF 失败。要跳过这一步可显式给
