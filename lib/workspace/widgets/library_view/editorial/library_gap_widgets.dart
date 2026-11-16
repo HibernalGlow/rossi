@@ -28,7 +28,8 @@ library;
 import 'dart:math' as math;
 
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart'
+    hide RoundedPolygon, CornerRounding, MaterialShapes, Morph;
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
 import 'package:zephyr/widgets/expressive/expressive_shape.dart';
@@ -824,9 +825,8 @@ class _GapCollageBackdropPainter extends CustomPainter {
       height: blobSide,
     );
     canvas.drawPath(
-      ExpressiveBlob.ofSeed(
-        s ^ 0x5bd1e995,
-      ).path(rect: blobRect, progress: 0, safeInset: 5),
+      ExpressiveBlob.ofSeed(s ^ 0x5bd1e995)
+          .path(rect: blobRect, progress: 0, safeInset: 5),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.4

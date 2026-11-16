@@ -142,9 +142,8 @@ class SettingPageShell extends StatelessWidget {
     }
 
     final pageBackground = theme.colorScheme.surfaceContainerLowest;
-    final barScaler = MediaQuery.of(
-      context,
-    ).copyWith(textScaler: TextScaler.noScaling);
+    final barScaler = MediaQuery.of(context)
+        .copyWith(textScaler: TextScaler.noScaling);
     return SettingScrollSpyScope(
       pageId: pageId,
       declaredSections: sections,

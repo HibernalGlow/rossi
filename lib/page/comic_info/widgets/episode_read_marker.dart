@@ -126,9 +126,9 @@ Future<void> showChapterReadMenu(
             _ReadMenuRow(
               glyph: AppGlyphs.checkDouble,
               label: t.comicInfo.markThroughRead,
-              onPressed: () => Navigator.of(
-                dialogContext,
-              ).pop(_ReadMenuAction.markThroughRead),
+              onPressed: () =>
+                  Navigator.of(dialogContext)
+                      .pop(_ReadMenuAction.markThroughRead),
             ),
           _ReadMenuRow(
             glyph: AppGlyphs.clearAll,

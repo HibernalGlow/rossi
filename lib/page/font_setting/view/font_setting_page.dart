@@ -244,9 +244,8 @@ class _FontSettingPageState extends State<FontSettingPage> {
                       width: 86,
                       child: Text(
                         t.fontSetting.overrides,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                     title: Text(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -237,9 +238,9 @@ class _BindingInputRecorderState extends State<BindingInputRecorder> {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

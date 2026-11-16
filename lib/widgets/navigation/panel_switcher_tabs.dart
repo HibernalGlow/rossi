@@ -54,9 +54,8 @@ class PanelSwitcherTabs extends StatelessWidget {
     if (items.isEmpty) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
     final textTabs = appearance == PanelSwitcherAppearance.labels;
-    final style = DefaultTextStyle.of(
-      context,
-    ).style.merge(Theme.of(context).textTheme.titleSmall);
+    final style = DefaultTextStyle.of(context).style
+        .merge(Theme.of(context).textTheme.titleSmall);
     final sizes = [
       for (final item in items)
         if (textTabs) _labelExtent(context, item.label, style) else iconExtent,

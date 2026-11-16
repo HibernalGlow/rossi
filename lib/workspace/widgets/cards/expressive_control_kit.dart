@@ -1,7 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart'
+    hide RoundedPolygon, CornerRounding, MaterialShapes, Morph;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/expressive/expressive_blob.dart';
@@ -334,9 +335,8 @@ class _M3ECollagePatchPainter extends CustomPainter {
       width: blobSide * 1.25,
       height: blobSide,
     );
-    final blobPath = ExpressiveBlob.ofSeed(
-      s ^ 0x5bd1e995,
-    ).path(rect: blobRect, progress: active ? 0.45 : 0.0, safeInset: 6);
+    final blobPath = ExpressiveBlob.ofSeed(s ^ 0x5bd1e995)
+        .path(rect: blobRect, progress: active ? 0.45 : 0.0, safeInset: 6);
     canvas.drawPath(
       blobPath,
       Paint()

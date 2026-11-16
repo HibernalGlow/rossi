@@ -13,6 +13,9 @@ import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/widgets/search/search_history_field.dart';
 import 'package:zephyr/widgets/search/search_history_store.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/page/plugin_store/models/cloud_plugin_item.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 @RoutePage()
 class PluginStorePage extends StatelessWidget {
@@ -262,9 +265,8 @@ class _PluginStorePageContentState extends State<_PluginStorePageContent> {
           const SizedBox(height: 8),
           Text(
             t.plugin.restrictedSourcesHidden(count: hiddenRestrictedCount),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
         ],
         if (state.cloudError.trim().isNotEmpty && hasData) ...[

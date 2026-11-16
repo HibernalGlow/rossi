@@ -9,15 +9,14 @@ import 'package:zephyr/widgets/search/search_history_popup.dart';
 import 'package:zephyr/widgets/search/search_history_store.dart';
 import 'package:zephyr/widgets/spring_lens/elastic_press.dart';
 
-typedef HistorySearchFieldBuilder =
-    Widget Function(
-      BuildContext context,
-      TextEditingController controller,
-      FocusNode focusNode,
-      ValueChanged<String> onChanged,
-      ValueChanged<String> onSubmitted,
-      Widget historyButton,
-    );
+typedef HistorySearchFieldBuilder = Widget Function(
+  BuildContext context,
+  TextEditingController controller,
+  FocusNode focusNode,
+  ValueChanged<String> onChanged,
+  ValueChanged<String> onSubmitted,
+  Widget historyButton,
+);
 
 /// 官方 Autocomplete 管理建议和键盘选择，统一弹层呈现两个历史入口。
 class SearchHistoryAutocomplete extends StatefulWidget {

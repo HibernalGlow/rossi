@@ -26,9 +26,8 @@ class _AdaptiveVideoToolbar extends StatelessWidget {
   }
 
   Widget _group(BuildContext context, List<Widget> buttons) => Material(
-    color: Theme.of(
-      context,
-    ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+    color: Theme.of(context).colorScheme.surfaceContainerHighest
+        .withValues(alpha: 0.55),
     borderRadius: BorderRadius.circular(28),
     child: Row(
       mainAxisSize: MainAxisSize.min,

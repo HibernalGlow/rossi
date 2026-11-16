@@ -112,6 +112,11 @@ class ComicReadSnapshotChapter {
       pages: _resolvePages(map)
           .map((item) => ComicReadSnapshotPage.fromMap(_asMap(item)))
           .toList(),
+      // 这三个 key 与目录里的 `<章节>` 同源：少了它们，阅读器算出来的章 key
+      // 命中不了这次快照，优化等于白做（下载 / 存储目录也会落成空串）。
+      requestId: map['requestId']?.toString().trim() ?? '',
+      logicalKey: map['logicalKey']?.toString().trim() ?? '',
+      storageChapterId: map['storageChapterId']?.toString().trim() ?? '',
       extern: _asMap(map['extern']),
     );
   }

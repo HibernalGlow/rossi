@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:zephyr/widgets/motion/expressive_motion.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:material_ui/material_ui.dart';
@@ -109,11 +110,7 @@ class _BottomWidgetState extends State<BottomWidget> {
   }
 
   void _jumpToSlot(int index) {
-    if (widget.onJumpToSlot != null) {
-      widget.onJumpToSlot!(index);
-    } else {
-      ReaderSessionCoordinator.instance.jumpTo(index);
-    }
+    ReaderSessionCoordinator.instance.jumpTo(index);
   }
 
   @override

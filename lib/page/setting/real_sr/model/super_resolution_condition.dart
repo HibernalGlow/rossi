@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:zephyr/i18n/strings.g.dart';
 
 /// 条件超分的元数据单项表达式
@@ -408,9 +409,8 @@ class SuperResolutionCondition {
           final item = decoded[i];
           if (item is Map) {
             list.add(
-              SuperResolutionCondition.fromJson(
-                item.cast<String, dynamic>(),
-              ).copyWith(priority: i),
+              SuperResolutionCondition.fromJson(item.cast<String, dynamic>())
+                  .copyWith(priority: i),
             );
           }
         }

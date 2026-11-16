@@ -1,5 +1,7 @@
 import 'package:zephyr/page/setting/common/setting_group.dart';
+
 import 'dart:io';
+
 import 'package:zephyr/page/comic_read/widgets/settings/sections/image_denoise_section.dart';
 
 import 'package:auto_route/auto_route.dart';
@@ -146,114 +148,6 @@ class _RealSrSettingPageState extends State<RealSrSettingPage> {
       _isAvailable = results[0] as bool;
       _engine = results[1] as SuperResolutionEngine;
     });
-
-    try {
-      await RealSrSuperResolution.downloadModel(
-        force: _isAvailable,
-        onProgress: (received, total) {
-          if (!mounted || total <= 0) return;
-          setState(() => _downloadProgress = received / total);
-        },
-      );
-    } catch (e, s) {
-      logger.e('模型下载失败', error: e, stackTrace: s);
-      showErrorToast('${t.realSr.modelDownloadFailed}: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _downloading = false);
-        await _refreshAvailability();
-      }
-    }
-  }
-
-  Future<void> _deleteModel() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.realSr.deleteModel),
-        content: Text(t.realSr.deleteModelConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(t.common.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(t.common.delete),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await RealSrSuperResolution.deleteModel();
-      showSuccessToast(t.realSr.modelDeleted);
-    } catch (e, s) {
-      logger.e('模型删除失败', error: e, stackTrace: s);
-      showErrorToast('${t.realSr.modelDeleteFailed}: $e');
-    } finally {
-      if (mounted) await _refreshAvailability();
-    }
-  }
-
-  Future<void> _openManualDownloadUrl() async {
-    final url = RealSrSuperResolution.manualDownloadUrl;
-    if (url == null) {
-      showErrorToast(t.realSr.manualDownloadUnsupported);
-      return;
-    }
-    final opened = await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    );
-    if (!opened && mounted) {
-      showErrorToast(t.realSr.openDownloadUrlFailed);
-    }
-  }
-
-  Future<void> _importModel() async {
-    // iOS 没有系统声明的 7z UTI，使用通用数据类型后由导入逻辑校验 7z 魔数。
-    final typeGroup = Platform.isIOS
-        ? const XTypeGroup(label: '7z')
-        : const XTypeGroup(label: '7z', extensions: ['7z']);
-    final XFile? file;
-    try {
-      file = await openFile(acceptedTypeGroups: [typeGroup]);
-    } catch (e) {
-      logger.e(e);
-      showErrorToast('${t.realSr.modelImportFailed}: $e');
-      return;
-    }
-    if (file == null) return;
-
-    setState(() => _importing = true);
-    try {
-      await RealSrSuperResolution.importModelArchive(file.path);
-      if (mounted) showSuccessToast(t.realSr.modelImportSuccess);
-    } catch (e, s) {
-      logger.e('模型导入失败', error: e, stackTrace: s);
-      if (mounted) {
-        showErrorToast('${t.realSr.modelImportFailed}: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _importing = false);
-        await _refreshAvailability();
-      }
-    }
-  }
-
-  String get _coreMLBlockInfo {
-    final blockSize = _coreMLVariant.config['blockSize'] as int? ?? 0;
-    final shrinkSize = _coreMLVariant.config['shrinkSize'] as int? ?? 0;
-    final contentSize = CoreMLModelConfig.contentBlockSize(_coreMLVariant);
-    return t.realSr.blockInfoFormat(
-      contentSize: contentSize,
-      blockSize: blockSize,
-      shrinkSize: shrinkSize,
-    );
   }
 
   List<Widget> _buildModelItems() {

@@ -69,26 +69,15 @@ Future<DeleteDownloadedChapterResult> deleteDownloadedChapter({
 
   final removed = storedChapters.removeAt(index);
   final candidate = adapter.fromStoredMap(removed.toMap());
-  for (final image in removed.images) {
-    final path = image.path.trim();
-    if (path.isEmpty) continue;
-    try {
-      final store = DownloadAssetStore(
-        from: from,
-        path: path,
-        cartoonId: comicId,
-        chapterId: '',
-        storageChapterId: candidate.effectiveStorageId,
-        pictureType: PictureType.page,
-      );
-      final found = await store.findCanonicalDownload();
-      if (found == null) continue;
-      await File(found.path).delete();
-    } catch (e, st) {
-      logger.e(e, stackTrace: st);
-      // 单个文件删除失败不影响元数据提交。
-    }
-  }
+  // 与取消下载走同一套删除口径：按章节 key 的全部候选清理，
+  // 覆盖历史版本阅读器落盘的位置。
+  await DownloadAssetStore.deleteDownloadedFiles(
+    from: from,
+    cartoonId: comicId,
+    effectiveStorageChapterId: candidate.effectiveStorageId,
+    chapterId: candidate.id,
+    docPaths: removed.images.map((image) => image.path),
+  );
 
   final detail = NormalComicAllInfo.fromJson(
     jsonDecode(record.detailJson) as Map<String, dynamic>,
@@ -134,8 +123,7 @@ Future<void> deleteWholeComicDownload({
       if (payload != null && payload.from.trim() == from.trim()) {
         chapterKey = payload.chapterKey;
       }
-    } catch (e, st) {
-      logger.e(e, stackTrace: st);
+    } catch (_) {
       chapterKey = null;
     }
     if (chapterKey == null || chapterKey.isEmpty) {

@@ -37,6 +37,7 @@ extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
     _ReaderSettingsTab.read => _ReaderSettingsReadTab(
       changePageIndex: args.changePageIndex,
       onLandscapeChanged: args.onLandscapeChanged,
+      onDoublePageModeChanged: args.onDoublePageModeChanged,
       source: args.source,
       comicId: args.comicId,
     ),
@@ -49,6 +50,7 @@ extension _ReaderSettingsTabLabel on _ReaderSettingsTab {
     _ReaderSettingsTab.perComic => _ReaderSettingsPerComicTab(
       changePageIndex: args.changePageIndex,
       onLandscapeChanged: args.onLandscapeChanged,
+      onDoublePageModeChanged: args.onDoublePageModeChanged,
       source: args.source,
       comicId: args.comicId,
       isAndroidPhone: args.isAndroidPhone,
@@ -79,6 +81,7 @@ class _ReaderSettingsArgs {
     required this.changePageIndex,
     required this.isAndroidPhone,
     this.onLandscapeChanged,
+    this.onDoublePageModeChanged,
     this.source = '',
     this.comicId = '',
   });
@@ -86,6 +89,7 @@ class _ReaderSettingsArgs {
   final ValueChanged<int> changePageIndex;
   final bool isAndroidPhone;
   final ValueChanged<bool>? onLandscapeChanged;
+  final ValueChanged<bool>? onDoublePageModeChanged;
   final String source;
   final String comicId;
 

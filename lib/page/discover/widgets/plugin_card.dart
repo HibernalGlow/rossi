@@ -274,53 +274,34 @@ class PluginCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFunctionButtons(
-    BuildContext context,
-    List<Map<String, dynamic>> rawFunctions,
-    ColorScheme colorScheme,
-  ) {
-    final chips = rawFunctions.map((function) {
-      final id = function['id']?.toString().trim() ?? '';
-      final text = function['title']?.toString().trim() ?? t.discover.unnamed;
-      var action = asJsonMap(function['action']);
-      if (action.isEmpty && id.isNotEmpty) {
-        action = {
-          'type': 'openPluginFunction',
-          'payload': {'id': id, 'title': text, 'presentation': 'page'},
-        };
-      }
-      final enabled = action.isNotEmpty;
-      return _functionChip(
-        context,
-        colorScheme,
-        label: text.let(convertChineseForDisplay),
-        onPressed: enabled ? () => onAction(action) : null,
-      );
-    }).toList();
-    return Wrap(spacing: 8, runSpacing: 8, children: chips);
-  }
-
-  Widget _functionChip(
-    BuildContext context,
-    ColorScheme colorScheme, {
-    required String label,
+  Widget _buildTonalIconButton(
+    BuildContext context, {
+    required String tooltip,
+    required Glyph glyph,
+    required bool enabled,
+    required bool animate,
     required VoidCallback? onPressed,
   }) {
-    return ActionChip(
-      label: Text(label),
-      onPressed: onPressed,
-      backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.16),
-      disabledColor: colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.35,
-      ),
-      side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.1)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: colorScheme.primary.withValues(alpha: 0.78),
-        fontWeight: FontWeight.w500,
+    final scheme = Theme.of(context).colorScheme;
+    return ElasticButton(
+      enabled: animate && enabled,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          fixedSize: const Size.square(38),
+          minimumSize: const Size.square(38),
+          padding: EdgeInsets.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          backgroundColor: enabled
+              ? scheme.surfaceContainerHighest
+              : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+          foregroundColor: enabled
+              ? scheme.onSurfaceVariant
+              : scheme.onSurfaceVariant.withValues(alpha: 0.38),
+          shape: const StadiumBorder(),
+        ),
+        icon: GlyphIcon(glyph, size: 18),
       ),
     );
   }

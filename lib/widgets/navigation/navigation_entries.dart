@@ -234,9 +234,10 @@ const List<NavigationEntryId> kDefaultNavigationActionEntries = [
 /// 动作不去按平台过滤：底部快捷区本来就在所有「有侧栏」的设备上摆着同样
 /// 几条，这里保持一致（真按平台收，会变成「桌面加得进去、平板加不进去」
 /// 这种更难解释的差别）。
-List<NavigationEntryId> availableNavigationEntries() => [
-  for (final id in NavigationEntryId.values) id,
-];
+List<NavigationEntryId> availableNavigationEntries({
+  bool showPluginHome = true,
+  bool showPluginCloudFavorite = true,
+}) => [for (final id in NavigationEntryId.values) id];
 
 /// 出厂清单（主区）。
 List<NavigationEntryId> defaultNavigationEntries() => kDefaultNavigationEntries;

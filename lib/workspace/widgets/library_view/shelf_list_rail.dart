@@ -26,9 +26,8 @@ class ShelfListRail extends StatelessWidget {
         children: [
           Expanded(
             child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(
-                context,
-              ).copyWith(scrollbars: false),
+              behavior: ScrollConfiguration.of(context)
+                  .copyWith(scrollbars: false),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(children: children),

@@ -90,9 +90,9 @@ class _DailyTrendViewState extends State<DailyTrendView> {
                                 const SizedBox(height: 6),
                                 Text(
                                   day.label,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelMedium,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium,
                                 ),
                               ],
                             ),

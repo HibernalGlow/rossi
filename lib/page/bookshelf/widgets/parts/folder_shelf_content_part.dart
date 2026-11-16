@@ -1,6 +1,11 @@
 part of '../folder_shelf_page.dart';
 
 extension _FolderShelfContentPart on _FolderShelfPageContentState {
+  Map<String, ComicFolder> _buildSyncIdMap(ShelfPageMode mode) {
+    final folders = ComicFolderService.listAllFolders(_folderTypeOf(mode));
+    return {for (final folder in folders) folder.syncId: folder};
+  }
+
   /// 本仓展墙路径（含普通视图回退）。上游合并引入了类内同名的
   /// `_buildBody`（网格 / 详情行），会把 extension 成员遮蔽成死代码，
   /// 因此改名，由类内 `_buildBody` 按 detailLayout 显式分流到这里。

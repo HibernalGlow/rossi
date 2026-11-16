@@ -27,7 +27,16 @@ final Map<String, String> _displayConvertCache = {};
 /// 不传则现读全局设置。缓存键含模式名,切模式不会串台。
 String convertChineseForDisplay(String text, {ChineseConvertMode? mode}) {
   if (text.isEmpty) return text;
-  mode ??= globalSetting.chineseConvertMode;
+  if (mode == null) {
+    try {
+      mode = globalSetting.chineseConvertMode;
+    } catch (_) {
+      // 这个函数挂在 build 链路上（卡片标题、胶囊标签都会调），而设置读的是
+      // ObjectBox：数据库还没打开（启动早期、组件预览、单测）时不该让整排
+      // 组件跟着抛。拿不到设置就按「关闭」处理，显示的仍是原文。
+      return text;
+    }
+  }
   if (mode == ChineseConvertMode.off) return text;
   final key = '${mode.name}|$text';
   final cached = _displayConvertCache[key];

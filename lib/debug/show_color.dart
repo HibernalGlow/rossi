@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/util/context/context_extensions.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
 
 const _defaultFontPath =
     r'C:\Users\windy\Downloads\zip\03_NotoSerifCJK-TTF-VF\Variable\TTF\Subset\NotoSerifSC-VF.ttf';

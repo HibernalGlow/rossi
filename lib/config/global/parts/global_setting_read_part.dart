@@ -48,6 +48,8 @@ abstract class ReadSettingState with _$ReadSettingState {
     @Default(1) int preloadChapterCount,
     @Default(true) bool readWhileDownloading,
     @Default(false) bool landscapeReader,
+    @Default(false) bool showStatusBar,
+    @Default(false) bool autoDoublePageInLandscape,
     @Default(false) bool doublePageMode,
     @Default(false) bool doublePageSeamless,
     @Default(false) bool doublePageLeadingBlank,

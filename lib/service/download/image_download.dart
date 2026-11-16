@@ -8,7 +8,6 @@ import 'package:zephyr/service/download/download_progress_reporter.dart';
 import 'package:zephyr/service/download/download_retry.dart';
 import 'package:zephyr/service/download/download_speed_meter.dart';
 import 'package:zephyr/type/enum.dart';
-import 'package:zephyr/main.dart';
 
 class DownloadImageJob {
   const DownloadImageJob({
@@ -270,6 +269,7 @@ Future<DownloadImageJobsResult> downloadImageJobs({
           recordFailedJob(currentJob, e);
         }
       } catch (error, stackTrace) {
+        logger.e(error, stackTrace: stackTrace);
         // 任务取消立即中断；普通单图失败只记账，不打断并行的其它图片
         final errorStr = error.toString();
         if (errorStr.contains(downloadTaskCancelledMessage) ||
@@ -377,10 +377,6 @@ Future<DownloadImageJobsResult> downloadImageJobs({
       } catch (e) {
         stillFailedJobs.add(job);
       }
-    } catch (error, stackTrace) {
-      logger.e(error, stackTrace: stackTrace);
-      firstError ??= error;
-      firstErrorStackTrace ??= stackTrace;
     }
   }
 

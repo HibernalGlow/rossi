@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+
 import 'package:zephyr/widgets/library_image_geometry.dart';
 
 import 'package:flutter/services.dart';
@@ -22,16 +23,18 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_size_set
 
 part 'package:zephyr/workspace/widgets/library_view/editorial/library_canvas_viewport.dart';
 
-typedef LibraryLegacyFocusBuilder =
-    Widget Function(
-      BuildContext,
-      Map<String, Widget>,
-      ValueChanged<LibraryEntry>,
-      ValueChanged<LibraryEntry>,
-    );
+typedef LibraryLegacyFocusBuilder = Widget Function(
+  BuildContext,
+  Map<String, Widget>,
+  ValueChanged<LibraryEntry>,
+  ValueChanged<LibraryEntry>,
+);
 
-typedef LibraryDetailBuilder =
-    Widget Function(BuildContext, LibraryEntry, VoidCallback);
+typedef LibraryDetailBuilder = Widget Function(
+  BuildContext,
+  LibraryEntry,
+  VoidCallback,
+);
 
 /// 原位展开宿主：所有数据源都沿用自己的排序、手势和详情消费者。
 class LibraryEditorialCanvas extends StatefulWidget {

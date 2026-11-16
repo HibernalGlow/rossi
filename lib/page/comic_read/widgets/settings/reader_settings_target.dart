@@ -134,9 +134,8 @@ class _SettingsChoiceGroup extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final scaler = MediaQuery.textScalerOf(context);
-      final style = DefaultTextStyle.of(
-        context,
-      ).style.merge(context.theme.textTheme.labelLarge);
+      final style = DefaultTextStyle.of(context).style
+          .merge(context.theme.textTheme.labelLarge);
       var naturalWidth = 0.0;
       for (final choice in choices) {
         final painter = TextPainter(

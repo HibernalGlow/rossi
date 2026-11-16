@@ -236,6 +236,9 @@ class ComicSyncCore {
     final cloudReadPreferences = _parseJsonList(data['readPreferences'])
         .map(ComicReadPreference.fromJson)
         .toList();
+    final cloudReadMarks = _parseJsonList(data['chapterReadMarks'])
+        .map(ComicChapterReadMark.fromJson)
+        .toList();
 
     // 旧数据可能没有 syncId，先兜底补一遍，确保后续按 syncId 合并能正常进行。
     for (final folder in [...localFolders, ...cloudFolders]) {

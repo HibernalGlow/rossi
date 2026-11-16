@@ -11,6 +11,9 @@ import 'package:zephyr/page/comic_info/method/get_plugin_detail.dart';
 import 'package:zephyr/page/comic_read/method/local_read_source_adapter.dart';
 import 'package:zephyr/page/comic_read/model/normal_comic_ep_info.dart';
 import 'package:zephyr/service/reader/comic_read_chapter_repository.dart';
+import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
+import 'package:worker_manager/worker_manager.dart';
 
 /// 供 [ReaderHistoryService] 周期性保存时使用的快照。
 class HistorySnapshot {
@@ -205,6 +208,9 @@ class ReaderHistoryService {
   }) async {
     if (comicInfo is normal.ComicInfo) {
       return comicInfo;
+    }
+    if (comicInfo is normal.NormalComicAllInfo) {
+      return comicInfo.comicInfo;
     }
     if (comicInfo is PluginComicDetailSource) {
       return comicInfo.normalInfo.comicInfo;

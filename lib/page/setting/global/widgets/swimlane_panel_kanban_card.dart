@@ -1093,10 +1093,8 @@ class _StatPill extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(color: foreground, fontWeight: FontWeight.w700),
           ),
         ],
       ),

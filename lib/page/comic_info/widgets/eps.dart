@@ -21,6 +21,7 @@ import 'package:zephyr/util/text/chinese_convert.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class EpButtonWidget extends StatelessWidget {
   static const double fixedHeight = 56;
@@ -80,7 +81,20 @@ class EpButtonWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      BlocSelector<EpisodeReadMarkCubit, EpisodeReadMarkState, bool>(
+        bloc: readController.cubit,
+        selector: (state) {
+          final read = state.model.stateOf(
+            chapterId: chapter.id,
+            order: chapter.order,
+          );
+          return read.isManual ? read.isRead : isRead || read.isRead;
+        },
+        builder: (context, read) => _buildRow(context, read),
+      );
+
+  Widget _buildRow(BuildContext context, bool isRead) {
     // 不依赖插件返回的 order，按当前显示位置自主计算序号：
     // 正序从上到下 1..N，倒序从下到上 N..1。分组时 N 为组内总数。
     // 标题只在外层 build 算一次（带 FFI 缓存），选中/进度变化只走内层监听，

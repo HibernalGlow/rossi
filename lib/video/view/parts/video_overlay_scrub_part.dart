@@ -393,9 +393,8 @@ class _FramePreviewBubble extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Text(
               formatVideoTime(at),
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: colors.onSurface),
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(color: colors.onSurface),
             ),
           ),
         ],

@@ -3351,6 +3351,9 @@ class Translations$comicInfo$zh_CN {
 	/// zh-CN: '该插件暂不支持此功能'
 	String get downloadForbidden => '该插件暂不支持此功能';
 
+	/// zh-CN: '复制磁力链接'
+	String get copyMagnetLink => '复制磁力链接';
+
 	/// zh-CN: '已添加收藏'
 	String get addedToCollection => '已添加收藏';
 
@@ -12657,6 +12660,7 @@ extension on Translations {
 			'comicInfo.collect' => '收藏',
 			'comicInfo.download' => '下载',
 			'comicInfo.downloadForbidden' => '该插件暂不支持此功能',
+			'comicInfo.copyMagnetLink' => '复制磁力链接',
 			'comicInfo.addedToCollection' => '已添加收藏',
 			'comicInfo.removedFromCollection' => '已取消收藏',
 			'comicInfo.confirmUncollectTitle' => '确认取消收藏',
@@ -13128,9 +13132,9 @@ extension on Translations {
 			'reader.singlePage' => '单页',
 			'reader.trimSideLimit' => '单边裁切上限',
 			'reader.animatedNotProcessed' => '动画页面不参与处理。模型效果强度固定；原图、降噪和超分结果分别缓存。',
-			'reader.animated' => '动画',
 			_ => null,
 		} ?? switch (path) {
+			'reader.animated' => '动画',
 			'reader.toggleReaderFilter' => '切换阅读滤镜与护眼遮罩',
 			'reader.resolution' => '分辨率',
 			'reader.blockLabel' => '分块',
@@ -13642,9 +13646,9 @@ extension on Translations {
 			'realSr.exampleBuiltinHint' => '没有正在阅读的页面，以下为内置示例；打开漫画后再展开可看到当前页的实际效果。',
 			'realSr.exampleSemantics' => ({required Object title, required Object before, required Object after, required Object description}) => '${title}示例。${before}与${after}对比。点击查看大图。${description}',
 			'realSr.exampleTitleSuffix' => ({required Object title}) => '${title}（示例）',
-			'realSr.exampleLiveSource' => '来自当前正在阅读的页面，关闭预览后立即释放。',
 			_ => null,
 		} ?? switch (path) {
+			'realSr.exampleLiveSource' => '来自当前正在阅读的页面，关闭预览后立即释放。',
 			'realSr.beforeUnchanged' => ({required Object before}) => '${before}（保持原样）',
 			'realSr.beforeTrimmedShadow' => ({required Object before}) => '${before}（阴影为裁剪部分）',
 			'realSr.loadingTrimResult' => '正在读取当前页的裁边结果…',
@@ -14156,9 +14160,9 @@ extension on Translations {
 			'download.optionLatest' => ({required Object count}) => '下载最近 ${count} 章',
 			'download.optionLatestSubtitle' => '按章节序号取最新的几章',
 			'download.optionPicker' => '手动选章节',
-			'download.optionPickerPlain' => '逐章勾选，也可全选',
 			_ => null,
 		} ?? switch (path) {
+			'download.optionPickerPlain' => '逐章勾选，也可全选',
 			'download.optionSkipHint' => '「整本」与「最近 N 章」会自动跳过本地已有的章节',
 			'download.filterAll' => '全部',
 			'download.filterNoMatches' => '当前筛选没有任务',
@@ -14670,9 +14674,9 @@ extension on Translations {
 			'workspace.shortSat' => '六',
 			'workspace.shortFri' => '五',
 			'workspace.shortThu' => '四',
-			'workspace.shortWed' => '三',
 			_ => null,
 		} ?? switch (path) {
+			'workspace.shortWed' => '三',
 			'workspace.shortTue' => '二',
 			'workspace.shortMon' => '一',
 			'workspace.shortSun' => '日',
@@ -15184,9 +15188,9 @@ extension on Translations {
 			'video.avDrift' => '音画漂移',
 			'video.loopMode' => '循环',
 			'video.playbackRate' => '倍速',
-			'video.abRange' => 'A-B',
 			_ => null,
 		} ?? switch (path) {
+			'video.abRange' => 'A-B',
 			'video.sidecarSubtitles' => '外挂字幕',
 			'video.notAvailable' => '—',
 			'video.noBytes' => '这个视频条目取不到字节',

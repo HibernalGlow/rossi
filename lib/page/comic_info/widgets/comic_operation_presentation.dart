@@ -132,6 +132,7 @@ class _DownloadOperationCard extends StatelessWidget {
       onLongPressTooltip: item.onLongPressTooltip,
       enabled: item.enabled,
       iconColor: iconColor,
+      primary: item.primary,
     );
   }
 }

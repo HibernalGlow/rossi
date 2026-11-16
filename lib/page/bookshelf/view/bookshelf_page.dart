@@ -425,18 +425,21 @@ class _BookshelfPageContentState extends State<_BookshelfPageContent> {
     });
   }
 
-  Future<void> _openFilter() async {
-    final searchCubit = context.read<BookshelfSearchCubit>();
-    final currentMode = _currentMode();
-    final current = searchCubit.state.stateOf(currentMode);
-    final sourceOptions = _buildFilterSourceOptions();
-    final availableSources = sourceOptions
-        .map((source) => source.pluginId)
-        .toList();
-
-    if (availableSources.isEmpty && currentMode != ShelfPageMode.favorite) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.bookshelf.noFilterSource)));
+  /// 弹出筛选并把结果落账。
+  ///
+  /// [seed] 是 build 那一刻算好的种子（面板拿到的就是它），所以这里**不再重算**
+  /// 一遍当前选择 —— 重算会多读一次 cubit，两次之间但凡有个 rebuild，
+  /// 面板里的勾选与落账的基准就会错开一格。
+  ///
+  /// [fromSearch] 走的是「搜索展开态打开筛选」那条路：弹层会抢走焦点，
+  /// 关掉之后若还在搜索态就把焦点还回去，键盘接着输。
+  Future<void> _openFilter(
+    PopupOpen<BookshelfFilterResult> open, {
+    required _FilterSeed seed,
+    bool fromSearch = false,
+  }) async {
+    if (seed.options.isEmpty && seed.mode != ShelfPageMode.favorite) {
+      showInfoToast(t.bookshelf.noFilterSource, context: context);
       return;
     }
 

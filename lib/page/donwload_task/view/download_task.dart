@@ -15,6 +15,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class DownloadTaskPage extends StatelessWidget {

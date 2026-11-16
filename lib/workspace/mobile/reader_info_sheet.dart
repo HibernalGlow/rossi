@@ -77,9 +77,8 @@ class _ReaderInfoSheetState extends State<_ReaderInfoSheet> {
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
               ],
@@ -87,9 +86,8 @@ class _ReaderInfoSheetState extends State<_ReaderInfoSheet> {
           ),
           Divider(
             height: 1,
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.outlineVariant
+                .withValues(alpha: 0.5),
           ),
           Expanded(
             child: cards.isEmpty

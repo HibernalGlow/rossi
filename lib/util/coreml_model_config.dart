@@ -106,8 +106,7 @@ abstract class CoreMLModelConfig {
         CoreMLModelVariant(
           displayName: '模型自带降噪',
           fileName: 'RealESRGAN-x4plus.mlpackage',
-          downloadUrl:
-              'https://huggingface.co/VincentGOURBIN/RealESRGAN-CoreML/resolve/main/RealESRGAN-x4plus.mlpackage.zip',
+          downloadUrl: 'https://huggingface.co/VincentGOURBIN/RealESRGAN-CoreML/resolve/main/RealESRGAN-x4plus.mlpackage.zip',
           config: <String, dynamic>{
             'inputName': 'input',
             'outputName': 'output',

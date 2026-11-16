@@ -30,6 +30,7 @@ extension _ComicInfoInlinePart on _ComicInfoState {
       comicInfoDyn = state.comicInfo;
       _currentInfo = info;
       _comicId = state.comicId ?? _comicId;
+      _loadReadChaptersIfNeeded();
       _title = info.comicInfo.title;
       if (!_cloudFavoriteStateOverridden) _isCloudCollected = info.isFavourite;
       _syncLocalCollectStatus(info);
@@ -93,6 +94,12 @@ extension _ComicInfoInlinePart on _ComicInfoState {
               icon: const GlyphIcon(AppGlyphs.refresh),
               label: Text(t.comicInfo.refreshInformation),
             ),
+            if (_type == ComicEntryType.download)
+              TextButton.icon(
+                onPressed: _handleEdit,
+                icon: const GlyphIcon(AppGlyphs.edit),
+                label: Text(t.comicEdit.title),
+              ),
             if (_type == ComicEntryType.download)
               TextButton.icon(
                 onPressed: _handleExport,

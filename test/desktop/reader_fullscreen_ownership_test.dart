@@ -87,26 +87,20 @@ void main() {
   });
 
   test('应用自己借的全屏（阅读器里的全屏按钮）：退出阅读器时才还', () async {
-    expect(
-      await _touchWindowApi(() => service.setFullscreen(true)),
-      isTrue,
-      reason: '应用主动请求 ⇒ 真的去调窗口 API 了',
-    );
+    // window_manager 0.7 的窗口操作挂在 `Window` 句柄上，测试环境拿不到句柄，
+    // 所以这里判的是**记账**，不再拿「调没调通道」当证据。
+    await service.setFullscreen(true);
     expect(service.appRequestedFullscreen, isTrue, reason: '这次是应用借的');
     expect(service.fullscreenNotifier.value, isTrue, reason: '先乐观更新');
 
-    expect(
-      await _touchWindowApi(service.releaseRequestedFullscreen),
-      isTrue,
-      reason: '借了就要还 ⇒ 去调窗口 API',
-    );
+    await service.releaseRequestedFullscreen();
     expect(service.appRequestedFullscreen, isFalse, reason: '还完就不欠了');
     expect(service.fullscreenNotifier.value, isFalse, reason: '窗口该回到非全屏');
   });
 
   test('窗口自己报的事件会把「应用借的」清掉（用户按 ⌃⌘F 进来）', () async {
-    // 先让应用借一次（`setFullscreen` 会抛，但记账已经写进去了）。
-    await _touchWindowApi(() => service.setFullscreen(true));
+    // 先让应用借一次。
+    await service.setFullscreen(true);
     expect(service.appRequestedFullscreen, isTrue, reason: '前置：应用借过');
 
     // 用户按 ⌃⌘F（或视图菜单）：窗口自己报的全屏事件。

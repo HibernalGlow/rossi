@@ -410,9 +410,8 @@ class _LayoutTab extends StatelessWidget {
                 const Divider(height: 24),
                 Text(
                   t.navigation.customizeAvailable,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
+                  style: Theme.of(context).textTheme.labelMedium
+                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -591,9 +590,8 @@ class _ActionTag extends StatelessWidget {
       ),
       child: Text(
         t.navigation.customizeActionTag,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: scheme.onSecondaryContainer),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: scheme.onSecondaryContainer),
       ),
     );
   }

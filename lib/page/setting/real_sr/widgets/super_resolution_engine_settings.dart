@@ -204,9 +204,8 @@ class _SuperResolutionEngineSettingsState
             const SizedBox(width: 6),
             Text(
               t.realSr.preUpscaleCurrentFirst,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -342,9 +341,8 @@ class _SuperResolutionEngineSettingsState
               Expanded(
                 child: Text(
                   t.realSr.upscaleEngine,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               if (_engine != null)
@@ -388,9 +386,8 @@ class _SuperResolutionEngineSettingsState
                   const SizedBox(width: 6),
                   Text(
                     t.realSr.nativeModel,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.labelMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -584,9 +581,8 @@ class _SuperResolutionEngineSettingsState
           const SizedBox(height: 12),
           if (widget.isReaderCompact)
             Theme(
-              data: Theme.of(
-                context,
-              ).copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(context)
+                  .copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 dense: true,

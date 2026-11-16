@@ -125,11 +125,20 @@ Future<void> _writeAsset({
 }
 
 void main() {
+  // 导出成功会走 NotifyGateway 弹提示，它要拿 `WidgetsBinding.instance`。
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory downloadRoot;
 
   setUpAll(() async {
     await initRustLib(silent: true);
     await TestObjectBoxHelper.setUpTestObjectBox();
+    // Rossi 的「导出包含封面图」默认关，这条往返用例要验封面，所以显式打开；
+    // 关掉时两种导出都不带封面那档由设置页自测覆盖。
+    final userSetting = objectbox.userSettingBox.get(1)!;
+    userSetting.globalSetting = userSetting.globalSetting.copyWith(
+      exportIncludeCover: true,
+    );
+    objectbox.userSettingBox.put(userSetting);
     downloadRoot = await Directory.systemTemp.createTemp(
       'breeze_edit_roundtrip_',
     );
@@ -177,12 +186,12 @@ void main() {
         orderedChapterIds: <String>['local:empty', 'ch1', 'local:manual'],
       );
 
-      final exportedDir = await exportComic(
+      final exportedDir = (await exportComic(
         'c1',
         ExportType.folder,
         'test',
         path: exportRoot.path,
-      );
+      )).path;
       expect(await Directory(exportedDir).exists(), isTrue);
 
       objectbox.unifiedDownloadBox.removeAll();
@@ -231,12 +240,12 @@ void main() {
       'breeze_clean_import_',
     );
     try {
-      final exportedDir = await exportComic(
+      final exportedDir = (await exportComic(
         'c1',
         ExportType.folder,
         'test',
         path: exportRoot.path,
-      );
+      )).path;
 
       // 模拟从其他设备导入：本地下载目录里没有任何已有文件。
       if (await downloadRoot.exists()) {

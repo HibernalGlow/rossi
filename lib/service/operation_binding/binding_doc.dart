@@ -160,9 +160,9 @@ String encodeBindingsArray(List<Map<String, dynamic>> bindings) =>
 String prettyBindingsDoc(
   List<Map<String, dynamic>> bindings, {
   String? sourceDocument,
-}) => const JsonEncoder.withIndent(
-  '  ',
-).convert(bindingsDocument(bindings, sourceDocument: sourceDocument));
+}) =>
+    const JsonEncoder.withIndent('  ')
+        .convert(bindingsDocument(bindings, sourceDocument: sourceDocument));
 
 /// 一次键盘按下 → descriptor 的 JSON。
 String keyboardInputJson({

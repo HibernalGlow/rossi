@@ -110,9 +110,8 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
             children: [
               Text(
                 t.settings.tweakcnSubtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -162,9 +161,8 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
                 const SizedBox(height: 4),
                 Text(
                   t.settings.tweakcnFallbackRoles(roles: missing.join(', ')),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
               if (active != null) ...[
@@ -178,9 +176,8 @@ class _TweakcnImportCardState extends State<TweakcnImportCard> {
                 const SizedBox(height: 8),
                 Text(
                   _notice!,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: scheme.error),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: scheme.error),
                 ),
               ],
             ],
@@ -237,9 +234,8 @@ class _EntryList extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
           child: Text(
             t.settings.tweakcnPickHint,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ),
         for (final entry in library.entries)

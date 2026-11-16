@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:zephyr/page/comic_read/widgets/image/enhanced_online_page.dart';
 import 'package:zephyr/page/setting/real_sr/service/real_sr_book_scope.dart';
 import 'package:zephyr/reader/auto_trim_settings.dart';
@@ -256,9 +257,8 @@ class _ReadImageWidgetState extends State<ReadImageWidget> {
           ),
           // 全屏按钮走泳道那条路（铺满窗口，不是操作系统全屏）：
           // 没有 scope 时（独立阅读页）就是 null，按钮不出现效果而不是乱调 API。
-          onFullscreen: ReaderFullscreenScope.maybeOf(
-            context,
-          )?.onToggleFullscreen,
+          onFullscreen: ReaderFullscreenScope.maybeOf(context)
+              ?.onToggleFullscreen,
         );
       },
     );

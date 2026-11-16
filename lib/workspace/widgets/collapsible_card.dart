@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart'
+    hide RoundedPolygon, CornerRounding, MaterialShapes, Morph;
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/global/theme_shape.dart';
 import 'package:zephyr/i18n/strings.g.dart';

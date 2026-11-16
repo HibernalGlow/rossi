@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui' show Rect;
+
 import 'package:zephyr/reader/auto_trim_settings.dart';
 
 import 'package:zephyr/reader/page_source.dart';

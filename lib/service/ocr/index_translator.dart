@@ -116,29 +116,30 @@ class IndexTranslator {
   Future<String> _httpPost(String prompt, OcrTranslationConfig config) async {
     final url =
         '${config.baseUrl.replaceAll(RegExp(r'/+$'), '')}/chat/completions';
-    final response = await WindHttp().fetch(
-      url,
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        if (config.apiKey.isNotEmpty)
-          'authorization': 'Bearer ${config.apiKey}',
-      },
-      body: jsonEncode({
-        'model': config.model,
-        // 模型卡与台架都用贪心：这里要的是可复现，不是文采。
-        'temperature': 0.0,
-        'messages': [
-          {'role': 'user', 'content': prompt},
-        ],
-      }),
-      timeout: const Duration(seconds: 120),
-    );
-    if (!response.ok) {
-      final text = response.text;
+    final FetchResponse response;
+    try {
+      response = await WindHttp().fetch(
+        url,
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          if (config.apiKey.isNotEmpty)
+            'authorization': 'Bearer ${config.apiKey}',
+        },
+        body: jsonEncode({
+          'model': config.model,
+          // 模型卡与台架都用贪心：这里要的是可复现，不是文采。
+          'temperature': 0.0,
+          'messages': [
+            {'role': 'user', 'content': prompt},
+          ],
+        }),
+        timeout: const Duration(seconds: 120),
+      );
+    } on FetchException catch (e) {
+      // 同 ocr_translator：非 2xx 现在从这里抛，换成模块自己的异常。
       throw OcrTranslationException(
-        'Index-Translate 端点返回 ${response.status}：'
-        '${text.substring(0, text.length.clamp(0, 200))}'
+        'Index-Translate 端点返回 ${e.status}：${e.bodyPreview}'
         '（本机 llama-server 起来了吗？）',
       );
     }

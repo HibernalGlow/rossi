@@ -110,16 +110,12 @@ extension _FileManagerCardEditorialPart on _FileManagerCardState {
             )
           : null,
       onDelete: _fileOpsEnabled
-          ? () => unawaited(
-              _runEntryAction(entry, FileManagerEntryAction.trash),
-            )
+          ? () =>
+                unawaited(_runEntryAction(entry, FileManagerEntryAction.trash))
           : null,
       onDeletePermanently: _fileOpsEnabled
           ? () => unawaited(
-              _runEntryAction(
-                entry,
-                FileManagerEntryAction.deletePermanently,
-              ),
+              _runEntryAction(entry, FileManagerEntryAction.deletePermanently),
             )
           : null,
       trashRestoreSupported: _ops?.trashRestoreSupported ?? false,

@@ -1219,6 +1219,7 @@ class _Translations$comicInfo$en_US extends Translations$comicInfo$zh_CN {
 	@override String get collect => 'Collect';
 	@override String get download => 'Download';
 	@override String get downloadForbidden => 'This plugin does not support this feature';
+	@override String get copyMagnetLink => 'Copy magnet link';
 	@override String get addedToCollection => 'Added to collection';
 	@override String get removedFromCollection => 'Removed from collection';
 	@override String get confirmUncollectTitle => 'Remove collection';
@@ -5256,6 +5257,7 @@ extension on TranslationsEnUs {
 			'comicInfo.collect' => 'Collect',
 			'comicInfo.download' => 'Download',
 			'comicInfo.downloadForbidden' => 'This plugin does not support this feature',
+			'comicInfo.copyMagnetLink' => 'Copy magnet link',
 			'comicInfo.addedToCollection' => 'Added to collection',
 			'comicInfo.removedFromCollection' => 'Removed from collection',
 			'comicInfo.confirmUncollectTitle' => 'Remove collection',
@@ -5727,9 +5729,9 @@ extension on TranslationsEnUs {
 			'reader.singlePage' => 'Single page',
 			'reader.trimSideLimit' => 'Max trim per side',
 			'reader.animatedNotProcessed' => 'Animated pages are not processed. Model strength is fixed; original, denoised and upscaled results are cached separately.',
-			'reader.animated' => 'Animated',
 			_ => null,
 		} ?? switch (path) {
+			'reader.animated' => 'Animated',
 			'reader.toggleReaderFilter' => 'Toggle the reading filter and eye-comfort overlay',
 			'reader.resolution' => 'Resolution',
 			'reader.blockLabel' => 'Blocks',
@@ -6241,9 +6243,9 @@ extension on TranslationsEnUs {
 			'realSr.exampleBuiltinHint' => 'No page is being read, so the built-in sample is shown; open a comic and expand again to see the current page.',
 			'realSr.exampleSemantics' => ({required Object title, required Object before, required Object after, required Object description}) => '${title} sample. ${before} compared with ${after}. Tap to view full size. ${description}',
 			'realSr.exampleTitleSuffix' => ({required Object title}) => '${title} (sample)',
-			'realSr.exampleLiveSource' => 'Taken from the page you are reading; released as soon as the preview closes.',
 			_ => null,
 		} ?? switch (path) {
+			'realSr.exampleLiveSource' => 'Taken from the page you are reading; released as soon as the preview closes.',
 			'realSr.beforeUnchanged' => ({required Object before}) => '${before} (kept as-is)',
 			'realSr.beforeTrimmedShadow' => ({required Object before}) => '${before} (shaded area is what gets trimmed)',
 			'realSr.loadingTrimResult' => 'Reading the current page\'s trim result…',
@@ -6755,9 +6757,9 @@ extension on TranslationsEnUs {
 			'download.optionLatest' => ({required Object count}) => 'Latest ${count} chapters',
 			'download.optionLatestSubtitle' => 'The newest chapters by chapter order',
 			'download.optionPicker' => 'Pick chapters',
-			'download.optionPickerPlain' => 'Tick chapters one by one',
 			_ => null,
 		} ?? switch (path) {
+			'download.optionPickerPlain' => 'Tick chapters one by one',
 			'download.optionSkipHint' => 'Whole book and latest-N skip chapters already on disk',
 			'download.filterAll' => 'All',
 			'download.filterNoMatches' => 'No tasks match this filter',
@@ -7269,9 +7271,9 @@ extension on TranslationsEnUs {
 			'workspace.shortSat' => 'Sat',
 			'workspace.shortFri' => 'Fri',
 			'workspace.shortThu' => 'Thu',
-			'workspace.shortWed' => 'Wed',
 			_ => null,
 		} ?? switch (path) {
+			'workspace.shortWed' => 'Wed',
 			'workspace.shortTue' => 'Tue',
 			'workspace.shortMon' => 'Mon',
 			'workspace.shortSun' => 'Sun',
@@ -7783,9 +7785,9 @@ extension on TranslationsEnUs {
 			'video.avDrift' => 'A/V drift',
 			'video.loopMode' => 'Loop',
 			'video.playbackRate' => 'Rate',
-			'video.abRange' => 'A-B',
 			_ => null,
 		} ?? switch (path) {
+			'video.abRange' => 'A-B',
 			'video.sidecarSubtitles' => 'External subtitles',
 			'video.notAvailable' => '—',
 			'video.noBytes' => 'No bytes available for this video page',

@@ -42,9 +42,8 @@ class _ExportChoiceDialogState extends State<_ExportChoiceDialog> {
   bool _deleteAfterExport = false;
 
   void _submit(ExportType type) {
-    Navigator.of(
-      context,
-    ).pop(ExportChoice(type: type, deleteAfterExport: _deleteAfterExport));
+    Navigator.of(context)
+        .pop(ExportChoice(type: type, deleteAfterExport: _deleteAfterExport));
   }
 
   @override

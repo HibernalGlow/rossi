@@ -214,9 +214,11 @@ class _AnimatedLocalPageState extends State<AnimatedLocalPage> {
                 return widget.child;
               },
           // 动图这条路失败不该留下空白页：交回 `child`，它有自己的错误显示。
-          errorBuilder:
-              (BuildContext context, Object error, StackTrace? stackTrace) =>
-                  widget.child,
+          errorBuilder: (
+            BuildContext context,
+            Object error,
+            StackTrace? stackTrace,
+          ) => widget.child,
         );
       },
     );

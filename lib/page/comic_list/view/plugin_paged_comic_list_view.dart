@@ -156,9 +156,9 @@ class _PluginPagedComicListBodyState extends State<_PluginPagedComicListBody>
               !widget.shrinkWrap &&
               !widget.detailed) {
             final settings = context.watch<GlobalSettingCubit>().state;
-            final comics = mapToUnifiedComicSimplifyEntryInfoList(
-              state.list,
-            ).where((info) => info.title != '无数据').toList();
+            final comics = mapToUnifiedComicSimplifyEntryInfoList(state.list)
+                .where((info) => info.title != '无数据')
+                .toList();
             return DiscoverLibraryView(
               canvasKey: widget.editorialKey!,
               viewportRegistry: _viewport,

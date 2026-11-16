@@ -240,9 +240,8 @@ class LibraryEntryList extends StatelessWidget {
     final content = DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: Theme.of(context).colorScheme.outlineVariant
+              .withValues(alpha: 0.35),
         ),
         borderRadius: const BorderRadius.all(Radius.circular(_borderRadius)),
       ),

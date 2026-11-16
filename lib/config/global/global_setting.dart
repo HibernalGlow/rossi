@@ -244,6 +244,14 @@ abstract class GlobalSettingState with _$GlobalSettingState {
     @Default(150) int downloadDelayMs,
     @Default(3) int downloadAutoRetryCount,
     @Default(false) bool autoFollowOnCollect,
+    @Default(false) bool autoFavoriteOnDownload,
+    // 下载完成后是否在下载目录的漫画根目录留下元数据 JSON（见 download_metadata_writer.dart）。
+    // 默认关：下载目录本来就是「hash 目录 + hash 文件名」，只有 ObjectBox 认得，
+    // 多写两份 JSON 属于用户主动要的可移植性，不该默认改变磁盘内容。
+    @Default(false) bool writeDownloadMetadataFile,
+    // 点击「下载」按钮时是否弹出下载选项（整本 / 最近 N 章 / 手动挑选）。
+    // 默认关（false）：点击直接下载全本；开启后多章节漫画会弹窗询问，单集漫画仍直接下载。
+    @Default(false) bool promptDownloadOptions,
     @Default(false) bool autoCloudCollectOnLocalFavorite,
     @Default(false) bool leftHandModeEnabled,
     @Default(false) bool clickCoverToStartReading,
@@ -446,120 +454,6 @@ abstract class SyncSettingState with _$SyncSettingState {
 
   factory SyncSettingState.fromJson(Map<String, dynamic> json) =>
       _$SyncSettingStateFromJson(json);
-}
-
-@freezed
-abstract class ReadSettingState with _$ReadSettingState {
-  const factory ReadSettingState({
-    @Default(false) bool noAnimation,
-    @Default(true) bool comicReadTopContainer,
-    @Default(0) int readMode,
-    @Default(ReaderTapPageTurnMode.rightHand)
-    ReaderTapPageTurnMode tapPageTurnMode,
-    @Default(false) bool tapPageTurnInWebtoon,
-    @Default(false) bool reverseHorizontalPageTurn,
-    @Default(ReaderBackgroundMode.auto)
-    ReaderBackgroundMode readerBackgroundMode,
-    @Default(true) bool readFilterEnabled,
-    @Default(50) int readFilterOpacityPercent,
-    @Default(false) bool einkOptimization,
-    @Default(120) int einkDelayMs,
-    @Default(false) bool autoScroll,
-    @Default(false) bool autoScrollHidePauseButton,
-    @Default(false) bool autoScrollSmooth,
-    @Default(1600) int autoScrollColumnIntervalMs,
-    @Default(3000) int autoScrollPageIntervalMs,
-    @Default(72) int autoScrollColumnDistancePercent,
-    @Default(3) int preloadImageCount,
-    @Default(1) int preloadChapterCount,
-    @Default(false) bool landscapeReader,
-    @Default(false) bool showStatusBar,
-    @Default(false) bool autoDoublePageInLandscape,
-    @Default(false) bool doublePageMode,
-    @Default(false) bool doublePageSeamless,
-    @Default(false) bool doublePageLeadingBlank,
-    @Default(false) bool sidePaddingEnabled,
-    @Default(10) int sidePaddingPercent,
-    @Default(true) bool volumeKeyPageTurn,
-    @Default(72) int volumeKeyPageTurnDistancePercent,
-    @Default(false) bool doubleTapZoom,
-    @Default(false) bool doubleTapOpenMenu,
-    @Default(true) bool pageInfoShowPage,
-    @Default(true) bool pageInfoShowNetwork,
-    @Default(false) bool pageInfoShowBattery,
-    @Default(true) bool pageInfoShowTime,
-    @Default(ReaderInfoVerticalPosition.bottom)
-    ReaderInfoVerticalPosition pageInfoVerticalPosition,
-    @Default(false) bool pageInfoTopInStatusBar,
-    @Default(ReaderInfoHorizontalPosition.left)
-    ReaderInfoHorizontalPosition pageInfoHorizontalPosition,
-    @Default(12) int pageInfoEdgePadding,
-    @Default(82) int pageInfoOpacityPercent,
-    @Default(12) int pageInfoFontSize,
-  }) = _ReadSettingState;
-
-  factory ReadSettingState.fromJson(Map<String, dynamic> json) =>
-      _$ReadSettingStateFromJson(json);
-}
-
-@freezed
-abstract class EInkSettingState with _$EInkSettingState {
-  const EInkSettingState._();
-
-  const factory EInkSettingState({
-    /// 墨水屏模式总开关。命中 e-ink 设备时首启自动打开，用户手动关掉后不再自动开启。
-    @Default(false) bool enabled,
-
-    /// 设备检测是否已经处理过一次，避免每次启动都覆盖用户的选择。
-    @Default(false) bool detectionHandled,
-
-    /// 页面跳转不做滑动/淡入动画，直接出图。
-    @Default(true) bool noRouteTransition,
-
-    /// 滚动到边界不回弹。
-    @Default(true) bool noScrollBounce,
-
-    /// 图片加载占位不转圈（转圈会驱动墨水屏持续局刷，残影很重）。
-    @Default(true) bool noLoadingSpinner,
-
-    @Default(EinkRefreshMode.fullFlash) EinkRefreshMode refreshMode,
-
-    /// 每翻多少页自动整屏刷新一次；0 表示不自动刷新。
-    @Default(5) int autoRefreshEveryNTurns,
-
-    @Default(true) bool showRefreshButton,
-  }) = _EInkSettingState;
-
-  factory EInkSettingState.fromJson(Map<String, dynamic> json) =>
-      _$EInkSettingStateFromJson(json);
-
-  bool get shouldRemoveRouteTransition => enabled && noRouteTransition;
-
-  bool get shouldRemoveScrollBounce => enabled && noScrollBounce;
-
-  bool get shouldRemoveLoadingSpinner => enabled && noLoadingSpinner;
-
-  bool get canFullRefresh => enabled && refreshMode != EinkRefreshMode.none;
-
-  int get autoRefreshTurns => autoRefreshEveryNTurns.clamp(0, 50);
-}
-
-@freezed
-abstract class BookshelfSettingState with _$BookshelfSettingState {
-  const factory BookshelfSettingState({
-    @Default(0) int homePageIndex,
-    @Default(false) bool rememberFavoriteSort,
-    @Default('dd') String favoriteSort,
-    @Default(false) bool rememberHistorySort,
-    @Default('dd') String historySort,
-    @Default(false) bool rememberDownloadSort,
-    @Default('dd') String downloadSort,
-    @Default(false) bool detailLayout,
-    @Default(false) bool reverseChapters,
-  }) = _BookshelfSettingState;
-
-  factory BookshelfSettingState.fromJson(Map<String, dynamic> json) =>
-      _$BookshelfSettingStateFromJson(json);
 }
 
 class GlobalSettingCubit extends Cubit<GlobalSettingState> {

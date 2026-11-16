@@ -68,6 +68,7 @@ extension _ComicInfoChapterGroupsPart on _ComicInfoState {
       from: widget.from,
       index: index,
       isReversed: _isReversed,
+      isRead: _readChapterIds.contains(chapter.id),
       downloadAllowed: downloadAllowed,
       downloadDisabledReason: downloadDisabledReason,
       onAction: () => _onChapterAction(context, chapter, downloadAllowed),
@@ -238,13 +239,12 @@ SliverGridDelegate episodeGridDelegateFor(double contentWidth) {
   );
 }
 
-typedef EpisodeRowBuilder =
-    Widget Function(
-      BuildContext context,
-      DownloadChapter chapter,
-      Ep doc,
-      int index,
-    );
+typedef EpisodeRowBuilder = Widget Function(
+  BuildContext context,
+  DownloadChapter chapter,
+  Ep doc,
+  int index,
+);
 
 /// 扁平章节 sliver（单组/老数据）：内部按内容宽度选单列/网格，只建可视行。
 class _FlatEpisodeSliver extends StatelessWidget {

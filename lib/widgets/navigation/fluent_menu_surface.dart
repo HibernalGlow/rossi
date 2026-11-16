@@ -1,44 +1,62 @@
 part of '../fluent_dropdown.dart';
 
-class _HoverableMenuItem extends StatelessWidget {
+class _HoverableMenuItem extends StatefulWidget {
   const _HoverableMenuItem({
     required this.isSelected,
     required this.enabled,
     required this.onTap,
     required this.child,
+    this.selectedColor,
+    this.hoverColor,
+    this.borderRadius = 10,
   });
   final bool isSelected;
   final bool enabled;
   final VoidCallback? onTap;
   final Widget child;
+  final Color? selectedColor;
+  final Color? hoverColor;
+  final double borderRadius;
+  @override
+  State<_HoverableMenuItem> createState() => _HoverableMenuItemState();
+}
+
+class _HoverableMenuItemState extends State<_HoverableMenuItem> {
+  bool _hovered = false;
+
   @override
   Widget build(BuildContext context) => ActionBubbleTarget(
-    enabled: enabled && !eInkInstantRoutes,
+    enabled: widget.enabled && !eInkInstantRoutes,
     corner: 10,
     child: ElasticPress(
       enabled:
-          enabled &&
+          widget.enabled &&
           !eInkInstantRoutes &&
           !MediaQuery.disableAnimationsOf(context),
       child: Semantics(
         button: true,
-        enabled: enabled,
-        selected: isSelected,
+        enabled: widget.enabled,
+        selected: widget.isSelected,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
+          onHover: (value) => setState(() => _hovered = value),
           splashFactory: NoSplash.splashFactory,
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: .5)
+              color: widget.isSelected
+                  ? (widget.selectedColor ??
+                        Theme.of(context).colorScheme.primaryContainer
+                            .withValues(alpha: .5))
+                  : _hovered && widget.enabled
+                  ? (widget.hoverColor ??
+                        Theme.of(context).colorScheme.primaryContainer
+                            .withValues(alpha: .35))
                   : null,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(widget.borderRadius),
             ),
-            child: child,
+            child: widget.child,
           ),
         ),
       ),
@@ -46,12 +64,18 @@ class _HoverableMenuItem extends StatelessWidget {
   );
 }
 
-class _MenuPanel<T> extends StatelessWidget {
+class _MenuPanel<T> extends StatefulWidget {
   const _MenuPanel({
     required this.menuWidth,
     required this.maxHeight,
     required this.entries,
     required this.onSelected,
+    this.indicator = FluentDropdownIndicator.checkmark,
+    this.panelColor,
+    this.selectedColor,
+    this.hoverColor,
+    this.panelBorderRadius = 16,
+    this.itemBorderRadius = 10,
   });
 
   final double menuWidth;
@@ -61,6 +85,52 @@ class _MenuPanel<T> extends StatelessWidget {
   final double maxHeight;
   final List<_MenuEntry<T>> entries;
   final ValueChanged<T> onSelected;
+  final FluentDropdownIndicator indicator;
+  final Color? panelColor;
+  final Color? selectedColor;
+  final Color? hoverColor;
+  final double panelBorderRadius;
+  final double itemBorderRadius;
+
+  @override
+  State<_MenuPanel<T>> createState() => _MenuPanelState<T>();
+}
+
+class _MenuPanelState<T> extends State<_MenuPanel<T>> {
+  ScrollController? _scrollController;
+  late List<double> _itemHeights;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _itemHeights = _menuItemHeights(
+      context,
+      widget.menuWidth,
+      widget.entries,
+      widget.indicator,
+    );
+    if (_scrollController != null) return;
+    final selectedIndex = widget.entries.indexWhere(
+      (entry) => entry.isSelected,
+    );
+    final offset = selectedIndex > 0
+        ? _itemHeights.take(selectedIndex).fold(0.0, (sum, h) => sum + h)
+        : 0.0;
+    final naturalHeight =
+        _kMenuPanelPadding + _itemHeights.fold(0.0, (sum, h) => sum + h);
+    _scrollController = ScrollController(
+      initialScrollOffset: offset.clamp(
+        0.0,
+        math.max(0, naturalHeight - widget.maxHeight),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,13 +138,13 @@ class _MenuPanel<T> extends StatelessWidget {
 
     return Material(
       type: MaterialType.transparency,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(widget.panelBorderRadius),
       child: Container(
-        width: menuWidth,
-        constraints: BoxConstraints(maxHeight: maxHeight),
+        width: widget.menuWidth,
+        constraints: BoxConstraints(maxHeight: widget.maxHeight),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: widget.panelColor ?? colorScheme.surface,
+          borderRadius: BorderRadius.circular(widget.panelBorderRadius),
           border: Border.all(
             color: colorScheme.outline.withValues(alpha: 0.25),
           ),
@@ -87,98 +157,135 @@ class _MenuPanel<T> extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(widget.panelBorderRadius),
           child: ActionBubbleRegion(
-            child: ListView.builder(
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(8),
-              itemCount: entries.length,
-              itemBuilder: (context, index) {
-                final entry = entries[index];
-                if (entry.isDivider) {
-                  return GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Divider(height: 1, thickness: 1),
-                    ),
-                  );
-                }
-                final showLeadingCheck =
-                    entry.isSelected && entry.leading == null;
-                final showTrailingCheck =
-                    entry.isSelected && entry.leading != null;
-                return _HoverableMenuItem(
-                  isSelected: entry.isSelected,
-                  enabled: entry.enabled,
-                  onTap: entry.enabled && entry.value != null
-                      ? () => onSelected(entry.value as T)
-                      : null,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (entry.leading != null)
-                        IconTheme(
-                          data: IconTheme.of(context).copyWith(
-                            color: entry.enabled
-                                ? colorScheme.onSurface
-                                : colorScheme.onSurface.withValues(alpha: 0.38),
-                          ),
-                          child: entry.leading!,
-                        )
-                      else
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 180),
-                          transitionBuilder: (child, animation) {
-                            return ScaleTransition(
-                              scale: animation,
-                              child: child,
-                            );
-                          },
-                          child: showLeadingCheck
-                              ? GlyphIcon(
-                                  AppGlyphs.check,
-                                  key: const ValueKey('check'),
-                                  size: 18,
-                                  color: colorScheme.primary,
-                                )
-                              : const SizedBox(
-                                  width: 18,
-                                  key: ValueKey('empty'),
+            child: SizedBox(
+              height: math.min(
+                widget.maxHeight,
+                _kMenuPanelPadding +
+                    _itemHeights.fold(0.0, (sum, h) => sum + h),
+              ),
+              child: ListView.builder(
+                controller: _scrollController,
+                shrinkWrap: true,
+                padding: const EdgeInsets.all(8),
+                itemCount: widget.entries.length,
+                itemBuilder: (context, index) {
+                  final entry = widget.entries[index];
+                  if (entry.isDivider) {
+                    return GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4),
+                        child: Divider(height: 1, thickness: 1),
+                      ),
+                    );
+                  }
+                  final showLeadingCheck =
+                      entry.isSelected && entry.leading == null;
+                  final showTrailingCheck =
+                      entry.isSelected && entry.leading != null;
+                  return SizedBox(
+                    height: _itemHeights[index],
+                    child: _HoverableMenuItem(
+                      isSelected: entry.isSelected,
+                      enabled: entry.enabled,
+                      onTap: entry.enabled && entry.value != null
+                          ? () => widget.onSelected(entry.value as T)
+                          : null,
+                      selectedColor: widget.selectedColor,
+                      hoverColor: widget.hoverColor,
+                      borderRadius: widget.itemBorderRadius,
+                      child: DefaultTextStyle.merge(
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (entry.leading != null)
+                              IconTheme(
+                                data: IconTheme.of(context).copyWith(
+                                  color: entry.enabled
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface.withValues(
+                                          alpha: 0.38,
+                                        ),
                                 ),
-                        ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: DefaultTextStyle.merge(
-                          style: TextStyle(
-                            color: entry.enabled
-                                ? null
-                                : colorScheme.onSurface.withValues(alpha: 0.38),
-                          ),
-                          child: entry.title,
+                                child: entry.leading!,
+                              )
+                            else if (widget.indicator ==
+                                FluentDropdownIndicator.bar)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                width: 3,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: entry.isSelected
+                                      ? colorScheme.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              )
+                            else
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 180),
+                                transitionBuilder: (child, animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  );
+                                },
+                                child: showLeadingCheck
+                                    ? GlyphIcon(
+                                        AppGlyphs.check,
+                                        key: const ValueKey('check'),
+                                        size: 18,
+                                        color: colorScheme.primary,
+                                      )
+                                    : const SizedBox(
+                                        width: 18,
+                                        key: ValueKey('empty'),
+                                      ),
+                              ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: DefaultTextStyle.merge(
+                                style: TextStyle(
+                                  color: entry.enabled
+                                      ? null
+                                      : colorScheme.onSurface.withValues(
+                                          alpha: 0.38,
+                                        ),
+                                ),
+                                child: entry.title,
+                              ),
+                            ),
+                            if (entry.trailing != null ||
+                                showTrailingCheck) ...[
+                              const SizedBox(width: 12),
+                              IconTheme(
+                                data: IconTheme.of(context).copyWith(
+                                  color: entry.enabled
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface.withValues(
+                                          alpha: 0.38,
+                                        ),
+                                ),
+                                child:
+                                    entry.trailing ??
+                                    GlyphIcon(
+                                      AppGlyphs.check,
+                                      size: 18,
+                                      color: colorScheme.primary,
+                                    ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      if (entry.trailing != null || showTrailingCheck) ...[
-                        const SizedBox(width: 12),
-                        IconTheme(
-                          data: IconTheme.of(context).copyWith(
-                            color: entry.enabled
-                                ? colorScheme.onSurface
-                                : colorScheme.onSurface.withValues(alpha: 0.38),
-                          ),
-                          child:
-                              entry.trailing ??
-                              GlyphIcon(
-                                AppGlyphs.check,
-                                size: 18,
-                                color: colorScheme.primary,
-                              ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -202,18 +309,43 @@ const double _kMenuPanelPadding = 16;
 /// 一条分隔线占的高度：`Divider(height: 1)` 加上下各 4。
 const double _kMenuDividerHeight = 9;
 
-/// 菜单的自然高度（内容全展开）。摆位按它算，不按某个固定上限估 ——
-/// 15 项的菜单实际要 700 高，按 320 判断会以为「下面放得下」，于是画到屏幕外；
-/// 反过来短菜单也不会被撑高。放不下时才由 `_MenuPanel` 的 `maxHeight` 夹住并滚动。
-Size _menuNaturalSize(double width, List<_MenuEntry<Object?>> entries) => Size(
-  width,
-  _kMenuPanelPadding +
-      entries.fold<double>(
-        0,
-        (height, entry) =>
-            height + (entry.isDivider ? _kMenuDividerHeight : _kMenuItemHeight),
-      ),
-);
+/// 用同一组行高计算自然高度、选中项偏移和实际列表，长标签换行时也能定位。
+List<double> _menuItemHeights<T>(
+  BuildContext context,
+  double width,
+  List<_MenuEntry<T>> entries,
+  FluentDropdownIndicator indicator,
+) {
+  final style =
+      Theme.of(context).textTheme.bodyMedium ??
+      DefaultTextStyle.of(context).style;
+  return entries.map((entry) {
+    if (entry.isDivider) return _kMenuDividerHeight;
+    final label = _extractText(entry.title);
+    if (label == null) return _kMenuItemHeight;
+    final leadingWidth = entry.leading != null
+        ? 24.0
+        : indicator == FluentDropdownIndicator.bar
+        ? 3.0
+        : 18.0;
+    final trailingWidth =
+        entry.trailing != null || (entry.isSelected && entry.leading != null)
+        ? 36.0
+        : 0.0;
+    final textWidth = math.max(
+      1.0,
+      width - _kMenuPanelPadding - 24 - leadingWidth - 12 - trailingWidth - 4,
+    );
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: textWidth);
+    final height = math.max(24.0, painter.height) + 20;
+    painter.dispose();
+    return height;
+  }).toList();
+}
 
 /// 菜单该被钳进的那个框（全局坐标）：**它实际插入的 Overlay 的绘制范围**，
 /// 而不是窗口尺寸。泳道里的局部 Navigator 会把最近的 Overlay 裁在面板内
@@ -284,6 +416,13 @@ CommonPopupRoute<T> _insertMenu<T>({
   required List<_MenuEntry<T>> entries,
   required ValueChanged<T> onSelected,
   required VoidCallback onClosed,
+  FluentDropdownIndicator indicator = FluentDropdownIndicator.checkmark,
+  Color? panelColor,
+  Color? selectedColor,
+  Color? hoverColor,
+  double panelBorderRadius = 16,
+  double itemBorderRadius = 10,
+  double? heightLimit,
 }) {
   final navigator = Navigator.of(context, rootNavigator: true);
   final box = navigator.context.findRenderObject() as RenderBox;
@@ -298,19 +437,37 @@ CommonPopupRoute<T> _insertMenu<T>({
       final bounds = _overlayBounds(routeContext);
       final placement = _placeMenu(
         anchor: localAnchor,
-        menuSize: _menuNaturalSize(menuWidth, entries),
+        menuSize: Size(
+          menuWidth,
+          math.min(
+            heightLimit ?? double.infinity,
+            _kMenuPanelPadding +
+                _menuItemHeights(
+                  routeContext,
+                  menuWidth,
+                  entries,
+                  indicator,
+                ).fold(0.0, (sum, h) => sum + h),
+          ),
+        ),
         bounds: bounds,
       );
       return InheritedTheme.captureAll(
         context,
         _MenuPanel<T>(
           menuWidth: menuWidth,
-          maxHeight: math.max(
-            0,
-            bounds.bottom - _kMenuEdgeMargin - placement.offset.dy,
+          maxHeight: math.min(
+            heightLimit ?? double.infinity,
+            math.max(0, bounds.bottom - _kMenuEdgeMargin - placement.offset.dy),
           ),
           entries: entries,
           onSelected: (value) => navigator.pop(value),
+          indicator: indicator,
+          panelColor: panelColor,
+          selectedColor: selectedColor,
+          hoverColor: hoverColor,
+          panelBorderRadius: panelBorderRadius,
+          itemBorderRadius: itemBorderRadius,
         ),
       );
     },

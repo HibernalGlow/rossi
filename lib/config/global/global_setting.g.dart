@@ -59,6 +59,10 @@ _GlobalSettingState _$GlobalSettingStateFromJson(
   downloadAutoRetryCount:
       (json['downloadAutoRetryCount'] as num?)?.toInt() ?? 3,
   autoFollowOnCollect: json['autoFollowOnCollect'] as bool? ?? false,
+  autoFavoriteOnDownload: json['autoFavoriteOnDownload'] as bool? ?? false,
+  writeDownloadMetadataFile:
+      json['writeDownloadMetadataFile'] as bool? ?? false,
+  promptDownloadOptions: json['promptDownloadOptions'] as bool? ?? false,
   autoCloudCollectOnLocalFavorite:
       json['autoCloudCollectOnLocalFavorite'] as bool? ?? false,
   leftHandModeEnabled: json['leftHandModeEnabled'] as bool? ?? false,
@@ -186,6 +190,8 @@ Map<String, dynamic> _$GlobalSettingStateToJson(
   'themeMode': _$ThemeModeEnumMap[instance.themeMode]!,
   'isAMOLED': instance.isAMOLED,
   'seedColor': const ColorConverter().toJson(instance.seedColor),
+  'tweakcnThemeJson': instance.tweakcnThemeJson,
+  'tweakcnThemeEnabled': instance.tweakcnThemeEnabled,
   'themeInitState': instance.themeInitState,
   'locale': const LocaleConverter().toJson(instance.locale),
   'localeFollowsSystem': instance.localeFollowsSystem,
@@ -200,19 +206,38 @@ Map<String, dynamic> _$GlobalSettingStateToJson(
   'needCleanCache': instance.needCleanCache,
   'comicChoice': instance.comicChoice,
   'disableBika': instance.disableBika,
+  'showRestrictedSources': instance.showRestrictedSources,
   'enableMemoryDebug': instance.enableMemoryDebug,
   'blockRustHttpRequests': instance.blockRustHttpRequests,
   'logAddress': instance.logAddress,
+  'showLayoutOverflowStripes': instance.showLayoutOverflowStripes,
   'forceEnableImpeller': instance.forceEnableImpeller,
   'androidKeepAliveEnabled': instance.androidKeepAliveEnabled,
   'backPressExitEnabled': instance.backPressExitEnabled,
   'updateAccelerate': instance.updateAccelerate,
+  'skipUpdateCheck': instance.skipUpdateCheck,
   'retryDownloadUntilSuccess': instance.retryDownloadUntilSuccess,
+  'downloadConcurrency': instance.downloadConcurrency,
+  'downloadTaskConcurrency': instance.downloadTaskConcurrency,
+  'downloadDelayMs': instance.downloadDelayMs,
+  'downloadAutoRetryCount': instance.downloadAutoRetryCount,
   'autoFollowOnCollect': instance.autoFollowOnCollect,
+  'autoFavoriteOnDownload': instance.autoFavoriteOnDownload,
+  'writeDownloadMetadataFile': instance.writeDownloadMetadataFile,
+  'promptDownloadOptions': instance.promptDownloadOptions,
   'autoCloudCollectOnLocalFavorite': instance.autoCloudCollectOnLocalFavorite,
   'leftHandModeEnabled': instance.leftHandModeEnabled,
   'clickCoverToStartReading': instance.clickCoverToStartReading,
-  'searchHistory': instance.searchHistory,
+  'comicInfoInlineReadButton': instance.comicInfoInlineReadButton,
+  'comicInfoRailLiquidGlass': instance.comicInfoRailLiquidGlass,
+  'startWithWorkspace': instance.startWithWorkspace,
+  'workspaceDesktopNarrowHostsMobile':
+      instance.workspaceDesktopNarrowHostsMobile,
+  'workspaceSleepCoveredUi': instance.workspaceSleepCoveredUi,
+  'transparentDesktopTitleBar': instance.transparentDesktopTitleBar,
+  'transparentTitleBarFused': instance.transparentTitleBarFused,
+  'searchHistory': instance.searchHistory.map((e) => e.toJson()).toList(),
+  'searchHistoryGroupBySource': instance.searchHistoryGroupBySource,
   'proxySetting': instance.proxySetting.toJson(),
   'dohSetting': instance.dohSetting.toJson(),
   'blockPrivateNetwork': instance.blockPrivateNetwork,
@@ -223,13 +248,25 @@ Map<String, dynamic> _$GlobalSettingStateToJson(
   'windowY': instance.windowY,
   'readSetting': instance.readSetting.toJson(),
   'customExportPath': instance.customExportPath,
+  'exportIncludeCover': instance.exportIncludeCover,
   'appLockSetting': instance.appLockSetting.toJson(),
   'compatibleVersion': instance.compatibleVersion,
   'cacheSetting': instance.cacheSetting.toJson(),
   'chineseConvertMode':
       _$ChineseConvertModeEnumMap[instance.chineseConvertMode]!,
   'bookshelfSetting': instance.bookshelfSetting.toJson(),
+  'favoriteArtistSetting': instance.favoriteArtistSetting.toJson(),
+  'favoriteTagSetting': instance.favoriteTagSetting.toJson(),
+  'comicCardSetting': instance.comicCardSetting.toJson(),
+  'toastSetting': instance.toastSetting.toJson(),
+  'switchToastSetting': instance.switchToastSetting.toJson(),
+  'notifySetting': instance.notifySetting.toJson(),
+  'fileManagerSetting': instance.fileManagerSetting.toJson(),
+  'discoverSetting': instance.discoverSetting.toJson(),
+  'operationBindingSetting': instance.operationBindingSetting.toJson(),
   'eInkSetting': instance.eInkSetting.toJson(),
+  'navigationSetting': instance.navigationSetting.toJson(),
+  'contextMenuSetting': instance.contextMenuSetting.toJson(),
 };
 
 const _$ThemeModeEnumMap = {
@@ -381,79 +418,159 @@ const _$SyncServiceTypeEnumMap = {
   SyncServiceType.s3: 's3',
 };
 
-_ReadSettingState _$ReadSettingStateFromJson(Map<String, dynamic> json) =>
-    _ReadSettingState(
-      noAnimation: json['noAnimation'] as bool? ?? false,
-      comicReadTopContainer: json['comicReadTopContainer'] as bool? ?? true,
-      readMode: (json['readMode'] as num?)?.toInt() ?? 0,
-      tapPageTurnMode:
-          $enumDecodeNullable(
-            _$ReaderTapPageTurnModeEnumMap,
-            json['tapPageTurnMode'],
-          ) ??
-          ReaderTapPageTurnMode.rightHand,
-      tapPageTurnInWebtoon: json['tapPageTurnInWebtoon'] as bool? ?? false,
-      reverseHorizontalPageTurn:
-          json['reverseHorizontalPageTurn'] as bool? ?? false,
-      readerBackgroundMode:
-          $enumDecodeNullable(
-            _$ReaderBackgroundModeEnumMap,
-            json['readerBackgroundMode'],
-          ) ??
-          ReaderBackgroundMode.auto,
-      readFilterEnabled: json['readFilterEnabled'] as bool? ?? true,
-      readFilterOpacityPercent:
-          (json['readFilterOpacityPercent'] as num?)?.toInt() ?? 50,
-      einkOptimization: json['einkOptimization'] as bool? ?? false,
-      einkDelayMs: (json['einkDelayMs'] as num?)?.toInt() ?? 120,
-      autoScroll: json['autoScroll'] as bool? ?? false,
-      autoScrollHidePauseButton:
-          json['autoScrollHidePauseButton'] as bool? ?? false,
-      autoScrollSmooth: json['autoScrollSmooth'] as bool? ?? false,
-      autoScrollColumnIntervalMs:
-          (json['autoScrollColumnIntervalMs'] as num?)?.toInt() ?? 1600,
-      autoScrollPageIntervalMs:
-          (json['autoScrollPageIntervalMs'] as num?)?.toInt() ?? 3000,
-      autoScrollColumnDistancePercent:
-          (json['autoScrollColumnDistancePercent'] as num?)?.toInt() ?? 72,
-      preloadImageCount: (json['preloadImageCount'] as num?)?.toInt() ?? 3,
-      preloadChapterCount: (json['preloadChapterCount'] as num?)?.toInt() ?? 1,
-      landscapeReader: json['landscapeReader'] as bool? ?? false,
-      showStatusBar: json['showStatusBar'] as bool? ?? false,
-      autoDoublePageInLandscape:
-          json['autoDoublePageInLandscape'] as bool? ?? false,
-      doublePageMode: json['doublePageMode'] as bool? ?? false,
-      doublePageSeamless: json['doublePageSeamless'] as bool? ?? false,
-      doublePageLeadingBlank: json['doublePageLeadingBlank'] as bool? ?? false,
-      sidePaddingEnabled: json['sidePaddingEnabled'] as bool? ?? false,
-      sidePaddingPercent: (json['sidePaddingPercent'] as num?)?.toInt() ?? 10,
-      volumeKeyPageTurn: json['volumeKeyPageTurn'] as bool? ?? true,
-      volumeKeyPageTurnDistancePercent:
-          (json['volumeKeyPageTurnDistancePercent'] as num?)?.toInt() ?? 72,
-      doubleTapZoom: json['doubleTapZoom'] as bool? ?? false,
-      doubleTapOpenMenu: json['doubleTapOpenMenu'] as bool? ?? false,
-      pageInfoShowPage: json['pageInfoShowPage'] as bool? ?? true,
-      pageInfoShowNetwork: json['pageInfoShowNetwork'] as bool? ?? true,
-      pageInfoShowBattery: json['pageInfoShowBattery'] as bool? ?? false,
-      pageInfoShowTime: json['pageInfoShowTime'] as bool? ?? true,
-      pageInfoVerticalPosition:
-          $enumDecodeNullable(
-            _$ReaderInfoVerticalPositionEnumMap,
-            json['pageInfoVerticalPosition'],
-          ) ??
-          ReaderInfoVerticalPosition.bottom,
-      pageInfoTopInStatusBar: json['pageInfoTopInStatusBar'] as bool? ?? false,
-      pageInfoHorizontalPosition:
-          $enumDecodeNullable(
-            _$ReaderInfoHorizontalPositionEnumMap,
-            json['pageInfoHorizontalPosition'],
-          ) ??
-          ReaderInfoHorizontalPosition.left,
-      pageInfoEdgePadding: (json['pageInfoEdgePadding'] as num?)?.toInt() ?? 12,
-      pageInfoOpacityPercent:
-          (json['pageInfoOpacityPercent'] as num?)?.toInt() ?? 82,
-      pageInfoFontSize: (json['pageInfoFontSize'] as num?)?.toInt() ?? 12,
-    );
+_ReadSettingState _$ReadSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _ReadSettingState(
+  noAnimation: json['noAnimation'] as bool? ?? false,
+  keyboardPageTurnPagesPerSecond:
+      (json['keyboardPageTurnPagesPerSecond'] as num?)?.toDouble() ?? 4.0,
+  keyboardPageTurnHoldDelayMs:
+      (json['keyboardPageTurnHoldDelayMs'] as num?)?.toInt() ?? 350,
+  comicReadTopContainer: json['comicReadTopContainer'] as bool? ?? true,
+  readMode: (json['readMode'] as num?)?.toInt() ?? 0,
+  tapPageTurnMode:
+      $enumDecodeNullable(
+        _$ReaderTapPageTurnModeEnumMap,
+        json['tapPageTurnMode'],
+      ) ??
+      ReaderTapPageTurnMode.rightHand,
+  tapPageTurnInWebtoon: json['tapPageTurnInWebtoon'] as bool? ?? false,
+  reverseHorizontalPageTurn:
+      json['reverseHorizontalPageTurn'] as bool? ?? false,
+  readerBackgroundMode:
+      $enumDecodeNullable(
+        _$ReaderBackgroundModeEnumMap,
+        json['readerBackgroundMode'],
+        unknownValue: ReaderBackgroundMode.auto,
+      ) ??
+      ReaderBackgroundMode.auto,
+  readerAmbientDimPercent:
+      (json['readerAmbientDimPercent'] as num?)?.toInt() ??
+      readerAmbientDimPercentDefault,
+  readFilterEnabled: json['readFilterEnabled'] as bool? ?? true,
+  readFilterOpacityPercent:
+      (json['readFilterOpacityPercent'] as num?)?.toInt() ?? 50,
+  einkOptimization: json['einkOptimization'] as bool? ?? false,
+  einkDelayMs: (json['einkDelayMs'] as num?)?.toInt() ?? 120,
+  autoTrimPageMargins: json['autoTrimPageMargins'] as bool? ?? false,
+  autoScroll: json['autoScroll'] as bool? ?? false,
+  autoScrollHidePauseButton:
+      json['autoScrollHidePauseButton'] as bool? ?? false,
+  autoScrollSmooth: json['autoScrollSmooth'] as bool? ?? false,
+  autoScrollColumnIntervalMs:
+      (json['autoScrollColumnIntervalMs'] as num?)?.toInt() ?? 1600,
+  autoScrollPageIntervalMs:
+      (json['autoScrollPageIntervalMs'] as num?)?.toInt() ?? 3000,
+  autoScrollColumnDistancePercent:
+      (json['autoScrollColumnDistancePercent'] as num?)?.toInt() ?? 72,
+  preloadImageCount: (json['preloadImageCount'] as num?)?.toInt() ?? 3,
+  preloadChapterCount: (json['preloadChapterCount'] as num?)?.toInt() ?? 1,
+  readWhileDownloading: json['readWhileDownloading'] as bool? ?? true,
+  landscapeReader: json['landscapeReader'] as bool? ?? false,
+  showStatusBar: json['showStatusBar'] as bool? ?? false,
+  autoDoublePageInLandscape:
+      json['autoDoublePageInLandscape'] as bool? ?? false,
+  doublePageMode: json['doublePageMode'] as bool? ?? false,
+  doublePageSeamless: json['doublePageSeamless'] as bool? ?? false,
+  doublePageLeadingBlank: json['doublePageLeadingBlank'] as bool? ?? false,
+  splitLandscapePages: json['splitLandscapePages'] as bool? ?? false,
+  landscapeSplitDirection:
+      (json['landscapeSplitDirection'] as num?)?.toInt() ?? 0,
+  sidePaddingEnabled: json['sidePaddingEnabled'] as bool? ?? false,
+  sidePaddingPercent: (json['sidePaddingPercent'] as num?)?.toInt() ?? 10,
+  volumeKeyPageTurn: json['volumeKeyPageTurn'] as bool? ?? true,
+  volumeKeyPageTurnDistancePercent:
+      (json['volumeKeyPageTurnDistancePercent'] as num?)?.toInt() ?? 72,
+  doubleTapZoom: json['doubleTapZoom'] as bool? ?? false,
+  doubleTapOpenMenu: json['doubleTapOpenMenu'] as bool? ?? false,
+  pageInfoShowPage: json['pageInfoShowPage'] as bool? ?? true,
+  pageInfoShowNetwork: json['pageInfoShowNetwork'] as bool? ?? true,
+  pageInfoShowBattery: json['pageInfoShowBattery'] as bool? ?? false,
+  pageInfoShowTime: json['pageInfoShowTime'] as bool? ?? true,
+  pageInfoVerticalPosition:
+      $enumDecodeNullable(
+        _$ReaderInfoVerticalPositionEnumMap,
+        json['pageInfoVerticalPosition'],
+      ) ??
+      ReaderInfoVerticalPosition.bottom,
+  pageInfoTopInStatusBar: json['pageInfoTopInStatusBar'] as bool? ?? false,
+  pageInfoHorizontalPosition:
+      $enumDecodeNullable(
+        _$ReaderInfoHorizontalPositionEnumMap,
+        json['pageInfoHorizontalPosition'],
+      ) ??
+      ReaderInfoHorizontalPosition.left,
+  pageInfoEdgePadding: (json['pageInfoEdgePadding'] as num?)?.toInt() ?? 12,
+  pageInfoOpacityPercent:
+      (json['pageInfoOpacityPercent'] as num?)?.toInt() ?? 82,
+  pageInfoFontSize: (json['pageInfoFontSize'] as num?)?.toInt() ?? 12,
+  showBottomProgressBar: json['showBottomProgressBar'] as bool? ?? false,
+  bottomProgressBarGlow: json['bottomProgressBarGlow'] as bool? ?? true,
+  hoverRevealEnabled: json['hoverRevealEnabled'] as bool? ?? true,
+  hoverRevealTop: json['hoverRevealTop'] as bool? ?? true,
+  hoverRevealBottom: json['hoverRevealBottom'] as bool? ?? true,
+  hoverTriggerAreaTop: (json['hoverTriggerAreaTop'] as num?)?.toInt() ?? 32,
+  hoverTriggerAreaBottom:
+      (json['hoverTriggerAreaBottom'] as num?)?.toInt() ?? 32,
+  hoverHideDelayMs: (json['hoverHideDelayMs'] as num?)?.toInt() ?? 500,
+  hoverShowVisualIndicator: json['hoverShowVisualIndicator'] as bool? ?? false,
+  centerTapToggleBars: json['centerTapToggleBars'] as bool? ?? true,
+  topBarPinned: json['topBarPinned'] as bool? ?? false,
+  bottomBarPinned: json['bottomBarPinned'] as bool? ?? false,
+  showThumbnailStrip: json['showThumbnailStrip'] as bool? ?? false,
+  thumbnailStripOriginalAspectRatio:
+      json['thumbnailStripOriginalAspectRatio'] as bool? ?? false,
+  transparentTopBar: json['transparentTopBar'] as bool? ?? false,
+  topBarScrimOpacityPercent:
+      (json['topBarScrimOpacityPercent'] as num?)?.toInt() ?? 85,
+  readingDirectionToggle: json['readingDirectionToggle'] as bool? ?? true,
+  readerFitMode:
+      $enumDecodeNullable(_$ReaderFitModeEnumMap, json['readerFitMode']) ??
+      ReaderFitMode.fit,
+  readerAutoRotation:
+      $enumDecodeNullable(
+        _$ReaderAutoRotationEnumMap,
+        json['readerAutoRotation'],
+      ) ??
+      ReaderAutoRotation.none,
+  readerWidePageStretch:
+      $enumDecodeNullable(
+        _$ReaderWidePageStretchEnumMap,
+        json['readerWidePageStretch'],
+      ) ??
+      ReaderWidePageStretch.none,
+  swipePreviewEnabled: json['swipePreviewEnabled'] as bool? ?? true,
+  readerPageOrderMode:
+      $enumDecodeNullable(
+        _$ReaderPageOrderModeEnumMap,
+        json['readerPageOrderMode'],
+        unknownValue: ReaderPageOrderMode.source,
+      ) ??
+      ReaderPageOrderMode.source,
+  slideshowEnabled: json['slideshowEnabled'] as bool? ?? false,
+  slideshowEndAction:
+      $enumDecodeNullable(
+        _$ReaderSlideshowEndActionEnumMap,
+        json['slideshowEndAction'],
+        unknownValue: ReaderSlideshowEndAction.stop,
+      ) ??
+      ReaderSlideshowEndAction.stop,
+  slideshowIntervalMs: (json['slideshowIntervalMs'] as num?)?.toInt() ?? 4000,
+  slideshowColumnStepPercent:
+      (json['slideshowColumnStepPercent'] as num?)?.toInt() ?? 100,
+  slideshowShowProgress: json['slideshowShowProgress'] as bool? ?? true,
+  magnifierEnabled: json['magnifierEnabled'] as bool? ?? false,
+  magnifierMode:
+      $enumDecodeNullable(
+        _$ReaderMagnifierModeEnumMap,
+        json['magnifierMode'],
+        unknownValue: ReaderMagnifierMode.auto,
+      ) ??
+      ReaderMagnifierMode.auto,
+  magnifierZoomPercent: (json['magnifierZoomPercent'] as num?)?.toInt() ?? 300,
+  magnifierSizeLogical: (json['magnifierSizeLogical'] as num?)?.toInt() ?? 220,
+  magnifierLocked: json['magnifierLocked'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$ReadSettingStateToJson(
   _ReadSettingState instance,
@@ -734,9 +851,7 @@ _SwitchToastSettingState _$SwitchToastSettingStateFromJson(
   enableBook: json['enableBook'] as bool? ?? false,
   enablePage: json['enablePage'] as bool? ?? false,
   enableBoundaryToast: json['enableBoundaryToast'] as bool? ?? false,
-  bookTitleTemplate:
-      json['bookTitleTemplate'] as String? ??
-      '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
+  bookTitleTemplate: json['bookTitleTemplate'] as String? ?? '已切换到 {{book.displayName}}（第 {{book.currentPageDisplay}} / {{book.totalPages}} 页）',
   bookDescriptionTemplate:
       json['bookDescriptionTemplate'] as String? ?? '路径：{{book.path}}',
   pageTitleTemplate:

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plat/plat.dart';
@@ -610,9 +611,8 @@ class _CoverImage extends StatelessWidget {
 
           // 加载中或失败：展示深色底板带微光
           return Container(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.4),
             child: const Center(
               child: SizedBox(
                 width: 18,

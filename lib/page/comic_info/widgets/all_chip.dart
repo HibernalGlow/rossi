@@ -140,33 +140,11 @@ class _AllChipWidgetState extends State<AllChipWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _LabelChip(label: processedTitle),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Wrap(
-                spacing: 10,
-                runSpacing: runSpacings,
-                children: items
-                    .map(
-                      (item) => _ClickableChip(
-                        label: processText(item.name)
-                            .let(convertChineseForDisplay),
-                        onTap: () => _onTap(item),
-                        onLongPress: () {
-                          final copyText =
-                              item.onLongPress?.trim().isNotEmpty == true
-                              ? item.onLongPress!.trim()
-                              : processText(item.name);
-                          Clipboard.setData(ClipboardData(text: copyText));
-                          showSuccessToast(
-                            t.comicInfo.copiedToClipboard(
-                              name: item.name.let(convertChineseForDisplay),
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                    .toList(),
+            ListTile(
+              leading: GlyphIcon(
+                AppGlyphs.heart,
+                fill: isFavoriteArtist ? 1 : 0,
+                color: const Color(0xFFDC2626),
               ),
               title: Text(
                 isFavoriteArtist

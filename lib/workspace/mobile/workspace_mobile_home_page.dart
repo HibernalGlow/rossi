@@ -723,9 +723,8 @@ class _HistoryRows extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Text(
           t.workspace.noMoreHistory,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       );
     }
@@ -736,9 +735,8 @@ class _HistoryRows extends StatelessWidget {
             Divider(
               height: 1,
               indent: 72,
-              color: Theme.of(
-                context,
-              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: Theme.of(context).colorScheme.outlineVariant
+                  .withValues(alpha: 0.5),
             ),
           _HistoryRow(record: record),
         ],
@@ -903,9 +901,9 @@ class _FilesSection extends StatelessWidget {
                           t.workspace.filesBrowseSubtitle,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                         ),
                       ],

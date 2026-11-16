@@ -6,8 +6,10 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
-typedef FileEnhancementStage =
-    Future<bool> Function(String input, String output);
+typedef FileEnhancementStage = Future<bool> Function(
+  String input,
+  String output,
+);
 
 /// 两条处理链共用的缓存约束：独立结果、按源版本与有序参数去重、完整产物才发布。
 class ImageEnhancementFileCache {

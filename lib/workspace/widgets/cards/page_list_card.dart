@@ -372,9 +372,8 @@ class _PageListCardState extends State<PageListCard> {
                 Builder(
                   builder: (context) {
                     final scale =
-                        LibraryImageGeometryScope.maybeOf(
-                          context,
-                        )?.imageScale ??
+                        LibraryImageGeometryScope.maybeOf(context)
+                            ?.imageScale ??
                         1;
                     return Center(
                       child: FractionallySizedBox(

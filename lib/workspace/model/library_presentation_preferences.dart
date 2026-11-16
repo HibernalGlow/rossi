@@ -89,9 +89,8 @@ abstract final class LibraryPresentationPreferences {
       if (previous == null ||
           incoming.updatedAt > previous.updatedAt ||
           (incoming.updatedAt == previous.updatedAt &&
-              content(
-                    incoming.presentation,
-                  ).compareTo(content(previous.presentation)) >
+              content(incoming.presentation)
+                      .compareTo(content(previous.presentation)) >
                   0)) {
         merged[entry.key] = incoming;
       }

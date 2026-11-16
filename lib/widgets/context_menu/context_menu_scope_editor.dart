@@ -226,9 +226,8 @@ class ContextMenuScopeEditor extends StatelessWidget {
           _stateLabel(visibility, pin, iconOnly),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(color: scheme.onSurfaceVariant),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

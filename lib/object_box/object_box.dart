@@ -44,6 +44,7 @@ class ObjectBox {
   late final Box<ComicFollow> _comicFollowBox;
   late final Box<ComicReadPreference> _comicReadPreferenceBox;
   late final Box<ComicReadChapter> _comicReadChapterBox;
+  late final Box<ComicChapterReadMark> _comicChapterReadMarkBox;
   late final Box<SearchBookmark> _searchBookmarkBox;
 
   void close() {
@@ -77,6 +78,7 @@ class ObjectBox {
     _comicFollowBox = store.box<ComicFollow>();
     _comicReadPreferenceBox = store.box<ComicReadPreference>();
     _comicReadChapterBox = store.box<ComicReadChapter>();
+    _comicChapterReadMarkBox = store.box<ComicChapterReadMark>();
     _searchBookmarkBox = store.box<SearchBookmark>();
   }
 
@@ -168,6 +170,8 @@ class ObjectBox {
       _comicReadPreferenceBox;
 
   Box<ComicReadChapter> get comicReadChapterBox => _comicReadChapterBox;
+  Box<ComicChapterReadMark> get comicChapterReadMarkBox =>
+      _comicChapterReadMarkBox;
 
   Box<SearchBookmark> get searchBookmarkBox => _searchBookmarkBox;
 
@@ -289,6 +293,10 @@ String _collectObjectBoxDataJson(Store store, bool removeIds) {
     'comicLink': readBox(store.box<ComicLink>(), (item) => item.toJson()),
     'comicReadPreference': readBox(
       store.box<ComicReadPreference>(),
+      (item) => item.toJson(),
+    ),
+    'comicChapterReadMark': readBox(
+      store.box<ComicChapterReadMark>(),
       (item) => item.toJson(),
     ),
     'comicReadChapter': readBox(

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:zephyr/platform/desktop/desktop_window.dart';
+import 'package:zephyr/config/global/global.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// Material 3 风格的自定义标题栏（仅桌面平台使用）
 ///

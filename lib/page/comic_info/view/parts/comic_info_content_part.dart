@@ -184,9 +184,8 @@ extension _ComicInfoContentPart on _ComicInfoState {
                 downloadDisabledReason: normalComicAllInfo.allowDownloadReason,
               ),
               if (normalComicAllInfo.recommend.isNotEmpty &&
-                  _resolveRecommendItems(
-                    normalComicAllInfo.recommend,
-                  ).isNotEmpty)
+                  _resolveRecommendItems(normalComicAllInfo.recommend)
+                      .isNotEmpty)
                 _constrainedSliver(
                   SliverToBoxAdapter(
                     child: Column(

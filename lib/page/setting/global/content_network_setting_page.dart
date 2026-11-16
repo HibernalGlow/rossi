@@ -85,6 +85,8 @@ class ContentNetworkSettingPage extends StatelessWidget {
                 },
               ),
               _chineseConvertMode(state, cubit),
+              if (state.showSearchBookmark)
+                _searchBookmarkProbePages(state, cubit),
               SettingGroup.switchTile(
                 leading: const GlyphIcon(AppGlyphs.shield),
                 title: Text(t.settings.fullSourceList),
@@ -98,15 +100,12 @@ class ContentNetworkSettingPage extends StatelessWidget {
               ),
             ],
           ),
-          editMaskedKeywords(context),
-          if (state.showSearchBookmark) _searchBookmarkProbePages(state, cubit),
-          _chineseConvertMode(state, cubit),
           const SizedBox(height: 8),
           const Divider(height: 1, thickness: 0.3),
           settingSectionTitle(
             context,
             t.settings.network,
-            icon: Icons.wifi_outlined,
+            icon: AppGlyphs.wifi,
           ),
           proxyToggle(
             context,
@@ -115,7 +114,7 @@ class ContentNetworkSettingPage extends StatelessWidget {
             currentProxy: state.proxySetting.address,
           ),
           settingCategoryTile(
-            icon: Icons.dns_outlined,
+            icon: AppGlyphs.router,
             title: t.settings.doh,
             subtitle: state.dohSetting.enabled
                 ? t.settings.dohProviderCount(
@@ -124,11 +123,10 @@ class ContentNetworkSettingPage extends StatelessWidget {
                 : t.common.disabled,
             onTap: () => context.pushRoute(const DohSettingRoute()),
           ),
-          SwitchListTile(
-            secondary: const Icon(Icons.lan_outlined),
+          SettingGroup.switchTile(
+            leading: const GlyphIcon(AppGlyphs.router),
             title: Text(t.settings.blockPrivateNetwork),
             subtitle: Text(t.settings.blockPrivateNetworkSubtitle),
-            thumbIcon: kSettingSwitchThumbIcon,
             value: state.blockPrivateNetwork,
             onChanged: (value) {
               cubit.updateState(
@@ -138,11 +136,10 @@ class ContentNetworkSettingPage extends StatelessWidget {
               applyPrivateNetworkPolicy(blockPrivateNetwork: value);
             },
           ),
-          SwitchListTile(
-            secondary: const Icon(Icons.download_outlined),
+          SettingGroup.switchTile(
+            leading: const GlyphIcon(AppGlyphs.download),
             title: Text(t.settings.retryDownloadUntilSuccess),
             subtitle: Text(t.settings.retryDownloadUntilSuccessSubtitle),
-            thumbIcon: kSettingSwitchThumbIcon,
             value: state.retryDownloadUntilSuccess,
             onChanged: (value) {
               cubit.updateState(

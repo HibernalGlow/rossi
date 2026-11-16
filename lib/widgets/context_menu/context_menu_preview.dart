@@ -51,9 +51,8 @@ class ContextMenuPreview extends StatelessWidget {
         child: Text(
           t.contextMenu.previewEmpty,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       );
     }

@@ -4,6 +4,8 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/platform/desktop/desktop_window.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:zephyr/config/global/global.dart';
 
 // 常驻引用：native 句柄靠 Dart 对象的 Finalizer 释放，
 // Menu/MenuItem/Image 必须一直被引用，否则托盘菜单会被提前回收。

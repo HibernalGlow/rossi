@@ -1,4 +1,5 @@
 import 'package:zephyr/page/setting/common/setting_group.dart';
+
 import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
@@ -10,7 +11,7 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/util/json/json_value.dart';
-import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
 
 class PluginSettingSchemeSection extends StatefulWidget {
   const PluginSettingSchemeSection({
@@ -258,7 +259,6 @@ class _PluginAdvancedActionSectionState
                     ),
                   );
                 } catch (e) {
-                  logger.e(e);
                   showInfoToast(t.plugin.executeFailed(error: e));
                 }
               },

@@ -18,6 +18,7 @@
 library;
 
 import 'dart:convert';
+
 import 'package:zephyr/i18n/strings.g.dart';
 
 const String kHistoryLibraryVersion = 'v1';

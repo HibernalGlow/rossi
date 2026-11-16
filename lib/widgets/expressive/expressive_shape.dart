@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart'
+    hide RoundedPolygon, CornerRounding, MaterialShapes, Morph;
 
 /// 完整形状目录。具体控件按用途选择，列表与标签仍使用柔和矩形。
 /// 几何和路径匹配来自 material_new_shapes 的 MaterialShapes / Morph。

@@ -72,9 +72,9 @@ class BreadcrumbStylePicker extends StatelessWidget {
                                     style == BreadcrumbStyle.restrained
                                         ? t.settings.breadcrumbRestrained
                                         : t.settings.breadcrumbExpressive,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleSmall,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall,
                                   ),
                                 ),
                                 if (value == style)

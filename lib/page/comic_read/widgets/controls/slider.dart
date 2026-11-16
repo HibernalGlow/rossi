@@ -145,9 +145,8 @@ class _SliderWidgetState extends State<SliderWidget> {
       child: IgnorePointer(
         child: Center(
           child: MediaQuery(
-            data: MediaQuery.of(
-              overlayContext,
-            ).copyWith(disableAnimations: reduced),
+            data: MediaQuery.of(overlayContext)
+                .copyWith(disableAnimations: reduced),
             child: CommonPopupOverlayMotion(
               size: size,
               anchor: Rect.fromCenter(

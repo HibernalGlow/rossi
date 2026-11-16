@@ -2,6 +2,7 @@ import 'package:zephyr/network/http/picture/picture.dart';
 import 'package:zephyr/page/comic_read/widgets/modes/read_mode_utils.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/util/path_util.dart';
 
 /// 负责把当前阅读位置之后的图片提前写入图片缓存。
 ///

@@ -14,8 +14,10 @@ import 'package:zephyr/i18n/strings.g.dart';
 /// 全库历史里的三年前那次访问既拖慢首帧，也不会让图更有解释力。
 const int kHistoryInsightWindow = 500;
 
-typedef HistoryInsightsBuilder =
-    Widget Function(BuildContext context, List<HistoryInsightEvent> events);
+typedef HistoryInsightsBuilder = Widget Function(
+  BuildContext context,
+  List<HistoryInsightEvent> events,
+);
 
 class HistoryInsightsWindow extends StatefulWidget {
   HistoryInsightsWindow({

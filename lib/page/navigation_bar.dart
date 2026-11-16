@@ -45,6 +45,8 @@ import 'package:zephyr/workspace/model/workspace_presence.dart';
 import 'package:zephyr/workspace/model/workspace_startup.dart';
 import 'package:zephyr/icons/icons.dart';
 
+part 'navigation_bar_layout.dart';
+
 @RoutePage()
 class NavigationBar extends StatefulWidget {
   const NavigationBar({super.key});
@@ -54,11 +56,30 @@ class NavigationBar extends StatefulWidget {
 }
 
 class _NavigationBarState extends State<NavigationBar> {
-  // _controller 用于控制手机底部导航栏和页面切换（下标为过滤后的可见位置）
+  // _controller 控制底部导航栏 / 底栏插槽与页面切换
   late PersistentTabController _controller;
-  // _selectedBaseIndex 为规范 tab 序号：0 首页，1 云收藏，2 书架，3 发现，4 更多；
-  // 前两项可隐藏，实际位置由可见列表换算，切换开关时保持指向同一页面。
-  int _selectedBaseIndex = 0;
+
+  /// 当前页的**身份**，不是下标。
+  ///
+  /// 侧栏与底部 Dock 各有自己的条目清单（用户在「自定义导航」里能增删排序），
+  /// 同一页在两边下标不同 —— 记下标会在切布局或改清单时指到别的页上。
+  ///
+  /// 它**永远落在一个页面上**：清单里还有「动作」（工作台 / 打开本地漫画 /
+  /// GPU 上屏 / 搜索），那些点了推路由、不换页，不能当「当前页」。
+  /// `null` = 还没定：`build` 会把它落到清单里第一条页面（开屏页见
+  /// `_entryForWelcomeIndex`）。
+  NavigationEntryId? _currentPageId;
+
+  /// 当前这一支布局的条目清单（身份，按显示顺序）。由 `build` 每帧刷新，
+  /// 供 `_handleExitOnBack` 这类离 build 很远的回调把身份换算成下标。
+  List<NavigationEntryId> _activePageIds = const [];
+
+  /// 去过哪些页。
+  ///
+  /// `IndexedStack` 会把所有页一次建起来（改造前手机那支是懒建的），而开屏
+  /// 只该建书架那一页 —— 于是没去过的页一律摆个空盒子。按**身份**记而不是
+  /// 按下标：清单一改（用户在自定义里增删排序），下标会指到别的页上。
+  final Set<NavigationEntryId> _visitedPages = <NavigationEntryId>{};
   final debouncer = Debouncer(milliseconds: 100);
   DateTime? _lastLoginNavigateAt;
   String? _lastLoginPluginId;
@@ -93,13 +114,15 @@ class _NavigationBarState extends State<NavigationBar> {
       }
     });
     final globalSetting = objectbox.userSettingBox.get(1)!.globalSetting;
-    _selectedBaseIndex = _normalizeBaseIndex(
-      globalSetting.welcomePageNum,
-      globalSetting,
-    );
-    _controller = PersistentTabController(
-      initialIndex: _visibleIndexOf(_selectedBaseIndex, globalSetting),
-    );
+    // 开屏页存的仍然是**下标**（`welcomePageNum`，可能带着云端同步来的旧值），
+    // 这里按**出厂清单**解成身份。解成身份而不是直接当下标用，是为了让
+    // 「用户改过导航清单」之后，「启动落在第 2 页」不会突然指到别的页上 ——
+    // 下标只在某一支布局的清单里才有意义（见 `_pageIdForWelcomeIndex`）。
+    _currentPageId = _entryForWelcomeIndex(globalSetting.welcomePageNum);
+    _controller = PersistentTabController(initialIndex: 0);
+    // 启动落点。开关关着、或本机没有工作台入口时它逐字不动
+    // （见 `resolveStartupLanding`）。
+    _maybeOpenWorkspaceOnStart(globalSetting.startWithWorkspace);
     ForegroundTaskService.instance.init();
 
     initializeNotificationsOnce();
@@ -176,82 +199,7 @@ class _NavigationBarState extends State<NavigationBar> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final globalSettingState = context.watch<GlobalSettingCubit>().state;
-    // 开关仅在 Android 展示；同时限制实际行为，避免同步设置后影响其他平台。
-    final backPressExitEnabled =
-        Platform.isAndroid && globalSettingState.backPressExitEnabled;
-    // 隐藏中的当前页可能是被开关关掉的 tab，这里把它挪到最近的可见页，
-    // 可见位置由规范序号换算，确保开关切换时仍停留在同一页面。
-    _selectedBaseIndex = _normalizeBaseIndex(
-      _selectedBaseIndex,
-      globalSettingState,
-    );
-    final visibleBaseIndexes = _visibleBaseIndexes(globalSettingState);
-    final visibleIndex = _visibleIndexOf(
-      _selectedBaseIndex,
-      globalSettingState,
-    );
-    if (_controller.index != visibleIndex) {
-      _controller.index = visibleIndex;
-    }
-    final pageList = _buildPageList(globalSettingState);
-    final navBarItems = _navBarItems(globalSettingState);
-    final navRailDestinations = _navRailDestinations(globalSettingState);
-    return MemoryOverlayWidget(
-      enabled: globalSettingState.enableMemoryDebug,
-      updateInterval: Duration(seconds: 1),
-      child: Builder(
-        builder: (context) {
-          if (isTablet(context) ||
-              Platform.isWindows ||
-              Platform.isLinux ||
-              Platform.isMacOS) {
-            return _buildTabletLayout(
-              pageList: pageList,
-              navRailDestinations: navRailDestinations,
-              visibleBaseIndexes: visibleBaseIndexes,
-            );
-          } else {
-            return _buildMobileLayout(
-              pageList: pageList,
-              navBarItems: navBarItems,
-              backPressExitEnabled: backPressExitEnabled,
-              visibleBaseIndexes: visibleBaseIndexes,
-            );
-          }
-          if (!useSidebar && nav.dockEnabled) {
-            return _buildDockLayout(
-              entries: entries,
-              selectedIndex: selectedIndex,
-              backPressExitEnabled: backPressExitEnabled,
-              bottomEntries: bottomEntries,
-              longPressCustomize: nav.dockLongPressCustomize,
-              longPressDuration: Duration(
-                milliseconds: nav.dockLongPressMilliseconds,
-              ),
-            );
-          }
-          if (sidebarCapable) {
-            return _buildLegacyRailLayout(
-              entries: entries,
-              // 旧侧栏的底部动作区读的是**全部动作**，不是用户那段清单：
-              // 它是「关掉开关 = 回到改造前那一屏」的退路，而改造前那一屏就
-              // 是「栏底一排动作」。更要紧的是主区里已经有的动作在旧布局里
-              // **没有位置**（`NavigationRail` 只画页面），只读底部段会让那些
-              // 动作整个消失。搜索剔掉 —— 这一支在栏底单独挂了它一颗按钮，
-              // 全量传进去会把「搜索」画两遍。
-              actions: _legacyRailActions(allowed),
-            );
-          }
-          return _buildLegacyTabView(
-            entries: entries,
-            backPressExitEnabled: backPressExitEnabled,
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildNavigationLayout();
 
   /// 把「当前页身份」落到这一支的清单上，返回它在清单里的下标。
   ///
@@ -615,7 +563,6 @@ class _NavigationBarState extends State<NavigationBar> {
   Widget _buildLegacyTabView({
     required List<NavigationEntryId> entries,
     required bool backPressExitEnabled,
-    required List<int> visibleBaseIndexes,
   }) {
     final pages = _pageEntries(entries);
     final selectedIndex = _indexInPages(pages);
@@ -648,24 +595,19 @@ class _NavigationBarState extends State<NavigationBar> {
       hideNavigationBarWhenKeyboardAppears: false,
       stateManagement: true,
       navBarStyle: NavBarStyle.style3,
-      onItemSelected: (index) {
-        setState(() {
-          _selectedBaseIndex = visibleBaseIndexes[index];
-        });
-      },
+      onItemSelected: (index) => _handleToEntry(pages[index]),
     );
   }
 
   /// 返回键：先回第一条页面，已经在第一条就交给系统。
   Future<bool> _handleExitOnBack(BuildContext? _) async {
-    // 子页面仍由 PersistentTabView 的内部 Navigator 正常返回；只有当前 tab
-    // 已无子页面时才会调用这里。首页隐藏时第一个可见页即视为首页。
-    final globalSetting = context.read<GlobalSettingCubit>().state;
-    if (_visibleIndexOf(_selectedBaseIndex, globalSetting) != 0) {
-      setState(() {
-        _selectedBaseIndex = _visibleBaseIndexes(globalSetting).first;
-      });
-      _controller.jumpToTab(0);
+    // 子页面仍由各自的 Navigator 正常返回；只有当前页已无子页面时才会走到这里。
+    // 取**第一条页面**而不是第一条条目 —— 清单第一位可能是动作（点了推路由，
+    // 那样按返回键会莫名其妙弹出一个页面）。
+    final pages = _pageEntries(_activePageIds);
+    final first = pages.isEmpty ? null : pages.first;
+    if (first != null && _currentPageId != first) {
+      _handleToEntry(first);
       return false;
     }
 
@@ -674,184 +616,90 @@ class _NavigationBarState extends State<NavigationBar> {
     return false;
   }
 
-  // 平板布局 (使用 NavigationRail)
-  Widget _buildTabletLayout({
-    required List<Widget> pageList,
-    required List<NavigationRailDestination> navRailDestinations,
-    required List<int> visibleBaseIndexes,
-  }) {
-    final visibleIndex = visibleBaseIndexes.indexOf(_selectedBaseIndex);
-    final selectedIndex = visibleIndex < 0 ? 0 : visibleIndex;
-    return Scaffold(
-      backgroundColor: context.backgroundColor,
-      body: Row(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: NavigationRail(
-                  selectedIndex: selectedIndex,
-                  onDestinationSelected: (int index) {
-                    setState(() {
-                      _selectedBaseIndex = visibleBaseIndexes[index];
-                      _controller.index = index;
-                    });
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  backgroundColor: context.backgroundColor,
-                  destinations: navRailDestinations,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: IconButton(
-                  icon: Icon(Icons.search),
-                  tooltip: t.common.search,
-                  onPressed: () {
-                    context.pushRoute(
-                      SearchRoute(
-                        searchState: SearchStates.initial(),
-                        aggregateMode: true,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: IndexedStack(index: selectedIndex, children: pageList),
-          ),
-        ],
-      ),
-    );
-  }
+  // ── 侧栏底部动作区 / Dock 尾部溢出菜单（同一份清单） ───────────────────────
 
-  // 底部导航栏的配置项（按开关过滤，只保留可见 tab）
-  List<PersistentBottomNavBarItem> _navBarItems(GlobalSettingState state) {
-    final activeColor = context.theme.colorScheme.primary;
-    final inactiveColor = context.textColor;
-
-    final homeItem = PersistentBottomNavBarItem(
-      icon: Icon(Icons.home_outlined),
-      title: t.navigation.home,
-      activeColorPrimary: activeColor,
-      inactiveColorPrimary: inactiveColor,
-    );
-    final cloudFavoriteItem = PersistentBottomNavBarItem(
-      icon: Icon(Icons.cloud_outlined),
-      title: t.oldHome.cloudFavorite,
-      activeColorPrimary: activeColor,
-      inactiveColorPrimary: inactiveColor,
-    );
-    final bookshelfItem = PersistentBottomNavBarItem(
-      icon: Icon(Icons.menu_book_sharp),
-      title: t.navigation.bookshelf,
-      activeColorPrimary: activeColor,
-      inactiveColorPrimary: inactiveColor,
-    );
-    final discoverItem = PersistentBottomNavBarItem(
-      icon: Icon(Icons.explore_outlined),
-      title: t.navigation.discover,
-      activeColorPrimary: activeColor,
-      inactiveColorPrimary: inactiveColor,
-    );
-    final moreItem = PersistentBottomNavBarItem(
-      icon: Icon(Icons.apps_outlined),
-      title: t.navigation.more,
-      activeColorPrimary: activeColor,
-      inactiveColorPrimary: inactiveColor,
-    );
-    return _pickVisible(state, [
-      homeItem,
-      cloudFavoriteItem,
-      bookshelfItem,
-      discoverItem,
-      moreItem,
-    ]);
-  }
-
-  /// 规范序号转可见位置；隐藏中的序号回退到最近的可见页。
-  int _visibleIndexOf(int baseIndex, GlobalSettingState state) {
-    final visible = _visibleBaseIndexes(state);
-    final position = visible.indexOf(baseIndex);
-    if (position >= 0) return position;
-    // 向前找最近可见，找不到则取第一个可见（至少书架/发现/更多常驻）。
-    for (var candidate = baseIndex - 1; candidate >= 0; candidate--) {
-      final fallback = visible.indexOf(candidate);
-      if (fallback >= 0) return fallback;
+  /// 打开本地漫画。像素从 Rust 侧直接进合成链（见 `lib/gpu/`）。
+  Future<void> _openLocalComic() async {
+    try {
+      final selected = await showLocalFileTreeSheet(context: context);
+      if (selected == null || selected.isEmpty || !mounted) return;
+      context.pushRoute(
+        ComicReadRoute(
+          comicId: selected,
+          order: 0,
+          from: 'local',
+          epsNumber: 1,
+          type: ComicEntryType.normal,
+          comicInfo: selected,
+          stringSelectCubit: StringSelectCubit(),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('打开本地漫画出错: $e\n$st');
     }
-    return 0;
   }
 
-  /// 规范序号归一化：越界钳制，隐藏中的序号挪到最近可见页。
-  int _normalizeBaseIndex(int rawIndex, GlobalSettingState state) {
-    final visible = _visibleBaseIndexes(state);
-    if (visible.isEmpty) return 2;
-    if (visible.contains(rawIndex)) return rawIndex;
-    return visible[_visibleIndexOf(rawIndex, state)];
+  /// GPU 上屏（D3D12 共享纹理）：像素从 Rust 侧直接进合成链，
+  /// 不再经 `ui.decodeImageFromPixels`。
+  void _openGpuPresent() => Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const GpuPresentPage()));
+
+  void _openSearch() => context.pushRoute(
+    SearchRoute(searchState: SearchStates.initial(), aggregateMode: true),
+  );
+
+  /// 侧栏展开 / 收起。
+  ///
+  /// 存进**全局设置**而不是页面 State：换语言、换主题都会把整棵树重建，
+  /// 住 State 的开关会跟着回默认（与阅读版式开关同一条口径）。
+  void _toggleSidebarExpanded() {
+    context.read<GlobalSettingCubit>().updateNavigationSetting(
+      (current) => current.copyWith(sidebarExpanded: !current.sidebarExpanded),
+    );
   }
 
-  /// 当前可见 tab 的规范序号列表，顺序与页面列表一致。
-  List<int> _visibleBaseIndexes(GlobalSettingState state) {
-    return [
-      if (state.showPluginHome) 0,
-      if (state.showPluginCloudFavorite) 1,
-      2,
-      3,
-      4,
-    ];
+  /// 打开「自定义导航栏」：两支布局各一张页签，每张里两段可拖拽清单
+  /// （主区 / 底部快捷区）。
+  ///
+  /// 每次编辑立刻落进全局设置（弹窗自己持草稿、不点「保存」），所以关掉弹窗
+  /// 之后侧栏 / Dock 已经跟着变了 —— 与 FlClash 那份 notifier 同一时机。
+  ///
+  /// 清单解析（存的是 id 字符串；主区那一段空 = 用出厂，底部那一段 `null` =
+  /// 没设置过）交给 [showCustomNavigationDialogFor]，与「设置 → 外观」那一处
+  /// 同一个入口。
+  Future<void> _openNavigationCustomization() {
+    final cubit = context.read<GlobalSettingCubit>();
+    final state = cubit.state;
+    return showCustomNavigationDialogFor(
+      context,
+      storedDesktopPageIds: state.navigationSetting.desktopPageIds,
+      storedDesktopActionIds: state.navigationSetting.desktopActionIds,
+      storedMobilePageIds: state.navigationSetting.mobilePageIds,
+      storedMobileActionIds: state.navigationSetting.mobileActionIds,
+      onChanged: (desktop, mobile) {
+        cubit.updateNavigationSetting(
+          (current) => current.copyWith(
+            desktopPageIds: encodeNavigationEntryIds(desktop.main),
+            mobilePageIds: encodeNavigationEntryIds(mobile.main),
+            desktopActionIds: encodeNavigationEntryIds(desktop.actions),
+            mobileActionIds: encodeNavigationEntryIds(mobile.actions),
+          ),
+        );
+      },
+    );
   }
 
-  List<T> _pickVisible<T>(GlobalSettingState state, List<T> all) {
-    final visible = _visibleBaseIndexes(state);
-    return [for (final baseIndex in visible) all[baseIndex]];
-  }
-
-  // 为平板侧边导航栏生成 NavigationRailDestination（按开关过滤）
-  List<NavigationRailDestination> _navRailDestinations(
-    GlobalSettingState state,
-  ) {
-    final all = [
-      NavigationRailDestination(
-        icon: Icon(Icons.home_outlined),
-        selectedIcon: Icon(Icons.home),
-        label: Text(t.navigation.home),
-      ),
-      NavigationRailDestination(
-        icon: Icon(Icons.cloud_outlined),
-        selectedIcon: Icon(Icons.cloud),
-        label: Text(t.oldHome.cloudFavorite),
-      ),
-      NavigationRailDestination(
-        icon: Icon(Icons.menu_book_outlined),
-        selectedIcon: Icon(Icons.menu_book_sharp),
-        label: Text(t.navigation.bookshelf),
-      ),
-      NavigationRailDestination(
-        icon: Icon(Icons.explore_outlined),
-        selectedIcon: Icon(Icons.explore),
-        label: Text(t.navigation.discover),
-      ),
-      NavigationRailDestination(
-        icon: Icon(Icons.apps_outlined),
-        selectedIcon: Icon(Icons.apps),
-        label: Text(t.navigation.more),
-      ),
-    ];
-    return _pickVisible(state, all);
-  }
-
-  List<Widget> _buildPageList(GlobalSettingState state) {
-    const all = [
-      PluginHomePage(),
-      PluginCloudFavoritePage(),
-      BookshelfPage(),
-      DiscoverPage(),
-      MorePage(),
-    ];
-    return _pickVisible(state, all);
+  /// 开屏页。
+  ///
+  /// `welcomePageNum` 存的仍是**下标**（可能带着云端同步来的旧值），这里按
+  /// **出厂清单**解成身份。用出厂清单而不是用户自己那份：那个数字是改造前
+  /// 记下来的「第几个标签」，当时的清单就是出厂清单 —— 拿去套用户改过的清单
+  /// 会指到别的页上。默认值取 `-1` 的是「工作台」哨兵，不是这里的取值。
+  ///
+  /// 出厂清单里全是页面，所以这里解出来的身份一定是个页面。
+  NavigationEntryId _entryForWelcomeIndex(int rawIndex) {
+    final defaults = defaultNavigationEntries();
+    return defaults[rawIndex.clamp(0, defaults.length - 1)];
   }
 
   Future<void> _autoSync({bool force = false}) async {

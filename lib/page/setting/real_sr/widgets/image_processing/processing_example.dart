@@ -530,9 +530,8 @@ class _StaticExampleState extends State<_StaticExample> {
   void dispose() {
     for (final stage in ['before', 'after']) {
       unawaited(
-        AssetImage(
-          'asset/image/processing_examples/${kind.prefix}_$stage.png',
-        ).evict(),
+        AssetImage('asset/image/processing_examples/${kind.prefix}_$stage.png')
+            .evict(),
       );
     }
     super.dispose();

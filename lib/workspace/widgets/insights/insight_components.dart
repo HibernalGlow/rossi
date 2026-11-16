@@ -30,9 +30,8 @@ class InsightBadge extends StatelessWidget {
           Flexible(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: colors.onSecondaryContainer,
-              ),
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(color: colors.onSecondaryContainer),
             ),
           ),
         ],
@@ -141,9 +140,8 @@ class InsightFootnote extends StatelessWidget {
     padding: const EdgeInsets.only(top: 12),
     child: Text(
       text,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
     ),
   );
 }

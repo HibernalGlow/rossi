@@ -19,6 +19,8 @@ import 'package:zephyr/service/update/json/github_release_json.dart';
 import 'package:zephyr/type/pipe.dart';
 import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
 
 /// 「一周内不再提醒」静默期截止时间的存储键（毫秒时间戳）。
 const String updateSnoozeUntilPrefsKey = 'update_snooze_until_ms';

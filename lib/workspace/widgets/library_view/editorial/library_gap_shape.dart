@@ -260,9 +260,8 @@ class _GapBlobPainter extends CustomPainter {
   Path _outline(Rect rect, Size size) {
     switch (style) {
       case LibraryGapShapeStyle.blob:
-        return ExpressiveBlob.ofSeed(
-          seed,
-        ).path(rect: rect, progress: 0, safeInset: size.shortestSide * .22);
+        return ExpressiveBlob.ofSeed(seed)
+            .path(rect: rect, progress: 0, safeInset: size.shortestSide * .22);
       case LibraryGapShapeStyle.ring:
         final outer = Path()..addOval(rect);
         final inner = Path()

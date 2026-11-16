@@ -1,4 +1,5 @@
 import 'package:zephyr/page/setting/common/setting_group.dart';
+
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -15,7 +16,8 @@ import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/gesture_lock.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/main.dart';
+import 'package:zephyr/workspace/model/workspace_startup.dart';
+import 'package:zephyr/icons/icons.dart';
 
 @RoutePage()
 class AppBehaviorSettingPage extends StatefulWidget {
@@ -112,6 +114,10 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
                 _autoFollowOnCollect(state, cubit),
               ),
               settingEntry(
+                'behavior.autoCloudCollectOnLocalFavorite',
+                _autoCloudCollectOnLocalFavorite(state, cubit),
+              ),
+              settingEntry(
                 'behavior.autoFavoriteOnDownload',
                 _autoFavoriteOnDownload(state, cubit),
               ),
@@ -149,15 +155,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
                 ),
             ],
           ),
-          _splashPage(state, cubit),
-          if (isDesktop) _desktopCloseBehaviorTile(),
-          if (Platform.isAndroid) _androidKeepAlive(state, cubit),
-          if (Platform.isAndroid) _backPressExit(state, cubit),
-          _appLockSetting(state, cubit),
-          _autoFollowOnCollect(state, cubit),
-          _autoCloudCollectOnLocalFavorite(state, cubit),
-          _leftHandMode(state, cubit),
-          _clickCoverToStartReading(state, cubit),
           const SizedBox(height: 32),
         ],
       ),
@@ -165,20 +162,19 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
   }
 
   Widget _splashPage(GlobalSettingState state, GlobalSettingCubit cubit) {
-    final splashPageList = _splashPageList(state);
     final splashPage = _splashPageMap(state);
-    // welcomePageNum 存的是规范序号；隐藏中的序号回退到第一个可见页。
-    final selectedBaseIndex = splashPage.containsValue(state.welcomePageNum)
+    // 本机**用不用得了**工作台。判据不是「导航栏上有没有那颗按钮」
+    // （`hasWorkspaceEntry`，手机上确实没有），而是「进得去且出得来」——
+    // 那边靠「设置 → 布局」里的进入按钮、开屏这一项，以及系统返回键。
+    final workspaceOptionAvailable = workspaceAvailableOnDevice(context);
+    final clampedWelcomePageNum = splashPage.containsValue(state.welcomePageNum)
         ? state.welcomePageNum
         : splashPage.values.first;
-    final selectedLabel =
-        splashPageList[splashPage.values.toList().indexOf(selectedBaseIndex)];
 
     // 键用**标签页编号**（工作台是 `splashWorkspaceOption` 哨兵），不用显示名：
     // 拿显示名当键的话，改一次文案就把选中项对丢了。
     final items = <int, String>{
-      for (var index = 0; index < splashPageList.length; index++)
-        index: splashPageList[index],
+      for (final entry in splashPage.entries) entry.value: entry.key,
       if (workspaceOptionAvailable)
         splashWorkspaceOption: t.settings.startWithWorkspace,
     };
@@ -192,15 +188,15 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
       leading: const GlyphIcon(AppGlyphs.rocket),
       title: Text(t.settings.splashPage),
       subtitle: Text(t.settings.splashPageSubtitle),
-      trailing: FluentDropdown<String>(
-        value: selectedLabel,
-        displayValue: selectedLabel,
-        items: splashPageItems,
-        onChanged: (String value) {
-          if (value == selectedLabel) return;
-          showSuccessToast(t.common.restartToTakeEffect);
-          cubit.updateState(
-            (current) => current.copyWith(welcomePageNum: splashPage[value]!),
+      trailing: FluentDropdown<int>(
+        value: selected,
+        displayValue: items[selected] ?? items.values.first,
+        items: items,
+        onChanged: (int value) {
+          if (value == selected) return;
+          final next = resolveSplashSelection(
+            selected: value,
+            currentWelcomePageNum: state.welcomePageNum,
           );
           cubit.updateState(
             (current) => current.copyWith(
@@ -269,15 +265,68 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
     );
   }
 
+  Widget _autoFavoriteOnDownload(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.bookmark),
+      title: Text(t.settings.autoFavoriteOnDownload),
+      subtitle: Text(t.settings.autoFavoriteOnDownloadSubtitle),
+      value: state.autoFavoriteOnDownload,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(autoFavoriteOnDownload: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  Widget _writeDownloadMetadataFile(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.article),
+      title: Text(t.settings.writeDownloadMetadataFile),
+      subtitle: Text(t.settings.writeDownloadMetadataFileSubtitle),
+      value: state.writeDownloadMetadataFile,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(writeDownloadMetadataFile: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
+  Widget _promptDownloadOptions(
+    GlobalSettingState state,
+    GlobalSettingCubit cubit,
+  ) {
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.download),
+      title: Text(t.settings.promptDownloadOptions),
+      subtitle: Text(t.settings.promptDownloadOptionsSubtitle),
+      value: state.promptDownloadOptions,
+      onChanged: (bool value) {
+        cubit.updateState(
+          (current) => current.copyWith(promptDownloadOptions: value),
+        );
+        showSuccessToast(t.common.settingSaved);
+      },
+    );
+  }
+
   Widget _autoCloudCollectOnLocalFavorite(
     GlobalSettingState state,
     GlobalSettingCubit cubit,
   ) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.cloud_sync_outlined),
+    return SettingGroup.switchTile(
+      leading: const GlyphIcon(AppGlyphs.cloud),
       title: Text(t.settings.autoCloudCollectOnLocalFavorite),
       subtitle: Text(t.settings.autoCloudCollectOnLocalFavoriteSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
       value: state.autoCloudCollectOnLocalFavorite,
       onChanged: (bool value) {
         cubit.updateState(
@@ -397,7 +446,6 @@ class _AppBehaviorSettingPageState extends State<AppBehaviorSettingPage> {
           }
           showSuccessToast(t.common.settingSaved);
         } catch (e) {
-          logger.e(e);
           cubit.updateState(
             (current) => current.copyWith(androidKeepAliveEnabled: !value),
           );

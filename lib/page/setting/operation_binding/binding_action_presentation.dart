@@ -76,9 +76,9 @@ BindingVideoGroup bindingVideoGroup(String id) => switch (id) {
   _ => BindingVideoGroup.playback,
 };
 
-String bindingActionTitle(BindingActionInfo action) => actionLabel(
-  action,
-).replaceFirst(RegExp(r'^(视频：\s*|Video:\s*)', caseSensitive: false), '');
+String bindingActionTitle(BindingActionInfo action) =>
+    actionLabel(action)
+        .replaceFirst(RegExp(r'^(视频：\s*|Video:\s*)', caseSensitive: false), '');
 
 Glyph bindingActionIcon(String id) => switch (id) {
   'reader.previous-page' => AppGlyphs.chevronBack,

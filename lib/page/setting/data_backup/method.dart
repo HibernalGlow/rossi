@@ -73,30 +73,27 @@ Future<String> exportBreezeBackup({
         .writeAsString(jsonEncode(config));
 
     // 2. 写入 objectbox.json
-    final objectBoxData =
-        jsonDecode(await objectbox.collectAllDataJsonAsync(removeIds: true))
-            as Map<String, dynamic>;
+    final objectBoxData = jsonDecode(
+      await objectbox.collectAllDataJsonAsync(removeIds: true),
+    ) as Map<String, dynamic>;
     sanitizeBackupSettings(objectBoxData);
-    await File(
-      p.join(tempDir.path, 'objectbox.json'),
-    ).writeAsString(jsonEncode(objectBoxData));
+    await File(p.join(tempDir.path, 'objectbox.json'))
+        .writeAsString(jsonEncode(objectBoxData));
 
     // 工作台布局不是 ObjectBox 数据，按 WebDAV 的编解码规则单独保存。
     final workspace = await WorkspaceLayoutBridge.instance.readIfAvailable();
     if (workspace != null) {
-      await File(
-        p.join(tempDir.path, 'workspace.json'),
-      ).writeAsString(jsonEncode(WorkspaceSyncCodec.encode(workspace)));
+      await File(p.join(tempDir.path, 'workspace.json'))
+          .writeAsString(jsonEncode(WorkspaceSyncCodec.encode(workspace)));
     }
 
     // 展墙偏好保存在 SharedPreferences，也需要进入完整设置备份。
     final presentation = await LibraryPresentationStore.instance.readAll();
     if (presentation.isNotEmpty) {
-      await File(
-        p.join(tempDir.path, 'library_presentation.json'),
-      ).writeAsString(
-        jsonEncode(LibraryPresentationPreferences.encode(presentation)),
-      );
+      await File(p.join(tempDir.path, 'library_presentation.json'))
+          .writeAsString(
+            jsonEncode(LibraryPresentationPreferences.encode(presentation)),
+          );
     }
 
     // 空下载目录也保留标记，导入时可正确恢复一份没有漫画的备份。
@@ -163,7 +160,6 @@ Future<BackupConfig> readBackupConfig(
       zipPath: cacheZipFile.path,
     );
   } catch (e) {
-    logger.e(e);
     showErrorToast('${t.dataBackup.importFailed}：$e');
     // 失败时清理全部临时目录，避免残留
     try {
@@ -197,10 +193,11 @@ Future<String?> pickBackupZipAndroid() async {
     result = await _filePickerChannel.invokeMethod<String>('pickBackupZip', {
       'destPath': cacheZipFile.path,
     });
-  } on PlatformException catch (e) {
-    // 部分外置存储/SD 卡无法解析路径，原生侧会抛 UnsupportedOperationException。
-    logger.w('原生文件选择器失败', error: e);
-    showErrorToast('${t.dataBackup.selectBackupFailed}：${e.message ?? e.code}');
+  } on PlatformException catch (error) {
+    logger.w('原生文件选择器失败', error: error);
+    showErrorToast(
+      '${t.dataBackup.selectBackupFailed}：${error.message ?? error.code}',
+    );
   }
   logger.i('Android 原生选择器返回：$result');
   if (result == null) {
@@ -238,11 +235,29 @@ Future<void> applyBreezeBackupImport(BackupConfig config) async {
 
     // 先读取并校验全部数据，损坏或缺少 objectbox.json 时不能先清空本机。
     final objectBoxFile = File(p.join(config.extractDir, 'objectbox.json'));
-    if (await objectBoxFile.exists()) {
-      final objectBoxJson = jsonDecode(
-        await objectBoxFile.readAsString(),
+    final objectBoxJson = prepareBackupData(
+      jsonDecode(await objectBoxFile.readAsString()) as Map<String, dynamic>,
+      currentSettings:
+          objectbox.userSettingBox.get(1)?.globalSetting ??
+          const GlobalSettingState(),
+      includeDownloads: includeDownloads,
+    );
+    final workspaceFile = File(p.join(config.extractDir, 'workspace.json'));
+    final base = await WorkspaceLayoutBridge.instance.read();
+    var workspace = base;
+    final hasWorkspace = await workspaceFile.exists();
+    if (hasWorkspace) {
+      final raw = jsonDecode(
+        await workspaceFile.readAsString(),
       ) as Map<String, dynamic>;
-      await _restoreObjectBoxData(objectBoxJson);
+      if (!WorkspaceSyncCodec.isUsableBlock(raw)) {
+        throw const FormatException('备份中的工作台布局无效');
+      }
+      workspace = WorkspaceSyncCodec.decode(
+        raw,
+        base: base,
+        adoptDesktopGeometry: hasHoverPointer,
+      );
     }
     final presentationFile = File(
       p.join(config.extractDir, 'library_presentation.json'),
@@ -329,6 +344,7 @@ void _clearObjectBoxData({bool preserveDownloads = false}) {
   objectbox.comicReadPreferenceBox.removeAll();
   objectbox.comicReadChapterBox.removeAll();
   objectbox.searchBookmarkBox.removeAll();
+  objectbox.comicChapterReadMarkBox.removeAll();
 }
 
 /// 为缺少 `id` 的 JSON 补一个默认 0，避免 json_serializable 生成代码里对 `id` 做非空强制转换时崩溃。
@@ -436,6 +452,11 @@ void _restoreObjectBoxData(Map<String, dynamic> json, String currentDeviceId) {
     objectbox.comicReadPreferenceBox,
     json['comicReadPreference'] as List?,
     (j) => ComicReadPreference.fromJson(j),
+  );
+  putAll(
+    objectbox.comicChapterReadMarkBox,
+    json['comicChapterReadMark'] as List?,
+    (j) => ComicChapterReadMark.fromJson(j),
   );
   putAll(
     objectbox.comicReadChapterBox,

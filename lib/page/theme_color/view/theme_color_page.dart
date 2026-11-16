@@ -6,6 +6,8 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/page/theme_color/theme_color.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/setting/common/setting_ui.dart';
 
 @RoutePage()
 class ThemeColorPage extends StatefulWidget {

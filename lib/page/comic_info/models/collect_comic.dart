@@ -1,4 +1,5 @@
 import 'package:zephyr/page/setting/common/setting_group.dart';
+
 import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
@@ -18,6 +19,8 @@ import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
+
+part 'parts/collect_comic_rossi_part.dart';
 
 Future<bool> isLocalComicCollected({
   required String from,

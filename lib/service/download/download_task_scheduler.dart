@@ -22,7 +22,8 @@ List<DownloadTask> selectDownloadTasksToStart({
     final key = downloadTaskKeyOf(task);
     if (key.isEmpty || runningTaskKeys.contains(key)) continue;
     // 同一章在待处理里出现两次（旧行未清）时以第一条为准，与摘掉重复的行为一致。
-    if (tasksByKey.putIfAbsent(key, () => task) != task) continue;
+    if (tasksByKey.containsKey(key)) continue;
+    tasksByKey[key] = task;
     rows.add((id: task.id, key: key));
   }
 

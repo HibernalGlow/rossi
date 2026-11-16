@@ -428,9 +428,8 @@ class _LocalFileTreePaneState extends State<LocalFileTreePane> {
                         leading: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF8B5CF6,
-                            ).withValues(alpha: 0.2),
+                            color: const Color(0xFF8B5CF6)
+                                .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const GlyphIcon(

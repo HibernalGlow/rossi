@@ -19,6 +19,13 @@ import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_grid.da
 import 'package:zephyr/widgets/comic_simplify_entry/detail_columns.dart';
 import 'package:zephyr/widgets/comic_simplify_entry/comic_simplify_entry_mapper.dart';
 import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/page/search_result/view/search_result_library_view.dart';
+import 'package:zephyr/page/discover/service/discover_tab_toolbar.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_editorial_canvas.dart';
+import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
+import 'package:zephyr/page/search/model/search_history_entry.dart';
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/search/model/plugin_search_history_store.dart';
 
 @RoutePage()
 class SearchResultPage extends StatelessWidget implements AutoRouteWrapper {
@@ -63,9 +70,12 @@ class _SearchResultPage extends StatefulWidget {
 }
 
 class _SearchResultPageState extends State<_SearchResultPage>
-    with SingleTickerProviderStateMixin, AutoRouteAwareStateMixin {
+    with SingleTickerProviderStateMixin, AutoRouteAware {
+  AutoRouteObserver? _routeObserver;
   late SearchEvent searchEvent;
   final _scrollController = ScrollController();
+  final _canvasKey = GlobalKey<LibraryEditorialCanvasState>();
+  DiscoverTabToolbarController? _tabToolbar;
   bool _bookmarkPickMode = false;
   String? _pickedComicId;
   // 书签跳转落地后待揭示的书签（成功回调里消费一次）。
@@ -102,6 +112,7 @@ class _SearchResultPageState extends State<_SearchResultPage>
     searchEvent = widget.searchEvent;
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       final keyword = widget.searchEvent.searchStates.searchKeyword.trim();
       if (keyword.isEmpty || !mounted) return;
       final historyItem = _buildHistoryItem(widget.searchEvent);
@@ -116,6 +127,15 @@ class _SearchResultPageState extends State<_SearchResultPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final routerScope = context.findAncestorWidgetOfExactType<RouterScope>();
+    final observer = routerScope?.firstObserverOfType<AutoRouteObserver>();
+    if (!identical(observer, _routeObserver)) {
+      _routeObserver?.unsubscribe(this);
+      _routeObserver = observer;
+      if (observer != null && routerScope != null) {
+        observer.subscribe(this, context.routeData);
+      }
+    }
     final toolbar = DiscoverTabToolbarScope.maybeOf(context);
     if (identical(toolbar, _tabToolbar)) return;
     _tabToolbar?.unregister(this);
@@ -132,6 +152,7 @@ class _SearchResultPageState extends State<_SearchResultPage>
 
   @override
   void dispose() {
+    _routeObserver?.unsubscribe(this);
     _tabToolbar?.unregister(this);
     _animationController.dispose();
     _scrollController.removeListener(_onScroll);
@@ -337,60 +358,52 @@ class _SearchResultPageState extends State<_SearchResultPage>
       }
     }
 
-    // 「详情布局」开启 = 关闭展墙，直接渲染 web 风详情行（与展墙的普通视图
-    // 回退同一份 sliver，只是 detailed 打开）；关 = 展墙照旧。
     final detailed = context
         .watch<GlobalSettingCubit>()
         .state
         .bookshelfSetting
         .detailLayout;
-    if (detailed) {
+    final bookmarkActive =
+        _bookmarkPickMode ||
+        _highlightComicId != null ||
+        _pendingRevealBookmark != null ||
+        _probeBookmark != null ||
+        _revealRetryBookmark != null;
+    if (detailed || bookmarkActive) {
       return PluginComicGridSliver(
         controller: _scrollController,
         entries: mapToUnifiedComicSimplifyEntryInfoList(
           state.comics.map((item) => item.comic),
         ),
+        highlightEntryId: _highlightComicId,
+        dimOthers: false,
         hasReachedMax:
-            state.hasReachedMax && state.status == SearchStatus.success,
+            (state.hasReachedMax || _bookmarkPickMode) &&
+            state.status == SearchStatus.success,
         isLoadingMore: state.status == SearchStatus.loadingMore,
         loadMoreFailed: state.status == SearchStatus.getMoreFailure,
         onRetryLoadMore: () => _fetchSearchResult(retry: true),
         onLoadMore: _fetchSearchResult,
-        detailed: true,
+        physics: _bookmarkPickMode
+            ? const NeverScrollableScrollPhysics()
+            : null,
+        selectionMode: _bookmarkPickMode,
+        isEntrySelected: _bookmarkPickMode
+            ? (entry) => entry.id == _pickedComicId
+            : null,
+        onEntryTap: _bookmarkPickMode
+            ? (entry) => setState(() => _pickedComicId = entry.id)
+            : null,
+        detailed: detailed,
       );
     }
-
     return SearchResultLibraryView(
       state: state,
       canvasKey: _canvasKey,
       source: searchEvent.searchStates.from,
       controller: _scrollController,
-      entries: list,
-      highlightEntryId: _highlightComicId,
-      // 书签揭示只要锚点描边，不压暗其它条目。
-      dimOthers: false,
-      hasReachedMax:
-          (state.hasReachedMax || _bookmarkPickMode) &&
-          state.status == SearchStatus.success,
-      isLoadingMore: state.status == SearchStatus.loadingMore,
-      loadMoreFailed: state.status == SearchStatus.getMoreFailure,
-      onRetryLoadMore: () => _refresh(SearchStatus.loadingMore),
+      onRetryLoadMore: () => _fetchSearchResult(retry: true),
       onLoadMore: _fetchSearchResult,
-      physics: _bookmarkPickMode ? const NeverScrollableScrollPhysics() : null,
-      selectionMode: _bookmarkPickMode,
-      isEntrySelected: _bookmarkPickMode
-          ? (entry) => entry.id == _pickedComicId
-          : null,
-      onEntryTap: _bookmarkPickMode
-          ? (entry) {
-              setState(() => _pickedComicId = entry.id);
-            }
-          : null,
-      detailed: context
-          .watch<GlobalSettingCubit>()
-          .state
-          .bookshelfSetting
-          .detailLayout,
     );
   }
 

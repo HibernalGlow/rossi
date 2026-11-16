@@ -25,9 +25,8 @@ Future<void> _writeBootLog(
     final String text = error == null
         ? '${DateTime.now().toIso8601String()} [$stage]\n'
         : '${DateTime.now().toIso8601String()} [$stage] $error\n$stack\n\n';
-    await File(
-      '/tmp/breeze_boot.log',
-    ).writeAsString(text, mode: FileMode.append, flush: true);
+    await File('/tmp/breeze_boot.log')
+        .writeAsString(text, mode: FileMode.append, flush: true);
   } catch (_) {
     // 连日志都写不出去时不再往上抛。
   }

@@ -40,6 +40,9 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     'locale',
     'localeFollowsSystem',
     'welcomePageNum',
+    'showPluginHome',
+    'showPluginCloudFavorite',
+    'showSearchBookmark',
     'chineseConvertMode',
   ],
   _libraryBlockName: <String>[
@@ -65,6 +68,8 @@ const Map<String, List<String>> _settingsBlockKeys = <String, List<String>>{
     // 不是本机事实（不同于同页的 customExportPath），所以两台机器一起走。
     'exportIncludeCover',
     'autoFollowOnCollect',
+    'autoCloudCollectOnLocalFavorite',
+    'searchBookmarkProbePages',
     'leftHandModeEnabled',
     'clickCoverToStartReading',
     'comicInfoInlineReadButton',

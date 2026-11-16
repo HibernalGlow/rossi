@@ -160,37 +160,23 @@ class _HistoryWidgetState extends State<HistoryWidget> {
   }) {
     final ordered = _isNewestFirst ? history : history.reversed.toList();
 
-            return GestureDetector(
-              onLongPress: () => _deleteSingle(historyItem),
-              child: InputChip(
-                label: Text(keyword),
-                labelStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 14,
-                ),
-                backgroundColor: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerLow,
-                side: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  width: 1.0,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-                onPressed: () {
-                  HistoryWidget.cancelPendingKeywordSync();
-                  onSearch(
-                    context,
-                    keyword,
-                    aggregateMode: widget.aggregateMode,
-                  );
-                },
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            );
-          }).toList(),
+    if (!groupBySource) {
+      // 一条时间线。同一个词在几个插件下各有一条记录时只留最近那条，
+      // 否则这里会看见并排的重复胶囊 —— 但删的时候仍按记录本身删，
+      // 不误伤另一个插件下的同名记录。
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            spacing: 12.0,
+            runSpacing: 12.0,
+            alignment: WrapAlignment.start,
+            children: [
+              for (final entry in distinctSearchHistoryByKeyword(ordered))
+                _buildChip(entry),
+            ],
+          ),
         ),
       );
     }

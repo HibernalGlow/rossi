@@ -16,6 +16,7 @@ import 'package:zephyr/util/get_path.dart';
 import 'package:zephyr/widgets/toast.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 
 const Set<String> _kWindowsReservedNames = {
   'CON',

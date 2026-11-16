@@ -67,6 +67,8 @@ Map<String, dynamic> prepareBackupData(
     'comicFolder': ComicFolder.fromJson,
     'comicLink': ComicLink.fromJson,
     'comicReadPreference': ComicReadPreference.fromJson,
+    'comicReadChapter': ComicReadChapter.fromJson,
+    'searchBookmark': SearchBookmark.fromJson,
     'comicChapterReadMark': ComicChapterReadMark.fromJson,
   };
   if (!parsers.keys.any(data.containsKey)) {

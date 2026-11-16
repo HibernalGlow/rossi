@@ -539,9 +539,8 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
         child: Text(
           t.workspace.cardWidthAutoColumns,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
     ],
@@ -670,12 +669,12 @@ class _LibrarySizeSettingsState extends State<_LibrarySizeSettings> {
                     selected: columns == count,
                     side: BorderSide.none,
                     shape: columns == count ? AppShape.xl : AppShape.md,
-                    selectedColor: Theme.of(
-                      context,
-                    ).colorScheme.secondaryContainer,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHigh,
+                    selectedColor: Theme.of(context)
+                        .colorScheme
+                        .secondaryContainer,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHigh,
                     onSelected: (_) {
                       HapticFeedback.selectionClick();
                       setState(

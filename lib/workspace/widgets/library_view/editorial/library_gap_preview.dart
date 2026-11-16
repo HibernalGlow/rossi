@@ -56,14 +56,13 @@ List<LibraryEntry> libraryGapPreviewEntries({DateTime? now}) {
         itemCount: 6 + i * 4,
         byteSize: (12 + i * 7) * 1024 * 1024,
         mediaAspectRatio: i % 5 == 0 ? 1.55 : .7,
-        media:
-            (
-              context, {
-              required double width,
-              required double height,
-              required BorderRadius radius,
-              required BoxFit fit,
-            }) => _PreviewCover(seed: i, width: width, height: height),
+        media: (
+          context, {
+          required double width,
+          required double height,
+          required BorderRadius radius,
+          required BoxFit fit,
+        }) => _PreviewCover(seed: i, width: width, height: height),
       ),
   ];
 }

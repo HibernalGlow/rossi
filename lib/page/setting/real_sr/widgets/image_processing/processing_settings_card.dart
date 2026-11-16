@@ -194,9 +194,8 @@ class _ProcessingAdvancedDisclosureState
             ),
             title: Text(
               widget.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             trailing: AnimatedRotation(
               turns: _expanded ? .5 : 0,
@@ -271,9 +270,8 @@ class _ProcessingSliderState extends State<ProcessingSlider> {
             Expanded(
               child: Text(
                 widget.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 8),
@@ -300,9 +298,8 @@ class _ProcessingSliderState extends State<ProcessingSlider> {
         if (widget.description != null)
           Text(
             widget.description!,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colors.onSurfaceVariant),
           ),
         SizedBox(
           height: 56,

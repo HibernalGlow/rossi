@@ -752,9 +752,8 @@ class _VideoPageSurfaceState extends State<VideoPageSurface>
                   right: 0,
                   top: 0,
                   child: IconButton.filledTonal(
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).closeButtonTooltip,
+                    tooltip: MaterialLocalizations.of(context)
+                        .closeButtonTooltip,
                     icon: const GlyphIcon(AppGlyphs.close),
                     onPressed: () => setState(() => _pip = false),
                   ),

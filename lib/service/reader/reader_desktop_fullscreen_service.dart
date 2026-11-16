@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr/platform/desktop/desktop_window.dart';
+import 'package:window_manager/window_manager.dart';
 
 /// 桌面窗口全屏状态的**唯一记账处**（阅读器与整应用外壳共用）。
 ///
@@ -22,7 +23,7 @@ import 'package:zephyr/platform/desktop/desktop_window.dart';
 ///
 /// 只有 [fullscreenNotifier] 一个出口：订阅者（应用外壳的标题栏、阅读器
 /// AppBar 上的图标）不该各自去问窗口，那会造出第二本账。
-class ReaderDesktopFullscreenService with WindowListener {
+class ReaderDesktopFullscreenService {
   static final ReaderDesktopFullscreenService instance =
       ReaderDesktopFullscreenService._();
 
@@ -30,7 +31,7 @@ class ReaderDesktopFullscreenService with WindowListener {
     // **构造即登记**：本实例在 App 第一次 build（main.dart 的 MaterialApp
     // builder）时就被取到，早于任何一次全屏切换，也早于阅读器被打开 ——
     // 于是「没开阅读器时按 ⌃⌘F」也能抓到。
-    if (_isDesktopPlatform) windowManager.addListener(this);
+    if (_isDesktopPlatform) mainWindow?.addListener(_handleWindowEvent);
   }
 
   final ValueNotifier<bool> fullscreenNotifier = ValueNotifier(false);
@@ -70,11 +71,14 @@ class ReaderDesktopFullscreenService with WindowListener {
   /// 这是**应用主动借**全屏的唯一入口，所以只有它动 [appRequestedFullscreen]。
   Future<void> setFullscreen(bool value) async {
     if (!_isDesktopPlatform) return;
+    // 记账必须在动窗口之前：句柄拿不到时（窗口还在建、或者宿主没给窗口）
+    // 这次借出仍要记上，否则退出阅读器时 `releaseRequestedFullscreen`
+    // 会因为「没借过」而什么都不做。
+    _appRequestedFullscreen = value;
+    _setFullscreen(value);
     final window = mainWindow;
     if (window == null) return;
     window.isFullScreen = value;
-    _setFullscreen(value);
-    await windowManager.setFullScreen(value);
     unawaited(_reconcile(value));
   }
 
@@ -100,23 +104,32 @@ class ReaderDesktopFullscreenService with WindowListener {
   /// 窗口自己报的事件一律算**用户/系统**的行为，所以顺手把「应用借的」清掉 ——
   /// 否则用户按 ⌃⌘F 进全屏之后，应用会以为这次全屏是自己借的，退出阅读器时
   /// 替他退掉。
-  @override
   void onWindowEnterFullScreen() {
     _appRequestedFullscreen = false;
     _setFullscreen(true);
   }
 
   /// 窗口自己退出了全屏。**权威输入。**（同样不是应用借的。）
-  @override
   void onWindowLeaveFullScreen() {
     _appRequestedFullscreen = false;
     _setFullscreen(false);
   }
 
+  void _handleWindowEvent(WindowEvent event) {
+    switch (event) {
+      case WindowEnteredFullScreenEvent():
+        onWindowEnterFullScreen();
+      case WindowExitedFullScreenEvent():
+        onWindowLeaveFullScreen();
+      case _:
+        break;
+    }
+  }
+
   Future<void> _reconcile(bool requested) async {
     await Future<void>.delayed(_reconcileDelay);
     if (!_isDesktopPlatform) return;
-    final actual = await windowManager.isFullScreen();
+    final actual = mainWindow?.isFullScreen ?? false;
     _setFullscreen(actual);
     // 窗口没照办（没进 / 没退）⇒ 这次请求本来就没生效，没有「借出去的全屏」可还。
     _appRequestedFullscreen = requested && actual;

@@ -106,21 +106,23 @@ class OcrTranslator {
     final url =
         '${config.baseUrl.replaceAll(RegExp(r'/+$'), '')}/chat/completions';
 
-    final response = await WindHttp().fetch(
-      url,
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        if (config.apiKey.isNotEmpty)
-          'authorization': 'Bearer ${config.apiKey}',
-      },
-      body: jsonEncode(payload),
-      timeout: timeout,
-    );
-    if (!response.ok) {
-      throw OcrTranslationException(
-        '翻译端点返回 ${response.status}: ${response.text.substring(0, response.text.length.clamp(0, 200))}',
+    final FetchResponse response;
+    try {
+      response = await WindHttp().fetch(
+        url,
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          if (config.apiKey.isNotEmpty)
+            'authorization': 'Bearer ${config.apiKey}',
+        },
+        body: jsonEncode(payload),
+        timeout: timeout,
       );
+    } on FetchException catch (e) {
+      // 上游 v3.0.38 起 `WindHttp.fetch` 对非 2xx 直接抛 [FetchException]，
+      // 不再把响应交回调用方；这里换成本模块自己的异常，界面只认这一种。
+      throw OcrTranslationException('翻译端点返回 ${e.status}: ${e.bodyPreview}');
     }
     final body = response.json;
     final content = _extractContent(body);
@@ -205,9 +207,8 @@ List<String> parseTranslatedLines(String content, {required int expected}) {
     if (line.isEmpty) continue;
     // 编号与正文之间可能是制表符、句点、冒号，模型还常给编号加粗（形如 **2**）。
     // 注意别用 `\s*` 去接分隔符：它会把制表符先吃掉，导致「1<TAB>译文」整行匹配不上。
-    final m = RegExp(
-      r'^\s*\**\s*(\d+)\s*\**\s*(?:[.、:：]\s*)?(.*)$',
-    ).firstMatch(line);
+    final m = RegExp(r'^\s*\**\s*(\d+)\s*\**\s*(?:[.、:：]\s*)?(.*)$')
+        .firstMatch(line);
     if (m == null) continue;
     // 编号是**1 基**（提示词里就是这么给的）：别直接拿来当下标，否则最后一条永远落不进去、
     // 表现为「条数对不上」——这个错位正是被单测咬出来的。

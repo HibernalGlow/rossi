@@ -6,14 +6,13 @@ import 'package:zephyr/reader/auto_trim_settings.dart';
 import 'package:zephyr/reader/margin_fit_cache.dart';
 import 'package:zephyr/reader/page_source.dart';
 
-typedef SurfaceTrimDetector =
-    Future<Rect?> Function(
-      PageSource source,
-      int index,
-      Uint8List rgba,
-      int width,
-      int height,
-    );
+typedef SurfaceTrimDetector = Future<Rect?> Function(
+  PageSource source,
+  int index,
+  Uint8List rgba,
+  int width,
+  int height,
+);
 
 Future<Rect?> detectSurfaceTrim(
   PageSource source,

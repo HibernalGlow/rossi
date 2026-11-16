@@ -753,30 +753,6 @@ Map<String, dynamic> _$ComicLinkToJson(ComicLink instance) => <String, dynamic>{
   'updatedAt': instance.updatedAt,
 };
 
-ComicReadPreference _$ComicReadPreferenceFromJson(Map<String, dynamic> json) =>
-    ComicReadPreference(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      uniqueKey: json['uniqueKey'] as String,
-      source: json['source'] as String,
-      comicId: json['comicId'] as String,
-      overridesJson: json['overridesJson'] as String? ?? '{}',
-      readMode: (json['readMode'] as num?)?.toInt() ?? 0,
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-      deleted: json['deleted'] as bool? ?? false,
-    );
-
-Map<String, dynamic> _$ComicReadPreferenceToJson(
-  ComicReadPreference instance,
-) => <String, dynamic>{
-  'id': instance.id,
-  'uniqueKey': instance.uniqueKey,
-  'source': instance.source,
-  'comicId': instance.comicId,
-  'overridesJson': instance.overridesJson,
-  'updatedAt': instance.updatedAt.toIso8601String(),
-  'deleted': instance.deleted,
-};
-
 SearchBookmark _$SearchBookmarkFromJson(Map<String, dynamic> json) =>
     SearchBookmark(
       id: (json['id'] as num?)?.toInt() ?? 0,
@@ -834,3 +810,27 @@ Map<String, dynamic> _$ComicReadChapterToJson(ComicReadChapter instance) =>
       'readAt': instance.readAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
     };
+
+ComicReadPreference _$ComicReadPreferenceFromJson(Map<String, dynamic> json) =>
+    ComicReadPreference(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      uniqueKey: json['uniqueKey'] as String,
+      source: json['source'] as String,
+      comicId: json['comicId'] as String,
+      overridesJson: json['overridesJson'] as String? ?? '{}',
+      readMode: (json['readMode'] as num?)?.toInt() ?? 0,
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      deleted: json['deleted'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$ComicReadPreferenceToJson(
+  ComicReadPreference instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'uniqueKey': instance.uniqueKey,
+  'source': instance.source,
+  'comicId': instance.comicId,
+  'overridesJson': instance.overridesJson,
+  'updatedAt': instance.updatedAt.toIso8601String(),
+  'deleted': instance.deleted,
+};

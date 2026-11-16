@@ -97,9 +97,9 @@ class _ReaderPageOrderSheetState extends State<_ReaderPageOrderSheet> {
                 ),
                 FilledButton(
                   onPressed: _dirty
-                      ? () => Navigator.of(
-                          context,
-                        ).pop(List<int>.unmodifiable(_order))
+                      ? () =>
+                            Navigator.of(context)
+                                .pop(List<int>.unmodifiable(_order))
                       : null,
                   child: const Text('应用'),
                 ),

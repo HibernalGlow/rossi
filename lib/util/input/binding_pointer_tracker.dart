@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:zephyr/util/input/binding_input_capture.dart';
 
-typedef BindingLookup =
-    Map<String, dynamic>? Function(Map<String, dynamic> input);
+typedef BindingLookup = Map<String, dynamic>? Function(
+  Map<String, dynamic> input,
+);
 
 /// 只采集指针，不决定绑定优先级。所有探测与派发均交回核心解析器。
 class BindingPointerTracker {

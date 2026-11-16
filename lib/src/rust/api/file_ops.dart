@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `cancel_flag`, `execute_batch`, `finish_write`, `new`, `project_items`, `read_listing`, `refresh_listing`, `report_for`, `scoped_sources`, `snapshot_for`, `summary_for`, `with_ops`

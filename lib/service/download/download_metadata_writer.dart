@@ -40,12 +40,10 @@ Future<void> writeDownloadComicMetadata(String uniqueKey) async {
   );
   final dir = Directory(comicDir);
   await dir.create(recursive: true);
-  await File(
-    p.join(comicDir, downloadOriginalComicInfoFile),
-  ).writeAsString(jsonEncode(original));
-  await File(
-    p.join(comicDir, downloadProcessedComicInfoFile),
-  ).writeAsString(jsonEncode(processed));
+  await File(p.join(comicDir, downloadOriginalComicInfoFile))
+      .writeAsString(jsonEncode(original));
+  await File(p.join(comicDir, downloadProcessedComicInfoFile))
+      .writeAsString(jsonEncode(processed));
 }
 
 /// 原始信息：数据库里的 `detailJson` 加上导入端要看的版本与图源。

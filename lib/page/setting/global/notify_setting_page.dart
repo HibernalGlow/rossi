@@ -146,9 +146,8 @@ class _Note extends StatelessWidget {
       leading: GlyphIcon(icon, size: 20),
       title: Text(
         text,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Theme.of(context).textTheme.bodySmall?.color,
-        ),
+        style: Theme.of(context).textTheme.bodyMedium
+            ?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color),
       ),
     );
   }

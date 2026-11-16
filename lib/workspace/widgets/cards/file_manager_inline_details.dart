@@ -36,7 +36,8 @@ class FileManagerInlineDetails extends StatefulWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onDeletePermanently;
   final bool trashRestoreSupported;
-  final Widget Function(BuildContext, FileManagerEntry, Widget)? childRowWrapper;
+  final Widget Function(BuildContext, FileManagerEntry, Widget)?
+  childRowWrapper;
   @override
   State<FileManagerInlineDetails> createState() =>
       _FileManagerInlineDetailsState();

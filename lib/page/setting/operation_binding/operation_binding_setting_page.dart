@@ -249,9 +249,9 @@ class _OperationBindingSettingPageState
                             padding: const EdgeInsets.only(left: 12),
                             child: Text(
                               _describeBinding(id),
-                              style: Theme.of(
-                                dialogContext,
-                              ).textTheme.bodySmall,
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .bodySmall,
                             ),
                           ),
                       ],

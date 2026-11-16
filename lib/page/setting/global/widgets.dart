@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/config/router/router.gr.dart';
 import 'package:zephyr/i18n/strings.g.dart';
-import 'package:zephyr/page/setting/common/setting_ui.dart';
 import 'package:zephyr/util/proxy_setting.dart';
 import 'package:zephyr/widgets/fluent_dropdown.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
@@ -46,7 +45,6 @@ Widget proxyToggle(
           globalSettingCubit.updateState(
             (current) => current.copyWith(proxySetting: next),
           );
-          // 立刻应用到 Rust HTTP 客户端和 Dart 侧 HttpClient，不需要重启。
           applyProxySetting(next);
           showSuccessToast(t.common.settingSaved);
         },
@@ -223,9 +221,8 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
               const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(12),
@@ -246,42 +243,39 @@ class _KeywordManagementDialogState extends State<_KeywordManagementDialog> {
                                 fontSize: 13,
                               ),
                             ),
-                          )
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: List.generate(
-                              state.maskedKeywords.length,
-                              (index) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 280,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          state.maskedKeywords[index],
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimaryContainer,
-                                          ),
-                                        ),
+                          ),
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: List.generate(state.maskedKeywords.length, (
+                            index,
+                          ) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      state.maskedKeywords[index],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
                                       ),
                                     ),
                                   ),

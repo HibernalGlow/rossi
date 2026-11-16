@@ -27,9 +27,10 @@ import 'package:zephyr/widgets/context_menu/context_menu_entry_view.dart';
 import 'package:zephyr/widgets/dialog.dart';
 import 'package:zephyr/widgets/popup_panel.dart';
 import 'package:zephyr/widgets/toast.dart';
-import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/page/bookshelf/widgets/folder_target_picker.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
+part 'comic_operation_presentation.dart';
 
 class ComicOperationWidget extends StatefulWidget {
   final NormalComicAllInfo normalInfo;
@@ -204,7 +205,7 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
       accentColor: const Color(0xFFE6A700),
       enabled: true,
       onTap: _toggleLocalFavorite,
-      onLongPress: _chooseLocalFavoriteFolders,
+      onLongPress: (_) => _chooseLocalFavoriteFolders(),
     );
     final cloudCollectItem = _OperationItemData(
       icon: isCloudCollected ? AppGlyphs.cloudDone : AppGlyphs.cloud,
@@ -218,6 +219,40 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
     );
     final magnet = comicMagnetOf(normalInfo);
     final actions = [
+      _OperationItemData(
+        kind: _OperationKind.download,
+        icon: AppGlyphs.cloudDownload,
+        text: normalInfo.allowDownload
+            ? t.comicInfo.download
+            : t.comicInfo.downloadForbidden,
+        enabled: normalInfo.allowDownload,
+        onTap: _openDownload,
+        onLongPress: (_) => _openDownloadChapterPicker(),
+        onLongPressTooltip: t.reader.selectChapter,
+      ),
+      if (widget.onRead != null)
+        _OperationItemData(
+          icon: widget.hasHistory ? AppGlyphs.history : AppGlyphs.book,
+          text: widget.hasHistory
+              ? t.comicInfo.continueRead
+              : t.comicInfo.startRead,
+          onTap: widget.onRead,
+          primary: true,
+        ),
+      if (_sourcePageUrl.isNotEmpty)
+        _OperationItemData(
+          icon: AppGlyphs.openExternal,
+          text: t.comicInfo.openOnSource,
+          onTap: _openSourcePageInWebView,
+          onLongPress: _showSourcePageMenu,
+          onLongPressTooltip: t.webview.openInExternalBrowser,
+        ),
+      if (magnet.isNotEmpty)
+        _OperationItemData(
+          icon: AppGlyphs.link,
+          text: t.comicInfo.copyMagnetLink,
+          onTap: _copyMagnet,
+        ),
       _OperationItemData(
         icon: AppGlyphs.heart,
         fillsWhenHighlighted: true,
@@ -696,83 +731,5 @@ class _ComicOperationWidgetState extends State<ComicOperationWidget> {
         duration: const Duration(seconds: 5),
       );
     }
-  }
-}
-
-class _OperationItemData {
-  const _OperationItemData({
-    required this.icon,
-    required this.text,
-    this.onTap,
-    this.onLongPress,
-    this.enabled = true,
-    this.highlighted = false,
-    this.accentColor,
-  });
-
-  final IconData icon;
-  final String text;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final bool enabled;
-  final bool highlighted;
-  final Color? accentColor;
-}
-
-class _OperationCard extends StatelessWidget {
-  const _OperationCard({required this.item, this.compact = false});
-
-  final _OperationItemData item;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = item.accentColor ?? context.theme.colorScheme.primary;
-    final background = item.highlighted
-        ? accent.withValues(alpha: 0.14)
-        : context.theme.colorScheme.surfaceContainerLowest;
-    final foreground = !item.enabled
-        ? context.theme.colorScheme.onSurface.withValues(alpha: 0.38)
-        : item.highlighted
-        ? accent
-        : context.textColor;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: item.onTap,
-        onLongPress: item.onLongPress,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 8 : 10,
-            vertical: compact ? 10 : 11,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(item.icon, size: compact ? 18 : 20, color: foreground),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  item.text,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.theme.textTheme.labelLarge?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w700,
-                    fontSize: compact ? 13 : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

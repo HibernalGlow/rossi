@@ -327,9 +327,9 @@ class _FilterRow extends StatelessWidget {
                               : t.comicFollow.lastUpdate,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                         ),
                         const SizedBox(width: 4),

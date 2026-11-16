@@ -63,10 +63,15 @@ import 'package:zephyr/util/rust_loader.dart';
 import 'package:zephyr/widgets/database_incompatible_app.dart';
 import 'package:zephyr/widgets/desktop/custom_title_bar.dart';
 import 'package:zephyr/widgets/desktop/intent.dart';
-import 'package:zephyr/main.dart';
-
+import 'package:zephyr/page/setting/real_sr/service/super_resolution_log.dart';
+import 'package:zephyr/video/view/active_video_scope.dart';
+import 'package:zephyr/widgets/desktop/desktop_shell_frame.dart';
+import 'package:zephyr/widgets/popup_panel.dart';
+import 'package:zephyr/icons/icons.dart';
 export 'package:zephyr/network/http/wind_http.dart'
     show WindHttp, FetchResponse, FetchException, fetch, fetchDirect;
+
+part 'parts/main_boot_fallback_part.dart';
 
 ObjectBox? _objectbox;
 ObjectBox get objectbox => _objectbox!;

@@ -1,3 +1,5 @@
+import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/page/setting/common/setting_group.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
@@ -24,11 +26,10 @@ class DohSettingPage extends StatelessWidget {
       title: t.settings.doh,
       child: ListView(
         children: [
-          SwitchListTile(
-            secondary: const Icon(Icons.shield_outlined),
+          SettingGroup.switchTile(
+            leading: const GlyphIcon(AppGlyphs.shield),
             title: Text(t.settings.doh),
             subtitle: Text(t.settings.dohEnabledSubtitle),
-            thumbIcon: kSettingSwitchThumbIcon,
             value: setting.enabled,
             onChanged: (value) =>
                 _update(cubit, setting.copyWith(enabled: value)),
@@ -37,7 +38,7 @@ class DohSettingPage extends StatelessWidget {
           settingSectionTitle(
             context,
             t.settings.dohProviders,
-            icon: Icons.dns_outlined,
+            icon: AppGlyphs.router,
           ),
           if (setting.providers.isEmpty)
             ListTile(

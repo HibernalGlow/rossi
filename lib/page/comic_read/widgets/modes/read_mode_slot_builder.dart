@@ -1,4 +1,5 @@
 import 'package:zephyr/reader/auto_trim_settings.dart';
+
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';

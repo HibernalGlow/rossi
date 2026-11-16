@@ -136,10 +136,8 @@ class PluginFunctionChips extends StatelessWidget {
             labelPadding: const EdgeInsets.only(left: 6, right: 2),
             visualDensity: VisualDensity.compact,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w600,
-            ),
+            labelStyle: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(color: foreground, fontWeight: FontWeight.w600),
           ),
         );
       },

@@ -1079,6 +1079,7 @@
     "collect": "收藏",
     "download": "下载",
     "downloadForbidden": "该插件暂不支持此功能",
+    "copyMagnetLink": "复制磁力链接",
     "addedToCollection": "已添加收藏",
     "removedFromCollection": "已取消收藏",
     "confirmUncollectTitle": "确认取消收藏",

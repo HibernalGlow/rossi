@@ -143,10 +143,8 @@ class _SettingsDetailTileState extends State<SettingsDetailTile> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 20, 16),
                   child: Text(
                     widget.description!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.5,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant, height: 1.5),
                   ),
                 )
               : const SizedBox.shrink(),

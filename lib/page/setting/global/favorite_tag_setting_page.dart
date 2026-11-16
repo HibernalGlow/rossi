@@ -1,4 +1,5 @@
 import 'package:zephyr/page/setting/common/setting_group.dart';
+
 import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
@@ -180,9 +181,10 @@ class _FavoriteTagSettingPageState extends State<FavoriteTagSettingPage> {
                   border: const OutlineInputBorder(),
                   hintText: t.settings.favoriteTagExampleHint,
                   filled: true,
-                  fillColor: Theme.of(
-                    dialogContext,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  fillColor: Theme.of(dialogContext)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -657,9 +659,8 @@ class _FavoriteTagRow extends StatelessWidget {
                       color: theme.colorScheme.surface.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: const Color(
-                          0xFFF59E0B,
-                        ).withValues(alpha: isDark ? 0.4 : 0.6),
+                        color: const Color(0xFFF59E0B)
+                            .withValues(alpha: isDark ? 0.4 : 0.6),
                       ),
                     ),
                     child: Row(

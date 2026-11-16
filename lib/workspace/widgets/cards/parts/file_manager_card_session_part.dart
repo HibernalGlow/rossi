@@ -184,9 +184,8 @@ extension _FileManagerCardSessionPart on _FileManagerCardState {
     final homeRect = box.localToGlobal(Offset.zero) & box.size;
     await Navigator.of(context).push(
       CommonPopupRoute<void>(
-        barrierLabel: MaterialLocalizations.of(
-          context,
-        ).modalBarrierDismissLabel,
+        barrierLabel: MaterialLocalizations.of(context)
+            .modalBarrierDismissLabel,
         anchorOf: () => homeRect,
         builder: (_) => CommonPopupMenu(
           items: [

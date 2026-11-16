@@ -37,6 +37,15 @@ import 'package:zephyr/util/debouncer.dart';
 import 'package:zephyr/type/enum.dart';
 import 'package:zephyr/workspace/widgets/reader/workspace_reader_fullscreen_scope.dart';
 import 'package:zephyr/icons/icons.dart';
+import 'package:zephyr/util/input/reader_input_bridge.dart';
+import 'package:zephyr/service/reader/reader_session_coordinator.dart';
+import 'package:zephyr/service/reader/local_book_navigation_controller.dart';
+import 'package:zephyr/service/reader/shelf_book_navigation.dart';
+import 'package:zephyr/util/comic/comic_quick_read.dart';
+import 'package:zephyr/config/router/router.gr.dart';
+import 'package:zephyr/widgets/toast.dart';
+import 'package:zephyr/workspace/model/workspace_reader_target.dart';
+import 'package:zephyr/workspace/router/workspace_navigation_bridge.dart';
 
 // 自动阅读相关：计时器、暂停/继续、悬浮按钮。
 part 'parts/comic_read_auto_read_part.dart';
@@ -246,6 +255,7 @@ class _ComicReadPageState extends State<_ComicReadPage>
   StreamSubscription<bool>? _autoDoublePageSubscription;
   StreamSubscription<ReaderState>? _einkRefreshSubscription;
   bool _lastLandscape = false;
+  ReadSettingState? _lastPairingSetting;
   int _einkLastSlot = -1;
   int _einkTurnCount = 0;
   bool _isScrollLockedByMultiTouch = false;

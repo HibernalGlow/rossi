@@ -8,14 +8,13 @@ import 'package:zephyr/icons/icons.dart';
 /// 必须是个带尺寸的构造器而不是现成的 Widget —— 同一张封面在紧凑列表里是
 /// 20x30，在封面网格里要铺满，而 `CoverWidget` 与
 /// `FileManagerThumbnailWidget` 都拿宽高去决定请求多大尺寸的缩略图。
-typedef LibraryMediaBuilder =
-    Widget Function(
-      BuildContext context, {
-      required double width,
-      required double height,
-      required BorderRadius radius,
-      required BoxFit fit,
-    });
+typedef LibraryMediaBuilder = Widget Function(
+  BuildContext context, {
+  required double width,
+  required double height,
+  required BorderRadius radius,
+  required BoxFit fit,
+});
 
 /// 条目下方可单独点击的子行。文件管理器拿它显示穿透出来的子文件名，
 /// 书签与历史不用填。

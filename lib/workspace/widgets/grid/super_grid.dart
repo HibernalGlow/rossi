@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -11,8 +12,11 @@ import 'package:zephyr/workspace/widgets/grid/grid.dart';
 import 'package:zephyr/workspace/widgets/grid/motion_grid.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 
-typedef CardResizeCallback =
-    void Function(Key key, int widthSpan, int heightSpan);
+typedef CardResizeCallback = void Function(
+  Key key,
+  int widthSpan,
+  int heightSpan,
+);
 typedef CardRemoveCallback = void Function(Key key);
 
 /// 标题拖动排序、卡片内尺寸手柄与局部尺寸预览。

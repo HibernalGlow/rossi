@@ -64,19 +64,92 @@ class AppearanceSettingPage extends StatelessWidget {
               changeThemeColor(context),
               _comicReadTopContainer(state, cubit),
               _isAMOLED(state, cubit),
+              _showPluginHome(state, cubit),
+              _showPluginCloudFavorite(state, cubit),
+              _showSearchBookmark(state, cubit),
             ],
           ),
-          _languageTile(context, state, cubit),
-          _systemTheme(state, cubit),
-          _dynamicColor(state, cubit),
-          if (!state.dynamicColor) changeThemeColor(context),
-          _comicReadTopContainer(state, cubit),
-          _isAMOLED(state, cubit),
-          _detailLayout(state, cubit),
-          _showPluginHome(state, cubit),
-          _showPluginCloudFavorite(state, cubit),
-          _showSearchBookmark(state, cubit),
-          _fontSettings(context),
+          // 导入保留独立表单分组，避免在主题分组里再次套容器。
+          const TweakcnImportCard(),
+          SettingGroup(
+            title: t.settings.language,
+            icon: AppGlyphs.translate,
+            children: [
+              _languageTile(context, state, cubit),
+              _fontSettings(context),
+            ],
+          ),
+          if (_isDesktopPlatform)
+            SettingGroup(
+              title: t.settings.windowGroup,
+              icon: AppGlyphs.devices,
+              children: [
+                // 桌面专属：那一条 40px 的自制标题栏改成透明浮层。
+                if (_isDesktopPlatform)
+                  _transparentDesktopTitleBar(state, cubit),
+                // 摆放方式只在开关打开时才需要回答 —— 关着时摆出来只会让人犹豫。
+                if (_isDesktopPlatform && state.transparentDesktopTitleBar)
+                  _transparentTitleBarMode(state, cubit),
+              ],
+            ),
+          // 导航栏那一段摆在「外观」这一屏：它和主题、标题栏一样是
+          // 「应用外壳长什么样」，而不是工作台内部的事。
+          SettingGroup(
+            title: t.navigation.navigationChrome,
+            icon: AppGlyphs.layoutTabs,
+            children: navigationChromeTiles(
+              context: context,
+              state: state,
+              cubit: cubit,
+            ).skip(1).toList(),
+          ),
+          SettingGroup(
+            title: t.discover.title,
+            icon: AppGlyphs.compass,
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.book),
+                title: Text(t.discover.tabCoverMode),
+                subtitle: Text(t.discover.tabCoverModeDesc),
+                value: state.discoverSetting.tabCoverMode,
+                onChanged: (value) => cubit.updateDiscoverSetting(
+                  (current) => current.copyWith(tabCoverMode: value),
+                ),
+              ),
+            ],
+          ),
+          // 上游 12e71104f：详情布局 / 章节倒序两个开关落进外观页（本仓块结构版）。
+          SettingGroup(
+            title: t.settings.bookshelf,
+            icon: AppGlyphs.columnsThree,
+            children: [
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.columnsThree),
+                title: Text(t.settings.detailLayout),
+                subtitle: Text(t.settings.detailLayoutSubtitle),
+                value: state.bookshelfSetting.detailLayout,
+                onChanged: (value) {
+                  cubit.updateBookshelfSetting(
+                    (current) => current.copyWith(detailLayout: value),
+                  );
+                  showSuccessToast(t.common.settingSaved);
+                },
+              ),
+              SettingGroup.switchTile(
+                leading: const GlyphIcon(AppGlyphs.sort),
+                title: Text(t.settings.reverseChapters),
+                subtitle: Text(t.settings.reverseChaptersSubtitle),
+                value: state.bookshelfSetting.reverseChapters,
+                onChanged: (value) {
+                  cubit.updateBookshelfSetting(
+                    (current) => current.copyWith(reverseChapters: value),
+                  );
+                  showSuccessToast(t.common.settingSaved);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -141,8 +214,12 @@ class AppearanceSettingPage extends StatelessWidget {
       subtitle: Text(t.settings.fontSettingsSubtitle),
       trailing: const GlyphIcon(AppGlyphs.chevronForward),
       onTap: () {
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const FontSettingPage()));
+        Navigator.of(context).push(
+          settingPageRoute(
+            context: context,
+            builder: (_) => const FontSettingPage(),
+          ),
+        );
       },
     );
   }
@@ -230,68 +307,40 @@ class AppearanceSettingPage extends StatelessWidget {
     );
   }
 
-  Widget _detailLayout(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.view_list_outlined),
-      title: Text(t.settings.detailLayout),
-      subtitle: Text(t.settings.detailLayoutSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.bookshelfSetting.detailLayout,
-      onChanged: (bool value) {
-        cubit.updateBookshelfSetting(
-          (current) => current.copyWith(detailLayout: value),
-        );
-        showSuccessToast(t.common.settingSaved);
-      },
-    );
-  }
-
-  Widget _showPluginHome(GlobalSettingState state, GlobalSettingCubit cubit) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.home_outlined),
-      title: Text(t.settings.showPluginHome),
-      subtitle: Text(t.settings.showPluginHomeSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.showPluginHome,
-      onChanged: (bool value) {
-        cubit.updateState((current) => current.copyWith(showPluginHome: value));
-      },
-    );
-  }
+  Widget _showPluginHome(GlobalSettingState state, GlobalSettingCubit cubit) =>
+      SettingGroup.switchTile(
+        leading: const GlyphIcon(AppGlyphs.home),
+        title: Text(t.settings.showPluginHome),
+        subtitle: Text(t.settings.showPluginHomeSubtitle),
+        value: state.showPluginHome,
+        onChanged: (value) => cubit.updateState(
+          (current) => current.copyWith(showPluginHome: value),
+        ),
+      );
 
   Widget _showPluginCloudFavorite(
     GlobalSettingState state,
     GlobalSettingCubit cubit,
-  ) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.cloud_outlined),
-      title: Text(t.settings.showPluginCloudFavorite),
-      subtitle: Text(t.settings.showPluginCloudFavoriteSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.showPluginCloudFavorite,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(showPluginCloudFavorite: value),
-        );
-      },
-    );
-  }
+  ) => SettingGroup.switchTile(
+    leading: const GlyphIcon(AppGlyphs.cloud),
+    title: Text(t.settings.showPluginCloudFavorite),
+    subtitle: Text(t.settings.showPluginCloudFavoriteSubtitle),
+    value: state.showPluginCloudFavorite,
+    onChanged: (value) => cubit.updateState(
+      (current) => current.copyWith(showPluginCloudFavorite: value),
+    ),
+  );
 
   Widget _showSearchBookmark(
     GlobalSettingState state,
     GlobalSettingCubit cubit,
-  ) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.bookmark_outline),
-      title: Text(t.settings.showSearchBookmark),
-      subtitle: Text(t.settings.showSearchBookmarkSubtitle),
-      thumbIcon: kSettingSwitchThumbIcon,
-      value: state.showSearchBookmark,
-      onChanged: (bool value) {
-        cubit.updateState(
-          (current) => current.copyWith(showSearchBookmark: value),
-        );
-      },
-    );
-  }
+  ) => SettingGroup.switchTile(
+    leading: const GlyphIcon(AppGlyphs.bookmark),
+    title: Text(t.settings.showSearchBookmark),
+    subtitle: Text(t.settings.showSearchBookmarkSubtitle),
+    value: state.showSearchBookmark,
+    onChanged: (value) => cubit.updateState(
+      (current) => current.copyWith(showSearchBookmark: value),
+    ),
+  );
 }

@@ -1,4 +1,5 @@
 import 'package:zephyr/page/setting/common/setting_group.dart';
+
 import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
@@ -88,9 +89,10 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                   border: const OutlineInputBorder(),
                   hintText: t.settings.favoriteArtistExampleHint,
                   filled: true,
-                  fillColor: Theme.of(
-                    dialogContext,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  fillColor: Theme.of(dialogContext)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -443,9 +445,8 @@ class _FavoriteArtistSettingPageState extends State<FavoriteArtistSettingPage> {
                         ? const Color(0xFF78350F).withValues(alpha: 0.3)
                         : const Color(0xFFFEF3C7),
                     border: Border.all(
-                      color: const Color(
-                        0xFFF59E0B,
-                      ).withValues(alpha: isDark ? 0.7 : 0.9),
+                      color: const Color(0xFFF59E0B)
+                          .withValues(alpha: isDark ? 0.7 : 0.9),
                       width: 1.2,
                     ),
                     borderRadius: BorderRadius.circular(8),

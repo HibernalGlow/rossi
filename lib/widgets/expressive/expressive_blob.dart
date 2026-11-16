@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:material_new_shapes/material_new_shapes.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart'
+    hide RoundedPolygon, CornerRounding, MaterialShapes, Morph;
 
 /// **按种子生成**的不规则圆角轮廓 —— MD3 Expressive 的「形状即状态」。
 ///
@@ -272,9 +273,8 @@ class ExpressiveBlobBorder extends OutlinedBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) =>
-      ExpressiveBlob.ofSeed(
-        seed,
-      ).path(rect: rect, progress: progress, safeInset: safeInset);
+      ExpressiveBlob.ofSeed(seed)
+          .path(rect: rect, progress: progress, safeInset: safeInset);
 
   @override
   Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>

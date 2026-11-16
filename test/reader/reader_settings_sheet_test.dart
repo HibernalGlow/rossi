@@ -73,9 +73,8 @@ Widget _harness({
             brightness: brightness,
           ),
           fontFamily:
-              const String.fromEnvironment(
-                'READER_SETTINGS_PREVIEW_DIR',
-              ).isEmpty
+              const String.fromEnvironment('READER_SETTINGS_PREVIEW_DIR')
+                  .isEmpty
               ? null
               : 'ReaderSettingsPreview',
         ),
@@ -136,9 +135,8 @@ void main() {
   late Directory root;
 
   setUpAll(() async {
-    if (const String.fromEnvironment(
-      'READER_SETTINGS_PREVIEW_DIR',
-    ).isNotEmpty) {
+    if (const String.fromEnvironment('READER_SETTINGS_PREVIEW_DIR')
+        .isNotEmpty) {
       await (FontLoader(
             'ReaderSettingsPreview',
           )..addFont(rootBundle.load('asset/fonts/LXGWWenKaiLite-Regular.ttf')))
@@ -277,7 +275,14 @@ void main() {
     expect(find.text('翻页模式'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('阅读'));
+    // 上游把 `t.reader.settings` 改成了「阅读」，与侧栏这一项同名；
+    // 这里要点的是侧栏那一项，所以按 NavigationSidebar 收窄。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationSidebar),
+        matching: find.text('阅读'),
+      ),
+    );
     await _settle(tester);
     expect(find.text(t.reader.readWhileDownloading), findsOneWidget);
     await tester.ensureVisible(find.text(t.reader.adaptive).first);
@@ -434,7 +439,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(position.pixels, greaterThan(0), reason: '全屏后继续拖动才滚动内容');
     await tester.dragFrom(
-      tester.getCenter(find.text(t.reader.settings)),
+      tester.getCenter(
+        find.descendant(
+          of: find.byKey(const ValueKey('reader-settings-drag-handle')),
+          matching: find.text(t.reader.settings),
+        ),
+      ),
       const Offset(0, 220),
     );
     await tester.pumpAndSettle();

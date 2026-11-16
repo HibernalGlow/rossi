@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 从 mImageViewer SQLite 目录数据库 (`CatalogDb`) 获取或按需生成单页缩略图。

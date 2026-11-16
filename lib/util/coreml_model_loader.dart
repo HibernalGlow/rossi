@@ -183,12 +183,10 @@ class CoreMLModelLoader {
   static bool _modelExists(String path) {
     if (path.endsWith('.mlpackage')) {
       return File(p.join(path, 'Manifest.json')).existsSync() &&
-          File(
-            p.join(path, 'Data/com.apple.CoreML/model.mlmodel'),
-          ).existsSync() &&
-          File(
-            p.join(path, 'Data/com.apple.CoreML/weights/weight.bin'),
-          ).existsSync();
+          File(p.join(path, 'Data/com.apple.CoreML/model.mlmodel'))
+              .existsSync() &&
+          File(p.join(path, 'Data/com.apple.CoreML/weights/weight.bin'))
+              .existsSync();
     }
     return File(path).existsSync();
   }

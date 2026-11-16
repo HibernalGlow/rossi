@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:zephyr/util/memory/simple_memory_monitor.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/icons/icons.dart';
 
 /// 内存监控悬浮窗组件
 ///

@@ -126,9 +126,8 @@ class ReaderMagnifierPanel extends StatelessWidget {
   void _setSize(BuildContext context, int size, int direction) {
     // 步进 20，落点仍交给 normalizer：上限之外不该悄悄留一个越界值在设置里
     //（这一份要进云同步 JSON，越界值会被别的设备读到）。
-    final next = normalizeReaderLoupeSize(
-      (size + direction * 20).toDouble(),
-    ).round();
+    final next = normalizeReaderLoupeSize((size + direction * 20).toDouble())
+        .round();
     context.read<GlobalSettingCubit>().updateReadSetting(
       (s) => s.copyWith(magnifierSizeLogical: next),
     );

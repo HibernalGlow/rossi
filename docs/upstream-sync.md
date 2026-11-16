@@ -35,24 +35,45 @@
 
 **冲突与验证**：
 
-- 已解决 5 个 modify/delete 冲突：两份 macOS SPM 锁文件和三份旧 Tauri 安装器文件按上游迁移删除；
-- 当前验证使用 mise 的 Flutter 3.50.0 / Dart 3.14.0。先前全仓 Dart 分析报告 3,312 条 error，
-  结果未通过，尚未逐项归因，不能称为既有失败或“无新增问题”。本次没有重复全仓分析或统一代码生成；
-  先前统一生成日志成功不证明之后改动的合并树和工作树一致。
-- 保留合并后的上游词条与 Rossi 翻译，补齐六处语言键差异（四条中文底部进度条词条、
-  中文 `search.settings`、英文 `search.selectSourceTooltip`）。只重新执行
-  `mise exec flutter@3.50.0 -- flutter pub run slang`，工作区生成结果为 3,703 条/语言（含在途身份迁移的四条文案；纯修复树为 3,699 条），
-  中英文源键集合相同，生成映射与输入一致（Dart 保留字 `continue` 按生成器映射为 `kContinue`）。
-  `slang analyze --full` 的缺失报告为空；没有应用其未使用词条建议或删除 Rossi 翻译。
-- 修复合并树 `qjs_download_runtime.dart` 遗留的悬空 `catch` 和缺失的 `prewarmQjsRuntime`：
-  保留 Rossi `PluginInitCoordinator` 的并发初始化、代际失效及失败重试适配，接回封面预热，
-  同时保留上游通过 worker 池解码 CBOR 的改进，避免 UI isolate 解码大图。
-- 工作区的 QJS runtime、初始化协调器与国际化入口定向 `dart analyze` 无问题；
-  技能 `quick_validate.py` 通过。定向 `flutter test` 的 CBOR 两项通过，
-  `plugin_init_coordinator_test.dart` 因应用编译错误未能加载：包括 `main.dart` 的 export/part
-  顺序、缺失导入、Material 形状导入冲突、阅读设置生成声明与输入不一致，以及导航/设置代码
-  中遗失的局部状态。该测试失败仍未解决，不能以文件分析通过代替应用编译或行为验收。
-- 全平台构建、真实插件初始化与其它上游模块回归尚未通过本轮验证，整体同步仍未验收完成。
+- 已解决 5 个 modify/delete 冲突：两份 macOS SPM 锁文件和三份旧 Tauri 安装器文件按上游迁移方向删除。
+- **自动合并没留冲突标记不等于正确**。本轮按「上游完整实现 + Rossi 薄适配」逐文件回填，
+  修出的合并损伤包括：
+  1. 9 个 Dart 文件被拼成不可解析语法（`qjs_download_runtime.dart` 悬空 `catch`、`main.dart` 的
+     export/part 顺序、`fluent_dropdown.dart` 与阅读设置弹层的函数截断）；
+  2. `comic_info.dart` / `navigation_bar.dart` 与本仓 `part` 拆分重复定义，`more/settings.dart` 与
+     「内容与网络」设置页重复渲染整组设置；
+  3. `macos/Runner/MainFlutterWindow.swift` 丢了 GPU presenter / 翻译桥的持有属性（Swift 直接编译失败）；
+  4. `image_display.dart` 换用上游「文件头探测尺寸」后，裁边在 revision 递增时丢掉尺寸、整页不再裁；
+  5. `reader_desktop_fullscreen_service.dart` 丢了 `_appRequestedFullscreen` 记账（退出阅读器不再还全屏）；
+  6. `ComicReadSnapshotChapter` 漏解析 `requestId` / `logicalKey` / `storageChapterId`（阅读器算的章 key
+     命中不了快照，下载与存储目录键全成空串）；
+  7. OCR 两个翻译入口没跟上游「非 2xx 直接抛 `FetchException`」的新语义对接。
+- 验证环境：`mise exec flutter@3.50.0`（Dart 3.14.0）。统一入口
+  `dart ./script/codegen/code_generate.dart` 全流程通过（slang → build_runner → FRB → 双向格式化）。
+- `flutter analyze`：`lib/`、`test/`、`script/` 零 error；全仓余下 9 条 error 全在未改动的
+  `poc/flutter-gpu-probe`（缺 `flutter_gpu` 依赖）与 `tool/ast_split`（analyzer API 漂移）。
+- `flutter test`（除 `test/workspace/`）：**1,319 通过 / 8 跳过 / 2 失败**。
+  `test/workspace/` 单独跑 589 通过 / 69 失败，但同一批文件混在全量里只红十几条 —— 这套用例共享
+  ObjectBox、locale、Workspace 单例，本来就依赖执行顺序，不是可靠的批量门禁。
+- `flutter build macos --release` 通过（`Rossi.app`，163.7 MB）；`./script/refresh_release_dylib.sh`
+  把 hook 产物放回加载点后，依赖原生库的导出导入、自动裁边、阅读记录用例通过。
+- ObjectBox：合并曾把 Rossi 已发布实体重新分配 UID，并让上游新增的 `SearchBookmark` 与
+  Rossi `ComicReadChapter` 撞到实体 24 / 索引 22。已恢复全部旧 UID、只把新增表挪到未占用 ID，
+  由生成入口重建，并用真实建库用例验证（旧 17 张表 UID 零漂移、无重复实体/索引 ID）。
+- 国际化：中英源键集合一致，各 3,701 条；补齐六处键差（四条中文底部进度条词条、中文
+  `search.settings`、英文 `search.selectSourceTooltip`），保留全部 Rossi 翻译。
+- QJS：保留 `PluginInitCoordinator` 的并发初始化 / 代际失效 / 失败重试与封面预热，接回上游 worker 池
+  CBOR 解码；`plugin_init_coordinator_test`、`qjs_fetch_image_result_test` 通过。
+- 上游改了共享文案与默认值，本仓用例跟上游改：`reader.settings` 由「阅读设置」改为「阅读」、
+  DoH 默认关闭（上游 `72deec0d9`）；Rossi 的「导出包含封面图」默认关，导出往返用例显式打开该档。
+- **仍红的两组**（都在合并前就与产品现状脱节，本轮只做了必要适配，未改产品行为）：
+  - `test/workspace/` 的 `lane_header_fit` / `lane_more_menu` / `swimlane_runtime` / `shelf_entry_context_menu`
+    等：渲染工作台时缺 `GlobalSettingCubit`（上下文菜单统一件要读它）、`WorkholePanel` 拖拽取消语义、
+    预览图 1.7–11 px 溢出、`SuperGrid` 取代 `GridView` 后的取点方式；
+  - `folder_shelf_cover_refresh_test`（展墙下的下拉刷新没读到新封面）与
+    `interactive_viewer_tap_steal_test`（Flutter 3.50 手势竞技场断言）。
+  这两组不是本轮合并引入的行为，但**会挡住下一轮把全量测试当门禁**，建议单独开一轮清账。
+- 未验证：Windows 安装器实机安装、Android/iOS 真机构建、真实站点插件抓取（本机无凭据）。
 - merge commit：`c66774fdfdb094da80e9d241777d3d0a99a18d2a`。
 
 

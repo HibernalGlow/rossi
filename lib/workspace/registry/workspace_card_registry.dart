@@ -83,8 +83,10 @@ class WorkspaceCardChrome {
   });
 }
 
-typedef WorkspaceCardBuilder =
-    Widget Function(BuildContext context, WorkspaceCardChrome chrome);
+typedef WorkspaceCardBuilder = Widget Function(
+  BuildContext context,
+  WorkspaceCardChrome chrome,
+);
 
 /// 一张卡的**定义** —— 与 neoview 的 `ReaderCardDefinition` 同构。
 @immutable
