@@ -123,20 +123,20 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *, void *) {
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeIsRuntimeAvailable(JNIEnv *,
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeIsRuntimeAvailable(JNIEnv *,
                                                                  jobject) {
   return qnn_backend::is_runtime_loadable() ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_zephyr_breeze_realsr_qnn_QualcommHtp_nativeArchitecture(
+Java_com_hibernalglow_rossi_realsr_qnn_QualcommHtp_nativeArchitecture(
     JNIEnv *env, jobject, jstring native_library_dir) {
   set_adsp_library_path(env, native_library_dir);
   return static_cast<jint>(qnn_backend::architecture());
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeInit(JNIEnv *env, jobject,
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeInit(JNIEnv *env, jobject,
                                                    jstring context_path,
                                                    jstring native_library_dir,
                                                    jint padding) {
@@ -152,17 +152,17 @@ Java_com_zephyr_breeze_realsr_RealSrQnn_nativeInit(JNIEnv *env, jobject,
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeIsInitialized(JNIEnv *, jobject) {
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeIsInitialized(JNIEnv *, jobject) {
   return qnn_backend::is_initialized() ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeScale(JNIEnv *, jobject) {
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeScale(JNIEnv *, jobject) {
   return static_cast<jint>(qnn_backend::scale());
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeProcess(JNIEnv *env, jobject,
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeProcess(JNIEnv *env, jobject,
                                                       jobject bitmap,
                                                       jboolean is_pro) {
   std::lock_guard<std::mutex> lock(g_lock);
@@ -254,17 +254,17 @@ Java_com_zephyr_breeze_realsr_RealSrQnn_nativeProcess(JNIEnv *env, jobject,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeAbort(JNIEnv *, jobject) {
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeAbort(JNIEnv *, jobject) {
   g_abort_processing.store(true);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeClearAbort(JNIEnv *, jobject) {
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeClearAbort(JNIEnv *, jobject) {
   g_abort_processing.store(false);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_zephyr_breeze_realsr_RealSrQnn_nativeShutdown(JNIEnv *, jobject) {
+Java_com_hibernalglow_rossi_realsr_RealSrQnn_nativeShutdown(JNIEnv *, jobject) {
   g_abort_processing.store(true);
   std::lock_guard<std::mutex> lock(g_lock);
   qnn_backend::shutdown();

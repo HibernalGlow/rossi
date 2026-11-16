@@ -84,6 +84,7 @@ class TranslationsEnUs extends Translations with BaseTranslations<AppLocale, Tra
 	@override late final _Translations$video$en_US video = _Translations$video$en_US._(_root);
 	@override late final _Translations$bindingEditor$en_US bindingEditor = _Translations$bindingEditor$en_US._(_root);
 	@override late final _Translations$plat$en_US plat = _Translations$plat$en_US._(_root);
+	@override late final _Translations$appIdentityMigration$en_US appIdentityMigration = _Translations$appIdentityMigration$en_US._(_root);
 }
 
 // Path: database
@@ -4181,6 +4182,19 @@ class _Translations$plat$en_US extends Translations$plat$zh_CN {
 	@override String get closeTab => 'Close tab';
 }
 
+// Path: appIdentityMigration
+class _Translations$appIdentityMigration$en_US extends Translations$appIdentityMigration$zh_CN {
+	_Translations$appIdentityMigration$en_US._(TranslationsEnUs root) : this._root = root, super.internal(root);
+
+	final TranslationsEnUs _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Rossi installation and data migration';
+	@override String copied({required Object source}) => 'Your previous data was copied to Rossi and verified. The original directory is preserved and Breeze can still use it. Each app will save its own data from now on.\n\nOriginal directory: ${source}';
+	@override String get mobileImport => 'Rossi now has its own app ID and can coexist with Breeze. The system prevents access to the old app’s private data. Export a full backup from the old app, then import it here. The old app and backup will be preserved.';
+	@override String get sandboxImport => 'Rossi now has its own data directory. No readable legacy data was found. If your data is in another sandbox, export a backup from the old app and import it here. The original data will be preserved.';
+}
+
 /// The flat map containing all translations for locale <en-US>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -7903,6 +7917,10 @@ extension on TranslationsEnUs {
 			'plat.openLeft' => 'Open left',
 			'plat.openRight' => 'Open right',
 			'plat.closeTab' => 'Close tab',
+			'appIdentityMigration.title' => 'Rossi installation and data migration',
+			'appIdentityMigration.copied' => ({required Object source}) => 'Your previous data was copied to Rossi and verified. The original directory is preserved and Breeze can still use it. Each app will save its own data from now on.\n\nOriginal directory: ${source}',
+			'appIdentityMigration.mobileImport' => 'Rossi now has its own app ID and can coexist with Breeze. The system prevents access to the old app’s private data. Export a full backup from the old app, then import it here. The old app and backup will be preserved.',
+			'appIdentityMigration.sandboxImport' => 'Rossi now has its own data directory. No readable legacy data was found. If your data is in another sandbox, export a backup from the old app and import it here. The original data will be preserved.',
 			_ => null,
 		};
 	}

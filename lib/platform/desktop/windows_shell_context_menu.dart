@@ -20,7 +20,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 /// # 为什么同时注册两处
 /// - `*\shell\Rossi` 与 `Directory\shell\Rossi`：经典注册表动词。Windows 11 的精简
 ///   右键菜单把它们放进「显示更多选项」，而 Windows 10 与 Shift+右键是一级可见。
-/// - `Applications\zephyr.exe`：让 Rossi 进入**「打开方式」候选列表** —— 那一项在
+/// - `Applications\rossi.exe`：让 Rossi 进入**「打开方式」候选列表** —— 那一项在
 ///   Windows 11 的新菜单里一级可见，用户还能由此把它设成默认程序。
 /// 两条都注册，是因为「进不进一级菜单」由系统说了算，不随我们的意愿变。
 class WindowsShellContextMenu {

@@ -5,7 +5,7 @@ version: '3'
 #   task dev   日常开发：--profile（Dart AOT + Rust 走 release 那棵 cargo 树，DevTools 可连）
 #   task d     需要热重载/断点时用这个；设置页那三个调试入口与被拦的插件 uuid 也只在 debug 才出现
 #   task b     只打发布包（不运行）
-#   task rel   出 macOS 发布产物 → Breeze-macOS.dmg（本机唯一能出的平台）
+#   task rel   出 macOS 发布产物 → Rossi-macOS.dmg（本机唯一能出的平台）
 #   task apk   出本机可装的安卓 release 包（arm64，debug 私钥签名，AOT 不卡）
 #   task apkd  出安卓 debug 包（JIT，会卡；只在要断点/热重载时用）
 #   task rust    单独重编 Rust 库（修 FRB content hash 不一致时用）
@@ -88,7 +88,7 @@ tasks:
       - '{{.FLUTTER}} build macos --release'
 
   rel:
-    desc: 出 macOS 发布产物 → Breeze-macOS.dmg（在真实终端跑，沙箱内不行）
+    desc: 出 macOS 发布产物 → Rossi-macOS.dmg（在真实终端跑，沙箱内不行）
     # 可选覆盖：task rel SENTRY_DSN=https://xxx@sentry.io/1
     # 符号表上传额外需要仓库根的 sentry.properties（已 gitignore）+ SENTRY_AUTH_TOKEN，
     # 两者缺任一就自动跳过，不阻塞出包。
@@ -117,7 +117,7 @@ tasks:
         [ -n "$APP_PATH" ] || { echo "没找到 .app，构建多半失败了" >&2; exit 1; }
         APP_NAME=$(basename "$APP_PATH")
 
-        rm -f Breeze-macOS.dmg
+        rm -f Rossi-macOS.dmg
         if ! create-dmg \
               --volname "Breeze Installer" \
               --window-pos 200 120 \
@@ -126,18 +126,18 @@ tasks:
               --icon "$APP_NAME" 150 190 \
               --hide-extension "$APP_NAME" \
               --app-drop-link 450 190 \
-              "Breeze-macOS.dmg" \
+              "Rossi-macOS.dmg" \
               "$APP_PATH"; then
           # create-dmg 在挂载/卸载阶段的已知假失败会返回非 0，dmg 其实已经落盘
-          if [ -f Breeze-macOS.dmg ]; then
+          if [ -f Rossi-macOS.dmg ]; then
             echo "create-dmg 返回非 0，但 DMG 已生成（其已知假失败）" >&2
           else
-            echo "create-dmg 失败，且没有生成 Breeze-macOS.dmg" >&2
+            echo "create-dmg 失败，且没有生成 Rossi-macOS.dmg" >&2
             exit 1
           fi
         fi
 
-        echo "✅ 产物：$(pwd)/Breeze-macOS.dmg"
+        echo "✅ 产物：$(pwd)/Rossi-macOS.dmg"
 
   a:
     desc: 静态检查 dart analyze lib/

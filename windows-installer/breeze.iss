@@ -1,4 +1,4 @@
-; Breeze Windows 安装器（Inno Setup 7）
+; Rossi Windows 安装器（Inno Setup 7）
 ;
 ; 由 script/build/build_windows.dart 调用：
 ;   ISCC.exe -dAppVersion=... -dVersionQuad=... -dStageDir=... -dOutputDir=... breeze.iss
@@ -23,16 +23,16 @@
 #endif
 
 [Setup]
-AppId={{B7E3D0F4-6C1A-4F3E-9B2A-8D5C7E1F4A60}
-AppName=Breeze
+AppId={{C6A4E2B1-7F90-4B13-A5D8-9E2C4F6B8A10}
+AppName=Rossi
 AppVersion={#AppVersion}
-AppVerName=Breeze v{#AppVersion}
-AppPublisher=Breeze
-AppPublisherURL=https://github.com/breeze-project-org/Breeze
-AppSupportURL=https://github.com/breeze-project-org/Breeze/issues
-AppUpdatesURL=https://github.com/breeze-project-org/Breeze/releases
+AppVerName=Rossi v{#AppVersion}
+AppPublisher=Rossi
+AppPublisherURL=https://github.com/HibernalGlow/rossi
+AppSupportURL=https://github.com/HibernalGlow/rossi/issues
+AppUpdatesURL=https://github.com/HibernalGlow/rossi/releases
 DefaultDirName={code:GetDefaultDir}
-DefaultGroupName=Breeze
+DefaultGroupName=Rossi
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 PrivilegesRequired=lowest
@@ -41,8 +41,8 @@ MinVersion=10.0
 OutputDir={#OutputDir}
 OutputBaseFilename=windows-installer
 SetupIconFile=..\windows\runner\resources\app_icon.ico
-UninstallDisplayIcon={app}\Release\zephyr.exe
-UninstallDisplayName=Breeze
+UninstallDisplayIcon={app}\Release\rossi.exe
+UninstallDisplayName=Rossi
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern dynamic
@@ -50,9 +50,9 @@ ShowLanguageDialog=yes
 LanguageDetectionMethod=uilanguage
 CloseApplications=no
 RestartApplications=no
-VersionInfoCompany=Breeze
-VersionInfoDescription=Breeze 安装程序
-VersionInfoProductName=Breeze
+VersionInfoCompany=Rossi
+VersionInfoDescription=Rossi 安装程序
+VersionInfoProductName=Rossi
 VersionInfoProductVersion={#VersionQuad}
 VersionInfoTextVersion={#AppVersion}
 VersionInfoVersion={#VersionQuad}
@@ -68,17 +68,16 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#StageDir}\*"; DestDir: "{app}\Release"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{userprograms}\Breeze"; Filename: "{app}\Release\zephyr.exe"; WorkingDir: "{app}\Release"
-Name: "{userdesktop}\Breeze"; Filename: "{app}\Release\zephyr.exe"; WorkingDir: "{app}\Release"; Tasks: desktopicon
+Name: "{userprograms}\Rossi"; Filename: "{app}\Release\rossi.exe"; WorkingDir: "{app}\Release"
+Name: "{userdesktop}\Rossi"; Filename: "{app}\Release\rossi.exe"; WorkingDir: "{app}\Release"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\Release\zephyr.exe"; WorkingDir: "{app}\Release"; Description: "{cm:LaunchProgram,Breeze}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Release\rossi.exe"; WorkingDir: "{app}\Release"; Description: "{cm:LaunchProgram,Rossi}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; 与旧安装器一致：卸载时删除整个安装目录
 Type: filesandordirs; Name: "{app}"
 ; 旧 Tauri 安装器留下的路径记录文件
-Type: files; Name: "{localappdata}\breeze-install-log.json"
 
 [Code]
 const
@@ -101,17 +100,10 @@ begin
     and (Pos('uninstall.bat', Lowercase(UninstallCmd)) > 0);
 end;
 
-{ 默认安装目录：优先沿用旧版安装位置，否则使用 %LOCALAPPDATA%\breeze。 }
+{ Rossi 使用独立安装目录；旧 Breeze 安装保留给数据迁移与共存使用。 }
 function GetDefaultDir(Param: String): String;
-var
-  OldDir: String;
 begin
-  if IsLegacyBreezeInstall
-    and RegQueryStringValue(HKCU, LEGACY_UNINSTALL_KEY, 'InstallLocation', OldDir)
-    and (OldDir <> '') then
-    Result := NormalizeDir(OldDir)
-  else
-    Result := ExpandConstant('{localappdata}\breeze');
+  Result := ExpandConstant('{localappdata}\rossi');
 end;
 
 function IsAppRunning: Boolean;
@@ -120,7 +112,7 @@ var
 begin
   Result :=
     Exec(ExpandConstant('{cmd}'),
-      '/c tasklist /FI "IMAGENAME eq zephyr.exe" /NH | find /I "zephyr.exe" >nul',
+      '/c tasklist /FI "IMAGENAME eq rossi.exe" /NH | find /I "rossi.exe" >nul',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
     and (ResultCode = 0);
 end;
@@ -131,7 +123,7 @@ var
   ResultCode: Integer;
 begin
   Exec(ExpandConstant('{cmd}'),
-    '/c echo. > \\.\pipe\zephyr_shutdown_signal',
+    '/c echo. > \\.\pipe\com.hibernalglow.rossi_shutdown_signal',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
@@ -152,57 +144,21 @@ begin
       Exit;
   end;
 
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM zephyr.exe /F',
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM rossi.exe /F',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(1000);
 end;
 
-{ 旧版安装路径不同时，旧快捷方式会指向已失效的 exe；在 [Icons] 重建前清掉。 }
+{ 旧 Breeze 的快捷方式与安装目录保留，确保两个应用可以并存。 }
 procedure CleanupLegacyShortcuts;
-var
-  OldDir, AppDir: String;
 begin
-  if not IsLegacyBreezeInstall then
-    Exit;
-  if not RegQueryStringValue(HKCU, LEGACY_UNINSTALL_KEY, 'InstallLocation', OldDir) then
-    Exit;
-
-  AppDir := NormalizeDir(ExpandConstant('{app}'));
-  if CompareText(NormalizeDir(OldDir), AppDir) = 0 then
-    Exit;
-
-  DeleteFile(ExpandConstant('{userdesktop}\Breeze.lnk'));
-  DeleteFile(ExpandConstant('{userprograms}\Breeze.lnk'));
+  // Rossi 使用独立名称，不会覆盖旧 Breeze 的快捷方式。
 end;
 
-{ 新版本安装成功后，移除旧 Tauri 安装器的卸载项与残留文件。
-  必须删除旧卸载项：否则旧 uninstall.bat 之后仍可被调用，并会删除整个安装目录。 }
+{ 新旧应用共存：不删除旧 Breeze 的卸载项、安装目录或数据。 }
 procedure RemoveLegacyRegistration;
-var
-  OldDir, AppDir, UOld, UApp: String;
 begin
-  if IsLegacyBreezeInstall then
-  begin
-    RegQueryStringValue(HKCU, LEGACY_UNINSTALL_KEY, 'InstallLocation', OldDir);
-    RegDeleteKeyIncludingSubkeys(HKCU, LEGACY_UNINSTALL_KEY);
-
-    if OldDir <> '' then
-    begin
-      OldDir := NormalizeDir(OldDir);
-      AppDir := NormalizeDir(ExpandConstant('{app}'));
-      UOld := Uppercase(AddBackslash(OldDir));
-      UApp := Uppercase(AddBackslash(AppDir));
-      DeleteFile(AddBackslash(OldDir) + 'uninstall.bat');
-
-      { 仅清理独立的旧目录；避免新旧目录互相嵌套时误删新安装。 }
-      if (CompareText(OldDir, AppDir) <> 0)
-        and (Pos(UOld, UApp) <> 1)
-        and (Pos(UApp, UOld) <> 1) then
-        DelTree(OldDir, True, True, True);
-    end;
-  end;
-
-  DeleteFile(ExpandConstant('{localappdata}\breeze-install-log.json'));
+  // 旧应用仍需可卸载、可启动，迁移由 Rossi 首次启动逻辑负责。
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

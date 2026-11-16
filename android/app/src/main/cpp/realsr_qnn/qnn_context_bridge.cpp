@@ -19,7 +19,7 @@ std::string utf(JNIEnv *env, jstring value) {
 } // namespace
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_zephyr_breeze_realsr_qnn_QnnModelContexts_nativeCompile(
+Java_com_hibernalglow_rossi_realsr_qnn_QnnModelContexts_nativeCompile(
     JNIEnv *env, jobject, jstring dlc_path, jstring context_path,
     jstring native_library_dir) {
   std::lock_guard<std::mutex> lock(compile_mutex);

@@ -13,19 +13,21 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG="${1:-Profile}"
 DEST="${2:-/Applications/Rossi Profile.app}"
 SRC_DIR="${ROOT}/build/macos/Build/Products/${CONFIG}"
+EXPECTED_BUNDLE_ID="com.hibernalglow.rossi"
 
 # 构建失败（例如 SwiftPM 解析挂了）时 Xcode 可能只留下空壳 .app。
 # 挑第一个结构完整的产物，别让残骸把 /Applications 里能用的副本覆盖掉。
 SRC=""
 while IFS= read -r candidate; do
-  if [[ -d "${candidate}/Contents/Frameworks/App.framework" && -d "${candidate}/Contents/MacOS" ]]; then
+  BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${candidate}/Contents/Info.plist" 2>/dev/null || true)"
+  if [[ "${BUNDLE_ID}" == "${EXPECTED_BUNDLE_ID}" && -d "${candidate}/Contents/Frameworks/App.framework" && -d "${candidate}/Contents/MacOS" ]]; then
     SRC="${candidate}"
     break
   fi
 done < <(find "${SRC_DIR}" -maxdepth 1 -name '*.app' -type d 2>/dev/null || true)
 
 if [[ -z "${SRC}" ]]; then
-  echo "⚠️  ${CONFIG} 产物不存在或不完整（${SRC_DIR}），跳过同步" >&2
+  echo "⚠️  ${CONFIG} 产物不存在、不完整或 bundle ID 不是 ${EXPECTED_BUNDLE_ID}（${SRC_DIR}），跳过同步" >&2
   exit 0
 fi
 

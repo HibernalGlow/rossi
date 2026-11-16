@@ -1,4 +1,4 @@
-package com.zephyr.breeze.realsr.qnn
+package com.hibernalglow.rossi.realsr.qnn
 
 import android.content.Context
 import android.util.Log

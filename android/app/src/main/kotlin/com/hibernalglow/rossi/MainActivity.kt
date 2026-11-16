@@ -1,4 +1,4 @@
-package com.zephyr.breeze
+package com.hibernalglow.rossi
 
 import android.app.Activity
 import android.app.ActivityManager
@@ -14,7 +14,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import java.io.File
-import com.zephyr.breeze.realsr.RealSrQnnChannel
+import com.hibernalglow.rossi.realsr.RealSrQnnChannel
 import io.flutter.embedding.android.FlutterFragment
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterShellArgs
@@ -195,6 +195,15 @@ class MainActivity: FlutterFragmentActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, FILE_PICKER_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
+                "isLegacyAppInstalled" -> {
+                    val installed = try {
+                        packageManager.getPackageInfo("com.zephyr.breeze", 0)
+                        true
+                    } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+                        false
+                    }
+                    result.success(installed)
+                }
                 "pickBackupZip" -> {
                     val destPath = call.argument<String>("destPath")
                     if (destPath == null) {

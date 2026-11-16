@@ -2,10 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "zephyr debug in terminal",
+            "name": "Rossi debug in terminal",
             "type": "dart",
             "request": "launch",
             "flutterMode": "debug",
+            "program": "lib/main.dart",
+        },
+        {
+            "name": "Rossi profile in terminal",
+            "type": "dart",
+            "request": "launch",
+            "flutterMode": "profile",
             "program": "lib/main.dart",
         }
     ]

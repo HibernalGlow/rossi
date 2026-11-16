@@ -1,9 +1,9 @@
-package com.zephyr.breeze.realsr
+package com.hibernalglow.rossi.realsr
 
 import android.content.Context
 import android.util.Log
-import com.zephyr.breeze.realsr.npu.NpuModelStatus
-import com.zephyr.breeze.realsr.qnn.QualcommHtp
+import com.hibernalglow.rossi.realsr.npu.NpuModelStatus
+import com.hibernalglow.rossi.realsr.qnn.QualcommHtp
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
@@ -161,5 +161,5 @@ object RealSrQnnChannel {
 
 /** QnnModelContexts 状态的稳定视图（避免 channel 层直接摸内部对象）。 */
 private object RealSrQnnStatus {
-    fun snapshot(): Map<String, NpuModelStatus> = com.zephyr.breeze.realsr.qnn.QnnModelContexts.states()
+    fun snapshot(): Map<String, NpuModelStatus> = com.hibernalglow.rossi.realsr.qnn.QnnModelContexts.states()
 }

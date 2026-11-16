@@ -14,7 +14,7 @@ pub fn start_shutdown_listener(sink: StreamSink<bool>) -> Result<()> {
         // 复用进程级全局 runtime，不再为监听器单独开线程和 current_thread runtime。
         rquickjs_playground::global_runtime().spawn(async move {
             loop {
-                let pipe_name = r"\\.\pipe\zephyr_shutdown_signal";
+                let pipe_name = r"\\.\pipe\com.hibernalglow.rossi_shutdown_signal";
 
                 let server = ServerOptions::new()
                     .first_pipe_instance(true)

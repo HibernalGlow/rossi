@@ -1,9 +1,9 @@
-package com.zephyr.breeze.realsr.qnn
+package com.hibernalglow.rossi.realsr.qnn
 
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import com.zephyr.breeze.realsr.npu.NpuModelStatus
+import com.hibernalglow.rossi.realsr.npu.NpuModelStatus
 import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest

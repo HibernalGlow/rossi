@@ -73,7 +73,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   const bool is_probe_run =
       ::GetEnvironmentVariableW(L"ROSSI_PAGE_TURN_LOG", nullptr, 0) > 0;
   if (!is_probe_run) {
-    HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Rossi");
+    HWND hwnd = ::FindWindow(L"com.hibernalglow.rossi.Window", L"Rossi");
     if (hwnd != NULL) {
       RestoreExistingWindow(hwnd);
       return EXIT_FAILURE;

@@ -37,6 +37,8 @@ import 'package:zephyr/util/network_policy.dart';
 import 'package:zephyr/util/process_exit.dart';
 import 'package:zephyr/util/proxy_setting.dart';
 import 'package:zephyr/network/sync/sync_device_id.dart';
+import 'package:zephyr/service/app_identity/startup.dart';
+import 'package:zephyr/service/app_identity/migration_notice.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/object_box/object_box.dart';
 import 'package:zephyr/page/comic_follow/cubit/comic_follow_cubit.dart';
@@ -179,9 +181,6 @@ Future<void> main(List<String> args) async {
     }
     return;
   }
-
-  // 先生成本地同步设备 ID，后续文件夹/链接的版本向量会使用它
-  await ensureSyncDeviceId();
 
   // desktop_webview_linux 必需的标题栏子进程入口
   // 不添加会导致 Linux 下 WebView 窗口关闭时 segfault 崩溃
@@ -334,6 +333,8 @@ Future<void> _runDatabaseIncompatibleApp() async {
 }
 
 Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
+  await prepareAppIdentity();
+
   // 初始化rust
   await initRustLib();
 
@@ -949,7 +950,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     // 主题形状放在最外层：玻璃 / 卡片在任意深度都能读到同一个基准圆角。
                     child: ThemeShapeScope(
                       radius: themeShapeRadius,
-                      child: content,
+                      child: AppIdentityMigrationNotice(child: content),
                     ),
                   );
                 },

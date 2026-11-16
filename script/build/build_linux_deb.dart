@@ -130,7 +130,7 @@ Future<String> _assembleDebRoot({
           ? Platform.environment['OUTPUT_DIR']!.trim()
           : 'build-deb';
   final staging = '$projectRoot$sep$outputDir${sep}package';
-  final debRoot = '$staging${sep}opt${sep}breeze';
+  final debRoot = '$staging${sep}opt${sep}rossi';
   final root = Directory(staging);
   if (root.existsSync()) {
     await root.delete(recursive: true);
@@ -142,19 +142,19 @@ Future<String> _assembleDebRoot({
   final binDir = Directory('$staging${sep}usr${sep}bin');
   await binDir.create(recursive: true);
   await Link(
-    '$staging${sep}usr${sep}bin${sep}breeze',
-  ).create('../../opt/breeze/breeze');
+    '$staging${sep}usr${sep}bin${sep}rossi',
+  ).create('../../opt/rossi/rossi');
   final appsDir = Directory('$staging${sep}usr${sep}share${sep}applications');
   await appsDir.create(recursive: true);
-  await File('$projectRoot${sep}flatpak${sep}io.github.windy.breeze.desktop')
-      .copy('${appsDir.path}${sep}io.github.windy.breeze.desktop');
+  await File('$projectRoot${sep}flatpak${sep}com.hibernalglow.rossi.desktop')
+      .copy('${appsDir.path}${sep}com.hibernalglow.rossi.desktop');
   final iconsDir = Directory(
     '$staging${sep}usr${sep}share${sep}icons${sep}hicolor'
     '${sep}512x512${sep}apps',
   );
   await iconsDir.create(recursive: true);
   await File('$projectRoot${sep}asset${sep}image${sep}app-icon.png').copy(
-    '${iconsDir.path}${sep}io.github.windy.breeze.png',
+    '${iconsDir.path}${sep}com.hibernalglow.rossi.png',
   );
 
   return staging;
@@ -172,7 +172,7 @@ Future<void> _writeControl({
   final depends = shlibDeps.isEmpty ? '' : 'Depends: ${shlibDeps.join(', ')}\n';
 
   await File('${debianDir.path}${Platform.pathSeparator}control').writeAsString(
-    'Package: breeze\n'
+    'Package: rossi\n'
     'Version: $version\n'
     'Section: net\n'
     'Priority: optional\n'
@@ -221,10 +221,10 @@ Future<List<String>> _resolveShlibDeps(String staging, String bundlePath) async 
   try {
     await debianDir.create(recursive: true);
     await File('${debianDir.path}${Platform.pathSeparator}control').writeAsString(
-      'Source: breeze\nPackage: breeze\nArchitecture: any\n',
+      'Source: rossi\nPackage: rossi\nArchitecture: any\n',
     );
 
-    final mainBinary = '$bundlePath/breeze';
+    final mainBinary = '$bundlePath/rossi';
     final soFiles = Directory('$bundlePath/lib')
         .listSync()
         .whereType<File>()
@@ -318,7 +318,7 @@ Future<void> main(List<String> args) async {
   );
 
   final debFile = File(
-    '$projectRoot$sep$outputDir${sep}breeze_${version}_$architecture.deb',
+    '$projectRoot$sep$outputDir${sep}rossi_${version}_$architecture.deb',
   );
   await _run(
     'dpkg-deb',

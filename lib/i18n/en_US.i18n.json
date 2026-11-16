@@ -3787,5 +3787,11 @@
     "openLeft": "Open left",
     "openRight": "Open right",
     "closeTab": "Close tab"
+  },
+  "appIdentityMigration": {
+    "title": "Rossi installation and data migration",
+    "copied": "Your previous data was copied to Rossi and verified. The original directory is preserved and Breeze can still use it. Each app will save its own data from now on.\\n\\nOriginal directory: $source",
+    "mobileImport": "Rossi now has its own app ID and can coexist with Breeze. The system prevents access to the old app’s private data. Export a full backup from the old app, then import it here. The old app and backup will be preserved.",
+    "sandboxImport": "Rossi now has its own data directory. No readable legacy data was found. If your data is in another sandbox, export a backup from the old app and import it here. The original data will be preserved."
   }
 }

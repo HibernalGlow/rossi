@@ -297,7 +297,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: linux-deb
-          path: build-deb/breeze_*.deb
+          path: build-deb/rossi_*.deb
 
   # ══════════════════════════════════════════
   # 3. Windows 构建
@@ -443,8 +443,8 @@ jobs:
       #   id: upload-zephyr
       #   uses: actions/upload-artifact@v6
       #   with:
-      #     name: zephyr-exe
-      #     path: build/windows/x64/runner/Release/zephyr.exe
+      #     name: rossi-exe
+      #     path: build/windows/x64/runner/Release/rossi.exe
 
       # - name: SignPath 签名 Windows 主程序
       #   id: sign-zephyr
@@ -457,12 +457,12 @@ jobs:
       #     artifact-configuration-slug: windows-app-exe
       #     github-artifact-id: ${{ steps.upload-zephyr.outputs.artifact-id }}
       #     wait-for-completion: true
-      #     output-artifact-directory: ${{ runner.temp }}\signed-zephyr
+      #     output-artifact-directory: ${{ runner.temp }}\signed-rossi
 
       # - name: 回灌已签名 Windows 主程序
       #   shell: pwsh
       #   run: |
-      #     Copy-Item -Force "${{ runner.temp }}\signed-zephyr\zephyr.exe" "build/windows/x64/runner/Release/zephyr.exe"
+      #     Copy-Item -Force "${{ runner.temp }}\signed-rossi\rossi.exe" "build/windows/x64/runner/Release/rossi.exe"
 
       # - name: 继续构建 Windows 安装器
       #   run: |

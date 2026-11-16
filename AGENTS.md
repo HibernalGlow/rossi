@@ -370,7 +370,7 @@ Android 端另有**实验性 QNN（Qualcomm HTP NPU）超分后端**（移植自
 
 ### 8.2 发布前准备
 
-1. 更新 `pubspec.yaml` 中的 `version`（`windows-installer/src-tauri/tauri.conf.json` 的 `version` 不从 pubspec 同步，要一起改）。
+1. 更新 `pubspec.yaml` 中的 `version`；Windows 安装器由 `script/build/build_windows.dart` 从 `pubspec.yaml` 读取版本并传给 `windows-installer/breeze.iss`，无需再维护第二个版本字段。
 2. 在 `CHANGELOG.md` **末尾**按格式追加新版本日志（格式：`## [vX.Y.Z]`；本仓的日志是升序排列，新段落加在最后，不是顶部）。
 3. 提交并推送后手动触发 `release.yml`：**版本输入可以留空**，`preflight` 会从 `pubspec.yaml` 推导 `vX.Y.Z`，
    并在任何构建开跑前校验 CHANGELOG 有该段且非空、已存在的 tag 必须指向本次提交（不合格会立刻红，不再烧完构建分钟才发现）。
@@ -390,6 +390,7 @@ Android 端另有**实验性 QNN（Qualcomm HTP NPU）超分后端**（移植自
 - Infisical 侧 secret：`ANDROID_KEYSTORE_B64`（keystore 的 base64）、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`、`ANDROID_STORE_PASSWORD`。
 - 本机首次配置：`infisical login` → `infisical init --project-id 1e80d249-9750-43b0-9c0e-16a2b74ef65d`；生成的 `.infisical.yaml` 只含 project-id、已入库，团队各自 login 即可。构建先跑 `infisical run --env=prod -- python3 script/android/prepare_signing_from_infisical.py`，再执行 `dart ./script/build/build_apk.dart`；与 CI 同源，签名不会漂移。
 - 完整操作手册（OIDC Subject 绑定、密钥轮换、故障排查）：`docs/android-signing-infisical.md`。
+- Android 与桌面端独立安装标识、首次启动迁移与备份回退：`docs/app-identity-migration.md`。
 
 ### 8.4 Sentry 配置
 
@@ -422,10 +423,11 @@ Android 端另有**实验性 QNN（Qualcomm HTP NPU）超分后端**（移植自
 | 修改 Windows 安装器 | `windows-installer/breeze.iss`、`script/build/build_windows.dart` |
 | 修改 RealSR 超分逻辑 | `lib/page/setting/real_sr/service/real_sr_super_resolution.dart`、`lib/page/setting/real_sr/real_sr_setting_page.dart`、`rust/src/api/simple.rs` |
 | 修改 Android RealSR 原生依赖 / waifu2x CLI | `script/android/prepare_android_waifu2x_deps.py`、`script/android/build_ncnn_static_android.py`、`script/android/build_waifu2x_cli_android.py`、`android/app/src/main/cpp/waifu2x_cli/`、`lib/page/setting/real_sr/service/android_upscale_engines.dart` |
-| 修改 Android QNN NPU 超分 | `android/app/src/main/cpp/realsr_qnn/`、`android/app/src/main/kotlin/com/zephyr/breeze/realsr/`、`lib/page/setting/real_sr/service/android_qnn_engine.dart`、`lib/page/setting/real_sr/service/android_qnn_model_config.dart`（模型清单与 `script/models/package_qnn_models.py` 两处同步；带 NPU 的发布构建需 QAIRT SDK，见 §5.3） |
+| 修改 Android QNN NPU 超分 | `android/app/src/main/cpp/realsr_qnn/`、`android/app/src/main/kotlin/com/hibernalglow/rossi/realsr/`、`lib/page/setting/real_sr/service/android_qnn_engine.dart`、`lib/page/setting/real_sr/service/android_qnn_model_config.dart`（模型清单与 `script/models/package_qnn_models.py` 两处同步；带 NPU 的发布构建需 QAIRT SDK，见 §5.3） |
 | 修改桌面端 RealSR 策略/模型选择 | `lib/page/setting/real_sr/service/desktop_ncnn_model_config.dart`、`lib/page/setting/real_sr/service/real_sr_super_resolution.dart`、`lib/page/setting/real_sr/real_sr_setting_page.dart` |
 | 修改 CoreML 超分（iOS/macOS） | `packages/coreml_upscale/`、`lib/debug/coreml_upscale_debug_page.dart`、`script/models/convert_realcugan_coreml.py` |
 | 导入/导出应用数据 | `lib/page/setting/data_backup/`、`rust/src/api/data_backup.rs` |
+| 修改应用标识 / 与上游 Breeze 共存 | `docs/app-identity-migration.md`、`android/app/build.gradle.kts`、`ios/Runner.xcodeproj/`、`macos/Runner/Configs/AppInfo.xcconfig`、`linux/CMakeLists.txt`、`flatpak/`、`windows/CMakeLists.txt`、`lib/service/app_identity/` |
 | 修改 Android 签名 / 密钥托管 | `docs/android-signing-infisical.md`（操作手册）、`script/android/prepare_signing_from_infisical.py`、`.github/workflows/release.yml`、`push-build.yml`、`.infisical.yaml`；密钥在 Infisical Cloud，不在仓库 |
 | 修改应用图标（全平台） | `poc/mask-upright.svg`（主图源）、`script/build_app_icon.py`（生成脚本，产物不要手改）；启动画面见 `pubspec.yaml` 的 `flutter_native_splash:` 段 |
 | 修改 macOS 菜单栏图标 | `poc/mask-upright.svg`、`script/build_menu_bar_icon.py`、`lib/platform/desktop/system_tray.dart` |

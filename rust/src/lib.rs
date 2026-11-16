@@ -14,7 +14,7 @@ pub mod qjs;
 
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_com_zephyr_breeze_MainActivity_initRustlsPlatformVerifier(
+pub extern "system" fn Java_com_hibernalglow_rossi_MainActivity_initRustlsPlatformVerifier(
     mut env: jni::JNIEnv<'_>,
     _: jni::objects::JClass<'_>,
     context: jni::objects::JObject<'_>,

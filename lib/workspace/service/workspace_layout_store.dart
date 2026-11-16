@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'package:zephyr/service/app_identity/identity_paths.dart';
 import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 
 /// 布局快照所在的**应用数据目录**。
@@ -14,8 +14,8 @@ import 'package:zephyr/workspace/model/workspace_layout_snapshot.dart';
 /// 同一份快照，各自算一遍路径迟早会分叉（一个写到 `<support>/zephyr`、
 /// 另一个写到 `<support>`，现象是「设置里改了，重启回到旧布局」）。
 Future<Directory> workspaceLayoutDirectory() async {
-  final support = await getApplicationSupportDirectory();
-  return Directory('${support.path}${Platform.pathSeparator}zephyr');
+  final support = await applicationDataRoot();
+  return Directory('$support${Platform.pathSeparator}zephyr');
 }
 
 /// 工作台布局的**存取口**。

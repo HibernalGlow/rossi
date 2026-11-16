@@ -3787,5 +3787,11 @@
     "openLeft": "在左侧打开",
     "openRight": "在右侧打开",
     "closeTab": "关闭标签"
+  },
+  "appIdentityMigration": {
+    "title": "Rossi 独立安装与数据迁移",
+    "copied": "已将旧数据复制到 Rossi 并校验。原目录完整保留，Breeze 仍可使用。此后两边的数据分别保存。\\n\\n原目录：$source",
+    "mobileImport": "Rossi 已使用独立包名，可以与 Breeze 共存。系统不允许读取旧应用的私有数据。请先在旧应用中导出完整备份，再在这里导入；原应用及原备份都会保留。",
+    "sandboxImport": "Rossi 已使用独立的数据目录。未发现可自动复制的旧数据；若数据位于另一个沙盒，请从旧应用导出备份后导入，原数据会保留。"
   }
 }

@@ -1,8 +1,8 @@
-app-id: io.github.windy.breeze
+app-id: com.hibernalglow.rossi
 runtime: org.gnome.Platform
 runtime-version: "50"
 sdk: org.gnome.Sdk
-command: breeze
+command: rossi
 finish-args:
   - --share=ipc
   - --socket=fallback-x11
@@ -79,20 +79,20 @@ modules:
         url: https://github.com/AyatanaIndicators/libayatana-appindicator/archive/0.5.93.tar.gz
         sha256: cbefed7a918a227bf71286246e237fcd3a9c8499b3eaac4897811a869409edf0
 
-  - name: breeze
+  - name: rossi
     buildsystem: simple
     build-commands:
-      - install -d /app/breeze
-      - cp -r * /app/breeze/
+      - install -d /app/rossi
+      - cp -r * /app/rossi/
       - install -d /app/bin
-      - ln -s /app/breeze/breeze /app/bin/breeze
-      - install -D io.github.windy.breeze.png /app/share/icons/hicolor/128x128/apps/io.github.windy.breeze.png
-      - install -D io.github.windy.breeze.desktop /app/share/applications/io.github.windy.breeze.desktop
+      - ln -s /app/rossi/rossi /app/bin/rossi
+      - install -D com.hibernalglow.rossi.png /app/share/icons/hicolor/128x128/apps/com.hibernalglow.rossi.png
+      - install -D com.hibernalglow.rossi.desktop /app/share/applications/com.hibernalglow.rossi.desktop
     sources:
       - type: dir
         path: ../build/linux/x64/release/bundle
       - type: file
         path: ../asset/image/app-icon.png
-        dest-filename: io.github.windy.breeze.png
+        dest-filename: com.hibernalglow.rossi.png
       - type: file
-        path: io.github.windy.breeze.desktop
+        path: com.hibernalglow.rossi.desktop

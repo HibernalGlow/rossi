@@ -26,8 +26,8 @@ Future<void> initializeNotifications() async {
 
   final initializationSettingsWindows = WindowsInitializationSettings(
     appName: appDisplayName,
-    appUserModelId: 'com.zephyr.breeze',
-    guid: 'c4fce75a-b087-44bf-ac62-cc52b8e56990',
+    appUserModelId: 'com.hibernalglow.rossi',
+    guid: 'bb35d986-9fc2-4462-a729-c3ba4f8b8a4c',
     iconPath: windowsIconPath,
   );
 

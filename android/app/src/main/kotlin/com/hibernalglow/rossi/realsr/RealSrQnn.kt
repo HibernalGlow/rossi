@@ -1,10 +1,10 @@
-package com.zephyr.breeze.realsr
+package com.hibernalglow.rossi.realsr
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import com.zephyr.breeze.realsr.qnn.QnnModelContexts
+import com.hibernalglow.rossi.realsr.qnn.QnnModelContexts
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
@@ -65,7 +65,7 @@ object RealSrQnn {
             val binary = QnnModelContexts.prepare(context, modelRoot, modelName, retry)
             if (binary != null) Outcome.Success(scale = 0, elapsedMs = 0)
             else Outcome.Failure(
-                (QnnModelContexts.states()[modelName] as? com.zephyr.breeze.realsr.npu.NpuModelStatus.Failed)
+                (QnnModelContexts.states()[modelName] as? com.hibernalglow.rossi.realsr.npu.NpuModelStatus.Failed)
                     ?.message ?: "prepare failed",
             )
         }
@@ -87,7 +87,7 @@ object RealSrQnn {
             try {
                 val binary = QnnModelContexts.prepare(context, modelRoot, model.name, retryPrepare)
                     ?: return@submit Outcome.Failure(
-                        (QnnModelContexts.states()[model.name] as? com.zephyr.breeze.realsr.npu.NpuModelStatus.Failed)
+                        (QnnModelContexts.states()[model.name] as? com.hibernalglow.rossi.realsr.npu.NpuModelStatus.Failed)
                             ?.message ?: "model prepare failed",
                     )
 

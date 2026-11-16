@@ -208,7 +208,7 @@ Future<void> main(List<String> args) async {
 
   try {
     _printColor('═══════════════════════════════════════════', _cyan);
-    _printColor('      Breeze Windows 构建脚本', _cyan);
+    _printColor('      Rossi Windows 构建脚本', _cyan);
     _printColor('      (Flutter Release + Inno Setup)', _cyan);
     _printColor('═══════════════════════════════════════════\n', _cyan);
 

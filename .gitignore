@@ -59,6 +59,17 @@ objectbox_temp/
 .crashlytics
 # .env.proxy
 
+# 本机打包工具与安装器临时资源
+script/build/bin/
+windows-installer/src-tauri/resources
+
+# 本机插件源码副本（内置插件由 rust/build.rs 从 CDN 下载）
+/plugin/
+
+# Android release 签名材料：由 Infisical Cloud 或本机脚本生成，绝不入库。
+android/key.properties
+android/Breeze-key.keystore
+
 # Flatpak related
 build-flatpak/
 repo-flatpak/

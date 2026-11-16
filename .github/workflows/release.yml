@@ -416,7 +416,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: linux-deb
-          path: build-deb/breeze_*.deb
+          path: build-deb/rossi_*.deb
 
   # ══════════════════════════════════════════
   # 3. Windows 构建 (Sentry Plugin 上传)

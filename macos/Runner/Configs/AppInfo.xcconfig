@@ -8,7 +8,7 @@
 PRODUCT_NAME = Rossi
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.zephyr.breeze
+PRODUCT_BUNDLE_IDENTIFIER = com.hibernalglow.rossi
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.zephyr.breeze. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.hibernalglow.rossi. All rights reserved.

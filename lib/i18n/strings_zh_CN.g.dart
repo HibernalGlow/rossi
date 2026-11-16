@@ -89,6 +89,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$video$zh_CN video = Translations$video$zh_CN.internal(_root);
 	late final Translations$bindingEditor$zh_CN bindingEditor = Translations$bindingEditor$zh_CN.internal(_root);
 	late final Translations$plat$zh_CN plat = Translations$plat$zh_CN.internal(_root);
+	late final Translations$appIdentityMigration$zh_CN appIdentityMigration = Translations$appIdentityMigration$zh_CN.internal(_root);
 }
 
 // Path: database
@@ -11584,6 +11585,27 @@ class Translations$plat$zh_CN {
 	String get closeTab => '关闭标签';
 }
 
+// Path: appIdentityMigration
+class Translations$appIdentityMigration$zh_CN {
+	Translations$appIdentityMigration$zh_CN.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// zh-CN: 'Rossi 独立安装与数据迁移'
+	String get title => 'Rossi 独立安装与数据迁移';
+
+	/// zh-CN: '已将旧数据复制到 Rossi 并校验。原目录完整保留，Breeze 仍可使用。此后两边的数据分别保存。\n\n原目录：$source'
+	String copied({required Object source}) => '已将旧数据复制到 Rossi 并校验。原目录完整保留，Breeze 仍可使用。此后两边的数据分别保存。\n\n原目录：${source}';
+
+	/// zh-CN: 'Rossi 已使用独立包名，可以与 Breeze 共存。系统不允许读取旧应用的私有数据。请先在旧应用中导出完整备份，再在这里导入；原应用及原备份都会保留。'
+	String get mobileImport => 'Rossi 已使用独立包名，可以与 Breeze 共存。系统不允许读取旧应用的私有数据。请先在旧应用中导出完整备份，再在这里导入；原应用及原备份都会保留。';
+
+	/// zh-CN: 'Rossi 已使用独立的数据目录。未发现可自动复制的旧数据；若数据位于另一个沙盒，请从旧应用导出备份后导入，原数据会保留。'
+	String get sandboxImport => 'Rossi 已使用独立的数据目录。未发现可自动复制的旧数据；若数据位于另一个沙盒，请从旧应用导出备份后导入，原数据会保留。';
+}
+
 /// The flat map containing all translations for locale <zh-CN>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -15306,6 +15328,10 @@ extension on Translations {
 			'plat.openLeft' => '在左侧打开',
 			'plat.openRight' => '在右侧打开',
 			'plat.closeTab' => '关闭标签',
+			'appIdentityMigration.title' => 'Rossi 独立安装与数据迁移',
+			'appIdentityMigration.copied' => ({required Object source}) => '已将旧数据复制到 Rossi 并校验。原目录完整保留，Breeze 仍可使用。此后两边的数据分别保存。\n\n原目录：${source}',
+			'appIdentityMigration.mobileImport' => 'Rossi 已使用独立包名，可以与 Breeze 共存。系统不允许读取旧应用的私有数据。请先在旧应用中导出完整备份，再在这里导入；原应用及原备份都会保留。',
+			'appIdentityMigration.sandboxImport' => 'Rossi 已使用独立的数据目录。未发现可自动复制的旧数据；若数据位于另一个沙盒，请从旧应用导出备份后导入，原数据会保留。',
 			_ => null,
 		};
 	}

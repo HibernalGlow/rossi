@@ -107,7 +107,8 @@ val qnnTrimmedLibraries = buildList {
 }
 
 android {
-    namespace = "com.zephyr.breeze"
+    // Rossi 使用独立 applicationId，与 Breeze 并存；compileSdk 跟随上游要求升级到 37。
+    namespace = "com.hibernalglow.rossi"
     // androidx.core 1.19.0 起要求依赖方至少用 API 37 编译（AAR metadata 校验）
     compileSdk = 37
     ndkVersion = "29.0.14206865"
@@ -125,6 +126,7 @@ android {
     }
 
     defaultConfig {
+        applicationId = "com.hibernalglow.rossi"
         // sentry v10 原生层要求 API 26+，Flutter 默认 24 会导致 release 构建失败
         minSdk = 26
         targetSdk = 36

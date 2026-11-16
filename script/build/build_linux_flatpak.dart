@@ -109,7 +109,7 @@ Future<void> _buildFlatpak(String projectRoot) async {
       : 'repo-flatpak';
   final manifest = env['MANIFEST']?.trim().isNotEmpty == true
       ? env['MANIFEST']!.trim()
-      : 'flatpak/io.github.windy.breeze.yml';
+      : 'flatpak/com.hibernalglow.rossi.yml';
   final bundleName = env['BUNDLE_NAME']?.trim().isNotEmpty == true
       ? env['BUNDLE_NAME']!.trim()
       : 'breeze.flatpak';
@@ -141,7 +141,7 @@ Future<void> _buildFlatpak(String projectRoot) async {
     'build-bundle',
     repoDir,
     bundleName,
-    'io.github.windy.breeze',
+    'com.hibernalglow.rossi',
   ], cwd: projectRoot);
 }
 

@@ -83,7 +83,7 @@ Future<void> initSystemTray({
     final iconPath = Platform.isWindows
         ? 'asset/image/app_icon.ico'
         : (Platform.isLinux && _runningInSandbox())
-        ? 'io.github.windy.breeze'
+        ? 'com.hibernalglow.rossi'
         : Platform.isMacOS
         ? 'asset/image/menu_bar_icon.png'
         : 'asset/image/app-icon.png';

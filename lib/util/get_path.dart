@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr/config/global/global.dart';
 import 'package:zephyr/main.dart';
+import 'package:zephyr/service/app_identity/identity_paths.dart';
 
 // =========================================================
 // 平台策略判断
@@ -33,8 +34,7 @@ Future<String> getAppDirectory() async {
     // Linux/macOS:
     // macOS: ~/Library/Application Support/com.example.app/
     // Linux: ~/.local/share/com.example.app/
-    final dir = await getApplicationSupportDirectory();
-    return dir.path;
+    return applicationDataRoot();
   }
 }
 
@@ -43,8 +43,7 @@ Future<String> getDbPath() async {
   String dbDirPath;
 
   if (_isPortableStrategy) {
-    final appDir = await getAppDirectory();
-    dbDirPath = p.join(appDir, '..', 'db');
+    dbDirPath = p.join(await applicationDataRoot(), 'db');
   } else if (Platform.isAndroid) {
     // Android: ⚠️ 严禁修改
     final appDir = await getAppDirectory();
@@ -63,8 +62,7 @@ Future<String> getDbPath() async {
 Future<String> getFilePath() async {
   String path;
   if (_isPortableStrategy) {
-    final appDir = await getAppDirectory();
-    path = p.join(appDir, '..', 'files');
+    path = p.join(await applicationDataRoot(), 'files');
   } else {
     final appDir = await getAppDirectory();
     path = p.join(appDir, "files");
@@ -112,8 +110,7 @@ set preparedSettingsDbPathForTests(String? path) =>
 /// 获取缓存路径
 Future<String> getCachePath() async {
   if (_isPortableStrategy) {
-    final appDir = await getAppDirectory();
-    final path = p.join(appDir, '..', 'cache');
+    final path = p.join(await applicationDataRoot(), 'cache');
     await _ensureDirExists(path);
     return path;
   } else if (_isStandardDesktop) {
@@ -152,8 +149,7 @@ Future<File> getLogPath() async {
   String logDirPath;
 
   if (_isPortableStrategy) {
-    final appDir = await getAppDirectory();
-    logDirPath = p.join(appDir, '..', 'log');
+    logDirPath = p.join(await applicationDataRoot(), 'log');
   } else if (Platform.isAndroid) {
     final docDir = await getApplicationDocumentsDirectory();
     logDirPath = p.join(docDir.path, 'log');
@@ -184,7 +180,7 @@ Future<String> createDownloadDir() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final downloadDir = await getDownloadsDirectory();
       if (downloadDir != null) {
-        final path = p.join(downloadDir.path, appName);
+        final path = p.join(downloadDir.path, appDisplayName);
         await _ensureDirExists(path);
         return path;
       }
@@ -193,18 +189,18 @@ Future<String> createDownloadDir() async {
       final home =
           Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
       if (home != null && home.isNotEmpty) {
-        return p.join(home, 'Downloads', appName);
+        return p.join(home, 'Downloads', appDisplayName);
       } else {
         // 如果实在获取不到 HOME 目录，回退到内部文件存储路径
         final fallbackDir = await getFilePath();
-        return p.join(fallbackDir, 'Downloads', appName);
+        return p.join(fallbackDir, 'Downloads', appDisplayName);
       }
     }
 
     // 2. Android
     if (Platform.isAndroid) {
       const String standardPath = "/storage/emulated/0/Download";
-      final String savePath = p.join(standardPath, appName);
+      final String savePath = p.join(standardPath, appDisplayName);
 
       try {
         await _ensureDirExists(savePath);
