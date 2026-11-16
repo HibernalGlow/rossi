@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/service/notify/notify_gateway.dart';
 import 'package:zephyr/util/toast/toast_style.dart';
 import 'package:zephyr/widgets/toast.dart';
@@ -11,6 +12,9 @@ import 'package:zephyr/widgets/toast/toast_card.dart';
 /// 这一层要钉住的是**改造前的真实症状**：下载完成那类长文件名（`[Fanbox(Normal) & Pixiv]
 /// pazzimo [ZZR个人汉化] 下载完成`）在旧实现里因为正文 ≥ 30 字被换成了
 /// 「成功 / 取消 / 确定」的模态对话框。现在必须一律是提示条，且正文自己换行。
+Finder _glyph(Object glyph) =>
+    find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == glyph);
+
 void main() {
   setUp(() {
     ToastOverlayController.instance.resetForTest();
@@ -79,7 +83,7 @@ void main() {
     );
 
     expect(find.byType(FractionallySizedBox), findsNothing);
-    expect(find.byIcon(Icons.close), findsOneWidget);
+    expect(_glyph(AppGlyphs.close), findsOneWidget);
     // 常驻没有动画控制器，这里 pump 多久都不该有副作用。
     await tester.pump(const Duration(seconds: 5));
     expect(find.text('这条不会自己消失'), findsOneWidget);
@@ -106,7 +110,7 @@ void main() {
     );
 
     expect(find.byIcon(Icons.info_outline), findsNothing);
-    expect(find.byIcon(Icons.close), findsNothing);
+    expect(_glyph(AppGlyphs.close), findsNothing);
 
     await tester.pump(const Duration(seconds: 4));
   });
@@ -144,7 +148,7 @@ void main() {
     expect(rect.top, lessThan(120));
 
     // 关闭按钮能立刻收起（走完退场动画后从树上摘掉）。
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(_glyph(AppGlyphs.close));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

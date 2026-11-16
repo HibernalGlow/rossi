@@ -9,6 +9,7 @@ import 'package:zephyr/util/input/reader_input_context.dart';
 /// 这是「打开设置面板后左右键失效」那个 bug 的结构性判据 ——
 /// 设置面板不给 `reader` 引入竞争者，于是左右键仍由 `reader` 解析。
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   final event = KeyDownEvent(
     physicalKey: PhysicalKeyboardKey.arrowRight,
     logicalKey: LogicalKeyboardKey.arrowRight,

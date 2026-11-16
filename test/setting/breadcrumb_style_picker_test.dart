@@ -44,7 +44,9 @@ void main() {
     );
     await tester.ensureVisible(restrained);
     await tester.pumpAndSettle();
-    await tester.tap(restrained);
+    // 800×600 的测试视口里 ensureVisible 只把这张卡的顶边露出来（矩形落在
+    // y=562..698，中心点还在视口外）；按顶边内侧点它，等价于用户看到就点。
+    await tester.tapAt(tester.getTopLeft(restrained) + const Offset(8, 8));
     await tester.pumpAndSettle();
     expect(
       settings.state.fileManagerSetting.breadcrumbStyle,

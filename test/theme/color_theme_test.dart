@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr/config/global/color_theme_types.dart';
+import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/page/theme_color/theme_color.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
@@ -64,7 +65,9 @@ void main() {
 
     expect(colorThemeList.last.color, const Color(0xFF9C4B5E));
     // 面具红就是新装默认，所以整屏只该有它一颗打勾。
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byWidgetPredicate(
+      (w) => w is GlyphIcon && w.glyph == AppGlyphs.check,
+    ), findsOneWidget);
 
     await tester.tap(find.byType(ColorThemeItem).first);
     await tester.pump();

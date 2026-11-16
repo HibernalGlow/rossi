@@ -101,11 +101,15 @@ Windows 特有路径恢复尚未执行原生验证。逐项来源与差异见
 - 顺手修掉两处用户可感知的边界：工作孔拖动被系统打断时应**回退**而不是按当前位置
   吸附（Flutter 的拖动识别器在已接受状态下把 `PointerCancel` 也报成 `onEnd`）；
   迷你封面（< 28dp）上的画师/收藏角标整颗让位，不再画一条 1.7–11px 的溢出条。
-- **仍红 1 条**：`test/ocr/completed_page_e2e_test.dart`（真机装了 OCR 模型时才会真跑）。
-  一页 15 块里第 2 块（15.3×23.8px）成品页上没有墨点：按 `plan()` 的判据（宽高比
-  1.55 < `_tallAspect` 1.6）它走横排、下限 7px，7px 字在 9.3px 宽的可画区里应当可见，
-  实测该矩形亮度 145–255，说明这一段译文没画出来。属既有的窄气泡排版边界，
-  不是本轮合并引入，需要单独调 `translated_page_renderer` 的极窄框策略。
+- **仍红 4 条**（都不在本次改动的产品路径上）：
+  - `test/ocr/completed_page_e2e_test.dart`：极窄气泡（15.3×23.8px）的译文在成品页上没有
+    墨点，需单独调 `translated_page_renderer` 的极窄框策略；
+  - `test/reader/mimage_model_settings_test.dart` 三条：日志复制会弹常驻提示，其动画让
+    `pumpAndSettle` 不收敛；`tearDown` 里 `SuperResolutionLog.flush()` 在测试宿主下等待
+    路径解析也不返回。真实应用里日志复制、模型选择都可用，属测试宿主的路径/帧泵问题。
+- **已清掉的既存假红**：`test/workspace/` 全绿（658 项）；其余批次因图标从 Material
+  改成自绘 `AppGlyphs`、分组卡在 ListView 里按需构建、上游设置项增删、滚动跳组要
+  `SettingEntryList` 认领等漂移而红的用例已逐条对齐（约 2,238 通过 / 3 跳过）。
 - 未验证：Windows 安装器实机安装、Android/iOS 真机构建、真实站点插件抓取（本机无凭据）。
 - merge commit：`c66774fdfdb094da80e9d241777d3d0a99a18d2a`。
 - 恢复在途改动（Rossi 独立安装 / 数据迁移 + mImageViewer v5.2.1）之后重跑：`flutter analyze`

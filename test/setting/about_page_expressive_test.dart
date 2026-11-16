@@ -73,8 +73,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SettingPageShell), findsOneWidget);
-        expect(find.byType(SettingGroup), findsNWidgets(3));
-        expect(find.byType(M3EList), findsNWidgets(3));
+        // 分组卡在 ListView 里按需构建，600px 高的测试视口一次只露出第一组，
+        // 钉「至少画了一组」而不是硬要 3 组同时在树里。
+        expect(find.byType(SettingGroup), findsWidgets);
+        expect(find.byType(M3EList), findsWidgets);
         expect(find.byType(ExpressiveIconBadge), findsWidgets);
         expect(find.byType(Divider), findsNothing);
         // 不再使用静态 asset/image/app-icon.png，改用跟随主题色的 BrandAppIcon
@@ -195,6 +197,12 @@ void main() {
     };
 
     await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+    // 贡献者分组在 ListView 靠后，600px 视口里还没建出来；滚到重试键再断言。
+    for (var i = 0; i < 5; i++) {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -320));
+      await tester.pumpAndSettle();
+    }
     await tester.pumpAndSettle();
 
     expect(find.text(t.about.fetchFailed), findsOneWidget);

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/page/setting/common/setting_entry.dart';
+import 'package:zephyr/page/setting/common/setting_entry_list.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/icons/icons.dart';
@@ -32,9 +34,8 @@ void main() {
   Widget browser(List<String> opened, {double textScale = 1}) => MaterialApp(
     theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
     builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: TextScaler.linear(textScale)),
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(textScale)),
       child: child!,
     ),
     home: SettingPageShell(
@@ -201,9 +202,8 @@ void main() {
     const subtitle = '试验性功能，需要下载模型权重与配置翻译端点';
     Widget subject(double scale) => MaterialApp(
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
         child: child!,
       ),
       home: Scaffold(
@@ -266,32 +266,41 @@ void main() {
     await viewport(tester, const Size(1280, 800));
     Widget multiSectionDetail() => SettingPageShell(
       title: '外观设置详情',
-      child: ListView(
-        padding: kSettingPagePadding,
+      // 跳组请求由 SettingEntryList 认领；直接用裸 ListView 时侧栏点了也没人接。
+      child: SettingEntryList(
         children: [
-          SettingGroup(
-            sectionId: 'appearance.theme',
-            title: '主题模式',
-            children: [
-              for (var i = 0; i < 6; i++)
-                SizedBox(height: 80, child: ListTile(title: Text('主题项 $i'))),
-            ],
+          settingEntry(
+            'appearance.theme',
+            SettingGroup(
+              sectionId: 'appearance.theme',
+              title: '主题模式',
+              children: [
+                for (var i = 0; i < 6; i++)
+                  SizedBox(height: 80, child: ListTile(title: Text('主题项 $i'))),
+              ],
+            ),
           ),
-          SettingGroup(
-            sectionId: 'appearance.language',
-            title: '语言与字体',
-            children: [
-              for (var i = 0; i < 6; i++)
-                SizedBox(height: 80, child: ListTile(title: Text('语言项 $i'))),
-            ],
+          settingEntry(
+            'appearance.language',
+            SettingGroup(
+              sectionId: 'appearance.language',
+              title: '语言与字体',
+              children: [
+                for (var i = 0; i < 6; i++)
+                  SizedBox(height: 80, child: ListTile(title: Text('语言项 $i'))),
+              ],
+            ),
           ),
-          SettingGroup(
-            sectionId: 'appearance.navigation',
-            title: '导航栏布局',
-            children: [
-              for (var i = 0; i < 6; i++)
-                SizedBox(height: 80, child: ListTile(title: Text('导航项 $i'))),
-            ],
+          settingEntry(
+            'appearance.navigation',
+            SettingGroup(
+              sectionId: 'appearance.navigation',
+              title: '导航栏布局',
+              children: [
+                for (var i = 0; i < 6; i++)
+                  SizedBox(height: 80, child: ListTile(title: Text('导航项 $i'))),
+              ],
+            ),
           ),
         ],
       ),
