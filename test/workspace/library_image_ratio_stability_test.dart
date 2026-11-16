@@ -24,7 +24,9 @@ void main() {
               required radius,
               required fit,
             }) {
-              geometry = LibraryImageGeometryScope.maybeOf(context);
+              // 同一个回调也被空隙拼贴调用，那里没有几何作用域；只记网格那一份。
+              final scope = LibraryImageGeometryScope.maybeOf(context);
+              if (scope != null) geometry = scope;
               builds++;
               return SizedBox(width: width, height: height);
             },

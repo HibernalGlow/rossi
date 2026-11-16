@@ -140,7 +140,9 @@ void main() {
               required radius,
               required fit,
             }) {
-              expect(fit, BoxFit.contain);
+              // 同一个 media 回调既被展墙网格用（`contain`：整页不裁），
+              // 也被空隙拼贴用（`cover`：装饰性马赛克允许裁切）。
+              expect(fit, anyOf(BoxFit.contain, BoxFit.cover));
               return SizedBox(
                 width: width,
                 height: height,

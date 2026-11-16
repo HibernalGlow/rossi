@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,16 @@ import 'package:zephyr/workspace/widgets/library_view/editorial/library_editoria
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation.dart';
 import 'package:zephyr/workspace/widgets/library_view/editorial/library_presentation_button.dart';
 import 'package:zephyr/workspace/widgets/library_view/library_entry.dart';
+
+/// 字体加载会经系统消息排一帧 relayout，而那条消息可能晚于 `pumpAndSettle`
+/// 的最后一帧才落地。这里等一拍再跑一帧，别把 transient callback 留给测试
+/// 收尾（Flutter 3.50 会因此判失败）。
+Future<void> _flushFonts(WidgetTester tester) async {
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 20)),
+  );
+  await tester.pump();
+}
 
 void main() {
   for (final (name, size, dark, scale) in [
@@ -39,9 +50,8 @@ void main() {
           builder: (context, child) => RepaintBoundary(
             key: boundary,
             child: MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(scale)),
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(scale)),
               child: child!,
             ),
           ),
@@ -91,8 +101,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _flushFonts(tester);
       await tester.tap(find.byTooltip(LibraryPresentationButton.tooltip));
       await tester.pumpAndSettle();
+      await _flushFonts(tester);
       expect(find.text('卡片宽度'), findsOneWidget);
       expect(find.byKey(const ValueKey('wall-settings-apply')), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -105,9 +117,8 @@ void main() {
                   .toImage();
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await Directory(output).create(recursive: true);
-          await File(
-            '$output/$name.png',
-          ).writeAsBytes(bytes!.buffer.asUint8List());
+          await File('$output/$name.png')
+              .writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
       }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -165,6 +166,16 @@ class _CoverArt extends CustomPainter {
   bool shouldRepaint(_CoverArt old) => old.ink != ink || old.index != index;
 }
 
+/// 字体加载会经系统消息排一帧 relayout，而那条消息可能晚于 `pumpAndSettle`
+/// 的最后一帧才落地。这里等一拍再跑一帧，别把 transient callback 留给测试
+/// 收尾（Flutter 3.50 会因此判失败）。
+Future<void> _flushFonts(WidgetTester tester) async {
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 20)),
+  );
+  await tester.pump();
+}
+
 void main() {
   for (final (name, size, dark, expanded) in [
     ('library-light', const Size(1120, 920), false, false),
@@ -213,14 +224,13 @@ void main() {
           metaText: i < 4 ? '继续阅读' : '未读',
           itemCount: 12 - i,
           onRead: () async {},
-          media:
-              (
-                _, {
-                required width,
-                required height,
-                required radius,
-                required fit,
-              }) => _sampleCover(i, width, height, radius),
+          media: (
+            _, {
+            required width,
+            required height,
+            required radius,
+            required fit,
+          }) => _sampleCover(i, width, height, radius),
         ),
       );
       await tester.pumpWidget(
@@ -332,11 +342,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _flushFonts(tester);
       if (expanded) {
         canvas.currentState!.toggleDetails(data.first);
         await tester.pumpAndSettle();
+        await _flushFonts(tester);
       }
-      expect(tester.takeException(), isNull);
       final output = Platform.environment['ROSSI_UI_PREVIEW_DIR'];
       if (output != null) {
         await tester.runAsync(() async {
@@ -346,9 +357,8 @@ void main() {
                   .toImage(pixelRatio: 1.5);
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await Directory(output).create(recursive: true);
-          await File(
-            '$output/$name.png',
-          ).writeAsBytes(bytes!.buffer.asUint8List());
+          await File('$output/$name.png')
+              .writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
       }

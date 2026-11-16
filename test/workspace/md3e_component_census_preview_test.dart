@@ -3520,7 +3520,7 @@ void main() {
       await _pumpSheet(
         tester,
         boundary: boundary,
-        size: const Size(1160, 1120),
+        size: const Size(1160, 1180),
         child: _Blocks(
           blocks: [
             _Block(
@@ -3614,7 +3614,9 @@ void main() {
               title: 'ErrorView(errorMessage:, onRetry:)',
               child: SizedBox(
                 width: 640,
-                height: 160,
+                // ErrorView 的自然高度（图标 + 两行 20dp 正文 + 复制/重试按钮）
+                // 约 213dp；演示框跟着它走，不要用 160 把它挤溢出。
+                height: 220,
                 child: ErrorView(errorMessage: '图源没有响应（示例文案）', onRetry: () {}),
               ),
             ),

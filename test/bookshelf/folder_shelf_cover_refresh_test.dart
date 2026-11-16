@@ -84,15 +84,16 @@ void main() {
       ..updatedAt = DateTime.now().toUtc();
     objectbox.unifiedDownloadBox.put(record);
 
-    // 内容不足一屏也要能触发 RefreshIndicator；用慢拖而不是 fling，
-    // 避免被当成惯性滚动。
-    // 书架可能是展墙（`SuperGrid`）也可能走旧网格，拖动只要落在可滚动区里；
-    // 封面本身只有点按 / 长按，慢拖不会被它吃掉。
+    // 内容不足一屏也要能触发 RefreshIndicator：一次 300px 的「瞬移」不算一次
+    // 真实拖动（RefreshIndicator 按逐步的 overscroll 判定），所以按手指的真实
+    // 轨迹分几步走。起点就放在封面中心 —— 用户就是这样往下拉的。
     final gesture = await tester.startGesture(
       tester.getCenter(find.byType(CoverWidget).first),
     );
-    await gesture.moveBy(const Offset(0, 300));
-    await tester.pump(const Duration(milliseconds: 200));
+    for (var step = 0; step < 6; step++) {
+      await gesture.moveBy(const Offset(0, 60));
+      await tester.pump(const Duration(milliseconds: 40));
+    }
     await gesture.up();
     await tester.pump();
     await waitForCoverPath(tester, 'new.jpg');

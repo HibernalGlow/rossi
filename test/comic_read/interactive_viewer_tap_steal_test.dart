@@ -14,6 +14,11 @@
 // 手指事件一律用 `PointerDeviceKind.touch` 显式造（down 这一步不能省 ——
 // 只 `addPointer` 发的是 PointerAddedEvent，整场根本没有点击，两条断言都会拿到 0，
 // 第一版就是这么假红的）：本判据唯一关心的变量就是「这一序列归谁」。
+//
+// **Flutter 3.50 起语义变了**：`InteractiveViewer` 的缩放识别器不再在纯点击
+// （按下即抬起、没有位移）时接受，外层 `onTap` 照常收到。也就是说安卓那一带
+// 「点哪儿都没反应」的旧症状已经不存在；这里改成钉「纯点击照常到、拖拽仍然不
+// 触发点击」——后者才是现在唯一还需要守住的边界。
 // ignore_for_file: avoid_print
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -58,13 +63,60 @@ Future<int> _tapOnce(WidgetTester tester, {required bool scaleEnabled}) async {
 }
 
 void main() {
-  testWidgets('scaleEnabled 为真：外层 onTap 收不到这一下单击', (tester) async {
-    expect(await _tapOnce(tester, scaleEnabled: true), 0,
-        reason: '缩放识别器当场接受 ⇒ 序列不再归单击识别器');
+  testWidgets('scaleEnabled 为真：纯点击仍然落到外层 onTap', (tester) async {
+    // Flutter 3.50 起缩放识别器不再在「按下即抬起」的序列上接受，
+    // 所以阅读器里单击翻页 / 唤出上下栏不再被它吃掉。
+    expect(
+      await _tapOnce(tester, scaleEnabled: true),
+      1,
+      reason: '纯点击没有位移，缩放识别器不该赢下这一序列',
+    );
   });
 
   testWidgets('scaleEnabled 为假：同一坐标同一手指，onTap 收得到', (tester) async {
     expect(await _tapOnce(tester, scaleEnabled: false), 1,
-        reason: '阳性对照 —— 少了这一条，上一条的 0 可能来自任何别的原因');
+        reason: '阳性对照 —— 少了这一条，上一条的 1 可能来自任何别的原因');
+  });
+
+  testWidgets('scaleEnabled 为真：拖拽过阈值之后不再补一发 onTap', (tester) async {
+    // 这条是旧判据真正的残余价值：拖动 / 缩放结束时不能顺手翻一页。
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 300,
+            height: 300,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => taps++,
+              child: InteractiveViewer(
+                scaleEnabled: true,
+                child: const ColoredBox(
+                  color: Colors.blue,
+                  child: SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(find.byType(InteractiveViewer));
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.touch);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: center);
+    await tester.pump();
+    await gesture.down(center);
+    await tester.pump();
+    for (var i = 0; i < 4; i++) {
+      await gesture.moveBy(const Offset(-12, 0));
+      await tester.pump();
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(taps, 0, reason: '有位移的序列归缩放 / 拖动，不能补发点击');
   });
 }

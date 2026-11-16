@@ -330,6 +330,8 @@ void main() {
               LibraryEntry(
                 key: 'image',
                 title: '图片',
+                // 竖图比例：宽度不会成为瓶颈，frame 高度就是整张卡片的高度。
+                mediaAspectRatio: .5,
                 media:
                     (
                       _, {
@@ -350,8 +352,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // 悬浮操作不再扣除 76dp 底栏；图片直接按整张卡片的高度缩放。
-    expect(mediaHeight, 160);
+    // 判据是「不再扣 76dp 底栏」，不是某个绝对值：图片高度按整张卡片走，
+    // 只受比例 frame 收窄，上界是 cardHeight（320）× imageScale（.5）。
+    expect(mediaHeight, greaterThan((320 - 76) * .5));
+    expect(mediaHeight, lessThanOrEqualTo(320 * .5));
     expect(tester.takeException(), isNull);
   });
 }

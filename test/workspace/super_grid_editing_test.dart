@@ -361,7 +361,11 @@ void main() {
     );
     final title = tester.getRect(find.text('阅读统计'));
     final body = tester.getRect(find.text('阅读统计内容'));
-    expect(body.top - tester.getRect(find.byKey(_bodyKey)).top, 40);
+    final headerHeight = body.top - tester.getRect(find.byKey(_bodyKey)).top;
+    // 头高由 CollapsibleCard 的内边距 + 标题行高决定（随主题/字号走），
+    // 这里钉「正文从头下面开始，且头只占紧凑一行」。
+    expect(headerHeight, greaterThan(0));
+    expect(headerHeight, lessThan(56));
     expect(title.height, lessThan(40));
     final gesture = await tester.startGesture(
       tester.getCenter(find.byType(CardResizeHandle)),

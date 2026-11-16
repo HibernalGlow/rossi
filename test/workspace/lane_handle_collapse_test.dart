@@ -105,7 +105,8 @@ void main() {
     final tooltip = tester.widget<Tooltip>(
       find.ancestor(of: handleIcon, matching: find.byType(Tooltip)).first,
     );
-    expect(tooltip.message, contains('点击折叠泳道'));
+    // 文案改成了 `t.workspace.laneTapCollapseHint`（「$title（点按收起泳道）」）。
+    expect(tooltip.message, contains('收起泳道'));
 
     // 点击栏头图标
     await tester.tap(handleIcon);

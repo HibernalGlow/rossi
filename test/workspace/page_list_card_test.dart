@@ -196,8 +196,9 @@ void main() {
         isFalse,
       );
       // 折叠后保留胶囊恢复条，点击即可恢复展开
-      expect(find.text('搜索页码或文件名…'), findsOneWidget);
-      await tester.tap(find.text('搜索页码或文件名…'));
+      // i18n 里用的是三个半角点，不是省略号。
+      expect(find.text('搜索页码或文件名...'), findsOneWidget);
+      await tester.tap(find.text('搜索页码或文件名...'));
       await tester.pumpAndSettle();
       expect(
         cubit.state.board

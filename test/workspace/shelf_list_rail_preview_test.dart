@@ -30,6 +30,9 @@ Future<void> _pumpRail(
   final font = FontLoader('PreviewChinese')
     ..addFont(rootBundle.load('asset/fonts/LXGWWenKaiLite-Regular.ttf'));
   await font.load();
+  // 字体加载会经系统消息排一帧 relayout；先把它跑掉，避免测试结束时
+  // 还挂着那个 transient callback（Flutter 3.50 会因此判失败）。
+  await tester.pump();
   await tester.pumpWidget(
     MaterialApp(
       theme: ThemeData(
@@ -72,6 +75,12 @@ Future<void> _pumpRail(
     ),
   );
   await tester.pumpAndSettle();
+  // 字体变更那条系统消息可能晚于 settle 的最后一帧才落地：给它一次机会，
+  // 再把那一帧跑掉，别把 transient callback 留给测试收尾。
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 20)),
+  );
+  await tester.pump();
 }
 
 Future<void> _dump(WidgetTester tester, GlobalKey boundary, String name) async {
