@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/reader_cubit.dart';
 import 'package:zephyr/page/comic_read/json/common_ep_info_json/common_ep_info_json.dart';
@@ -68,6 +69,9 @@ void main() {
           BlocProvider<GlobalSettingCubit>.value(value: settings),
           BlocProvider<ReaderCubit>.value(value: reader),
           BlocProvider<ImageSizeCubit>.value(value: sizes),
+          BlocProvider<ComicReadPreferenceCubit>(
+            create: (_) => ComicReadPreferenceCubit(),
+          ),
         ],
         child: MaterialApp(
           home: Builder(

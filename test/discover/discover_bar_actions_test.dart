@@ -121,11 +121,9 @@ void main() {
         .evaluate()
         .length;
     expect(buttons, greaterThanOrEqualTo(2));
-    expect(
-      elastic,
-      buttons + 1,
-      reason: '每颗动作键加那颗菜单触发键，一个都不能少',
-    );
+    // 「标签显示」那颗触发键走 `CommonPopupBox`（托盘自己从锚点长出来），
+    // 刻意不叠 `ElasticButton` —— 两套形变叠在一起会读成脏。
+    expect(elastic, buttons, reason: '每颗动作键都要套 ElasticButton；弹出触发键自带生长动画，不叠');
 
     // M2 的菜单不该再出现：本仓的弹出菜单**只有一份动画**（淡入 + 从锚点缩放）。
     expect(
@@ -151,11 +149,7 @@ void main() {
   testWidgets('竖向档：那一组塞得进最窄的轨（68 宽）', (tester) async {
     final tabs = _tabs();
     // 900 宽才转得成竖轨：`_effectiveSide` 在「轨厚 + 内容下限」放不下时会钳回横向。
-    await _pump(
-      tester,
-      tabs,
-      preferred: DiscoverTabBarSide.left,
-    );
+    await _pump(tester, tabs, preferred: DiscoverTabBarSide.left);
     expect(tester.takeException(), isNull, reason: '竖轨那一档溢出了');
 
     final group = tester.getSize(find.byType(ActionGroup));
@@ -180,12 +174,16 @@ void main() {
       );
       // 动作清单不随朝向变（只换排布）：搜索与那一颗菜单触发键每一档都在。
       expect(
-        find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.search),
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.search,
+        ),
         findsOneWidget,
         reason: '「${side.label}」这一档少了搜索键',
       );
       expect(
-        find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders),
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders,
+        ),
         findsOneWidget,
         reason: '「${side.label}」这一档少了菜单触发键',
       );

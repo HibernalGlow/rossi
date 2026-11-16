@@ -16,6 +16,8 @@ import '../test_helper.dart';
 
 /// 书架刷新必须能读到主 isolate 刚写入的封面；查询走 `store.runAsync`。
 void main() {
+  // 这些用例会走到提示条（要 `WidgetsBinding.instance`），先把 binding 建起来。
+  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     await initRustLib(silent: true);
     await TestObjectBoxHelper.setUpTestObjectBox();
@@ -84,8 +86,10 @@ void main() {
 
     // 内容不足一屏也要能触发 RefreshIndicator；用慢拖而不是 fling，
     // 避免被当成惯性滚动。
+    // 书架可能是展墙（`SuperGrid`）也可能走旧网格，拖动只要落在可滚动区里；
+    // 封面本身只有点按 / 长按，慢拖不会被它吃掉。
     final gesture = await tester.startGesture(
-      tester.getCenter(find.byType(GridView)),
+      tester.getCenter(find.byType(CoverWidget).first),
     );
     await gesture.moveBy(const Offset(0, 300));
     await tester.pump(const Duration(milliseconds: 200));

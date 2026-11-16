@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/main.dart';
 import 'package:zephyr/object_box/model.dart';
 import 'package:zephyr/service/download/download_queue_manager.dart';
@@ -45,9 +46,15 @@ DownloadTask _row({
 String? _stateCodeOf(DownloadTask task) => _repo.readPayload(task)?.stateCode;
 
 void main() {
+  // 这些用例会走到提示条（要 `WidgetsBinding.instance`），先把 binding 建起来。
+  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(TestObjectBoxHelper.setUpTestObjectBox);
   tearDownAll(TestObjectBoxHelper.tearDownTestObjectBox);
-  setUp(() => objectbox.downloadTaskBox.removeAll());
+  setUp(() {
+    // 置顶顺序那一份存在 SharedPreferences 里（`DownloadTaskPinStore`）。
+    SharedPreferences.setMockInitialValues({});
+    objectbox.downloadTaskBox.removeAll();
+  });
 
   group('下载任务批量操作', () {
     test('全部暂停把没暂停的都落进暂停态，已暂停的不动', () async {

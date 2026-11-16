@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -47,18 +48,21 @@ Future<ScrollPosition> _mount(WidgetTester tester, Widget content) async {
       scrollBehavior: const MaterialScrollBehavior().copyWith(
         dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
       ),
-      home: BlocProvider.value(
-        value: cubit,
-        child: Scaffold(
-          body: SwimlaneWorkspace(
-            debugLaneContentBuilder: (id) => id == LaneId.left
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: content,
-                    ),
-                  )
-                : const SizedBox.expand(),
+      home: BlocProvider<GlobalSettingCubit>(
+        create: (_) => GlobalSettingCubit(),
+        child: BlocProvider.value(
+          value: cubit,
+          child: Scaffold(
+            body: SwimlaneWorkspace(
+              debugLaneContentBuilder: (id) => id == LaneId.left
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: content,
+                      ),
+                    )
+                  : const SizedBox.expand(),
+            ),
           ),
         ),
       ),

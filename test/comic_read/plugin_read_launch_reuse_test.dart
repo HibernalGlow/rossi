@@ -18,6 +18,8 @@ import 'package:zephyr/page/download/adapters/download_chapter_matcher.dart';
 /// `Breeze-plugin-shenShiManHua` 的 `getReadSnapshot`（data.chapters），
 /// 以及 `rust/rquickjs_playground/tests/fixtures/breeze-plugin-example.bundle.cjs`。
 void main() {
+  // 这些用例会走到提示条（要 `WidgetsBinding.instance`），先把 binding 建起来。
+  TestWidgetsFlutterBinding.ensureInitialized();
   const from = 'plugin-uuid';
   const comicId = '10001';
 

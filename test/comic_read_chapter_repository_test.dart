@@ -69,7 +69,7 @@ void main() {
   });
 
   test('阅读器就绪时把当前章节写入已读', () async {
-    final service = ReaderHistoryService.instance;
+    final service = ReaderHistoryService();
     await service.loadHistory(
       source: 'src',
       comicId: 'c9',
@@ -95,7 +95,7 @@ void main() {
     );
     service.markLoaded();
     service.markCurrentChapterRead();
-    service.stop();
+    await service.stop();
 
     expect(
       ComicReadChapterRepository.instance.readChapterIds(
@@ -107,7 +107,7 @@ void main() {
   });
 
   test('周期保存通过 runAsync 写入历史', () async {
-    final service = ReaderHistoryService.instance;
+    final service = ReaderHistoryService();
     await service.loadHistory(
       source: 'src',
       comicId: 'c10',
@@ -146,7 +146,7 @@ void main() {
       expect(history, isNotNull);
       expect(history?.pageIndex, 4);
     } finally {
-      service.stop();
+      await service.stop();
     }
   });
 }

@@ -229,7 +229,9 @@ void main() {
     );
     await _pump(tester, tabs);
 
-    final close = find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.close);
+    // 标签上的关闭键由 vendored plat 的 `PlatTabChip` 画，是 Material `Icon`，
+    // 不是本仓自绘的 `GlyphIcon`。
+    final close = find.byIcon(Icons.close);
     expect(close, findsWidgets);
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer(location: Offset.zero);
@@ -475,7 +477,11 @@ void main() {
     await _pumpTuneMenuHost(tester, tabs);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: '开「标签显示」菜单时溢出过');
     expect(find.text(t.discover.tabShowIcon), findsOneWidget);
@@ -487,14 +493,22 @@ void main() {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '点「$label」之后抛了');
-      await tester.tap(find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders,
+        ),
+      );
       await tester.pumpAndSettle();
     }
     await tester.tapAt(const Offset(4, 4)); // 关掉菜单
     await tester.pumpAndSettle();
 
     for (final side in DiscoverTabBarSide.values) {
-      await tester.tap(find.byWidgetPredicate((w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders));
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is GlyphIcon && w.glyph == AppGlyphs.sliders,
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text(side.label).last);
       await tester.pumpAndSettle();

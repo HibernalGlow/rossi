@@ -4,6 +4,7 @@ import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/page/comic_info/json/normal/normal_comic_all_info.dart';
 import 'package:zephyr/page/comic_info/widgets/episode_download_controller.dart';
 import 'package:zephyr/page/comic_info/widgets/eps.dart';
+import 'package:zephyr/page/comic_info/widgets/episode_read_mark_controller.dart';
 import 'package:zephyr/page/download/models/download_chapter.dart';
 import 'package:zephyr/type/enum.dart';
 
@@ -16,7 +17,9 @@ void main() {
 
   Future<void> pumpRow(WidgetTester tester, {required bool isRead}) async {
     final controller = EpisodeDownloadController();
+    final readController = EpisodeReadMarkController();
     addTearDown(controller.dispose);
+    addTearDown(readController.dispose);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -30,6 +33,7 @@ void main() {
               images: [],
             ),
             controller: controller,
+            readController: readController,
             allInfo: null,
             epsLength: 1,
             type: ComicEntryType.normal,

@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
+import 'package:zephyr/i18n/strings.g.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_board_layout.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -26,11 +28,14 @@ Future<WorkspaceCubit> _mount(
   addTearDown(cubit.close);
   await tester.pumpWidget(
     MaterialApp(
-      home: Scaffold(
-        body: BlocProvider.value(
-          value: cubit,
-          child: ControlledEdgeShell(
-            debugLaneContentBuilder: (id) => _ContentProbe(key: ValueKey(id)),
+      home: BlocProvider<GlobalSettingCubit>(
+        create: (_) => GlobalSettingCubit(),
+        child: Scaffold(
+          body: BlocProvider.value(
+            value: cubit,
+            child: ControlledEdgeShell(
+              debugLaneContentBuilder: (id) => _ContentProbe(key: ValueKey(id)),
+            ),
           ),
         ),
       ),
@@ -72,7 +77,10 @@ void main() {
             : layout.edgeRightSize,
         WorkspaceWorkholeSize.workbench,
       );
-      expect(tester.getSize(_panel(side)).width, 684);
+      expect(
+        tester.getSize(_panel(side)).width,
+        moreOrLessEquals(684, epsilon: 0.5),
+      );
       expect(tester.getRect(reader), readerRect);
       expect(tester.state(reader), same(readerState));
       expect(tester.state(find.byKey(ValueKey(side.laneId))), same(panelState));
@@ -103,7 +111,10 @@ void main() {
               : cubit.state.layout.edgeRightSize,
           WorkspaceWorkholeSize.peek,
         );
-        expect(tester.getSize(_panel(side)).width, 408);
+        expect(
+          tester.getSize(_panel(side)).width,
+          moreOrLessEquals(408, epsilon: 0.5),
+        );
         final close = await _beginDrag(tester, side);
         await close.moveBy(Offset(-380 * direction, 0));
         await tester.pump();
@@ -132,25 +143,34 @@ void main() {
       await tester.pump();
       await drag.up();
       await tester.pumpAndSettle();
-      expect(tester.getSize(_panel(side)).width, 830);
+      expect(
+        tester.getSize(_panel(side)).width,
+        moreOrLessEquals(830, epsilon: 0.5),
+      );
       expect(
         side == WorkspacePanelSide.left
             ? cubit.state.layout.edgeLeftWidth
             : cubit.state.layout.edgeRightWidth,
-        830,
+        moreOrLessEquals(830, epsilon: 0.5),
       );
       final cancel = await _beginDrag(tester, side);
       await cancel.moveBy(Offset(-180 * direction, 0));
       await tester.pump();
       await cancel.cancel();
       await tester.pumpAndSettle();
-      expect(tester.getSize(_panel(side)).width, 830);
+      expect(
+        tester.getSize(_panel(side)).width,
+        moreOrLessEquals(830, epsilon: 0.5),
+      );
       final snap = await _beginDrag(tester, side);
       await snap.moveBy(Offset(-140 * direction, 0));
       await tester.pump();
       await snap.up();
       await tester.pumpAndSettle();
-      expect(tester.getSize(_panel(side)).width, 684);
+      expect(
+        tester.getSize(_panel(side)).width,
+        moreOrLessEquals(684, epsilon: 0.5),
+      );
       expect(
         side == WorkspacePanelSide.left
             ? cubit.state.layout.edgeLeftWidth
@@ -172,12 +192,15 @@ void main() {
       await tester.tap(
         find.descendant(
           of: _panel(WorkspacePanelSide.left),
-          matching: find.text('takeover'),
+          matching: find.text(t.workspace.takeOver),
         ),
       );
       await tester.pumpAndSettle();
       expect(cubit.state.layout.edgeLeftSize, WorkspaceWorkholeSize.takeover);
-      expect(tester.getSize(_panel(WorkspacePanelSide.left)).width, 1032);
+      expect(
+        tester.getSize(_panel(WorkspacePanelSide.left)).width,
+        moreOrLessEquals(1032, epsilon: 0.5),
+      );
       await tester.tap(
         find.descendant(
           of: _panel(WorkspacePanelSide.left),

@@ -33,9 +33,8 @@ void main() {
       const previewPath = String.fromEnvironment('IMAGE_PROCESSING_PREVIEW');
       if (previewPath.isNotEmpty) {
         await tester.runAsync(() async {
-          final data = await File(
-            'asset/fonts/LXGWWenKaiLite-Regular.ttf',
-          ).readAsBytes();
+          final data = await File('asset/fonts/LXGWWenKaiLite-Regular.ttf')
+              .readAsBytes();
           final loader = FontLoader('ProcessingPreview');
           loader.addFont(Future.value(data.buffer.asByteData()));
           await loader.load();
@@ -115,8 +114,15 @@ void main() {
       expect(find.text('安全留边'), findsOneWidget);
       expect(find.text('降噪分块大小'), findsOneWidget);
       expect(find.text('仅处理 JPEG 页面'), findsOneWidget);
-      expect(find.text('裁边示例'), findsOneWidget);
-      expect(find.text('降噪示例'), findsOneWidget);
+      // 示例卡片默认折叠，展开这两张卡后才会有内置的前后对比图。
+      await tester.ensureVisible(find.text('裁边预览'));
+      await tester.tap(find.text('裁边预览'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('降噪预览'));
+      await tester.tap(find.text('降噪预览'));
+      await tester.pumpAndSettle();
+      expect(find.text('裁边预览'), findsOneWidget);
+      expect(find.text('降噪预览'), findsOneWidget);
       expect(find.byType(Image), findsNWidgets(4));
       expect(find.textContaining('模型已安装'), findsOneWidget);
       expect(tester.takeException(), isNull);

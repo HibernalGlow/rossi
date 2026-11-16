@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/cubit/comic_read_preference_cubit.dart';
 import 'package:zephyr/page/comic_read/cubit/image_size_cubit.dart';
@@ -55,6 +56,7 @@ Future<ui.Image> _waitForImage(WidgetTester tester, int size) async {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   for (final isMounted in [true, false]) {
     testWidgets(isMounted ? '同路径超分完成后，当前页面立即显示新像素' : '同路径超分完成后，重新进入页面不复用旧图缓存', (
       tester,

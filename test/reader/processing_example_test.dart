@@ -58,13 +58,18 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final title = kind == ProcessingExampleKind.autoTrim ? '裁边示例' : '降噪示例';
-        expect(find.byType(Image), findsNWidgets(2));
-        expect(find.bySemanticsLabel(RegExp('$title.*点击查看大图')), findsOneWidget);
+        final title = kind == ProcessingExampleKind.autoTrim ? '裁边预览' : '降噪预览';
+        // 卡片默认折叠，展开后才渲染内置示例的两张图。
+        expect(find.byType(Image), findsNothing);
         await tester.tap(find.text(title));
         await tester.pumpAndSettle();
+        expect(find.byType(Image), findsNWidgets(2));
+        final enlarge = find.bySemanticsLabel(RegExp('$title.*点击查看大图'));
+        expect(enlarge, findsOneWidget);
+        await tester.tap(enlarge);
+        await tester.pumpAndSettle();
         expect(find.byType(Dialog), findsOneWidget);
-        expect(find.text(title), findsNWidgets(2));
+        expect(find.text('$title（示例）'), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.tap(find.byTooltip('关闭示例'));
         await tester.pumpAndSettle();

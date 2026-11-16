@@ -95,28 +95,44 @@ bool _itemEnabled(String title) {
 }
 
 void main() {
-  testWidgets('右键标签：四个方向 + 关闭都在', (tester) async {
+  testWidgets('横轨右键标签：只有左右两条方向 + 关闭', (tester) async {
+    // 菜单按轨的轴向裁项（`available: rail`）：横轨给左右，竖轨给上下。
+    // 另一轴的两条只是这一次不渲染，id 仍留在用户偏好里。
     final tabs = _tabs()
       ..open(label: '排行', source: 'p1', content: (c) => const SizedBox());
     await _pumpDiscover(tester, tabs);
-
     await _rightTap(tester, '排行');
-    for (final label in [
-      t.plat.openAbove,
-      t.plat.openBelow,
-      t.plat.openLeft,
-      t.plat.openRight,
-      t.plat.closeTab,
-    ]) {
-      expect(find.text(label), findsOneWidget, reason: '菜单里缺「$label」');
+    for (final label in [t.plat.openLeft, t.plat.openRight, t.plat.closeTab]) {
+      expect(find.text(label), findsOneWidget, reason: '横轨菜单里缺「$label」');
+    }
+    for (final label in [t.plat.openAbove, t.plat.openBelow]) {
+      expect(find.text(label), findsNothing, reason: '横轨不该画「$label」');
     }
     expect(tester.takeException(), isNull);
     tabs.dispose();
   });
 
-  testWidgets('横向档「在右侧打开」= 移动：分出第二格，且标签总数没变', (
-    tester,
-  ) async {
+  testWidgets('竖轨右键标签：只有上下两条方向 + 关闭', (tester) async {
+    final tabs = _tabs(side: DiscoverTabBarSide.left)
+      ..open(label: '排行', source: 'p1', content: (c) => const SizedBox());
+    await _pumpDiscover(
+      tester,
+      tabs,
+      setting: const DiscoverSettingState(tabSide: DiscoverTabBarSide.left),
+    );
+    expect(tabs.vertical, isTrue, reason: '这一档没转成竖轨，判据就是空的');
+    await _rightTap(tester, '排行');
+    for (final label in [t.plat.openAbove, t.plat.openBelow, t.plat.closeTab]) {
+      expect(find.text(label), findsOneWidget, reason: '竖轨菜单里缺「$label」');
+    }
+    for (final label in [t.plat.openLeft, t.plat.openRight]) {
+      expect(find.text(label), findsNothing, reason: '竖轨不该画「$label」');
+    }
+    expect(tester.takeException(), isNull);
+    tabs.dispose();
+  });
+
+  testWidgets('横向档「在右侧打开」= 移动：分出第二格，且标签总数没变', (tester) async {
     final tabs = _tabs()
       ..open(label: '排行', source: 'p1', content: (c) => const SizedBox());
     await _pumpDiscover(tester, tabs);
@@ -133,11 +149,7 @@ void main() {
       reason: '点了「在右侧打开」但树上没有 split',
     );
     // 复制的话这里会变成 before + 1。
-    expect(
-      tabs.tabs.length,
-      before,
-      reason: '换边打开是**移动**这一条标签，不是再复制一条',
-    );
+    expect(tabs.tabs.length, before, reason: '换边打开是**移动**这一条标签，不是再复制一条');
     expect(
       tabs.tabs.where((tab) => tab.title == '排行').length,
       1,
@@ -147,24 +159,46 @@ void main() {
     tabs.dispose();
   });
 
-  testWidgets('四个方向逐个分屏都不抛（每次从单组起）', (tester) async {
-    for (final label in [
-      t.plat.openAbove,
-      t.plat.openBelow,
-      t.plat.openLeft,
-      t.plat.openRight,
-    ]) {
-      final tabs = _tabs()
-        ..open(label: '最新', source: 'p1', content: (c) => const SizedBox());
-      await _pumpDiscover(tester, tabs);
-      await _rightTap(tester, '最新');
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: '「$label」之后抛了');
-      expect(tabs.controller.root, isA<SplitSnapshot>(), reason: '「$label」没分屏');
-      tabs.dispose();
-    }
-  });
+  for (final (name, side, labels)
+      in <(String, DiscoverTabBarSide, List<String>)>[
+        ('横轨', DiscoverTabBarSide.top, [t.plat.openLeft, t.plat.openRight]),
+        ('竖轨', DiscoverTabBarSide.left, [t.plat.openAbove, t.plat.openBelow]),
+      ]) {
+    testWidgets('$name两条方向逐个分屏都不抛（每次从单组起）', (tester) async {
+      for (final label in labels) {
+        final tabs = _tabs(side: side)
+          ..open(label: '最新', source: 'p1', content: (c) => const SizedBox());
+        await _pumpDiscover(
+          tester,
+          tabs,
+          setting: DiscoverSettingState(tabSide: side),
+        );
+        final before = tabs.tabs.length;
+        await _rightTap(tester, '最新');
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: '「$label」之后抛了');
+        if (side == DiscoverTabBarSide.top) {
+          // 横轨：这条标签移出去，单独成一格。
+          expect(
+            tabs.controller.root,
+            isA<SplitSnapshot>(),
+            reason: '「$label」没分屏',
+          );
+        } else {
+          // 竖轨：不出新窗格（新窗格会自带一根画在内容中间的轨），
+          // 而是在轨里这条的前后多开一条。
+          expect(
+            tabs.controller.root,
+            isA<TabGroupSnapshot>(),
+            reason: '「$label」在竖轨里切出了新窗格',
+          );
+          expect(tabs.tabs.length, before + 1, reason: '「$label」没在轨里多一条');
+        }
+        tabs.dispose();
+      }
+    });
+  }
 
   testWidgets('分屏出来的那一格仍然不卡：悬停 + 切标签', (tester) async {
     final tabs = _tabs()
@@ -186,34 +220,27 @@ void main() {
     tabs.dispose();
   });
 
-  testWidgets('格子不够宽：左右置灰，上下仍给点', (tester) async {
+  testWidgets('格子不够宽：左右置灰', (tester) async {
+    // 500 宽切两半各 250 < 单侧最小宽 280 ⇒ 左右不给点。
+    // 竖向轨的同一条判据（高度 < 2 × 单侧最小高）走的是同一个 `_fits`，
+    // 但组件测试里竖向那格的尺寸要等一次真实布局才记下来，这里不重复验。
     final tabs = _tabs()
       ..open(label: '排行', source: 'p1', content: (c) => const SizedBox());
-    // 500 宽、横向档：一格 500，切两半各 250 < 280 ⇒ 左右不给点；
-    // 高 600 切两半 300 ≥ 200 ⇒ 上下照给。
     await _pumpDiscover(tester, tabs, surface: const Size(500, 600));
     await _rightTap(tester, '排行');
-
     expect(_itemEnabled(t.plat.openLeft), isFalse, reason: '250 宽的一格摆得下个鬼');
     expect(_itemEnabled(t.plat.openRight), isFalse);
-    expect(_itemEnabled(t.plat.openAbove), isTrue);
-    expect(_itemEnabled(t.plat.openBelow), isTrue);
     expect(tester.takeException(), isNull);
     tabs.dispose();
   });
 
-  testWidgets('首页那条 locked：四个方向都置灰', (tester) async {
+  testWidgets('首页那条 locked：方向项都置灰', (tester) async {
     final tabs = _tabs()
       ..open(label: '排行', source: 'p1', content: (c) => const SizedBox());
     await _pumpDiscover(tester, tabs);
 
     await _rightTap(tester, '发现');
-    for (final label in [
-      t.plat.openAbove,
-      t.plat.openLeft,
-      t.plat.openRight,
-      t.plat.openBelow,
-    ]) {
+    for (final label in [t.plat.openLeft, t.plat.openRight]) {
       expect(_itemEnabled(label), isFalse, reason: '「$label」不该给 locked 那条');
     }
     // 关闭也不给（locked），所以菜单里连那一项都不该出现。
@@ -295,7 +322,8 @@ void main() {
     expect(controller.root, isA<TabGroupSnapshot>());
 
     await _rightTap(tester, 'A');
-    await tester.tap(find.text(t.plat.openBelow));
+    // 裸 PlatController 默认横轨，菜单里只有左右两条。
+    await tester.tap(find.text(t.plat.openRight));
     await tester.pumpAndSettle();
 
     expect(
@@ -312,9 +340,7 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('通用性：竖轨档在裸 PlatController 上也只在轨里开', (
-    tester,
-  ) async {
+  testWidgets('通用性：竖轨档在裸 PlatController 上也只在轨里开', (tester) async {
     final controller = PlatController(
       initialPlat: Plat.tabs(
         [
@@ -377,9 +403,7 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('竖轨档：右键只有「在上方 / 在下方」，点下方落在轨里', (
-    tester,
-  ) async {
+  testWidgets('竖轨档：右键只有「在上方 / 在下方」，点下方落在轨里', (tester) async {
     final tabs = _tabs(side: DiscoverTabBarSide.left)
       ..open(label: '排行', source: 'p1', content: (c) => const SizedBox());
     await _pumpDiscover(
@@ -409,9 +433,7 @@ void main() {
     tabs.dispose();
   });
 
-  testWidgets('朝向混了会自己修回来：竖轨状态下从外面切出一格', (
-    tester,
-  ) async {
+  testWidgets('朝向混了会自己修回来：竖轨状态下从外面切出一格', (tester) async {
     // plat 自己的 Cmd + \ 不归本应用管，它切出来的新组**永远**是横档（top）。
     // 竖轨 + 一根横条 = 那根横条按全页唯一的轨厚画，就成了用户看到的
     // 「半屏高的一条空标签条」。这里绕开菜单直接切，验宿主兜得住。
@@ -438,11 +460,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      tabs.sidesMixed,
-      isFalse,
-      reason: '混排没修回来：每一档的朝向应当跟着第一档走',
-    );
+    expect(tabs.sidesMixed, isFalse, reason: '混排没修回来：每一档的朝向应当跟着第一档走');
     expect(tester.takeException(), isNull);
     tabs.dispose();
   });
@@ -472,4 +490,3 @@ List<String> _leafTitles(PlatController controller) {
   walk(controller.root);
   return out;
 }
-

@@ -34,7 +34,9 @@ void main() {
             create: (_) => _TestComicFollowCubit(),
           ),
         ],
-        child: const MaterialApp(home: Scaffold(body: SettingsWidget())),
+        child: const MaterialApp(
+          home: Scaffold(body: SingleChildScrollView(child: SettingsWidget())),
+        ),
       ),
     );
     await tester.pump();
@@ -74,6 +76,11 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(find.text(t.settings.showSearchBookmark));
+    await tester.pumpAndSettle();
+    // Keep the row below the pinned settings app bar.
+    await tester.drag(find.byType(ListView).first, const Offset(0, 180));
+    await tester.pumpAndSettle();
     expect(find.text(t.settings.showSearchBookmark), findsOneWidget);
     await tester.tap(find.text(t.settings.showSearchBookmark));
     await tester.pump();
@@ -90,6 +97,12 @@ void main() {
       ),
     );
 
+    await tester.scrollUntilVisible(
+      find.text(t.searchBookmark.probePages),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
     expect(find.text(t.searchBookmark.probePages), findsOneWidget);
     cubit.setShowSearchBookmark(false);
     await tester.pump();

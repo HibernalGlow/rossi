@@ -50,6 +50,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/icons/icons.dart';
 import 'package:zephyr/workspace/breeze_workspace_page.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
 import 'package:zephyr/workspace/model/workspace_interaction_settings.dart';
 import 'package:zephyr/workspace/model/workspace_layout_config.dart';
@@ -121,7 +122,12 @@ Future<void> _openWorkspace(
   // 先把整棵树换成空 widget，**逼上一棵树整体卸载**：`pumpWidget` 之间
   // Element 会按类型复用，第二个用例里 `initState` 就不再执行了。
   await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pumpWidget(MaterialApp(home: _Launcher(store: store)));
+  await tester.pumpWidget(
+    BlocProvider<GlobalSettingCubit>(
+      create: (_) => GlobalSettingCubit(),
+      child: MaterialApp(home: _Launcher(store: store)),
+    ),
+  );
   await tester.tap(find.text('打开工作台'));
   await tester.pumpAndSettle();
 }
@@ -322,20 +328,23 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      BlocProvider<WorkspaceCubit>.value(
-        value: cubit,
-        child: MaterialApp(
-          home: Scaffold(
-            body: Stack(
-              children: [
-                const Positioned.fill(
-                  child: ColoredBox(color: Color(0xFF123456)),
-                ),
-                WorkspaceTopChromeReveal(
-                  onExit: () => exits++,
-                  onResetLayout: () {},
-                ),
-              ],
+      BlocProvider<GlobalSettingCubit>(
+        create: (_) => GlobalSettingCubit(),
+        child: BlocProvider<WorkspaceCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Stack(
+                children: [
+                  const Positioned.fill(
+                    child: ColoredBox(color: Color(0xFF123456)),
+                  ),
+                  WorkspaceTopChromeReveal(
+                    onExit: () => exits++,
+                    onResetLayout: () {},
+                  ),
+                ],
+              ),
             ),
           ),
         ),

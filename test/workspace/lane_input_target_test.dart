@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/util/input/reader_input_bridge.dart';
 import 'package:zephyr/util/input/reader_input_context.dart';
 import 'package:zephyr/workspace/cubit/workspace_cubit.dart';
@@ -49,14 +50,17 @@ Future<WorkspaceCubit> _mount(
     );
   await tester.pumpWidget(
     MaterialApp(
-      home: BlocProvider.value(
-        value: cubit,
-        child: Scaffold(
-          body: Focus(
-            autofocus: true,
-            onKeyEvent: (_, event) =>
-                ReaderInputBridge.instance.dispatch(event),
-            child: SwimlaneWorkspace(debugLaneContentBuilder: content),
+      home: BlocProvider<GlobalSettingCubit>(
+        create: (_) => GlobalSettingCubit(),
+        child: BlocProvider.value(
+          value: cubit,
+          child: Scaffold(
+            body: Focus(
+              autofocus: true,
+              onKeyEvent: (_, event) =>
+                  ReaderInputBridge.instance.dispatch(event),
+              child: SwimlaneWorkspace(debugLaneContentBuilder: content),
+            ),
           ),
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zephyr/config/global/global_setting.dart';
 import 'package:zephyr/i18n/strings.g.dart';
@@ -28,13 +29,15 @@ void main() {
 
   testWidgets('DoH 开关与端点增删', (tester) async {
     final cubit = await pumpPage(tester);
-    expect(cubit.state.dohSetting.enabled, isTrue);
+    // 上游 v3.0.38 起 DoH 默认关闭（deretame 72deec0d9「doh改为默认关闭」）。
+    expect(cubit.state.dohSetting.enabled, isFalse);
     expect(cubit.state.dohSetting.providers, defaultDohProviders);
     expect(find.text(t.settings.dohIpHint), findsOneWidget);
 
-    await tester.tap(find.byType(Switch).first);
+    // 设置行用的是 M3E 开关（setting_group.dart 从 SwitchListTile 迁过去之后再没换回来）。
+    await tester.tap(find.byType(M3ESwitch).first);
     await tester.pump();
-    expect(cubit.state.dohSetting.enabled, isFalse);
+    expect(cubit.state.dohSetting.enabled, isTrue);
 
     await tester.tap(find.byIcon(Icons.delete_outline).first);
     await tester.pump();
