@@ -1,5 +1,27 @@
 # 上游同步记录
 
+## mImageViewer v5.2.1 Rust 来源同步（2026-11-15）
+
+| 来源 | 原 gitlink | 新 gitlink |
+|---|---|---|
+| mImageViewer | `94017f82e6eb`（v4.8.1，2026-10-24） | `08cca1eca184`（`origin/main`，2026-11-15） |
+
+本轮更新 `vendor/mimageviewer` gitlink，并只吸收 Rossi 已有 Rust 核心消费者使用的上游实现：
+路径身份、旋转/UV、EXIF 朝向、局部调整 shape-mask 栅格化。`Rotation::default` 改为直接采用上游，
+EXIF 切片增选新 helper；`local-adjust-core` 通过 path 依赖更新，没有复制一份算法。
+
+功能审查后未把 mImageViewer 的整套桌面能力搬来：封面自动/手动裁切需要 cover identity、
+catalog migration、设置和 Flutter 调整界面；嵌套 ZIP 直开需要嵌套定位符与逐层展开预算；MCP/AI、
+3D、视频、Everything 搜索和 SNS 分割都没有当前 Rust 核心消费者。`folder_pane` 的上游状态机改版
+也需要新的 Flutter 滚动/显示生命周期 DTO，因此登记为兼容改写，保留后续复核入口。
+
+验证：`cargo test --manifest-path rust/Cargo.toml -p rossi_local_core --lib --test upstream_source_extraction`
+（517 + 5 passed）；`cargo test --manifest-path vendor/mimageviewer/crates/local-adjust-core/Cargo.toml`
+（275 passed，2 个基准忽略）；`cargo check --manifest-path rust/Cargo.toml -p windcore --lib` 通过。
+Windows 特有路径恢复尚未执行原生验证。逐项来源与差异见
+[`mimageviewer-reuse-audit.md`](mimageviewer-reuse-audit.md) 和
+[`mimageviewer-reuse-inventory.json`](mimageviewer-reuse-inventory.json)。
+
 ## Breeze v3.0.38 同步（2026-11-15）
 
 | 来源 | 先前内容基准 | 本次内容基准 |
@@ -66,16 +88,29 @@
   CBOR 解码；`plugin_init_coordinator_test`、`qjs_fetch_image_result_test` 通过。
 - 上游改了共享文案与默认值，本仓用例跟上游改：`reader.settings` 由「阅读设置」改为「阅读」、
   DoH 默认关闭（上游 `72deec0d9`）；Rossi 的「导出包含封面图」默认关，导出往返用例显式打开该档。
-- **仍红的两组**（都在合并前就与产品现状脱节，本轮只做了必要适配，未改产品行为）：
-  - `test/workspace/` 的 `lane_header_fit` / `lane_more_menu` / `swimlane_runtime` / `shelf_entry_context_menu`
-    等：渲染工作台时缺 `GlobalSettingCubit`（上下文菜单统一件要读它）、`WorkholePanel` 拖拽取消语义、
-    预览图 1.7–11 px 溢出、`SuperGrid` 取代 `GridView` 后的取点方式；
-  - `folder_shelf_cover_refresh_test`（展墙下的下拉刷新没读到新封面）与
-    `interactive_viewer_tap_steal_test`（Flutter 3.50 手势竞技场断言）。
-  这两组不是本轮合并引入的行为，但**会挡住下一轮把全量测试当门禁**，建议单独开一轮清账。
+- **合并后的清账**：`test/workspace/` 从 69 红到 0（658 项通过），`test/` 其余批次
+  1300+ 项只剩 1 条（见下）。清掉的两类根因都不是本轮合并引入的行为，但会挡住
+  「把全量测试当门禁」：
+  - 工作台组件在组件预览/单测里先于全局设置树构建，统一上下文菜单强读
+    `GlobalSettingCubit` 导致整条泳道栏头抛 `ProviderNotFoundException`（连带的
+    布局溢出把 30+ 用例带红）——已改成读不到就按出厂次序画；
+  - 预览出图的字体加载会经系统消息排一帧 relayout，消息晚于 `pumpAndSettle`
+    落地时会把 transient callback 留给测试收尾（Flutter 3.50 判失败）；
+  - 其余是文案/度量漂移（泳道折叠提示、`搜索页码或文件名...`、卡片头高度、
+    图片高度）、菜单按轨裁项、`SuperGrid` 取代 `GridView`、出图台演示框偏小。
+- 顺手修掉两处用户可感知的边界：工作孔拖动被系统打断时应**回退**而不是按当前位置
+  吸附（Flutter 的拖动识别器在已接受状态下把 `PointerCancel` 也报成 `onEnd`）；
+  迷你封面（< 28dp）上的画师/收藏角标整颗让位，不再画一条 1.7–11px 的溢出条。
+- **仍红 1 条**：`test/ocr/completed_page_e2e_test.dart`（真机装了 OCR 模型时才会真跑）。
+  一页 15 块里第 2 块（15.3×23.8px）成品页上没有墨点：按 `plan()` 的判据（宽高比
+  1.55 < `_tallAspect` 1.6）它走横排、下限 7px，7px 字在 9.3px 宽的可画区里应当可见，
+  实测该矩形亮度 145–255，说明这一段译文没画出来。属既有的窄气泡排版边界，
+  不是本轮合并引入，需要单独调 `translated_page_renderer` 的极窄框策略。
 - 未验证：Windows 安装器实机安装、Android/iOS 真机构建、真实站点插件抓取（本机无凭据）。
 - merge commit：`c66774fdfdb094da80e9d241777d3d0a99a18d2a`。
-
+- 恢复在途改动（Rossi 独立安装 / 数据迁移 + mImageViewer v5.2.1）之后重跑：`flutter analyze`
+  在 `lib/`、`test/`、`script/` 仍为零 error，`flutter build macos --release` 通过；
+  身份迁移、QJS 初始化、裁边、导出导入、起读快照、全屏记账、OCR 共 38 项定向用例通过。
 
 ## mImageViewer v4.8.1 同步（2026-10-25）
 
@@ -887,3 +922,11 @@ ReaderViewport 继续使用 Flutter AbstractLayoutBuilder 的约束、构造与�
 验证：141 项 widget 回归、239 条菜单/路径断言通过，本次涉及的 Dart 文件静态
 分析无问题。使用本机 Flutter 3.47.4 / Dart 3.13.3（仓库锁定 3.47.6）；
 尚未进行桌面应用的手动交互验收。
+
+
+## 2026-11-15：Rossi 独立安装标识与首启数据迁移
+
+为与上游 Breeze 并存，本仓各平台统一使用 `com.hibernalglow.rossi`，Windows/Linux 主程序改为 `rossi`。
+Dart 层沿用上游 `get_path.dart` 的移动目录布局与现有备份导入/导出，仅在桌面数据根解析和启动前增加薄迁移适配（`lib/service/app_identity/`）。
+上游没有 fork 改标识后的首启迁移实现；因此新层只负责发现旧目录、复制、摘要校验、试开数据库和一次性记录，不新增第二套备份格式。
+旧数据原样保留；Android/iOS 无跨沙盒读取权限时提示使用现有备份页。详见 `docs/app-identity-migration.md`。
