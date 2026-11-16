@@ -12,6 +12,18 @@ class FavoriteTagBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // 与画师角标同一档：迷你封面上可画宽度不足时整颗让位，不画溢出条。
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.hasBoundedWidth && constraints.maxWidth < 28) {
+          return const SizedBox.shrink();
+        }
+        return _badge(scheme);
+      },
+    );
+  }
+
+  Widget _badge(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(

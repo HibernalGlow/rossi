@@ -132,6 +132,20 @@ ContextMenuBuildResult buildContextMenuItems({
 
 /// 与 [buildContextMenuItems] 相同，但**项本身由调用方给**。
 ///
+/// 统一菜单的用户偏好。
+///
+/// 菜单是**通用件**：泳道栏头、卡片、页签都可能在「没有全局设置」的子树里先
+/// 被 build 出来（组件预览、单测、嵌入式泳道）。读不到就按出厂次序画，
+/// 别让整个栏头跟着抛 `ProviderNotFoundException` —— 偏好只是排序/显隐，
+/// 不是菜单能不能出现的前提。
+ContextMenuSettingState _contextMenuSettingOf(BuildContext context) {
+  try {
+    return context.read<GlobalSettingCubit>().state.contextMenuSetting;
+  } on ProviderNotFoundException {
+    return const ContextMenuSettingState();
+  }
+}
+
 /// 给泳道栏头那种「项里有子菜单 / 输入框，手写比映射更稳」的菜单做薄适配：
 /// 内容仍由它自己造，排序 / 显隐 / pin / 折叠走统一模型。
 ContextMenuBuildResult buildContextMenuItemsWith({
@@ -143,7 +157,7 @@ ContextMenuBuildResult buildContextMenuItemsWith({
   CommonPopupMenuItem Function(ContextMenuDefinition definition)?
   customizeItemBuilder,
 }) {
-  final settings = context.read<GlobalSettingCubit>().state.contextMenuSetting;
+  final settings = _contextMenuSettingOf(context);
   final plan = resolveContextMenu(
     definition: definition,
     layout: settings.scopes[definition.scope],

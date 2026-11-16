@@ -12,6 +12,19 @@ class FavoriteArtistBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // 盖在迷你封面（展墙小格子、空隙预览）上的角标放不下：内边距 10 + 心形 10
+    // 就已经超过可画宽度，硬画只会得到一条溢出条。这一档本来也读不出字，整颗让位。
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.hasBoundedWidth && constraints.maxWidth < 28) {
+          return const SizedBox.shrink();
+        }
+        return _badge(scheme);
+      },
+    );
+  }
+
+  Widget _badge(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(

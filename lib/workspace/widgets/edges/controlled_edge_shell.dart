@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -32,6 +33,9 @@ class _ControlledEdgeShellState extends State<ControlledEdgeShell> {
   WorkspacePanelSide? _draggingSide;
   double? _dragWidth;
   bool _dragStartedOpen = false;
+
+  /// 这一轮指针是不是以 `PointerCancel` 结束的（见 [Listener] 那处注释）。
+  bool _pointerCancelled = false;
 
   static const double _edgeInset = 18;
   static const double _verticalInset = 20;
@@ -187,26 +191,53 @@ class _ControlledEdgeShellState extends State<ControlledEdgeShell> {
       bottom: _verticalInset,
       width: 34,
       child: Center(
-        child: _WorkholeHandle(
-          side: side,
-          open: visible,
-          onTap: () => visible
-              ? cubit.setEdgeWorkholeOpen(side, false)
-              : cubit.setEdgeWorkholeSize(
-                  side,
-                  WorkspaceWorkholeSize.workbench,
-                ),
-          onDragStart: () => _startDrag(
-            side,
-            _isOpen(side, layout) ? width : 0,
-            _isOpen(side, layout),
+        child: Listener(
+          // 拖动识别器在**已接受**的拖动被 `PointerCancel` 打断时也走 onEnd
+          // （`didStopTrackingLastPointer` 不区分 cancel），而 Listener 的
+          // onPointerCancel 在同一轮事件里排在识别器之后。记一笔，收尾时再用。
+          onPointerDown: (_) => _pointerCancelled = false,
+          onPointerCancel: (_) => _pointerCancelled = true,
+          child: _WorkholeHandle(
+            side: side,
+            open: visible,
+            onTap: () => visible
+                ? cubit.setEdgeWorkholeOpen(side, false)
+                : cubit.setEdgeWorkholeSize(
+                    side,
+                    WorkspaceWorkholeSize.workbench,
+                  ),
+            onDragStart: () => _startDrag(
+              side,
+              _isOpen(side, layout) ? width : 0,
+              _isOpen(side, layout),
+            ),
+            onDragUpdate: (delta) => _updateDrag(side, delta, viewportWidth),
+            onDragEnd: () => _finishDragSoon(context, side, viewportWidth),
+            onDragCancel: _cancelDrag,
           ),
-          onDragUpdate: (delta) => _updateDrag(side, delta, viewportWidth),
-          onDragEnd: () => _finishDrag(context, side, viewportWidth),
-          onDragCancel: _cancelDrag,
         ),
       ),
     );
+  }
+
+  /// 收尾推迟一个 microtask：那样才能读到 [Listener] 记下的「被打断」。
+  ///
+  /// 被系统/别的识别器取消的拖动必须**回退**到拖动前的宽度，而不是按当前
+  /// 位置吸附（`_finishDrag` 的语义是「用户抬手了」）。
+  void _finishDragSoon(
+    BuildContext context,
+    WorkspacePanelSide side,
+    double viewportWidth,
+  ) {
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      if (_pointerCancelled) {
+        _pointerCancelled = false;
+        _cancelDrag();
+        return;
+      }
+      _finishDrag(context, side, viewportWidth);
+    });
   }
 
   void _cancelDrag() {
