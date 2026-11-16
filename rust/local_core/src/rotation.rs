@@ -1,12 +1,7 @@
 //! 直接复用 mImageViewer 旋转类型与 UV 几何函数切片（MIT）。
-//! 不引入其旋转数据库和 egui 布局；Rossi 只补 Default。
+//! 不引入其旋转数据库和 egui 布局；旋转类型及默认值直接采用上游定义。
 include!(concat!(env!("OUT_DIR"), "/rotation.rs"));
 include!(concat!(env!("OUT_DIR"), "/rotation_uv.rs"));
-impl Default for Rotation {
-    fn default() -> Self {
-        Self::None
-    }
-}
 
 #[cfg(test)]
 mod tests {

@@ -7,6 +7,33 @@
 > 其中的两个策略模块**不能用 path 依赖**，理由见下；文件浏览器使用的源码模块
 > 另列在第 2 节。
 
+## 2026-11-15 选择性同步到 mImageViewer main `08cca1eca184`
+
+子模块从 `94017f82e6eb`（v4.8.1，2026-10-24）更新到 `08cca1eca184`
+（`origin/main`，v5.2.1 发布线，2026-11-15）。这次更新让已经登记的源码切片与
+`local-adjust-core` path 依赖读取新上游；没有把 mImageViewer 桌面产品整套功能并入 Rossi。
+
+- `path_key` 直接采用了上游新增的 Windows 物理路径大小写恢复、父目录探测缓存和严格组件边界判断；
+  Unix 的盘符根识别仍由 Rossi 保持。
+- `Rotation` 的 `Default` 现在来自上游派生，删除本地重复实现；旋转数据库与页面旋转所有者 API 仍未接入。
+- EXIF 字节入口加入上游新增的 `read_exif_orientation_from_bytes_if_present`，避免切片漏掉
+  `read_exif_orientation_from_bytes` 的新依赖。
+- `local-adjust-core` path 依赖采用上游 shape-mask scanline 栅格化和点击像素优先检查；
+  `apply_layers` 接口未变，遮罩/图层计算继续只有上游一份函数体。
+- `folder_pane` 上游已改为缓存成员集、接受外部变化后的 recheck、显隐生命周期和游标滚动意图。
+  Rossi 的 Flutter bridge 通过旧快照 DTO 驱动 session-scoped 状态，没有传递 pane 生命周期与滚动意图；
+  因此它从逐行 `PORTS` 改列为 compatibility rewrite，并继续由能力台账在上游变更时提醒复核。
+
+**本轮未移植的新产品能力**：v5.2.0/v5.2.1 的手动与自动封面裁切需要 `CoverIdentity`、
+`AutoMaterial`、设置与缓存迁移；Rossi 当前缩略图使用多候选/四格目录封面，没有这些身份输入。
+嵌套 ZIP 直接打开与有界展开需要新的嵌套定位符和逐层预算；MCP/AI captions、3D、桌面搜索、
+视频时间轴及 SNS 分割不属于当前 Rust 核心消费者。以后要做封面裁切或嵌套归档，应作为完整功能
+接入设置、缓存身份和 Flutter 入口，不能只复制检测或读取函数。
+
+验证：`rossi_local_core` 517 项测试与源码抽取 5 项通过；上游 `local-adjust-core` 275 项通过，
+2 个 48MP 基准按设计忽略；`windcore --lib` 检查通过。Windows 专属路径恢复分支尚未在 Windows
+原生目标执行。
+
 ## 2026-10-13 直接源码接入与完整维护台账
 
 本轮将重复函数体改为直接引用：`filename_sort`、`auto_aspect` 用 `#[path]` 编译原文件；
@@ -16,7 +43,7 @@
 构建清单是 [`rust/local_core/upstream_sources.json`](../rust/local_core/upstream_sources.json)，
 不保存本地函数体副本，不要求构建机安装 Python。符号消失/重名会阻止编译。
 
-`PORTS` 现在有 **22 个来源绑定**（可包含同一本地文件的多个上游切片），不代表
+`PORTS` 现在有 **21 个来源绑定**（可包含同一本地文件的多个上游切片），不代表
 22 个完整后端模块。`path_key` 新增直接源码绑定与接口复核。能力分类、产品冲突、验证缺口及负责人
 统一见 [复用台账](mimageviewer-reuse-inventory.json) 和 [本轮审计](mimageviewer-reuse-audit.md)。
 

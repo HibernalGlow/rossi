@@ -1,5 +1,23 @@
 # mImageViewer Rust 后端复用审计与直接源码接入（2026-10-13）
 
+## 2026-11-15 增量复核
+
+当前子模块固定到 `08cca1eca184892f0256e5ec281d520c75941291`。对照 v4.8.1 后，Rust
+核心继续直接采用共享的路径身份、旋转/UV、EXIF 切片和局部调整 crate；其中 `path_key`
+新增的 Windows 物理路径拼写恢复会自动进入编译，旋转默认值改由上游派生，EXIF 切片补入
+可选朝向 helper，`local-adjust-core` 新增 scanline 遮罩栅格化并通过自身回归。
+
+上游的新特性按 Rossi 当前消费者筛选：封面自动/手动裁切关联封面身份、旋转后的取样、
+数据库 schema、用户设置和裁切 UI；嵌套 ZIP 直开关联嵌套 locator、缓存与展开预算。两者都不是
+只加一个纯函数就能完整启用的能力，所以本轮只记录候选，不产生无消费者的半接入代码。MCP、
+AI captions、3D、桌面搜索与视频呈现继续留在上游产品层。
+
+`folder_pane` 的 v5.1 pane 状态改版涉及 display lifecycle、游标滚动意图和外部变化重查。
+它当前通过 `FileManagerTreeSnapshot` 接入 Flutter，而 DTO 不含新的滚动/显隐事件；台账已将它
+标为 compatibility rewrite，下一轮若要采用，应先补 Flutter bridge 的状态契约。
+
+## 原审计记录
+
 本轮按“能用上游函数就移除本地重复实现”的要求处理。结果是混合架构：部分链路已直接编译上游源码，部分仍为必要适配，完整归档转换、缓存证明及整套 AI 执行链尚不能宣称已复用。
 
 ## 1. 审计基线与范围

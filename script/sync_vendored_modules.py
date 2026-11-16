@@ -48,7 +48,7 @@ PORTS = [
     {
         "upstream": "src/folder_tree.rs",
         "local": "rust/local_core/src/folder_tree.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # v4.1.0：上游把导航用的 bool 换成 NavigationArchivePolicy 三值枚举；
@@ -193,7 +193,7 @@ PORTS = [
     {
         "upstream": "src/fs_entry.rs",
         "local": "rust/local_core/src/fs_entry.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             (
@@ -220,7 +220,7 @@ PORTS = [
     {
         "upstream": "src/filename_sort.rs",
         "local": "rust/local_core/src/filename_sort.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [(r"\bpub\(crate\)", "pub")],
         "local_strip": [],
         "upstream_strip": [],
@@ -229,7 +229,7 @@ PORTS = [
     {
         "upstream": "src/fs_page_load_scheduler.rs",
         "local": "rust/local_core/src/page_load_scheduler.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -274,7 +274,7 @@ PORTS = [
     {
         "upstream": "src/app/prefetch_policy.rs",
         "local": "rust/local_core/src/prefetch_policy.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
         ],
@@ -296,7 +296,7 @@ PORTS = [
     {
         "upstream": "src/auto_aspect.rs",
         "local": "rust/local_core/src/auto_aspect.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             (r"\bpub\(crate\)", "pub"),
             # 偏离 2：测试里的行尾注释翻成中文（行尾带注释的行算代码行，不参与注释差异）。
@@ -313,7 +313,7 @@ PORTS = [
     {
         "upstream": "src/page_split.rs",
         "local": "rust/local_core/src/page_split.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             # 偏离 1: B3 几何解耦，替换 eframe::egui 为本地无依赖纯几何类型与别名
             (r"use eframe::egui;", "use egui_compat as egui;"),
@@ -340,7 +340,7 @@ PORTS = [
     {
         "upstream": "src/folder_pane.rs",
         "local": "rust/local_core/src/folder_pane.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             # 偏离 1：跨 crate 必须 pub。上游一律 pub(crate)。
             (r"\bpub\(crate\)", "pub"),
@@ -407,7 +407,7 @@ PORTS = [
     {
         "upstream": "src/search_query.rs",
         "local": "rust/local_core/src/search_query.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             (r"let chars: Vec<char> = query.chars\(\).collect\(\);", "let folded = crate::search_norm::normalize_for_match(query);\nlet chars: Vec<char> = folded.chars().collect();"),
             (r"let needle = raw.to_lowercase\(\);", "let needle = raw.to_owned();"),
@@ -423,7 +423,7 @@ PORTS = [
     {
         "upstream": "src/search_norm.rs",
         "local": "rust/local_core/src/search_norm.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             (r"s.to_lowercase\(\)", 'if s.is_ascii() { return s.to_ascii_lowercase(); } s.nfkc().collect::<String>().to_lowercase()'),
             (r"fn normalize_fullwidth_ascii_lowercases\(\) \{[\s\S]*?\n    \}", ""),
@@ -438,7 +438,7 @@ PORTS = [
     {
         "upstream": "src/margin_fit.rs",
         "local": "rust/local_core/src/margin_fit.rs",
-        "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606",
+        "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291",
         "upstream_normalize": [
             # 偏离 2: 上游测试用 egui::ColorImage 的结构体字面量（带 source_size: egui::vec2）。
             # 本仓替身 ColorImage 没有 source_size 字段（检测算法从不读它）⇒ 改成构造函数调用。
@@ -458,20 +458,27 @@ PORTS = [
     },
 ]
 
+# mIV 1.686/1.694 changed FolderPaneState into a display-participation and
+# cursor-scroll owner. Rossi's Flutter bridge drives a session-scoped tree and
+# its snapshot DTO does not carry those lifecycle/scroll intents, so this file
+# is tracked as a compatibility rewrite in the capability inventory instead
+# of being treated as a line-for-line source port.
+PORTS = [port for port in PORTS if port["upstream"] != "src/folder_pane.rs"]
+
 # 原文件引用与构建期源码切片：函数体只存在于 vendor，不再维护第二份。
 for port in PORTS:
     if port["upstream"] in {"src/filename_sort.rs", "src/auto_aspect.rs"}:
         port["binding"] = "path"
 PORTS.append({
     "upstream": "src/path_key.rs", "local": "rust/local_core/src/path_key.rs",
-    "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606", "upstream_normalize": [], "drop_lines": [],
+    "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291", "upstream_normalize": [], "drop_lines": [],
     "local_strip": [(r"pub fn is_drive_or_share_root\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", "")],
     "upstream_strip": [(r"pub fn is_drive_or_share_root\(path: &Path\) -> bool \{[\s\S]*?\n\}\n", "")],
 })
 SOURCE_SPECS = json.loads((REPO / "rust/local_core/upstream_sources.json").read_text(encoding="utf-8"))
 generated_locals = {spec["local"] for spec in SOURCE_SPECS}
 PORTS = [port for port in PORTS if port["local"] not in generated_locals]
-PORTS.extend({**spec, "pinned_at": "94017f82e6ebaa869a0ac13f5a63d9b15e710606", "binding": "generated"} for spec in SOURCE_SPECS)
+PORTS.extend({**spec, "pinned_at": "08cca1eca184892f0256e5ec281d520c75941291", "binding": "generated"} for spec in SOURCE_SPECS)
 
 
 def git(*args: str, text: bool = True):

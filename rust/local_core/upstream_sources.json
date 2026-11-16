@@ -139,7 +139,8 @@
       "fn read_exif_orientation_from_bytes",
       "fn orientation_from_rexif_entry",
       "fn orientation_from_text",
-      "fn apply_orientation"
+      "fn apply_orientation",
+      "fn read_exif_orientation_from_bytes_if_present"
     ],
     "public": [
       "fn read_exif_orientation_from_bytes"
