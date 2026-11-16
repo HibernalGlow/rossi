@@ -546,13 +546,18 @@ class _ScrollSpyScopeState<T> extends State<ScrollSpyScope<T>> {
     _scheduleCompute();
   }
 
-  void _scheduleCompute() {
+  bool _pendingSettled = false;
+
+  void _scheduleCompute({bool isSettled = false}) {
+    _pendingSettled = _pendingSettled || isSettled;
     if (_scheduled || !mounted) return;
     _scheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _scheduled = false;
       if (!mounted) return;
-      _computeNow(isSettled: false);
+      final settled = _pendingSettled;
+      _pendingSettled = false;
+      _computeNow(isSettled: settled);
     });
   }
 
@@ -590,6 +595,13 @@ class _ScrollSpyScopeState<T> extends State<ScrollSpyScope<T>> {
 
   void _computeNow({required bool isSettled}) {
     if (!mounted) return;
+    // NestedScrollView may emit scroll notifications while laying out its
+    // viewport. Read render sizes after layout has finished.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      _scheduleCompute(isSettled: isSettled);
+      return;
+    }
     final scopeBox = context.findRenderObject();
     if (scopeBox is! RenderBox || !scopeBox.hasSize) return;
 

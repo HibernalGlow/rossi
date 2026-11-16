@@ -107,12 +107,20 @@ dependencies:
   code_assets: ^2.0.0 # FFI: hooks/build.dart 使用的目标平台配置类型
   native_toolchain_rust: ^1.0.4 # FFI: Rust 构建工具
   hooks: ^2.1.0 # FFI: Dart 构建钩子
-  flutter_rust_bridge: ^2.10.0 # FFI: Flutter-Rust 桥接
+  flutter_rust_bridge: 2.12.0 # FFI: Flutter-Rust 桥接，与 Rust 侧精确锁定同版
   sentry_flutter: ^10.0.0 # 监控: 崩溃与异常上报
   vm_service: ^15.0.2 # 监控: 运行时内存监控
   worker_manager: ^7.2.9 # 并发: 全局 Isolate 任务池管理
   coreml_upscale: # MacOS/iOS 超分
     path: packages/coreml_upscale
+  # Rossi 扩展依赖：工作台/设置与发现页的表达式 UI、分栏布局和本地平台交互。
+  # 上游目前未提供同等 API；保留这些独有消费者使用的实现。
+  plat:
+    path: vendor/plat
+  scroll_spy:
+    path: vendor/scroll_spy
+  multi_split_view: ^3.6.2
+  material_3_expressive: ^1.1.6
   flutter_sticky_header: ^0.11.0 # UI: 分组吸顶组头
 
 dev_dependencies:

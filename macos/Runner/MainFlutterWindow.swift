@@ -2,6 +2,10 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
+  private var gpuPresentBridge: GpuPresentBridgeMac?
+  /// 必须持有：TranslationBridgeMac 的 channel handler 通过弱引用回调自身。
+  private var translationBridge: TranslationBridgeMac?
+
   /// 启动时是否已经隐藏过一次窗口。
   ///
   /// window_manager 0.7 起插件不再自带 macOS 原生代码（原来的

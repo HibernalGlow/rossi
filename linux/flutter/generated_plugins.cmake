@@ -7,11 +7,11 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
   file_selector_linux
   media_kit_libs_linux
-  media_kit_video
   objectbox_flutter_libs
   open_file_linux
   sentry_flutter
   url_launcher_linux
+  media_kit_video
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
