@@ -32,7 +32,10 @@ class _AppIdentityMigrationNoticeState
     if (dialogContext == null) return;
     identityMigrationNotice = null;
     final copied = notice['status'] == 'copied';
-    final failed = notice['status'] == 'error';
+    // incompatible：迁移副本是旧版 Breeze 的新结构，打不开，已改名让开。
+    // 对用户来说同样是「没能自动搬过来」，走备份导入那条路。
+    final failed =
+        notice['status'] == 'error' || notice['status'] == 'incompatible';
     final openBackup = await showDialog<bool>(
       context: dialogContext,
       builder: (context) => AlertDialog(

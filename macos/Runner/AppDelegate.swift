@@ -98,8 +98,12 @@ class AppDelegate: FlutterAppDelegate {
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
     if launchLockFD == -1 {
+      // 单实例锁必须跟着安装标识走：Breeze（com.zephyr.breeze）与 Rossi
+      // （com.hibernalglow.rossi）要能同时开着。写死旧目录时，任何一个实例在跑，
+      // 另一个就会静默 `NSApp.terminate`——rc=0、无输出、无日志，很像「启动崩溃」。
+      let identity = Bundle.main.bundleIdentifier ?? "com.hibernalglow.rossi"
       let lockPath = (NSHomeDirectory() as NSString)
-        .appendingPathComponent("Library/Application Support/Breeze/.launch.lock")
+        .appendingPathComponent("Library/Application Support/\(identity)/.launch.lock")
       let fileManager = FileManager.default
       let lockDir = (lockPath as NSString).deletingLastPathComponent
 

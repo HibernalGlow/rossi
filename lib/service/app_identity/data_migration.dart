@@ -126,6 +126,33 @@ class AppDataMigration {
     return record;
   }
 
+  /// 把打不开的迁移副本改名让开，让应用能全新开始。
+  ///
+  /// 只改名、不删除：旧应用目录里的原库本来就没被碰过，这份副本留给以后排查或
+  /// 换回旧版 Breeze 时使用。改名后写入 `incompatible` 记账，下次启动不再重试，
+  /// 也不会把同样的库再复制一遍。
+  Future<Map<String, dynamic>> quarantineDatabase(
+    Map<String, dynamic> record,
+    Object error,
+  ) async {
+    final db = Directory(p.join(destination.path, 'db', 'breeze_db'));
+    final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(
+      RegExp('[:.]'),
+      '',
+    );
+    if (await db.exists()) {
+      await db.rename('${db.path}.incompatible-$stamp');
+    }
+    final next = <String, dynamic>{
+      'status': 'incompatible',
+      if (record['source'] != null) 'source': record['source'],
+      'sourcePreserved': true,
+      'error': '$error',
+    };
+    await marker.writeAsString(jsonEncode(next), flush: true);
+    return next;
+  }
+
   static String _sourcePath(Map<String, String> roots, String relative) {
     final parts = p.split(relative);
     return p.joinAll([roots[parts.first]!, ...parts.skip(1)]);
