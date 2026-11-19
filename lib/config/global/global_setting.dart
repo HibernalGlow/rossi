@@ -362,6 +362,22 @@ abstract class CacheSettingState with _$CacheSettingState {
   const factory CacheSettingState({
     @Default(true) bool autoCleanCache,
     @Default(1073741824) int cacheSizeLimit,
+    // 启动时自动检查并清理缓存
+    @Default(true) bool autoCleanOnStartup,
+    // 图片处理缓存（reader_image_processing：超分与降噪）
+    @Default(true) bool autoCleanReaderImageProcessing,
+    // 图片处理缓存保留天数（0 表示不限时间，默认 7 天）
+    @Default(7) int readerImageProcessingMaxAgeDays,
+    // 图片处理缓存容量上限（0 表示不独立限制，默认 2GB = 2147483648）
+    @Default(2147483648) int readerImageProcessingSizeLimit,
+    // 漫画在线阅读页面缓存
+    @Default(true) bool autoCleanComicPages,
+    // 漫画页面缓存保留天数（0 表示不限时间，默认 30 天）
+    @Default(30) int comicPagesMaxAgeDays,
+    // 本地缩略图与目录缓存自动清理（默认关闭，因重算成本高）
+    @Default(false) bool autoCleanThumbnails,
+    // 视频海报缓存自动清理
+    @Default(true) bool autoCleanVideoPosters,
   }) = _CacheSettingState;
 
   factory CacheSettingState.fromJson(Map<String, dynamic> json) =>

@@ -281,17 +281,38 @@ const _$ChineseConvertModeEnumMap = {
   ChineseConvertMode.traditional: 'traditional',
 };
 
-_CacheSettingState _$CacheSettingStateFromJson(Map<String, dynamic> json) =>
-    _CacheSettingState(
-      autoCleanCache: json['autoCleanCache'] as bool? ?? true,
-      cacheSizeLimit: (json['cacheSizeLimit'] as num?)?.toInt() ?? 1073741824,
-    );
+_CacheSettingState _$CacheSettingStateFromJson(
+  Map<String, dynamic> json,
+) => _CacheSettingState(
+  autoCleanCache: json['autoCleanCache'] as bool? ?? true,
+  cacheSizeLimit: (json['cacheSizeLimit'] as num?)?.toInt() ?? 1073741824,
+  autoCleanOnStartup: json['autoCleanOnStartup'] as bool? ?? true,
+  autoCleanReaderImageProcessing:
+      json['autoCleanReaderImageProcessing'] as bool? ?? true,
+  readerImageProcessingMaxAgeDays:
+      (json['readerImageProcessingMaxAgeDays'] as num?)?.toInt() ?? 7,
+  readerImageProcessingSizeLimit:
+      (json['readerImageProcessingSizeLimit'] as num?)?.toInt() ?? 2147483648,
+  autoCleanComicPages: json['autoCleanComicPages'] as bool? ?? true,
+  comicPagesMaxAgeDays: (json['comicPagesMaxAgeDays'] as num?)?.toInt() ?? 30,
+  autoCleanThumbnails: json['autoCleanThumbnails'] as bool? ?? false,
+  autoCleanVideoPosters: json['autoCleanVideoPosters'] as bool? ?? true,
+);
 
-Map<String, dynamic> _$CacheSettingStateToJson(_CacheSettingState instance) =>
-    <String, dynamic>{
-      'autoCleanCache': instance.autoCleanCache,
-      'cacheSizeLimit': instance.cacheSizeLimit,
-    };
+Map<String, dynamic> _$CacheSettingStateToJson(
+  _CacheSettingState instance,
+) => <String, dynamic>{
+  'autoCleanCache': instance.autoCleanCache,
+  'cacheSizeLimit': instance.cacheSizeLimit,
+  'autoCleanOnStartup': instance.autoCleanOnStartup,
+  'autoCleanReaderImageProcessing': instance.autoCleanReaderImageProcessing,
+  'readerImageProcessingMaxAgeDays': instance.readerImageProcessingMaxAgeDays,
+  'readerImageProcessingSizeLimit': instance.readerImageProcessingSizeLimit,
+  'autoCleanComicPages': instance.autoCleanComicPages,
+  'comicPagesMaxAgeDays': instance.comicPagesMaxAgeDays,
+  'autoCleanThumbnails': instance.autoCleanThumbnails,
+  'autoCleanVideoPosters': instance.autoCleanVideoPosters,
+};
 
 _AppLockSettingState _$AppLockSettingStateFromJson(Map<String, dynamic> json) =>
     _AppLockSettingState(

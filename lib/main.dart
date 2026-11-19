@@ -439,6 +439,13 @@ Future<(GlobalSettingCubit, PluginRegistryCubit)> _initServices() async {
 
   if (globalSettingCubit.state.needCleanCache) {
     await clearCache(await getCachePath());
+    globalSettingCubit.updateState(
+      (current) => current.copyWith(needCleanCache: false),
+    );
+  } else if (globalSettingCubit.state.cacheSetting.autoCleanOnStartup) {
+    unawaited(
+      autoCleanExpiredAndExcessCaches(globalSettingCubit.state.cacheSetting),
+    );
   }
 
   applyProxySetting(globalSettingCubit.state.proxySetting);

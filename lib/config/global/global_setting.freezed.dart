@@ -874,7 +874,7 @@ $ContextMenuSettingStateCopyWith<$Res> get contextMenuSetting {
 /// @nodoc
 mixin _$CacheSettingState {
 
- bool get autoCleanCache; int get cacheSizeLimit;
+ bool get autoCleanCache; int get cacheSizeLimit; bool get autoCleanOnStartup; bool get autoCleanReaderImageProcessing; int get readerImageProcessingMaxAgeDays; int get readerImageProcessingSizeLimit; bool get autoCleanComicPages; int get comicPagesMaxAgeDays; bool get autoCleanThumbnails; bool get autoCleanVideoPosters;
 /// Create a copy of CacheSettingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -888,20 +888,20 @@ $CacheSettingStateCopyWith<CacheSettingState> get copyWith => _$CacheSettingStat
 @override
 bool operator ==(Object other) {
   final _this = this as CacheSettingState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CacheSettingState&&(identical(other.autoCleanCache, _this.autoCleanCache) || other.autoCleanCache == _this.autoCleanCache)&&(identical(other.cacheSizeLimit, _this.cacheSizeLimit) || other.cacheSizeLimit == _this.cacheSizeLimit));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CacheSettingState&&(identical(other.autoCleanCache, _this.autoCleanCache) || other.autoCleanCache == _this.autoCleanCache)&&(identical(other.cacheSizeLimit, _this.cacheSizeLimit) || other.cacheSizeLimit == _this.cacheSizeLimit)&&(identical(other.autoCleanOnStartup, _this.autoCleanOnStartup) || other.autoCleanOnStartup == _this.autoCleanOnStartup)&&(identical(other.autoCleanReaderImageProcessing, _this.autoCleanReaderImageProcessing) || other.autoCleanReaderImageProcessing == _this.autoCleanReaderImageProcessing)&&(identical(other.readerImageProcessingMaxAgeDays, _this.readerImageProcessingMaxAgeDays) || other.readerImageProcessingMaxAgeDays == _this.readerImageProcessingMaxAgeDays)&&(identical(other.readerImageProcessingSizeLimit, _this.readerImageProcessingSizeLimit) || other.readerImageProcessingSizeLimit == _this.readerImageProcessingSizeLimit)&&(identical(other.autoCleanComicPages, _this.autoCleanComicPages) || other.autoCleanComicPages == _this.autoCleanComicPages)&&(identical(other.comicPagesMaxAgeDays, _this.comicPagesMaxAgeDays) || other.comicPagesMaxAgeDays == _this.comicPagesMaxAgeDays)&&(identical(other.autoCleanThumbnails, _this.autoCleanThumbnails) || other.autoCleanThumbnails == _this.autoCleanThumbnails)&&(identical(other.autoCleanVideoPosters, _this.autoCleanVideoPosters) || other.autoCleanVideoPosters == _this.autoCleanVideoPosters));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as CacheSettingState;
-  return Object.hash(runtimeType,_this.autoCleanCache,_this.cacheSizeLimit);
+  return Object.hash(runtimeType,_this.autoCleanCache,_this.cacheSizeLimit,_this.autoCleanOnStartup,_this.autoCleanReaderImageProcessing,_this.readerImageProcessingMaxAgeDays,_this.readerImageProcessingSizeLimit,_this.autoCleanComicPages,_this.comicPagesMaxAgeDays,_this.autoCleanThumbnails,_this.autoCleanVideoPosters);
 }
 
 @override
 String toString() {
   final _this = this as CacheSettingState;
-  return 'CacheSettingState(autoCleanCache: ${_this.autoCleanCache}, cacheSizeLimit: ${_this.cacheSizeLimit})';
+  return 'CacheSettingState(autoCleanCache: ${_this.autoCleanCache}, cacheSizeLimit: ${_this.cacheSizeLimit}, autoCleanOnStartup: ${_this.autoCleanOnStartup}, autoCleanReaderImageProcessing: ${_this.autoCleanReaderImageProcessing}, readerImageProcessingMaxAgeDays: ${_this.readerImageProcessingMaxAgeDays}, readerImageProcessingSizeLimit: ${_this.readerImageProcessingSizeLimit}, autoCleanComicPages: ${_this.autoCleanComicPages}, comicPagesMaxAgeDays: ${_this.comicPagesMaxAgeDays}, autoCleanThumbnails: ${_this.autoCleanThumbnails}, autoCleanVideoPosters: ${_this.autoCleanVideoPosters})';
 }
 
 
@@ -912,7 +912,7 @@ abstract mixin class $CacheSettingStateCopyWith<$Res>  {
   factory $CacheSettingStateCopyWith(CacheSettingState value, $Res Function(CacheSettingState) _then) = _$CacheSettingStateCopyWithImpl;
 @useResult
 $Res call({
- bool autoCleanCache, int cacheSizeLimit
+ bool autoCleanCache, int cacheSizeLimit, bool autoCleanOnStartup, bool autoCleanReaderImageProcessing, int readerImageProcessingMaxAgeDays, int readerImageProcessingSizeLimit, bool autoCleanComicPages, int comicPagesMaxAgeDays, bool autoCleanThumbnails, bool autoCleanVideoPosters
 });
 
 
@@ -929,11 +929,19 @@ class _$CacheSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of CacheSettingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? autoCleanCache = null,Object? cacheSizeLimit = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? autoCleanCache = null,Object? cacheSizeLimit = null,Object? autoCleanOnStartup = null,Object? autoCleanReaderImageProcessing = null,Object? readerImageProcessingMaxAgeDays = null,Object? readerImageProcessingSizeLimit = null,Object? autoCleanComicPages = null,Object? comicPagesMaxAgeDays = null,Object? autoCleanThumbnails = null,Object? autoCleanVideoPosters = null,}) {
   return _then(CacheSettingState(
 autoCleanCache: null == autoCleanCache ? _self.autoCleanCache : autoCleanCache // ignore: cast_nullable_to_non_nullable
 as bool,cacheSizeLimit: null == cacheSizeLimit ? _self.cacheSizeLimit : cacheSizeLimit // ignore: cast_nullable_to_non_nullable
-as int,
+as int,autoCleanOnStartup: null == autoCleanOnStartup ? _self.autoCleanOnStartup : autoCleanOnStartup // ignore: cast_nullable_to_non_nullable
+as bool,autoCleanReaderImageProcessing: null == autoCleanReaderImageProcessing ? _self.autoCleanReaderImageProcessing : autoCleanReaderImageProcessing // ignore: cast_nullable_to_non_nullable
+as bool,readerImageProcessingMaxAgeDays: null == readerImageProcessingMaxAgeDays ? _self.readerImageProcessingMaxAgeDays : readerImageProcessingMaxAgeDays // ignore: cast_nullable_to_non_nullable
+as int,readerImageProcessingSizeLimit: null == readerImageProcessingSizeLimit ? _self.readerImageProcessingSizeLimit : readerImageProcessingSizeLimit // ignore: cast_nullable_to_non_nullable
+as int,autoCleanComicPages: null == autoCleanComicPages ? _self.autoCleanComicPages : autoCleanComicPages // ignore: cast_nullable_to_non_nullable
+as bool,comicPagesMaxAgeDays: null == comicPagesMaxAgeDays ? _self.comicPagesMaxAgeDays : comicPagesMaxAgeDays // ignore: cast_nullable_to_non_nullable
+as int,autoCleanThumbnails: null == autoCleanThumbnails ? _self.autoCleanThumbnails : autoCleanThumbnails // ignore: cast_nullable_to_non_nullable
+as bool,autoCleanVideoPosters: null == autoCleanVideoPosters ? _self.autoCleanVideoPosters : autoCleanVideoPosters // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -1018,10 +1026,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool autoCleanCache,  int cacheSizeLimit)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool autoCleanCache,  int cacheSizeLimit,  bool autoCleanOnStartup,  bool autoCleanReaderImageProcessing,  int readerImageProcessingMaxAgeDays,  int readerImageProcessingSizeLimit,  bool autoCleanComicPages,  int comicPagesMaxAgeDays,  bool autoCleanThumbnails,  bool autoCleanVideoPosters)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CacheSettingState() when $default != null:
-return $default(_that.autoCleanCache,_that.cacheSizeLimit);case _:
+return $default(_that.autoCleanCache,_that.cacheSizeLimit,_that.autoCleanOnStartup,_that.autoCleanReaderImageProcessing,_that.readerImageProcessingMaxAgeDays,_that.readerImageProcessingSizeLimit,_that.autoCleanComicPages,_that.comicPagesMaxAgeDays,_that.autoCleanThumbnails,_that.autoCleanVideoPosters);case _:
   return orElse();
 
 }
@@ -1039,10 +1047,10 @@ return $default(_that.autoCleanCache,_that.cacheSizeLimit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool autoCleanCache,  int cacheSizeLimit)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool autoCleanCache,  int cacheSizeLimit,  bool autoCleanOnStartup,  bool autoCleanReaderImageProcessing,  int readerImageProcessingMaxAgeDays,  int readerImageProcessingSizeLimit,  bool autoCleanComicPages,  int comicPagesMaxAgeDays,  bool autoCleanThumbnails,  bool autoCleanVideoPosters)  $default,) {final _that = this;
 switch (_that) {
 case _CacheSettingState():
-return $default(_that.autoCleanCache,_that.cacheSizeLimit);case _:
+return $default(_that.autoCleanCache,_that.cacheSizeLimit,_that.autoCleanOnStartup,_that.autoCleanReaderImageProcessing,_that.readerImageProcessingMaxAgeDays,_that.readerImageProcessingSizeLimit,_that.autoCleanComicPages,_that.comicPagesMaxAgeDays,_that.autoCleanThumbnails,_that.autoCleanVideoPosters);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1059,10 +1067,10 @@ return $default(_that.autoCleanCache,_that.cacheSizeLimit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool autoCleanCache,  int cacheSizeLimit)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool autoCleanCache,  int cacheSizeLimit,  bool autoCleanOnStartup,  bool autoCleanReaderImageProcessing,  int readerImageProcessingMaxAgeDays,  int readerImageProcessingSizeLimit,  bool autoCleanComicPages,  int comicPagesMaxAgeDays,  bool autoCleanThumbnails,  bool autoCleanVideoPosters)?  $default,) {final _that = this;
 switch (_that) {
 case _CacheSettingState() when $default != null:
-return $default(_that.autoCleanCache,_that.cacheSizeLimit);case _:
+return $default(_that.autoCleanCache,_that.cacheSizeLimit,_that.autoCleanOnStartup,_that.autoCleanReaderImageProcessing,_that.readerImageProcessingMaxAgeDays,_that.readerImageProcessingSizeLimit,_that.autoCleanComicPages,_that.comicPagesMaxAgeDays,_that.autoCleanThumbnails,_that.autoCleanVideoPosters);case _:
   return null;
 
 }
@@ -1074,11 +1082,19 @@ return $default(_that.autoCleanCache,_that.cacheSizeLimit);case _:
 @JsonSerializable()
 
 class _CacheSettingState implements CacheSettingState {
-  const _CacheSettingState({this.autoCleanCache = true, this.cacheSizeLimit = 1073741824});
+  const _CacheSettingState({this.autoCleanCache = true, this.cacheSizeLimit = 1073741824, this.autoCleanOnStartup = true, this.autoCleanReaderImageProcessing = true, this.readerImageProcessingMaxAgeDays = 7, this.readerImageProcessingSizeLimit = 2147483648, this.autoCleanComicPages = true, this.comicPagesMaxAgeDays = 30, this.autoCleanThumbnails = false, this.autoCleanVideoPosters = true});
   factory _CacheSettingState.fromJson(Map<String, dynamic> json) => _$CacheSettingStateFromJson(json);
 
 @override@JsonKey() final  bool autoCleanCache;
 @override@JsonKey() final  int cacheSizeLimit;
+@override@JsonKey() final  bool autoCleanOnStartup;
+@override@JsonKey() final  bool autoCleanReaderImageProcessing;
+@override@JsonKey() final  int readerImageProcessingMaxAgeDays;
+@override@JsonKey() final  int readerImageProcessingSizeLimit;
+@override@JsonKey() final  bool autoCleanComicPages;
+@override@JsonKey() final  int comicPagesMaxAgeDays;
+@override@JsonKey() final  bool autoCleanThumbnails;
+@override@JsonKey() final  bool autoCleanVideoPosters;
 
 /// Create a copy of CacheSettingState
 /// with the given fields replaced by the non-null parameter values.
@@ -1093,18 +1109,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CacheSettingState&&(identical(other.autoCleanCache, autoCleanCache) || other.autoCleanCache == autoCleanCache)&&(identical(other.cacheSizeLimit, cacheSizeLimit) || other.cacheSizeLimit == cacheSizeLimit));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CacheSettingState&&(identical(other.autoCleanCache, autoCleanCache) || other.autoCleanCache == autoCleanCache)&&(identical(other.cacheSizeLimit, cacheSizeLimit) || other.cacheSizeLimit == cacheSizeLimit)&&(identical(other.autoCleanOnStartup, autoCleanOnStartup) || other.autoCleanOnStartup == autoCleanOnStartup)&&(identical(other.autoCleanReaderImageProcessing, autoCleanReaderImageProcessing) || other.autoCleanReaderImageProcessing == autoCleanReaderImageProcessing)&&(identical(other.readerImageProcessingMaxAgeDays, readerImageProcessingMaxAgeDays) || other.readerImageProcessingMaxAgeDays == readerImageProcessingMaxAgeDays)&&(identical(other.readerImageProcessingSizeLimit, readerImageProcessingSizeLimit) || other.readerImageProcessingSizeLimit == readerImageProcessingSizeLimit)&&(identical(other.autoCleanComicPages, autoCleanComicPages) || other.autoCleanComicPages == autoCleanComicPages)&&(identical(other.comicPagesMaxAgeDays, comicPagesMaxAgeDays) || other.comicPagesMaxAgeDays == comicPagesMaxAgeDays)&&(identical(other.autoCleanThumbnails, autoCleanThumbnails) || other.autoCleanThumbnails == autoCleanThumbnails)&&(identical(other.autoCleanVideoPosters, autoCleanVideoPosters) || other.autoCleanVideoPosters == autoCleanVideoPosters));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,autoCleanCache,cacheSizeLimit);
+    return Object.hash(runtimeType,autoCleanCache,cacheSizeLimit,autoCleanOnStartup,autoCleanReaderImageProcessing,readerImageProcessingMaxAgeDays,readerImageProcessingSizeLimit,autoCleanComicPages,comicPagesMaxAgeDays,autoCleanThumbnails,autoCleanVideoPosters);
 }
 
 @override
 String toString() {
-    return 'CacheSettingState(autoCleanCache: $autoCleanCache, cacheSizeLimit: $cacheSizeLimit)';
+    return 'CacheSettingState(autoCleanCache: $autoCleanCache, cacheSizeLimit: $cacheSizeLimit, autoCleanOnStartup: $autoCleanOnStartup, autoCleanReaderImageProcessing: $autoCleanReaderImageProcessing, readerImageProcessingMaxAgeDays: $readerImageProcessingMaxAgeDays, readerImageProcessingSizeLimit: $readerImageProcessingSizeLimit, autoCleanComicPages: $autoCleanComicPages, comicPagesMaxAgeDays: $comicPagesMaxAgeDays, autoCleanThumbnails: $autoCleanThumbnails, autoCleanVideoPosters: $autoCleanVideoPosters)';
 }
 
 
@@ -1115,7 +1131,7 @@ abstract mixin class _$CacheSettingStateCopyWith<$Res> implements $CacheSettingS
   factory _$CacheSettingStateCopyWith(_CacheSettingState value, $Res Function(_CacheSettingState) _then) = __$CacheSettingStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool autoCleanCache, int cacheSizeLimit
+ bool autoCleanCache, int cacheSizeLimit, bool autoCleanOnStartup, bool autoCleanReaderImageProcessing, int readerImageProcessingMaxAgeDays, int readerImageProcessingSizeLimit, bool autoCleanComicPages, int comicPagesMaxAgeDays, bool autoCleanThumbnails, bool autoCleanVideoPosters
 });
 
 
@@ -1132,11 +1148,19 @@ class __$CacheSettingStateCopyWithImpl<$Res>
 
 /// Create a copy of CacheSettingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? autoCleanCache = null,Object? cacheSizeLimit = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? autoCleanCache = null,Object? cacheSizeLimit = null,Object? autoCleanOnStartup = null,Object? autoCleanReaderImageProcessing = null,Object? readerImageProcessingMaxAgeDays = null,Object? readerImageProcessingSizeLimit = null,Object? autoCleanComicPages = null,Object? comicPagesMaxAgeDays = null,Object? autoCleanThumbnails = null,Object? autoCleanVideoPosters = null,}) {
   return _then(_CacheSettingState(
 autoCleanCache: null == autoCleanCache ? _self.autoCleanCache : autoCleanCache // ignore: cast_nullable_to_non_nullable
 as bool,cacheSizeLimit: null == cacheSizeLimit ? _self.cacheSizeLimit : cacheSizeLimit // ignore: cast_nullable_to_non_nullable
-as int,
+as int,autoCleanOnStartup: null == autoCleanOnStartup ? _self.autoCleanOnStartup : autoCleanOnStartup // ignore: cast_nullable_to_non_nullable
+as bool,autoCleanReaderImageProcessing: null == autoCleanReaderImageProcessing ? _self.autoCleanReaderImageProcessing : autoCleanReaderImageProcessing // ignore: cast_nullable_to_non_nullable
+as bool,readerImageProcessingMaxAgeDays: null == readerImageProcessingMaxAgeDays ? _self.readerImageProcessingMaxAgeDays : readerImageProcessingMaxAgeDays // ignore: cast_nullable_to_non_nullable
+as int,readerImageProcessingSizeLimit: null == readerImageProcessingSizeLimit ? _self.readerImageProcessingSizeLimit : readerImageProcessingSizeLimit // ignore: cast_nullable_to_non_nullable
+as int,autoCleanComicPages: null == autoCleanComicPages ? _self.autoCleanComicPages : autoCleanComicPages // ignore: cast_nullable_to_non_nullable
+as bool,comicPagesMaxAgeDays: null == comicPagesMaxAgeDays ? _self.comicPagesMaxAgeDays : comicPagesMaxAgeDays // ignore: cast_nullable_to_non_nullable
+as int,autoCleanThumbnails: null == autoCleanThumbnails ? _self.autoCleanThumbnails : autoCleanThumbnails // ignore: cast_nullable_to_non_nullable
+as bool,autoCleanVideoPosters: null == autoCleanVideoPosters ? _self.autoCleanVideoPosters : autoCleanVideoPosters // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

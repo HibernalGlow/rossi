@@ -2055,6 +2055,39 @@ class _Translations$cache$en_US extends Translations$cache$zh_CN {
 	@override String get autoCleanSubtitle => 'Automatically clean old cache when exceeding limit';
 	@override String get calculating => 'Calculating...';
 	@override String get calculateFailed => 'Calculate failed';
+	@override String get totalCache => 'Total cache';
+	@override String get clearAll => 'Clear all';
+	@override String get categoryBreakdown => 'Cache breakdown';
+	@override String get readerImageProcessing => 'Image processing cache';
+	@override String get readerImageProcessingSubtitle => 'Enhanced images from super-resolution and denoise (reader_image_processing)';
+	@override String get clearReaderImageProcessingConfirm => 'Are you sure you want to clear image processing (super-resolution/denoise) cache?';
+	@override String get comicPages => 'Comic page cache';
+	@override String get comicPagesSubtitle => 'Chapter images cached during online reading';
+	@override String get clearComicPagesConfirm => 'Are you sure you want to clear online comic page cache? Downloaded comics will not be affected.';
+	@override String get thumbnailsAndCatalogs => 'Thumbnails & catalogs';
+	@override String get thumbnailsAndCatalogsSubtitle => 'Thumbnail cache and SQLite catalog database for local comics';
+	@override String get clearThumbnailsConfirm => 'Are you sure you want to clear thumbnail and catalog cache? They will be regenerated when browsing.';
+	@override String get videoPosters => 'Video posters';
+	@override String get videoPostersSubtitle => 'Extracted poster thumbnails for local video files';
+	@override String get clearVideoPostersConfirm => 'Are you sure you want to clear all video poster caches?';
+	@override String get autoCleanSettings => 'Auto-clean settings';
+	@override String get autoCleanOnStartup => 'Auto-clean on startup';
+	@override String get autoCleanOnStartupSubtitle => 'Automatically check and clean expired or excess cache when starting the app';
+	@override String get readerImageProcessingAutoClean => 'Image processing auto-clean';
+	@override String get readerImageProcessingAutoCleanSubtitle => 'Automatically clean reader_image_processing super-resolution and denoise cache';
+	@override String get maxAge => 'Retention period';
+	@override String get maxAgeSubtitle => 'Cache files older than specified days will be cleaned automatically';
+	@override String get sizeLimitReaderImage => 'Size limit';
+	@override String get sizeLimitReaderImageSubtitle => 'Oldest files will be cleaned when image processing cache exceeds this limit';
+	@override String get comicPagesAutoClean => 'Comic page auto-clean';
+	@override String get comicPagesAutoCleanSubtitle => 'Automatically clean expired online reading page cache';
+	@override String get comicPagesMaxAgeSubtitle => 'Online comic page cache older than specified days will be cleaned automatically';
+	@override String get thumbnailsAutoClean => 'Thumbnails auto-clean';
+	@override String get thumbnailsAutoCleanSubtitle => 'Automatically clean local thumbnails and catalog databases (disabled by default due to regeneration cost)';
+	@override String get videoPostersAutoClean => 'Video posters auto-clean';
+	@override String get videoPostersAutoCleanSubtitle => 'Automatically clean video poster thumbnails older than 7 days';
+	@override String days({required Object days}) => '${days} days';
+	@override String get unlimited => 'Unlimited';
 }
 
 // Path: dataBackup
@@ -6054,6 +6087,39 @@ extension on TranslationsEnUs {
 			'cache.autoCleanSubtitle' => 'Automatically clean old cache when exceeding limit',
 			'cache.calculating' => 'Calculating...',
 			'cache.calculateFailed' => 'Calculate failed',
+			'cache.totalCache' => 'Total cache',
+			'cache.clearAll' => 'Clear all',
+			'cache.categoryBreakdown' => 'Cache breakdown',
+			'cache.readerImageProcessing' => 'Image processing cache',
+			'cache.readerImageProcessingSubtitle' => 'Enhanced images from super-resolution and denoise (reader_image_processing)',
+			'cache.clearReaderImageProcessingConfirm' => 'Are you sure you want to clear image processing (super-resolution/denoise) cache?',
+			'cache.comicPages' => 'Comic page cache',
+			'cache.comicPagesSubtitle' => 'Chapter images cached during online reading',
+			'cache.clearComicPagesConfirm' => 'Are you sure you want to clear online comic page cache? Downloaded comics will not be affected.',
+			'cache.thumbnailsAndCatalogs' => 'Thumbnails & catalogs',
+			'cache.thumbnailsAndCatalogsSubtitle' => 'Thumbnail cache and SQLite catalog database for local comics',
+			'cache.clearThumbnailsConfirm' => 'Are you sure you want to clear thumbnail and catalog cache? They will be regenerated when browsing.',
+			'cache.videoPosters' => 'Video posters',
+			'cache.videoPostersSubtitle' => 'Extracted poster thumbnails for local video files',
+			'cache.clearVideoPostersConfirm' => 'Are you sure you want to clear all video poster caches?',
+			'cache.autoCleanSettings' => 'Auto-clean settings',
+			'cache.autoCleanOnStartup' => 'Auto-clean on startup',
+			'cache.autoCleanOnStartupSubtitle' => 'Automatically check and clean expired or excess cache when starting the app',
+			'cache.readerImageProcessingAutoClean' => 'Image processing auto-clean',
+			'cache.readerImageProcessingAutoCleanSubtitle' => 'Automatically clean reader_image_processing super-resolution and denoise cache',
+			'cache.maxAge' => 'Retention period',
+			'cache.maxAgeSubtitle' => 'Cache files older than specified days will be cleaned automatically',
+			'cache.sizeLimitReaderImage' => 'Size limit',
+			'cache.sizeLimitReaderImageSubtitle' => 'Oldest files will be cleaned when image processing cache exceeds this limit',
+			'cache.comicPagesAutoClean' => 'Comic page auto-clean',
+			'cache.comicPagesAutoCleanSubtitle' => 'Automatically clean expired online reading page cache',
+			'cache.comicPagesMaxAgeSubtitle' => 'Online comic page cache older than specified days will be cleaned automatically',
+			'cache.thumbnailsAutoClean' => 'Thumbnails auto-clean',
+			'cache.thumbnailsAutoCleanSubtitle' => 'Automatically clean local thumbnails and catalog databases (disabled by default due to regeneration cost)',
+			'cache.videoPostersAutoClean' => 'Video posters auto-clean',
+			'cache.videoPostersAutoCleanSubtitle' => 'Automatically clean video poster thumbnails older than 7 days',
+			'cache.days' => ({required Object days}) => '${days} days',
+			'cache.unlimited' => 'Unlimited',
 			'dataBackup.title' => 'Local Import/Export',
 			'dataBackup.exportSection' => 'Export',
 			'dataBackup.importSection' => 'Import',
@@ -6224,6 +6290,8 @@ extension on TranslationsEnUs {
 			'realSr.hardwareAcceleration' => 'Hardware acceleration',
 			'realSr.upscaleEngine' => 'Upscale engine',
 			'realSr.preUpscaleHint' => 'One page at a time to avoid memory contention; set both to 0 to disable pre-upscaling.',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.pageCount' => ({required Object n}) => '${n} pages',
 			'realSr.preUpscaleCurrentFirst' => 'Pre-upscale (current page first)',
 			'realSr.enableTta' => 'Enable TTA',
@@ -6257,8 +6325,6 @@ extension on TranslationsEnUs {
 			'realSr.exampleBuiltinHint' => 'No page is being read, so the built-in sample is shown; open a comic and expand again to see the current page.',
 			'realSr.exampleSemantics' => ({required Object title, required Object before, required Object after, required Object description}) => '${title} sample. ${before} compared with ${after}. Tap to view full size. ${description}',
 			'realSr.exampleTitleSuffix' => ({required Object title}) => '${title} (sample)',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.exampleLiveSource' => 'Taken from the page you are reading; released as soon as the preview closes.',
 			'realSr.beforeUnchanged' => ({required Object before}) => '${before} (kept as-is)',
 			'realSr.beforeTrimmedShadow' => ({required Object before}) => '${before} (shaded area is what gets trimmed)',
@@ -6738,6 +6804,8 @@ extension on TranslationsEnUs {
 			'download.cancelTask' => 'Cancel Task',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => 'Cancel download of ${comicName}?',
 			'download.paused' => 'Paused',
+			_ => null,
+		} ?? switch (path) {
 			'download.completed' => 'Completed',
 			'download.failed' => 'Failed',
 			'download.startAll' => 'Start all',
@@ -6771,8 +6839,6 @@ extension on TranslationsEnUs {
 			'download.optionLatest' => ({required Object count}) => 'Latest ${count} chapters',
 			'download.optionLatestSubtitle' => 'The newest chapters by chapter order',
 			'download.optionPicker' => 'Pick chapters',
-			_ => null,
-		} ?? switch (path) {
 			'download.optionPickerPlain' => 'Tick chapters one by one',
 			'download.optionSkipHint' => 'Whole book and latest-N skip chapters already on disk',
 			'download.filterAll' => 'All',
@@ -7252,6 +7318,8 @@ extension on TranslationsEnUs {
 			'workspace.keepReading' => 'Continue reading',
 			'workspace.sortingTimelineFixed' => 'Sorting (the timeline always sorts by time)',
 			'workspace.sortMode' => 'Sort mode',
+			_ => null,
+		} ?? switch (path) {
 			'workspace.emphasiseByTagWeights' => 'Emphasises content using your custom tag weights.',
 			'workspace.areaByDiskUsage' => 'Allocates display area by how much disk space each entry takes.',
 			'workspace.timelineByDay' => 'Timeline by day',
@@ -7285,8 +7353,6 @@ extension on TranslationsEnUs {
 			'workspace.shortSat' => 'Sat',
 			'workspace.shortFri' => 'Fri',
 			'workspace.shortThu' => 'Thu',
-			_ => null,
-		} ?? switch (path) {
 			'workspace.shortWed' => 'Wed',
 			'workspace.shortTue' => 'Tue',
 			'workspace.shortMon' => 'Mon',
@@ -7766,6 +7832,8 @@ extension on TranslationsEnUs {
 			'video.hwDecode' => 'Hardware decoding',
 			'video.hwDecodeDesc' => 'Turn off to work around green/torn frames, at the cost of CPU',
 			'video.deinterlace' => 'Deinterlace',
+			_ => null,
+		} ?? switch (path) {
 			'video.deinterlaceDesc' => 'Enable for interlaced DVD / tape sources with combing',
 			'video.integrateBottomBar' => 'Integrate video controls into bottom bar',
 			'video.integrateBottomBarDesc' => 'Show playback progress and video controls inside the reader bottom bar',
@@ -7799,8 +7867,6 @@ extension on TranslationsEnUs {
 			'video.avDrift' => 'A/V drift',
 			'video.loopMode' => 'Loop',
 			'video.playbackRate' => 'Rate',
-			_ => null,
-		} ?? switch (path) {
 			'video.abRange' => 'A-B',
 			'video.sidecarSubtitles' => 'External subtitles',
 			'video.notAvailable' => '—',

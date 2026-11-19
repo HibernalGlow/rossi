@@ -5748,6 +5748,105 @@ class Translations$cache$zh_CN {
 
 	/// zh-CN: '计算失败'
 	String get calculateFailed => '计算失败';
+
+	/// zh-CN: '总体缓存'
+	String get totalCache => '总体缓存';
+
+	/// zh-CN: '全部清理'
+	String get clearAll => '全部清理';
+
+	/// zh-CN: '缓存分类占用'
+	String get categoryBreakdown => '缓存分类占用';
+
+	/// zh-CN: '图片处理缓存'
+	String get readerImageProcessing => '图片处理缓存';
+
+	/// zh-CN: '超分与降噪处理生成的增强图片 (reader_image_processing)'
+	String get readerImageProcessingSubtitle => '超分与降噪处理生成的增强图片 (reader_image_processing)';
+
+	/// zh-CN: '确定要清理所有图片处理（超分/降噪）缓存吗？'
+	String get clearReaderImageProcessingConfirm => '确定要清理所有图片处理（超分/降噪）缓存吗？';
+
+	/// zh-CN: '漫画页面缓存'
+	String get comicPages => '漫画页面缓存';
+
+	/// zh-CN: '在线浏览时缓存的章节漫画图片'
+	String get comicPagesSubtitle => '在线浏览时缓存的章节漫画图片';
+
+	/// zh-CN: '确定要清理所有在线浏览的漫画页面缓存吗？已下载的漫画不会受影响。'
+	String get clearComicPagesConfirm => '确定要清理所有在线浏览的漫画页面缓存吗？已下载的漫画不会受影响。';
+
+	/// zh-CN: '缩略图与目录数据库'
+	String get thumbnailsAndCatalogs => '缩略图与目录数据库';
+
+	/// zh-CN: '本地漫画的缩略图缓存与 SQLite 目录索引'
+	String get thumbnailsAndCatalogsSubtitle => '本地漫画的缩略图缓存与 SQLite 目录索引';
+
+	/// zh-CN: '确定要清理缩略图与目录缓存吗？清理后浏览本地漫画时将重新生成。'
+	String get clearThumbnailsConfirm => '确定要清理缩略图与目录缓存吗？清理后浏览本地漫画时将重新生成。';
+
+	/// zh-CN: '视频封面海报'
+	String get videoPosters => '视频封面海报';
+
+	/// zh-CN: '本地视频文件的封面提取缓存'
+	String get videoPostersSubtitle => '本地视频文件的封面提取缓存';
+
+	/// zh-CN: '确定要清理所有视频封面海报缓存吗？'
+	String get clearVideoPostersConfirm => '确定要清理所有视频封面海报缓存吗？';
+
+	/// zh-CN: '自动清理设置'
+	String get autoCleanSettings => '自动清理设置';
+
+	/// zh-CN: '启动时自动检查与清理'
+	String get autoCleanOnStartup => '启动时自动检查与清理';
+
+	/// zh-CN: '每次应用启动时自动检查并清理过期或超额缓存'
+	String get autoCleanOnStartupSubtitle => '每次应用启动时自动检查并清理过期或超额缓存';
+
+	/// zh-CN: '图片处理缓存自动清理'
+	String get readerImageProcessingAutoClean => '图片处理缓存自动清理';
+
+	/// zh-CN: '自动清理 reader_image_processing 超分与降噪图片'
+	String get readerImageProcessingAutoCleanSubtitle => '自动清理 reader_image_processing 超分与降噪图片';
+
+	/// zh-CN: '保留时间'
+	String get maxAge => '保留时间';
+
+	/// zh-CN: '超过指定天数的缓存文件将被自动清理'
+	String get maxAgeSubtitle => '超过指定天数的缓存文件将被自动清理';
+
+	/// zh-CN: '容量上限'
+	String get sizeLimitReaderImage => '容量上限';
+
+	/// zh-CN: '图片处理缓存超过此上限时优先清理最旧文件'
+	String get sizeLimitReaderImageSubtitle => '图片处理缓存超过此上限时优先清理最旧文件';
+
+	/// zh-CN: '漫画浏览缓存自动清理'
+	String get comicPagesAutoClean => '漫画浏览缓存自动清理';
+
+	/// zh-CN: '自动清理在线阅读过期的页面缓存'
+	String get comicPagesAutoCleanSubtitle => '自动清理在线阅读过期的页面缓存';
+
+	/// zh-CN: '超过指定天数的在线漫画页面缓存将被自动清理'
+	String get comicPagesMaxAgeSubtitle => '超过指定天数的在线漫画页面缓存将被自动清理';
+
+	/// zh-CN: '缩略图缓存自动清理'
+	String get thumbnailsAutoClean => '缩略图缓存自动清理';
+
+	/// zh-CN: '自动清理本地缩略图与目录数据库（默认关闭，因重算成本高）'
+	String get thumbnailsAutoCleanSubtitle => '自动清理本地缩略图与目录数据库（默认关闭，因重算成本高）';
+
+	/// zh-CN: '视频海报自动清理'
+	String get videoPostersAutoClean => '视频海报自动清理';
+
+	/// zh-CN: '自动清理超过 7 天未使用的视频封面海报'
+	String get videoPostersAutoCleanSubtitle => '自动清理超过 7 天未使用的视频封面海报';
+
+	/// zh-CN: '$days 天'
+	String days({required Object days}) => '${days} 天';
+
+	/// zh-CN: '不限制'
+	String get unlimited => '不限制';
 }
 
 // Path: dataBackup
@@ -13465,6 +13564,39 @@ extension on Translations {
 			'cache.autoCleanSubtitle' => '关闭后将不再自动清理任何缓存',
 			'cache.calculating' => '计算中...',
 			'cache.calculateFailed' => '计算失败',
+			'cache.totalCache' => '总体缓存',
+			'cache.clearAll' => '全部清理',
+			'cache.categoryBreakdown' => '缓存分类占用',
+			'cache.readerImageProcessing' => '图片处理缓存',
+			'cache.readerImageProcessingSubtitle' => '超分与降噪处理生成的增强图片 (reader_image_processing)',
+			'cache.clearReaderImageProcessingConfirm' => '确定要清理所有图片处理（超分/降噪）缓存吗？',
+			'cache.comicPages' => '漫画页面缓存',
+			'cache.comicPagesSubtitle' => '在线浏览时缓存的章节漫画图片',
+			'cache.clearComicPagesConfirm' => '确定要清理所有在线浏览的漫画页面缓存吗？已下载的漫画不会受影响。',
+			'cache.thumbnailsAndCatalogs' => '缩略图与目录数据库',
+			'cache.thumbnailsAndCatalogsSubtitle' => '本地漫画的缩略图缓存与 SQLite 目录索引',
+			'cache.clearThumbnailsConfirm' => '确定要清理缩略图与目录缓存吗？清理后浏览本地漫画时将重新生成。',
+			'cache.videoPosters' => '视频封面海报',
+			'cache.videoPostersSubtitle' => '本地视频文件的封面提取缓存',
+			'cache.clearVideoPostersConfirm' => '确定要清理所有视频封面海报缓存吗？',
+			'cache.autoCleanSettings' => '自动清理设置',
+			'cache.autoCleanOnStartup' => '启动时自动检查与清理',
+			'cache.autoCleanOnStartupSubtitle' => '每次应用启动时自动检查并清理过期或超额缓存',
+			'cache.readerImageProcessingAutoClean' => '图片处理缓存自动清理',
+			'cache.readerImageProcessingAutoCleanSubtitle' => '自动清理 reader_image_processing 超分与降噪图片',
+			'cache.maxAge' => '保留时间',
+			'cache.maxAgeSubtitle' => '超过指定天数的缓存文件将被自动清理',
+			'cache.sizeLimitReaderImage' => '容量上限',
+			'cache.sizeLimitReaderImageSubtitle' => '图片处理缓存超过此上限时优先清理最旧文件',
+			'cache.comicPagesAutoClean' => '漫画浏览缓存自动清理',
+			'cache.comicPagesAutoCleanSubtitle' => '自动清理在线阅读过期的页面缓存',
+			'cache.comicPagesMaxAgeSubtitle' => '超过指定天数的在线漫画页面缓存将被自动清理',
+			'cache.thumbnailsAutoClean' => '缩略图缓存自动清理',
+			'cache.thumbnailsAutoCleanSubtitle' => '自动清理本地缩略图与目录数据库（默认关闭，因重算成本高）',
+			'cache.videoPostersAutoClean' => '视频海报自动清理',
+			'cache.videoPostersAutoCleanSubtitle' => '自动清理超过 7 天未使用的视频封面海报',
+			'cache.days' => ({required Object days}) => '${days} 天',
+			'cache.unlimited' => '不限制',
 			'dataBackup.title' => '本地导入/导出',
 			'dataBackup.exportSection' => '导出',
 			'dataBackup.importSection' => '导入',
@@ -13635,6 +13767,8 @@ extension on Translations {
 			'realSr.hardwareAcceleration' => '硬件加速',
 			'realSr.upscaleEngine' => '超分引擎',
 			'realSr.preUpscaleHint' => '一次处理一页，避免争抢内存；都设为 0 可关闭预超分。',
+			_ => null,
+		} ?? switch (path) {
 			'realSr.pageCount' => ({required Object n}) => '${n} 页',
 			'realSr.preUpscaleCurrentFirst' => '预超分（当前页优先）',
 			'realSr.enableTta' => '启用 TTA 增强',
@@ -13668,8 +13802,6 @@ extension on Translations {
 			'realSr.exampleBuiltinHint' => '没有正在阅读的页面，以下为内置示例；打开漫画后再展开可看到当前页的实际效果。',
 			'realSr.exampleSemantics' => ({required Object title, required Object before, required Object after, required Object description}) => '${title}示例。${before}与${after}对比。点击查看大图。${description}',
 			'realSr.exampleTitleSuffix' => ({required Object title}) => '${title}（示例）',
-			_ => null,
-		} ?? switch (path) {
 			'realSr.exampleLiveSource' => '来自当前正在阅读的页面，关闭预览后立即释放。',
 			'realSr.beforeUnchanged' => ({required Object before}) => '${before}（保持原样）',
 			'realSr.beforeTrimmedShadow' => ({required Object before}) => '${before}（阴影为裁剪部分）',
@@ -14149,6 +14281,8 @@ extension on Translations {
 			'download.cancelTask' => '取消任务',
 			'download.cancelTaskConfirm' => ({required Object comicName}) => '确定要取消下载 ${comicName} 吗？',
 			'download.paused' => '已暂停',
+			_ => null,
+		} ?? switch (path) {
 			'download.completed' => '已完成',
 			'download.failed' => '失败',
 			'download.startAll' => '全部开始',
@@ -14182,8 +14316,6 @@ extension on Translations {
 			'download.optionLatest' => ({required Object count}) => '下载最近 ${count} 章',
 			'download.optionLatestSubtitle' => '按章节序号取最新的几章',
 			'download.optionPicker' => '手动选章节',
-			_ => null,
-		} ?? switch (path) {
 			'download.optionPickerPlain' => '逐章勾选，也可全选',
 			'download.optionSkipHint' => '「整本」与「最近 N 章」会自动跳过本地已有的章节',
 			'download.filterAll' => '全部',
@@ -14663,6 +14795,8 @@ extension on Translations {
 			'workspace.keepReading' => '接着看',
 			'workspace.sortingTimelineFixed' => '排序（时间线固定按时间排）',
 			'workspace.sortMode' => '排序模式',
+			_ => null,
+		} ?? switch (path) {
 			'workspace.emphasiseByTagWeights' => '按自定义标签权重突出内容。',
 			'workspace.areaByDiskUsage' => '按文件占用空间分配展示面积。',
 			'workspace.timelineByDay' => '按天看时间线',
@@ -14696,8 +14830,6 @@ extension on Translations {
 			'workspace.shortSat' => '六',
 			'workspace.shortFri' => '五',
 			'workspace.shortThu' => '四',
-			_ => null,
-		} ?? switch (path) {
 			'workspace.shortWed' => '三',
 			'workspace.shortTue' => '二',
 			'workspace.shortMon' => '一',
@@ -15177,6 +15309,8 @@ extension on Translations {
 			'video.hwDecode' => '硬件解码',
 			'video.hwDecodeDesc' => '关闭可排查花屏与绿屏，代价是 CPU 占用上升',
 			'video.deinterlace' => '去隔行',
+			_ => null,
+		} ?? switch (path) {
 			'video.deinterlaceDesc' => '老录像带 / DVD 抓取源有横向梳状纹时打开',
 			'video.integrateBottomBar' => '视频控制条融入底栏',
 			'video.integrateBottomBarDesc' => '将播放进度和视频控制整合进阅读底栏，随底栏一起呼出和收起',
@@ -15210,8 +15344,6 @@ extension on Translations {
 			'video.avDrift' => '音画漂移',
 			'video.loopMode' => '循环',
 			'video.playbackRate' => '倍速',
-			_ => null,
-		} ?? switch (path) {
 			'video.abRange' => 'A-B',
 			'video.sidecarSubtitles' => '外挂字幕',
 			'video.notAvailable' => '—',
