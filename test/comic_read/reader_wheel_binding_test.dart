@@ -305,4 +305,95 @@ void main() {
     expect(reader.scroll.offset, 840);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('连续高频微步滚轮事件流仅翻一页，不发生快速连翻多页', (tester) async {
+    final reader = await pump(tester);
+    expect(reader.pages.page, 3);
+
+    // 模拟平滑滚轮（如 macOS Mos / 驱动平滑惯性 / Windows 高分滚轮）
+    // 单次滚轮物理刻度产生 10 发连续微步事件 (dy=5，总计 50px)
+    for (var i = 0; i < 10; i++) {
+      await tester.sendEventToBinding(
+        const PointerScrollEvent(
+          kind: PointerDeviceKind.mouse,
+          position: Offset(300, 300),
+          scrollDelta: Offset(0, 5),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+    await tester.pumpAndSettle();
+
+    // 验证：尽管发了 10 发连续事件，阅读器只翻了 1 页（从 3 到 4），绝不会飞翻多页
+    expect(reader.pages.page, 4);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('滚轮未达阈值前不触发翻页，累计超过阈值后触发且冷却拦截余波', (tester) async {
+    final reader = await pump(tester);
+    expect(reader.pages.page, 3);
+
+    // 1. 微小微步未达 24px 阈值：不翻页
+    await tester.sendEventToBinding(
+      const PointerScrollEvent(
+        kind: PointerDeviceKind.mouse,
+        position: Offset(300, 300),
+        scrollDelta: Offset(0, 10),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reader.pages.page, 3);
+
+    // 2. 追加微步累计达到 25px：触发第 1 次翻页（到第 4 页）
+    await tester.sendEventToBinding(
+      const PointerScrollEvent(
+        kind: PointerDeviceKind.mouse,
+        position: Offset(300, 300),
+        scrollDelta: Offset(0, 15),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reader.pages.page, 4);
+
+    // 3. 立即再发同向滚轮事件（在 200ms 冷却内）：被冷却拦截
+    await tester.sendEventToBinding(
+      const PointerScrollEvent(
+        kind: PointerDeviceKind.mouse,
+        position: Offset(300, 300),
+        scrollDelta: Offset(0, 40),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reader.pages.page, 4);
+
+    // 4. 真实等待冷却结束后再滚：正常翻到下一页（第 5 页）
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 220));
+    });
+    await tester.pump();
+    await tester.sendEventToBinding(
+      const PointerScrollEvent(
+        kind: PointerDeviceKind.mouse,
+        position: Offset(300, 300),
+        scrollDelta: Offset(0, 40),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reader.pages.page, 5);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('滚轮反向滚动立即解除旧冷却并响应反向翻页', (tester) async {
+    final reader = await pump(tester);
+    expect(reader.pages.page, 3);
+
+    // 下滚一格翻到第 4 页
+    await wheel(tester, 40);
+    expect(reader.pages.page, 4);
+
+    // 立即上滚（仍在 200ms 冷却窗口内，但方向相反）：应当立刻响应并翻回第 3 页
+    await wheel(tester, -40);
+    expect(reader.pages.page, 3);
+    expect(tester.takeException(), isNull);
+  });
 }

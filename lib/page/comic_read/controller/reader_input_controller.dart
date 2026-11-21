@@ -248,6 +248,10 @@ class ReaderInputController {
   void dispose() {
     // 阅读器整棵拆掉时轮盘还开着，会留下一层没人收的遮罩。
     ReaderRadialMenu.dismiss();
+    _wheelScrollAccumulator = 0;
+    _lastWheelActionTime = null;
+    _lastWheelActionDirection = null;
+    _lastWheelEventTime = null;
     _keyboard?.dispose();
     _pointerBindings.dispose();
     transformationController.removeListener(_onTransformationChanged);
@@ -551,6 +555,51 @@ class ReaderInputController {
   double _trackpadPanAccumulator = 0;
   DateTime? _lastTrackpadWheelTime;
 
+  /// 滚轮增量累加器（仅用于桌面端 PointerScrollEvent）。
+  /// 避免单次物理滚轮触发的微步流（例如 macOS 减速惯性、Windows 高分滚轮）瞬间触发多次翻页。
+  double _wheelScrollAccumulator = 0;
+  DateTime? _lastWheelActionTime;
+  String? _lastWheelActionDirection;
+  DateTime? _lastWheelEventTime;
+
+  /// 滚轮动作触发的位移阈值（与触控板 24px 对齐）。
+  static const double kWheelDeltaThreshold = 24.0;
+
+  /// 滚轮动作触发后的冷却时间（吞掉同方向的平滑滚动与减速惯性余波）。
+  static const Duration kWheelActionCooldown = Duration(milliseconds: 200);
+
+  /// 滚轮手势超时（超过此时间未收到事件则视为新的一次手势，清理累加残余）。
+  static const Duration kWheelGestureTimeout = Duration(milliseconds: 300);
+
+  bool _resolveWheelHit(double dy) {
+    final bindings = _runtimeBindings;
+    if (bindings == null) {
+      final newCtrlPressed =
+          HardwareKeyboard.instance.logicalKeysPressed.contains(
+            LogicalKeyboardKey.controlLeft,
+          ) ||
+          HardwareKeyboard.instance.logicalKeysPressed.contains(
+            LogicalKeyboardKey.controlRight,
+          );
+      final readMode = context.readEffectiveReadMode();
+      return !newCtrlPressed && readMode != 0;
+    }
+    final invert = OperationBindingStore.wheelDirectionFollowsHand(
+      context.read<GlobalSettingCubit>().state.operationBindingSetting,
+    );
+    final input = bindingWheelInput(dy, invert: invert);
+    final contexts = [
+      'reader',
+      if (ActiveVideoScope.instance.hasTarget) 'video',
+    ];
+    return _actionDispatcher.resolveInput(
+          input,
+          bindings,
+          contexts: contexts,
+        ) !=
+        null;
+  }
+
   bool _dispatchWheelDelta(double dy, {PointerSignalEvent? signalEvent}) {
     if (!_isDesktopPlatform || dy == 0) return false;
     final bindings = _runtimeBindings;
@@ -644,42 +693,104 @@ class ReaderInputController {
       return;
     }
     if (event is! PointerScrollEvent || !_isDesktopPlatform) return;
-    if (_dispatchWheelDelta(event.scrollDelta.dy, signalEvent: event)) {
+
+    final rawDy = event.scrollDelta.dy;
+    if (rawDy == 0) return;
+
+    final isBound = _resolveWheelHit(rawDy);
+    if (!isBound) {
+      // 未被绑定的滚轮（如条漫模式原生 ListView 像素滚动、右侧面板等）：
+      // 立即重置累加器，不拦截，透传给底层 Scrollable
+      _wheelScrollAccumulator = 0;
+      _lastWheelActionTime = null;
+      _lastWheelActionDirection = null;
+
+      final newCtrlPressed =
+          HardwareKeyboard.instance.logicalKeysPressed.contains(
+            LogicalKeyboardKey.controlLeft,
+          ) ||
+          HardwareKeyboard.instance.logicalKeysPressed.contains(
+            LogicalKeyboardKey.controlRight,
+          );
+
+      if (_isCtrlPressed != newCtrlPressed) {
+        _isCtrlPressed = newCtrlPressed;
+        onRefreshState();
+      }
       return;
     }
 
-    final newCtrlPressed =
-        HardwareKeyboard.instance.logicalKeysPressed.contains(
-          LogicalKeyboardKey.controlLeft,
-        ) ||
-        HardwareKeyboard.instance.logicalKeysPressed.contains(
-          LogicalKeyboardKey.controlRight,
-        );
+    final invert = OperationBindingStore.wheelDirectionFollowsHand(
+      context.read<GlobalSettingCubit>().state.operationBindingSetting,
+    );
+    final currentDirection = (invert ? -rawDy : rawDy) < 0 ? 'up' : 'down';
+    final now = DateTime.now();
 
-    if (_isCtrlPressed != newCtrlPressed) {
-      _isCtrlPressed = newCtrlPressed;
-      onRefreshState();
+    // 手势间隔超时：超过 300ms 无滚轮事件，清空旧累加器残余
+    if (_lastWheelEventTime != null &&
+        now.difference(_lastWheelEventTime!) > kWheelGestureTimeout) {
+      _wheelScrollAccumulator = 0;
+      _lastWheelActionTime = null;
+      _lastWheelActionDirection = null;
+    }
+    _lastWheelEventTime = now;
+
+    // 1. 换向处理：若滚轮中途反向滚动，立刻重置累加器并解除旧方向冷却
+    if (_lastWheelActionDirection != null &&
+        _lastWheelActionDirection != currentDirection) {
+      _wheelScrollAccumulator = 0;
+      _lastWheelActionTime = null;
+      _lastWheelActionDirection = null;
+    } else if ((_wheelScrollAccumulator > 0 && rawDy < 0) ||
+        (_wheelScrollAccumulator < 0 && rawDy > 0)) {
+      _wheelScrollAccumulator = 0;
     }
 
-    // 绑定表在位时，未命中的输入留给 Scrollable / 缩放；不再执行旧翻页规则。
-    // 否则删除、停用或改绑滚轮之后，它仍会绕过配置翻页。
-    if (_runtimeBindings != null) return;
+    // 2. 冷却检查：上一次触发动作后，吞掉同方向的平滑微步/惯性余波
+    if (_lastWheelActionTime != null &&
+        now.difference(_lastWheelActionTime!) < kWheelActionCooldown) {
+      final before = transformationController.value.clone();
+      GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+        transformationController.value = before;
+      });
+      return;
+    }
 
-    // 上游的单本覆盖：滚轮翻页按「这本」的有效模式判，不是全局模式。
-    final readMode = context.readEffectiveReadMode();
-    if (!newCtrlPressed && readMode != 0) {
-      // 与采集口同一个方向判定：关掉总开关不该让滚轮的手势方向变掉。
-      final dy =
-          OperationBindingStore.wheelDirectionFollowsHand(
-            context.read<GlobalSettingCubit>().state.operationBindingSetting,
-          )
-          ? -event.scrollDelta.dy
-          : event.scrollDelta.dy;
-      if (dy > 0) {
-        actionController.onPageActionNext();
-      } else if (dy < 0) {
-        actionController.onPageActionPrev();
+    _wheelScrollAccumulator += rawDy;
+
+    // 3. 达到阈值才触发一次动作
+    if (_wheelScrollAccumulator.abs() >= kWheelDeltaThreshold) {
+      final effectiveDy = _wheelScrollAccumulator;
+      _wheelScrollAccumulator = 0;
+
+      if (_runtimeBindings != null) {
+        if (_dispatchWheelDelta(effectiveDy, signalEvent: event)) {
+          _lastWheelActionTime = now;
+          _lastWheelActionDirection = currentDirection;
+          return;
+        }
+      } else {
+        final before = transformationController.value.clone();
+        GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+          transformationController.value = before;
+        });
+        _lastWheelActionTime = now;
+        _lastWheelActionDirection = currentDirection;
+        final dy = invert ? -effectiveDy : effectiveDy;
+        if (dy > 0) {
+          actionController.onPageActionNext();
+        } else if (dy < 0) {
+          actionController.onPageActionPrev();
+        }
+        return;
       }
+    } else {
+      // 4. 尚未达到阈值的微步平滑包：命中绑定时先在 resolver 登记防止被底层缩放篡夺
+      final before = transformationController.value.clone();
+      GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+        transformationController.value = before;
+      });
+      return;
     }
   }
 
